@@ -5,7 +5,7 @@ description: >
   for labeled multi-line text fields with Textarea, Label, StatusText,
   validation status, help text, size, resize, required, and disabled props.
 metadata:
-  component_version: "1.1.3"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -73,6 +73,7 @@ where actions and feedback live). This section applies them to `FormTextarea`.
 | `state=disabled` | `disabled` |
 | — (not in Figma) | `readOnly` |
 | `required=true` | `required` |
+| `requiredLabel="(povinné)"` | `requiredLabel` (screen-reader text; `""` omits it) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormTextarea → UX guidelines*.
 

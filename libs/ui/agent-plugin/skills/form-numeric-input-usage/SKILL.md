@@ -5,7 +5,7 @@ description: >
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
 metadata:
-  component_version: "1.2.2"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -70,6 +70,7 @@ where actions and feedback live). This section applies them to `FormNumericInput
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` (steppers hidden) |
 | `required=true` | `required` |
+| `requiredLabel="(povinné)"` | `requiredLabel` (screen-reader text; `""` omits it) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormNumericInput → UX guidelines*.
 

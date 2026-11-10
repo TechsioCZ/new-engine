@@ -5,7 +5,7 @@ description: >
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
 metadata:
-  component_version: "1.1.4"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -77,6 +77,7 @@ where actions and feedback live). This section applies them to `FormInput`.
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` |
 | `required=true` | `required` |
+| `requiredLabel="(povinné)"` | `requiredLabel` (screen-reader text; `""` omits it) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormInput → UX guidelines*.
 

@@ -13,6 +13,18 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Label v1.1.0
+- Label accepts requiredLabel to translate the screen-reader text announced after the required marker (default '(required)', unchanged); an empty string omits it.
+
+### FormInput v1.2.0
+- FormInput accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### FormTextarea v1.2.0
+- FormTextarea accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### FormNumericInput v1.3.0
+- FormNumericInput accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
 ### Chart v1.2.2
 - Chart tooltips format dates with a fixed en-US medium format (e.g. "Mar 5, 2026") when no locale is given, instead of the viewer's browser locale. Set locale to format dates and numbers for that locale.
 
