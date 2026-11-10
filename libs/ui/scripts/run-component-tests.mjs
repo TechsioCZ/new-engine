@@ -151,6 +151,28 @@ function reportTests(suites, file) {
   ])
 }
 
+/** @param {ReportSuite[]} suites @returns {{file: string, storyId?: string}[]} */
+function failedTests(suites) {
+  return suites.flatMap((suite) => [
+    ...(suite.specs ?? []).flatMap((spec) =>
+      spec.tests
+        .filter((test) => test.status === "unexpected")
+        .map((test) => ({
+          file: spec.file,
+          storyId: test.annotations?.find(
+            (annotation) => annotation.type === "visual-story-id"
+          )?.description,
+        }))
+    ),
+    ...failedTests(suite.suites ?? []),
+  ])
+}
+
+/** @param {(string | undefined)[]} values @returns {string[]} */
+function uniqueSorted(values) {
+  return [...new Set(values.filter((value) => value !== undefined))].sort()
+}
+
 /** @param {{errors: unknown[], stats: {unexpected: number, flaky: number}, suites: ReportSuite[]}[]} reports */
 function verifyCompletion(reports) {
   const stories = visualStories(
@@ -548,35 +570,38 @@ function printCanonicalPlatformHint(reportNames) {
   if (platform === "linux/amd64") {
     return
   }
-  /** @type {string[]} */
-  let storyIds
+  /** @type {{file: string, storyId?: string}[]} */
+  let failed
   try {
-    storyIds = [
-      ...new Set(
-        readReports(reportNames)
-          .flatMap((report) => reportTests(report.suites))
-          .filter((test) => test.status === "unexpected")
-          .flatMap((test) => test.annotations ?? [])
-          .filter((annotation) => annotation.type === "visual-story-id")
-          .map((annotation) => String(annotation.description))
-      ),
-    ].sort()
+    failed = readReports(reportNames).flatMap((report) =>
+      failedTests(report.suites)
+    )
   } catch {
     // A crashed run leaves no report to read.
     return
   }
-  if (!storyIds.length) {
-    return
-  }
-  console.log(
-    [
-      "",
+  const storyIds = uniqueSorted(failed.map((test) => test.storyId))
+  const behaviorFiles = uniqueSorted(
+    failed.filter((test) => !test.storyId).map((test) => `test/${test.file}`)
+  )
+  const lines = []
+  if (storyIds.length) {
+    lines.push(
       `${storyIds.length} screenshot ${storyIds.length === 1 ? "story" : "stories"} failed on ${platform}. Baselines are rendered on linux/amd64;`,
       "confirm there before treating this as a regression:",
-      `  PLAYWRIGHT_DOCKER_PLATFORM=linux/amd64 TEST_STORIES=${storyIds.join(",")} pnpm -C libs/ui test:components -- test/visual.spec.ts`,
-      "",
-    ].join("\n")
-  )
+      `  PLAYWRIGHT_DOCKER_PLATFORM=linux/amd64 TEST_STORIES=${storyIds.join(",")} pnpm -C libs/ui test:components -- test/visual.spec.ts`
+    )
+  }
+  if (behaviorFiles.length) {
+    lines.push(
+      `${behaviorFiles.length} behavior spec ${behaviorFiles.length === 1 ? "file" : "files"} failed on ${platform}. CI runs them on linux/amd64;`,
+      "confirm there before treating this as a regression:",
+      `  PLAYWRIGHT_DOCKER_PLATFORM=linux/amd64 pnpm -C libs/ui test:components -- ${behaviorFiles.join(" ")}`
+    )
+  }
+  if (lines.length) {
+    console.log(["", ...lines, ""].join("\n"))
+  }
 }
 
 /**
