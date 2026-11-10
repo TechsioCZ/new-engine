@@ -386,10 +386,10 @@ test("CI and forced publication require the same immutable-SHA quality workflow"
 const WORKFLOW_JOB_BOUNDARY = /\n(?= {2}[\w-]+:\n)/
 const WORKFLOW_JOB_HEADER = /^ {2}([\w-]+):\n/
 const WORKFLOW_STEP_BOUNDARY = /\n {6}- /
-const CI_MODE_LINE =
-  /mode: \$\{\{ github\.event_name == 'pull_request' && 'changed' \|\| 'full' \}\}/
+// CI always asks for the changed scope; only the release gate runs everything.
+const CI_MODE_LINE = /\n {6}mode: changed\n/
 const CI_BASE_SHA_LINE =
-  /base_sha: \$\{\{ github\.event\.pull_request\.base\.sha \|\| '' \}\}/
+  /base_sha: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.before \|\| '' \}\}/
 const RELEASE_HAS_SCOPE_INPUT = /\bmode:|base_sha/
 const QUALITY_MODE_INPUT = /mode:\n {8}description:[\s\S]*default: full/
 const QUALITY_BASE_INPUT = /base_sha:\n {8}description:[\s\S]*default: ""/
@@ -442,7 +442,7 @@ function stepContaining(yaml, needle) {
   return step
 }
 
-test("pull requests request the changed scope while pushes and releases keep the full run", () => {
+test("CI requests the changed scope while the release gate keeps the full run", () => {
   const ci = read("../../../.github/workflows/ci.yml")
   const release = read("../../../.github/workflows/ui-release.yml")
   const quality = read("../../../.github/workflows/ui-quality.yml")
