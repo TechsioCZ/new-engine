@@ -261,12 +261,10 @@ function showToastPortalHost(host: HTMLElement) {
     return
   }
   try {
-    if (host.matches(":popover-open")) {
-      return
-    }
     host.showPopover()
   } catch {
-    // Opening the top layer is progressive enhancement; never break rendering.
+    // An already-open host throws here, and opening the top layer is
+    // progressive enhancement; never break rendering.
   }
 }
 
