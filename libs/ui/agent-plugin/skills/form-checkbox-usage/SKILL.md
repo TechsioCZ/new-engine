@@ -5,7 +5,7 @@ description: >
   for labeled checkbox fields with Zag.js checked/indeterminate state, help
   text, validation status, required, disabled, and read-only props.
 metadata:
-  component_version: "1.3.1"
+  component_version: "1.3.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -105,6 +105,11 @@ validation and FormData consistent with the accepted value, even without a
 parent rerender. Reset restores the initial uncontrolled default after the
 native reset action; canceled resets leave state unchanged. Controlled parents
 retain ownership; reset never proposes a value change.
+
+A click on the input or label, Space, and a scripted `input.click()` each
+toggle once and call `onCheckedChange` inside that click. The native checked
+state and FormData are current in the same tick, so a test can click and then
+submit without waiting.
 
 The label text slot fills the remaining row width and can wrap safely. Rich
 labels may use a flexible text column and an end-aligned, nonshrinking count

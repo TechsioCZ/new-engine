@@ -6,7 +6,7 @@ description: >
   checked/defaultChecked, validation status, help text, required, disabled, and
   read-only state.
 metadata:
-  component_version: "1.2.2"
+  component_version: "1.2.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -99,6 +99,9 @@ validity. Native reset restores the initial uncontrolled default after the
 browser reset action, including imperative `form.reset()` while focused.
 Canceled resets do not change state or emit value callbacks. Controlled parents
 retain ownership: reset silently re-syncs the native input to their checked value.
+A click on the input or label, Space, and a scripted `input.click()` each toggle
+once and call `onCheckedChange` inside that click, so the native checked state
+and FormData are current in the same tick.
 The label shrinks and safely wraps long/localized words without shrinking the
 track. Enabled unchecked and invalid thumbs have a contrasting state-aware fill.
 

@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.3.1
+ * @componentVersion v1.3.2
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -19,6 +19,7 @@ import {
 } from "react"
 import { StatusText } from "../atoms/status-text"
 import {
+  commitChoiceClick,
   getControlledChoiceInputProps,
   isSilentChoiceReset,
   mergeChoiceInputProps,
@@ -217,7 +218,12 @@ export function FormCheckbox({
 
   const api = connect(service, normalizeProps)
   const inputProps = getControlledChoiceInputProps(
-    mergeChoiceInputProps(nativeInputProps, api.getHiddenInputProps()),
+    mergeChoiceInputProps(
+      nativeInputProps,
+      commitChoiceClick(api.getHiddenInputProps(), readOnly, (next) =>
+        service.context.set("checked", next)
+      )
+    ),
     api.checked,
     api.indeterminate
   )

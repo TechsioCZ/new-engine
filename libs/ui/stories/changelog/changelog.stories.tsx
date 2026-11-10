@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FormCheckbox v1.3.2
+- FormCheckbox now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored.
+
+### Switch v1.2.3
+- Switch now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored.
+
 ### Chart v1.2.2
 - Chart tooltips format dates with a fixed en-US medium format (e.g. "Mar 5, 2026") when no locale is given, instead of the viewer's browser locale. Set locale to format dates and numbers for that locale.
 
