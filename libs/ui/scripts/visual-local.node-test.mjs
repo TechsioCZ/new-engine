@@ -651,6 +651,19 @@ describe("pruneCandidates", () => {
     )
   })
 
+  it("keeps entries used within the minimum age, even beyond N", () => {
+    assert.deepEqual(
+      pruneCandidates({
+        entries,
+        keep: 1,
+        protectedNames: [],
+        now: 10,
+        minAgeMs: 7,
+      }),
+      ["mid", "old"]
+    )
+  })
+
   it("drops nothing when there are at most N entries", () => {
     assert.deepEqual(
       pruneCandidates({ entries, keep: 4, protectedNames: [] }),

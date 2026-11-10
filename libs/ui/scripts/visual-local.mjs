@@ -59,6 +59,8 @@ const unownedLockMs = 30_000
 const gib = 1024 ** 3
 const minBaseFreeGiB = 3
 const defaultCacheKeep = 5
+// A base used within this window may still be read by a running comparison.
+const pruneMinAgeMs = 24 * 60 * 60 * 1000
 const outputTailChars = 65_536
 const browserHint =
   "Browsers are missing. Run `pnpm -C libs/ui exec playwright install chromium webkit`."
@@ -70,6 +72,8 @@ const runnerEnvKeys = [
   "VISUAL_CHANGED_DRY_RUN",
   "TEST_STORIES",
   "VISUAL_STORYBOOK_STATIC_DIR",
+  // Not part of the harness key, so a custom HAR must not shape cached baselines.
+  "VISUAL_ASSET_HAR_PATH",
 ]
 /** Removed from the inherited env of base runs only; compare runs keep what the user set. */
 const baseOnlyEnvKeys = ["VISUAL_CANONICAL"]
@@ -508,16 +512,27 @@ export function childEnv({
 
 /**
  * Chooses which directories a cache level drops: everything outside the newest
- * `keep` by mtime. Protected names always stay and do not count toward `keep`.
- * @param {{ entries: { name: string, mtimeMs: number }[], keep: number, protectedNames: string[] }} input
+ * `keep` by mtime that is also older than `minAgeMs`, so a base another run is
+ * still comparing against is never removed. Protected names always stay.
+ * @param {{ entries: { name: string, mtimeMs: number }[], keep: number, protectedNames: string[], now?: number, minAgeMs?: number }} input
  * @returns {string[]}
  */
-export function pruneCandidates({ entries, keep, protectedNames }) {
+export function pruneCandidates({
+  entries,
+  keep,
+  protectedNames,
+  now = Date.now(),
+  minAgeMs = pruneMinAgeMs,
+}) {
   const protectedSet = new Set(protectedNames)
   const newest = [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs)
   const kept = new Set(newest.slice(0, keep).map((entry) => entry.name))
   return newest
-    .filter((entry) => !(kept.has(entry.name) || protectedSet.has(entry.name)))
+    .filter(
+      (entry) =>
+        !(kept.has(entry.name) || protectedSet.has(entry.name)) &&
+        now - entry.mtimeMs >= minAgeMs
+    )
     .map((entry) => entry.name)
 }
 
