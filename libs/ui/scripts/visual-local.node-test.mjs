@@ -2,7 +2,6 @@ import assert from "node:assert/strict"
 import path from "node:path"
 import { describe, it } from "node:test"
 import {
-  artifactDirs,
   baseDiskError,
   buildManifestEntries,
   cacheKeepFrom,
@@ -439,20 +438,6 @@ describe("needsBaseBuild", () => {
   })
 })
 
-describe("artifactDirs", () => {
-  it("lists only trees inside the temporary worktree", () => {
-    const wt = path.join("/tmp", "ui-visual-base-x", "wt")
-    const dirs = artifactDirs(wt)
-    assert.deepEqual(
-      dirs.map((dir) => dir.kind),
-      ["dependencies", "dependencies", "build"]
-    )
-    for (const dir of dirs) {
-      assert.ok(dir.path.startsWith(wt + path.sep), dir.path)
-    }
-  })
-})
-
 describe("harnessHash", () => {
   const spec = { path: "test/visual.spec.ts", bytes: "spec one" }
   const helper = { path: "test/visual-shared.spec.mjs", bytes: "helper" }
@@ -595,6 +580,11 @@ describe("childEnv", () => {
       childEnv({ ...common, kind: "base", storybookDir }).VISUAL_CANONICAL,
       undefined
     )
+  })
+
+  it("points a compare run at the working-tree build it is given", () => {
+    const env = childEnv({ ...common, kind: "compare", storybookDir })
+    assert.equal(env.VISUAL_STORYBOOK_STATIC_DIR, path.resolve(storybookDir))
   })
 
   it("always points a base run at the base Storybook build", () => {

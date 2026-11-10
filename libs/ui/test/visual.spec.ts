@@ -1398,7 +1398,6 @@ async function runFast(
   story: StorybookEntry,
   testInfo: TestInfo
 ) {
-  session.errors.length = 0
   await resetForStory(session.page, story.id)
   const annotations: StoryRun["annotations"] = []
   const beyondPrimary = await captureStory({
@@ -1414,6 +1413,9 @@ async function runFast(
   })
   await session.assets.whenIdle()
   testInfo.annotations.push(...annotations)
+  // Errors are cleared only at a clean story boundary, so one raised while the
+  // session booted still fails the first story into the canonical retry.
+  session.errors.length = 0
   session.rendered += 1
   session.lastStoryId = story.id
   if (beyondPrimary || (await leavesSharedState(session.page))) {

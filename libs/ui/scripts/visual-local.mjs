@@ -23,7 +23,6 @@ import {
  * @typedef {{ baseStories: string[], newStories: string[], missingBase: string[] }} BasePlan
  * @typedef {{ mode: "all" | "subset" | "none", storyIds: string[], reason: string }} Selection
  * @typedef {Record<string, string[]>} CaptureManifest Story id to the snapshot file names its last successful base capture produced.
- * @typedef {{ path: string, kind: "build" | "dependencies" }} ArtifactDir
  * @typedef {{ path: string, bytes: Buffer | Uint8Array | string }} HarnessFile
  * @typedef {{ buildDir: string, storybookDir: string, cacheDir: string, snapshotDir: string, manifestPath: string }} CachePaths
  * @typedef {{ status: number, output: string }} RunResult
@@ -31,8 +30,16 @@ import {
 
 const uiRoot = path.resolve(import.meta.dirname, "..")
 const repoRoot = path.resolve(uiRoot, "../..")
-const headStorybookDir = path.join(uiRoot, "storybook-static")
 const localDir = path.join(uiRoot, ".visual-local")
+const sharedStorybookDir = path.join(uiRoot, "storybook-static")
+// The working-tree build lives in .visual-local so a local check never replaces
+// the shared build another run may be serving. An existing shared build is only
+// read, and only when the caller asked not to rebuild.
+const headStorybookDir =
+  process.env.PLAYWRIGHT_STORYBOOK_REBUILD === "0" &&
+  !fs.existsSync(path.join(localDir, "storybook-static", "index.json"))
+    ? sharedStorybookDir
+    : path.join(localDir, "storybook-static")
 const playwrightConfig = "playwright.config.mts"
 const visualSpec = "test/visual.spec.ts"
 const fixtureDir = path.join("test", "fixtures", "visual-assets")
@@ -51,8 +58,6 @@ const manifestFile = "captured.json"
 const tempPrefix = "ui-visual-base-"
 const ownerFile = "owner-pid"
 const lockSuffix = ".lock"
-const guardianBin = path.join(os.homedir(), "bin", "disk-guardian-artifacts")
-const guardianGraceHours = "24"
 const lockPollMs = 2000
 const lockTimeoutMs = 2 * 60 * 60 * 1000
 const unownedLockMs = 30_000
@@ -393,19 +398,6 @@ export function needsBaseBuild({ hasIndex, rebuildBase, builtAt, startedAt }) {
 }
 
 /**
- * Operation-owned trees inside the temporary base worktree.
- * @param {string} wt
- * @returns {ArtifactDir[]}
- */
-export function artifactDirs(wt) {
-  return [
-    { path: path.join(wt, "node_modules"), kind: "dependencies" },
-    { path: path.join(wt, "libs", "ui", "node_modules"), kind: "dependencies" },
-    { path: path.join(wt, "libs", "ui", "storybook-static"), kind: "build" },
-  ]
-}
-
-/**
  * Cache locations for one base commit. Builds are shared by every harness;
  * snapshots live under the harness-keyed directory.
  * @param {string} root
@@ -470,7 +462,7 @@ export function ranTests(output) {
 /**
  * Builds the environment for one Playwright run. Inherited variables that would
  * change what the spec runs are removed first. Base runs point at the base build,
- * compare runs never do.
+ * compare runs at the working-tree build.
  * @param {{ env: Record<string, string | undefined>, kind: "base" | "compare", snapshotDir: string, storybookDir?: string, storyIds: string[], port: number, workers: number, extra?: Record<string, string> }} input
  * @returns {Record<string, string | undefined>}
  */
@@ -494,13 +486,12 @@ export function childEnv({
   const inherited = Object.fromEntries(
     Object.entries(env).filter(([key]) => !dropped.has(key))
   )
-  const baseOnly =
-    kind === "base"
-      ? { VISUAL_STORYBOOK_STATIC_DIR: path.resolve(storybookDir) }
-      : {}
+  const build = storybookDir
+    ? { VISUAL_STORYBOOK_STATIC_DIR: path.resolve(storybookDir) }
+    : {}
   return {
     ...inherited,
-    ...baseOnly,
+    ...build,
     VISUAL_NATIVE: "1",
     VISUAL_SNAPSHOT_DIR: path.resolve(snapshotDir),
     TEST_BASE_URL: `http://127.0.0.1:${port}`,
@@ -590,67 +581,15 @@ function processAlive(pid) {
 
 /** @returns {string} */
 function tempRoot() {
-  return process.env.OWNED_TEMP_DIR || os.tmpdir()
-}
-
-/**
- * @param {number} pid
- * @returns {string}
- */
-function ownerTag(pid) {
-  return `visual-local:${pid}`
-}
-
-/**
- * Registers or releases a tree with the disk guardian when it is installed.
- * @param {"register" | "release"} action
- * @param {ArtifactDir} artifact
- * @param {number} pid
- */
-function guardian(action, artifact, pid) {
-  if (!(fs.existsSync(guardianBin) && fs.existsSync(artifact.path))) {
-    return
-  }
-  const args = [action, artifact.path, "--owner", ownerTag(pid)]
-  if (action === "register") {
-    args.push(
-      "--kind",
-      artifact.kind,
-      "--grace-hours",
-      guardianGraceHours,
-      "--owner-pid",
-      String(pid)
-    )
-  }
-  const result = spawnSync(guardianBin, args, { stdio: "pipe" })
-  if (action === "register" && result.status !== 0) {
-    console.warn(`disk-guardian-artifacts could not register ${artifact.path}`)
-  }
-}
-
-/**
- * @param {string} wt
- * @param {number} pid
- * @param {ArtifactDir["kind"]} kind
- */
-function registerArtifacts(wt, pid, kind) {
-  for (const artifact of artifactDirs(wt)) {
-    if (artifact.kind === kind) {
-      guardian("register", artifact, pid)
-    }
-  }
+  return os.tmpdir()
 }
 
 /**
  * Removes a temporary base worktree and its directory. Safe when partly created.
  * @param {string} tmp
  * @param {string} wt
- * @param {number} pid
  */
-function removeBaseTemp(tmp, wt, pid) {
-  for (const artifact of artifactDirs(wt)) {
-    guardian("release", artifact, pid)
-  }
+function removeBaseTemp(tmp, wt) {
   spawnSync("git", ["worktree", "remove", "--force", wt], {
     cwd: repoRoot,
     stdio: "pipe",
@@ -666,7 +605,7 @@ function cleanupBaseTemp() {
   }
   const { tmp, wt } = baseTemp
   baseTemp = null
-  removeBaseTemp(tmp, wt, process.pid)
+  removeBaseTemp(tmp, wt)
 }
 
 /**
@@ -683,7 +622,7 @@ function sweepStaleBaseTemps() {
       const tmp = path.join(root, name)
       const pid = Number(readText(path.join(tmp, ownerFile)).trim())
       if (!processAlive(pid)) {
-        removeBaseTemp(tmp, path.join(tmp, "wt"), pid)
+        removeBaseTemp(tmp, path.join(tmp, "wt"))
       }
     }
   }
@@ -956,16 +895,23 @@ function runStreamed(command, args, options) {
  * The CLI is resolved from the given UI directory, so a temporary worktree
  * builds with its own Storybook.
  * @param {string} uiDir
+ * @param {string} [outputDir] Defaults to Storybook's own storybook-static.
  */
-function buildStorybook(uiDir) {
+function buildStorybook(uiDir, outputDir) {
   const manifest = createRequire(path.join(uiDir, "package.json")).resolve(
     "storybook/package.json"
   )
   const bin = JSON.parse(fs.readFileSync(manifest, "utf8")).bin
   const binPath = typeof bin === "string" ? bin : bin?.storybook
-  run(process.execPath, [path.join(path.dirname(manifest), binPath), "build"], {
-    cwd: uiDir,
-  })
+  run(
+    process.execPath,
+    [
+      path.join(path.dirname(manifest), binPath),
+      "build",
+      ...(outputDir ? ["--output-dir", outputDir] : []),
+    ],
+    { cwd: uiDir }
+  )
 }
 
 /** @returns {string} */
@@ -1062,9 +1008,7 @@ function buildBaseInTemp({ baseSha, paths }) {
     run("pnpm", ["install", "--frozen-lockfile", "--prefer-offline"], {
       cwd: wt,
     })
-    registerArtifacts(wt, process.pid, "dependencies")
     buildStorybook(path.join(wt, "libs", "ui"))
-    registerArtifacts(wt, process.pid, "build")
     publishBuild(
       path.join(wt, "libs", "ui", "storybook-static"),
       paths.storybookDir
@@ -1334,6 +1278,7 @@ async function compareWorkingTree({ paths, storyIds, workers }) {
       env: process.env,
       kind: "compare",
       snapshotDir: paths.snapshotDir,
+      storybookDir: headStorybookDir,
       storyIds,
       port,
       workers,
@@ -1448,7 +1393,7 @@ async function main(options) {
   const baseSha = mergeBase(options.base)
   const paths = cachePathsFor(root, baseSha, currentHarnessKey())
   if (process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0") {
-    buildStorybook(uiRoot)
+    buildStorybook(uiRoot, headStorybookDir)
   }
   const headIds = visualIdsOf(headStorybookDir)
   const selection = selectStories({ options, baseSha, headIds })
