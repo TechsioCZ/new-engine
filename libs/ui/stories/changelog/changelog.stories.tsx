@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Tooltip v1.1.3
+- A Tooltip opened by keyboard focus no longer closes at once when the mouse rests near the page's top-left corner. Before its first measurement the hint was painted in that corner for a frame, so a resting pointer "entered" and then "left" it, and the leave closed the hint. The positioner now starts off-screen until it is placed.
+
 ### FormCheckbox v1.3.2
 - FormCheckbox now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored. Note the order: onCheckedChange now runs inside the click, before the input's own onChange.
 
