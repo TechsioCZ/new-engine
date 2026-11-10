@@ -7,11 +7,63 @@ on:
         description: Immutable commit to validate and publish
         required: true
         type: string
+      mode:
+        description: full runs everything; changed runs only what the diff can affect
+        type: string
+        default: full
+      base_sha:
+        description: Base commit for changed mode; empty falls back to the full run
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+    steps:
+      - if: inputs.mode == 'changed'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - if: inputs.mode == 'changed'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+      # Any doubt (no base, no merge-base) keeps the full scope; never "none".
+      # -z keeps paths unquoted, so non-ASCII names still reach the classifier.
+      - id: scope
+        env:
+          MODE: ${{ inputs.mode }}
+          BASE_SHA: ${{ inputs.base_sha }}
+          HEAD_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          scope=full
+          list=false
+          if [ "$MODE" = "changed" ] && [ -n "$BASE_SHA" ] && base="$(git merge-base "$BASE_SHA" "$HEAD_SHA" 2>/dev/null)"; then
+            git diff -z --name-only --no-renames "$base" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files.txt"
+            scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
+            list=true
+          fi
+          echo "scope=${scope}" >> "$GITHUB_OUTPUT"
+          echo "list=${list}" >> "$GITHUB_OUTPUT"
+      - if: steps.scope.outputs.list == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-changed-files-${{ inputs.sha }}
+          path: ${{ runner.temp }}/changed-files.txt
+          if-no-files-found: error
+
   package:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -32,14 +84,14 @@ jobs:
       - run: pnpm --dir libs/ui check:package
 
   components:
+    needs: plan
+    if: needs.plan.outputs.scope != 'none'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
-    env:
-      PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,10 +103,37 @@ jobs:
           node-version: 26.11.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
-      # Full Docker suite: behavior on both devices and all 12 visual projects,
-      # split across shards. Release mode rejects filters and baseline updates;
-      # components-complete asserts every identity over all shard reports.
-      - run: pnpm --dir libs/ui test:components:release
+      - id: storybook-inputs
+        run: |
+          hash="$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)"
+          echo "hash=${hash}" >> "$GITHUB_OUTPUT"
+      # The runner checks the marker inside the build, so a restored build is used only when it matches these inputs.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: libs/ui/storybook-static
+          key: ui-storybook-v1-${{ steps.storybook-inputs.outputs.hash }}
+      # Full Docker suite: behavior on both devices and all 6 visual projects
+      # (3 brands, desktop and mobile), split across shards. Release mode rejects
+      # filters and baseline updates; components-complete asserts every identity
+      # over all shard reports.
+      - name: Full release suite
+        if: needs.plan.outputs.scope == 'full'
+        env:
+          PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/8
+        run: pnpm --dir libs/ui test:components:release
+      - name: Download the changed-file list
+        if: needs.plan.outputs.scope == 'ui'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ui-changed-files-${{ inputs.sha }}
+          path: ${{ runner.temp }}/ui-changed-files
+      - name: Affected screenshots and behavior specs
+        if: needs.plan.outputs.scope == 'ui'
+        env:
+          PLAYWRIGHT_SHARD: ${{ matrix.shard }}/8
+          VISUAL_CHANGED_BEHAVIOR: "1"
+          VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
+        run: pnpm --dir libs/ui test:components
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -69,10 +148,12 @@ jobs:
           path: |
             libs/ui/test-results/visual-reports/all.json
             libs/ui/test-results/visual-reports/index.json
+            libs/ui/test-results/visual-reports/changed-none.json
           if-no-files-found: error
 
   components-complete:
-    needs: components
+    needs: [plan, components]
+    if: needs.plan.outputs.scope != 'none'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -90,8 +171,11 @@ jobs:
       - run: node libs/ui/scripts/verify-component-shards.mjs component-shards
         env:
           PLAYWRIGHT_RELEASE_SHARDS: "8"
+          VISUAL_SHARD_MODE: ${{ needs.plan.outputs.scope == 'ui' && 'changed' || 'full' }}
 
   accessibility:
     uses: ./.github/workflows/storybook-a11y.yml
+    needs: plan
+    if: needs.plan.outputs.scope != 'none'
     with:
       sha: ${{ inputs.sha }}

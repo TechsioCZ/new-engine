@@ -23,26 +23,28 @@ export function assertReleaseSelection(args, env) {
   assert.notEqual(
     env.PLAYWRIGHT_STORYBOOK_REBUILD,
     "0",
-    "Release readiness must build the checked-out commit"
+    "Release readiness must build or verify the checked-out commit"
   )
 }
 
-/** Parse PLAYWRIGHT_RELEASE_SHARD ("index/total"). Shards only split the
- * release run; completeness is asserted over the merged shard reports.
+const shardPattern = /^(\d+)\/(\d+)$/
+/** Parse a shard ("index/total") from PLAYWRIGHT_RELEASE_SHARD or PLAYWRIGHT_SHARD.
+ * Shards only split a run; completeness is asserted over the merged shard reports.
  * @param {string | undefined} value
+ * @param {string} [name] environment variable named in error messages
  * @returns {{index: number, total: number} | undefined}
  */
-export function parseReleaseShard(value) {
+export function parseReleaseShard(value, name = "PLAYWRIGHT_RELEASE_SHARD") {
   if (!value) {
     return
   }
-  const match = /^(\d+)\/(\d+)$/.exec(value)
-  assert.ok(match, `Invalid release shard "${value}"; use index/total`)
+  const match = shardPattern.exec(value)
+  assert.ok(match, `Invalid ${name} "${value}"; use index/total`)
   const index = Number(match[1])
   const total = Number(match[2])
   assert.ok(
     total >= 1 && total <= 32 && index >= 1 && index <= total,
-    `Release shard out of range: ${value}`
+    `${name} out of range: ${value}`
   )
   return { index, total }
 }

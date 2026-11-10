@@ -85,6 +85,7 @@
     "test:components:release": "cross-env VISUAL_RELEASE_READINESS=1 node scripts/run-component-tests.mjs",
     "test:components:update": "node scripts/run-component-tests.mjs --update-snapshots",
     "test:visual:local": "node scripts/visual-local.mjs",
+    "baselines:pull": "node scripts/pull-ci-baselines.mjs",
     "test:sidebar:ssr": "vitest run --config vitest.config.ts test/sidebar.ssr.bun.tsx",
     "lint:tailwind": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js",
     "lint:tailwind:fix": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js --fix",

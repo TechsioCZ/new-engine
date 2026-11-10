@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process"
 import crypto from "node:crypto"
 import fs from "node:fs"
-import { createRequire } from "node:module"
 import path from "node:path"
 import {
   assertPrimaryBaselines,
@@ -14,7 +13,9 @@ import { createVisualMatrix } from "../test/visual-projects.mjs"
 import {
   affectedStoriesFromDisk,
   gitChangedFiles,
+  readPathList,
 } from "./visual-affected-stories.mjs"
+import { ensureStorybookBuild } from "./visual-storybook-build.mjs"
 
 // Runs the Playwright visual tests inside Docker for reproducible snapshots.
 const uiRoot = path.resolve(import.meta.dirname, "..")
@@ -87,7 +88,14 @@ const explicitChangedFiles = explicitChangedFilesList
   .split(",")
   .map((file) => file.trim())
   .filter(Boolean)
-const changedMode = changedSince !== "" || explicitChangedFilesList !== ""
+// A file list beats the env list because a file can hold thousands of paths.
+const changedFilesPath = (process.env.VISUAL_CHANGED_FILES_FROM ?? "").trim()
+const changedMode =
+  changedSince !== "" ||
+  explicitChangedFilesList !== "" ||
+  changedFilesPath !== ""
+// Also run the component behavior specs in a changed subset.
+const changedBehavior = process.env.VISUAL_CHANGED_BEHAVIOR === "1"
 const dryRun = process.env.VISUAL_CHANGED_DRY_RUN === "1"
 // Set just before `docker run`; until then cleanup has nothing to remove.
 let containerRequested = false
@@ -100,6 +108,12 @@ if (process.env.VISUAL_RELEASE_READINESS === "1" && !changedMode) {
 // CI splits the release run; scripts/verify-component-shards.mjs then asserts
 // completeness over every shard report together.
 const releaseShard = parseReleaseShard(process.env.PLAYWRIGHT_RELEASE_SHARD)
+// Non-release shard: splits a focused or changed run without the release guarantees.
+const playwrightShard = parseReleaseShard(
+  process.env.PLAYWRIGHT_SHARD,
+  "PLAYWRIGHT_SHARD"
+)
+const activeShard = releaseShard ?? playwrightShard
 const containerName = `pw-visual-${crypto.randomUUID()}`
 // Each `playwright test` run empties test-results, so reports live beside it.
 const reportRoot = "/app/visual-reports"
@@ -144,17 +158,17 @@ function verifyCompletion(reports) {
       .entries
   )
   const requireComplete = selectedStories.length === 0 && extraArgs.length === 0
-  if (requireComplete && !releaseShard) {
+  if (requireComplete && !activeShard) {
     assertVisualCompletion(reports, stories, projects)
     return
   }
   const ran = reports.flatMap((report) => reportTests(report.suites))
-  if (
-    !ran.length ||
-    reports.some(
-      ({ errors, stats }) => errors.length || stats.unexpected || stats.flaky
-    )
-  ) {
+  // A PLAYWRIGHT_SHARD may hold no tests of a changed subset; failures never pass.
+  const mayBeEmpty = playwrightShard !== undefined && !ran.length
+  const dirty = reports.some(
+    ({ errors, stats }) => errors.length || stats.unexpected || stats.flaky
+  )
+  if (!(ran.length || mayBeEmpty) || dirty) {
     throw new Error("Focused component run was empty or not clean")
   }
 }
@@ -170,29 +184,6 @@ function verifyReviewedBaselines() {
     createVisualMatrix(),
     new Set(fs.existsSync(directory) ? fs.readdirSync(directory) : [])
   )
-}
-
-function ensureStorybookBuild() {
-  if (
-    storybookOverride === undefined &&
-    process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0"
-  ) {
-    // Run the Storybook CLI with Node: Windows cannot spawn the pnpm.cmd shim.
-    const storybookManifest = createRequire(
-      path.join(uiRoot, "package.json")
-    ).resolve("storybook/package.json")
-    const storybookBin = JSON.parse(
-      fs.readFileSync(storybookManifest, "utf8")
-    ).bin
-    run(
-      process.execPath,
-      [path.join(path.dirname(storybookManifest), storybookBin), "build"],
-      { cwd: uiRoot }
-    )
-  }
-  if (!fs.existsSync(path.join(storybookDir, "iframe.html"))) {
-    throw new Error(`Storybook build not found: ${storybookDir}`)
-  }
 }
 
 function ensureDockerImage() {
@@ -306,6 +297,19 @@ function changedProjectArgs() {
   return projects.map((project) => `--project=${project}`)
 }
 
+/**
+ * Shard flags for one Playwright run. A non-release shard may match no tests,
+ * so it also passes --pass-with-no-tests.
+ * @returns {string[]}
+ */
+function shardArgs() {
+  if (!activeShard) {
+    return []
+  }
+  const flag = `--shard=${activeShard.index}/${activeShard.total}`
+  return playwrightShard ? [flag, "--pass-with-no-tests"] : [flag]
+}
+
 /** @returns {{reportNames: string[], status: number}} */
 function runPlaywrightProjects() {
   const reportNames = []
@@ -328,9 +332,7 @@ function runPlaywrightProjects() {
         "playwright.config.mts",
         "--reporter=list,html,json",
         ...(project ? [`--project=${project}`] : changedProjectArgs()),
-        ...(releaseShard
-          ? [`--shard=${releaseShard.index}/${releaseShard.total}`]
-          : []),
+        ...shardArgs(),
         ...extraArgs,
       ],
       { stdio: "inherit" }
@@ -358,7 +360,7 @@ function copyResultsToHost() {
   ]) {
     docker(["cp", `${containerName}:${source}`, path.join(uiRoot, destination)])
   }
-  if (releaseShard) {
+  if (activeShard) {
     // The shard verifier needs the exact story list this commit was built with.
     fs.copyFileSync(
       path.join(storybookDir, "index.json"),
@@ -386,7 +388,7 @@ function readReports(reportNames) {
 function assertChangedModeCompatible() {
   if (dryRun && !changedMode) {
     throw new Error(
-      "VISUAL_CHANGED_DRY_RUN=1 requires VISUAL_CHANGED_SINCE or VISUAL_CHANGED_FILES; without them it would start a full Docker run"
+      "VISUAL_CHANGED_DRY_RUN=1 requires VISUAL_CHANGED_SINCE, VISUAL_CHANGED_FILES or VISUAL_CHANGED_FILES_FROM; without them it would start a full Docker run"
     )
   }
   if (!changedMode) {
@@ -430,9 +432,57 @@ function changedFilesSince(ref) {
 function narrowToStories(storyIds) {
   testStories = storyIds.join(",")
   selectedStories = [...storyIds]
-  changedSubset = true
+  // Behavior specs ignore TEST_STORIES, so they stay out unless requested.
+  changedSubset = !changedBehavior
   console.log(
-    `Changed mode: ${storyIds.length} visual stories selected. Component behavior specs are not part of changed mode.`
+    changedBehavior
+      ? `Changed mode: ${storyIds.length} visual stories selected; component behavior specs run in full (VISUAL_CHANGED_BEHAVIOR=1).`
+      : `Changed mode: ${storyIds.length} visual stories selected; only screenshot specs run (VISUAL_CHANGED_BEHAVIOR=1 adds the behavior specs).`
+  )
+}
+
+/**
+ * Repo-relative paths from VISUAL_CHANGED_FILES_FROM, else VISUAL_CHANGED_FILES.
+ * Null when neither is set, so git decides.
+ * @returns {{ source: string, files: string[] } | null}
+ */
+function explicitChangedFileList() {
+  if (changedFilesPath !== "") {
+    return {
+      source: `file ${changedFilesPath}`,
+      files: readChangedFilesFile(changedFilesPath),
+    }
+  }
+  if (explicitChangedFilesList !== "") {
+    return { source: "explicit files", files: explicitChangedFiles }
+  }
+  return null
+}
+
+/** @param {string} file */
+function readChangedFilesFile(file) {
+  try {
+    return readPathList(file)
+  } catch (error) {
+    throw new Error(
+      `Cannot read VISUAL_CHANGED_FILES_FROM "${file}": ${error instanceof Error ? error.message : error}`
+    )
+  }
+}
+
+/**
+ * Leaves an artifact for CI when a changed run has nothing to screenshot.
+ * @param {string} reason
+ */
+function writeNoneReport(reason) {
+  const file = path.join(
+    uiRoot,
+    "test-results/visual-reports/changed-none.json"
+  )
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(
+    file,
+    `${JSON.stringify({ mode: "none", reason }, null, 2)}\n`
   )
 }
 
@@ -450,21 +500,19 @@ function applyChangedMode() {
       `Storybook index not found: ${path.join(storybookDir, "index.json")}. Build Storybook first.`
     )
   }
-  const explicit = explicitChangedFilesList !== ""
+  const explicit = explicitChangedFileList()
   if (explicit && changedSince) {
     console.log(
-      "VISUAL_CHANGED_FILES and VISUAL_CHANGED_SINCE are both set: using VISUAL_CHANGED_FILES, git is not consulted."
+      "An explicit file list is set (VISUAL_CHANGED_FILES_FROM or VISUAL_CHANGED_FILES): VISUAL_CHANGED_SINCE is ignored, git is not consulted."
     )
   }
   const selection = affectedStoriesFromDisk({
     repoRoot,
     storybookDir,
-    changedFiles: explicit
-      ? explicitChangedFiles
-      : changedFilesSince(changedSince),
+    changedFiles: explicit ? explicit.files : changedFilesSince(changedSince),
   })
   console.log(
-    `Changed mode (${explicit ? "explicit files" : changedSince}): ${selection.mode} - ${selection.reason}`
+    `Changed mode (${explicit ? explicit.source : changedSince}): ${selection.mode} - ${selection.reason}`
   )
   if (dryRun) {
     console.log(
@@ -481,6 +529,7 @@ function applyChangedMode() {
     console.log(
       "No visual story is affected by these changes; no Docker container started."
     )
+    writeNoneReport(selection.reason)
     return false
   }
   if (selection.mode === "subset") {
@@ -530,14 +579,37 @@ function printCanonicalPlatformHint(reportNames) {
   )
 }
 
+/**
+ * Release shards belong to the release gate and never mix with a PLAYWRIGHT_SHARD.
+ */
+function assertShardCompatible() {
+  if (playwrightShard && releaseShard) {
+    throw new Error(
+      "PLAYWRIGHT_SHARD cannot be combined with PLAYWRIGHT_RELEASE_SHARD: set only one shard variable"
+    )
+  }
+  if (playwrightShard && process.env.VISUAL_RELEASE_READINESS === "1") {
+    throw new Error(
+      "PLAYWRIGHT_SHARD cannot be combined with VISUAL_RELEASE_READINESS=1: release runs shard with PLAYWRIGHT_RELEASE_SHARD"
+    )
+  }
+}
+
 function main() {
+  assertShardCompatible()
   assertChangedModeCompatible()
   if (dryRun) {
     // Dry runs never build Storybook or touch Docker.
     applyChangedMode()
     return 0
   }
-  ensureStorybookBuild()
+  ensureStorybookBuild({
+    uiRoot,
+    repoRoot,
+    storybookDir,
+    externalBuild: storybookOverride !== undefined,
+    rebuild: process.env.PLAYWRIGHT_STORYBOOK_REBUILD,
+  })
   if (!applyChangedMode()) {
     return 0
   }

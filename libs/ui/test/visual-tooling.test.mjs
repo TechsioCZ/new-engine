@@ -383,6 +383,142 @@ test("CI and forced publication require the same immutable-SHA quality workflow"
   assert.doesNotMatch(a11y, /vars.A11Y_REPORT_FAIL_ON_VIOLATIONS/)
 })
 
+const WORKFLOW_JOB_BOUNDARY = /\n(?= {2}[\w-]+:\n)/
+const WORKFLOW_JOB_HEADER = /^ {2}([\w-]+):\n/
+const WORKFLOW_STEP_BOUNDARY = /\n {6}- /
+// CI always asks for the changed scope; only the release gate runs everything.
+const CI_MODE_LINE = /\n {6}mode: changed\n/
+const CI_BASE_SHA_LINE =
+  /base_sha: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.before \|\| '' \}\}/
+const RELEASE_HAS_SCOPE_INPUT = /\bmode:|base_sha/
+const QUALITY_MODE_INPUT = /mode:\n {8}description:[\s\S]*default: full/
+const QUALITY_BASE_INPUT = /base_sha:\n {8}description:[\s\S]*default: ""/
+const SCOPE_BASE_ENV = /BASE_SHA: \$\{\{ inputs\.base_sha \}\}/
+const SCOPE_HEAD_ENV = /HEAD_SHA: \$\{\{ inputs\.sha \}\}/
+const EXPRESSION_START = /\$\{\{/
+const SCOPE_FULL_OUTPUT = /scope=full\n/
+const BASE_SHA_GUARD = /-n "\$BASE_SHA" \]/
+const SCOPE_NONE_OUTPUT = /scope=none|"none"/
+const CHANGED_FILES_ARTIFACT = /name: ui-changed-files-\$\{\{ inputs\.sha \}\}/
+const PLAN_SCOPE_IF = /if: needs\.plan\.outputs\.scope/
+const NEEDS_PLAN = /needs: \[?plan/
+const COMPLETE_NEEDS = /needs: \[plan, components\]/
+const SHARD_MODE_ENV =
+  /VISUAL_SHARD_MODE: \$\{\{ needs\.plan\.outputs\.scope == 'ui' && 'changed' \|\| 'full' \}\}/
+const FULL_SCOPE_IF = /if: needs\.plan\.outputs\.scope == 'full'/
+const UI_SCOPE_IF = /if: needs\.plan\.outputs\.scope == 'ui'/
+const RELEASE_SHARD_ENV =
+  /PLAYWRIGHT_RELEASE_SHARD: \$\{\{ matrix\.shard \}\}\/8/
+const RELEASE_SHARD_KEY = /PLAYWRIGHT_RELEASE_SHARD:/
+const PLAYWRIGHT_SHARD_ENV = /PLAYWRIGHT_SHARD: \$\{\{ matrix\.shard \}\}\/8/
+const BEHAVIOR_ENV = /VISUAL_CHANGED_BEHAVIOR: "1"/
+const CHANGED_RUN = /run: pnpm --dir libs\/ui test:components$/m
+const NONE_MARKER = /changed-none\.json/
+const INPUTS_HASH_CALL = /visual-storybook-build\.mjs --inputs-hash/
+const STORYBOOK_CACHE_KEY =
+  /key: ui-storybook-v1-\$\{\{ steps\.storybook-inputs\.outputs\.hash \}\}/
+const STORYBOOK_ENSURE_CALL =
+  /node "\$\{ROOT_DIR\}\/scripts\/visual-storybook-build\.mjs" --ensure/
+const BUILD_STORYBOOK_SCRIPT = /build:storybook/
+
+/** Splits a workflow into its jobs, keyed by job name. */
+function workflowJobs(yaml) {
+  return Object.fromEntries(
+    yaml
+      .split(WORKFLOW_JOB_BOUNDARY)
+      .filter((chunk) => WORKFLOW_JOB_HEADER.test(chunk))
+      .map((chunk) => [chunk.match(WORKFLOW_JOB_HEADER)[1], chunk])
+  )
+}
+
+/** Returns the step whose text contains needle; steps start at six-space dashes. */
+function stepContaining(yaml, needle) {
+  const step = yaml
+    .split(WORKFLOW_STEP_BOUNDARY)
+    .find((chunk) => chunk.includes(needle))
+  if (!step) {
+    throw new Error(`No workflow step contains ${needle}`)
+  }
+  return step
+}
+
+test("CI requests the changed scope while the release gate keeps the full run", () => {
+  const ci = read("../../../.github/workflows/ci.yml")
+  const release = read("../../../.github/workflows/ui-release.yml")
+  const quality = read("../../../.github/workflows/ui-quality.yml")
+  assert.match(ci, CI_MODE_LINE)
+  assert.match(ci, CI_BASE_SHA_LINE)
+  assert.doesNotMatch(release, RELEASE_HAS_SCOPE_INPUT)
+  assert.match(quality, QUALITY_MODE_INPUT)
+  assert.match(quality, QUALITY_BASE_INPUT)
+})
+
+test("the reusable quality workflow plans a scope and never fails open to none", () => {
+  const plan = workflowJobs(
+    read("../../../.github/workflows/ui-quality.yml")
+  ).plan
+  const scopeStep = stepContaining(plan, "id: scope")
+  const script = scopeStep.slice(scopeStep.indexOf("run: |"))
+  assert.doesNotMatch(script, EXPRESSION_START)
+  assert.match(scopeStep, SCOPE_BASE_ENV)
+  assert.match(scopeStep, SCOPE_HEAD_ENV)
+  assert.match(script, SCOPE_FULL_OUTPUT)
+  assert.match(script, BASE_SHA_GUARD)
+  const mergeBase = script.indexOf('git merge-base "$BASE_SHA" "$HEAD_SHA"')
+  const classify = script.indexOf("--scope --files-from")
+  assert.ok(
+    mergeBase > 0 && classify > mergeBase,
+    "scope is set only after a merge-base"
+  )
+  assert.doesNotMatch(script, SCOPE_NONE_OUTPUT)
+  assert.match(plan, CHANGED_FILES_ARTIFACT)
+})
+
+test("components and accessibility run unless the plan says none", () => {
+  const jobs = workflowJobs(read("../../../.github/workflows/ui-quality.yml"))
+  for (const job of ["components", "components-complete", "accessibility"]) {
+    assert.ok(
+      jobs[job].includes("if: needs.plan.outputs.scope != 'none'"),
+      `${job} must skip only on scope none`
+    )
+    assert.match(jobs[job], NEEDS_PLAN)
+  }
+  assert.match(jobs["components-complete"], COMPLETE_NEEDS)
+  assert.match(jobs["components-complete"], SHARD_MODE_ENV)
+  assert.doesNotMatch(jobs.plan, PLAN_SCOPE_IF)
+})
+
+test("the release suite runs only for the full scope and owns PLAYWRIGHT_RELEASE_SHARD", () => {
+  const quality = read("../../../.github/workflows/ui-quality.yml")
+  const full = stepContaining(quality, "test:components:release")
+  assert.match(full, FULL_SCOPE_IF)
+  assert.match(full, RELEASE_SHARD_ENV)
+  assert.equal(quality.split(RELEASE_SHARD_KEY).length - 1, 1)
+  const changed = stepContaining(quality, "VISUAL_CHANGED_FILES_FROM")
+  assert.match(changed, UI_SCOPE_IF)
+  assert.doesNotMatch(changed, RELEASE_SHARD_KEY)
+  assert.match(changed, PLAYWRIGHT_SHARD_ENV)
+  assert.match(changed, BEHAVIOR_ENV)
+  assert.match(changed, CHANGED_RUN)
+  assert.match(
+    stepContaining(quality, "visual-reports/changed-none.json"),
+    NONE_MARKER
+  )
+})
+
+test("Storybook is reused through the inputs hash in both workflows and the a11y script", () => {
+  const quality = read("../../../.github/workflows/ui-quality.yml")
+  const a11y = read("../../../.github/workflows/storybook-a11y.yml")
+  const script = read("../scripts/storybook-a11y.sh")
+  for (const yaml of [quality, a11y]) {
+    assert.match(yaml, INPUTS_HASH_CALL)
+    assert.match(yaml, STORYBOOK_CACHE_KEY)
+    assert.ok(yaml.includes("path: libs/ui/storybook-static"))
+  }
+  assert.match(script, STORYBOOK_ENSURE_CALL)
+  assert.doesNotMatch(script, BUILD_STORYBOOK_SCRIPT)
+})
+
 test("stylesheet discovery and documentation commands match package contracts", () => {
   const css = read("../src/tokens/_tokens-base.css")
   assert.match(css, /@source "\.\.\/\.\.\/dist\/\*\*\/\*.js";/)

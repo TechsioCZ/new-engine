@@ -24,7 +24,7 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
 fi
 
 if [ "${A11Y_STORYBOOK_REBUILD:-1}" != "0" ]; then
-  pnpm -C "${ROOT_DIR}" build:storybook
+  node "${ROOT_DIR}/scripts/visual-storybook-build.mjs" --ensure
 fi
 
 SERVER_LOG="${RUN_REPORT_ROOT}/server.log"

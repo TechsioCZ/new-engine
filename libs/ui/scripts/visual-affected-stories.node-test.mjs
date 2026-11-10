@@ -8,17 +8,21 @@ import { visualStories } from "../test/visual-completion.mjs"
 import {
   affectedStoriesFromDisk,
   buildStoryClosures,
+  classifyScope,
   collectImportSpecifiers,
   createResolver,
   GIT_MAX_BUFFER,
   gitChangedFiles,
   NON_LITERAL_SPECIFIER,
   parseCliArgs,
+  parsePathList,
+  readPathList,
   selectAffectedStories,
 } from "./visual-affected-stories.mjs"
 
 const UI = "/repo/libs/ui"
 const NON_LITERAL_PATTERN = /non-literal import/
+const INDEX_NOT_FOUND_PATTERN = /Storybook index\.json not found/
 
 /** @param {Record<string, string>} files */
 function fakeFs(files) {
@@ -421,6 +425,17 @@ describe("selectAffectedStories", () => {
       }
     })
 
+    it("treats changes to the UI workflows as all", () => {
+      for (const file of [
+        ".github/workflows/ci.yml",
+        ".github/workflows/ui-quality.yml",
+        ".github/workflows/ui-release.yml",
+        ".github/workflows/storybook-a11y.yml",
+      ]) {
+        assert.equal(select([file]).mode, "all", file)
+      }
+    })
+
     it("treats patches and root build config files as all", () => {
       for (const file of [
         "patches/x.patch",
@@ -465,23 +480,34 @@ describe("selectAffectedStories", () => {
   })
 
   describe("rule 3: ignored files under libs/ui", () => {
-    it("ignores docs, types, figma, tests, skills and behavior specs", () => {
+    it("ignores types, figma, tests, README and plugin files", () => {
       for (const file of [
         "libs/ui/README.md",
-        "libs/ui/src/atoms/button.mdx",
         "libs/ui/src/types.d.ts",
         "libs/ui/src/atoms/button.figma.tsx",
         "libs/ui/src/atoms/button.test.tsx",
         "libs/ui/scripts/validate.node-test.mjs",
         "libs/ui/tests/anything.ts",
-        "libs/ui/skills/x/SKILL.md",
         "libs/ui/agent-plugin/plugin.json",
-        "libs/ui/test/button.spec.ts",
         "libs/ui/test/tour.playwright.config.ts",
       ]) {
         const result = select([file])
         assert.deepEqual(result.storyIds, [], file)
         assert.notEqual(result.mode, "all", file)
+      }
+    })
+
+    it("never ignores markdown or mdx a story can render, or Playwright specs", () => {
+      for (const file of [
+        "libs/ui/src/atoms/button.mdx",
+        "libs/ui/stories/atoms/button.mdx",
+        "libs/ui/skills/x/SKILL.md",
+        "libs/ui/skills/x/references/ux.md",
+        "libs/ui/stories/notes.md",
+        "libs/ui/test/button.spec.ts",
+        "libs/ui/test/visual.spec.ts",
+      ]) {
+        assert.equal(select([file]).mode, "all", file)
       }
     })
 
@@ -595,6 +621,94 @@ describe("parseCliArgs", () => {
   })
 })
 
+describe("classifyScope", () => {
+  it("returns none for an empty list and for files no visual story can render", () => {
+    assert.equal(classifyScope([]), "none")
+    assert.equal(classifyScope(["docs/x.md"]), "none")
+    assert.equal(classifyScope(["apps/web/src/page.tsx"]), "none")
+    assert.equal(classifyScope(["libs/ui/README.md"]), "none")
+    assert.equal(classifyScope(["libs/ui/src/types.d.ts"]), "none")
+  })
+
+  it("returns ui for Playwright specs, which the gate runs even when no screenshot changes", () => {
+    assert.equal(classifyScope(["libs/ui/test/button.spec.ts"]), "ui")
+    assert.equal(classifyScope(["libs/ui/test/menu.behavior.spec.ts"]), "ui")
+  })
+
+  it("returns ui for docs a story can render, mdx and skills markdown", () => {
+    assert.equal(
+      classifyScope(["libs/ui/stories/molecules/carousel.ux.mdx"]),
+      "ui"
+    )
+    assert.equal(
+      classifyScope(["libs/ui/skills/carousel-usage/references/ux.md"]),
+      "ui"
+    )
+  })
+
+  it("returns ui for a newline in a NUL-separated name, never none", () => {
+    assert.equal(
+      classifyScope(parsePathList("libs/ui/stories/A.md\nb.stories.tsx\0")),
+      "ui"
+    )
+  })
+
+  it("returns ui for component sources, committed baselines and shared dependency inputs", () => {
+    assert.equal(classifyScope(["libs/ui/src/atoms/badge.tsx"]), "ui")
+    assert.equal(
+      classifyScope([
+        "libs/ui/test/visual.spec.ts-snapshots/atoms-button--default-desktop-light-linux.png",
+      ]),
+      "ui"
+    )
+    assert.equal(classifyScope(["pnpm-lock.yaml"]), "ui")
+    assert.equal(
+      classifyScope(["docs/x.md", "libs/ui/src/atoms/badge.tsx"]),
+      "ui"
+    )
+  })
+
+  it("returns none for another workspace library, which no story can import", () => {
+    assert.equal(classifyScope(["libs/analytics/src/track.ts"]), "none")
+  })
+
+  it("returns full when a UI workflow changes, even among other files", () => {
+    for (const file of [
+      ".github/workflows/ci.yml",
+      ".github/workflows/ui-quality.yml",
+      ".github/workflows/ui-release.yml",
+      ".github/workflows/storybook-a11y.yml",
+    ]) {
+      assert.equal(classifyScope([file]), "full", file)
+    }
+    assert.equal(
+      classifyScope(["libs/ui/README.md", ".github/workflows/ci.yml"]),
+      "full"
+    )
+  })
+})
+
+describe("readPathList", () => {
+  it("reads newline-separated paths and ignores blank lines", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "visual-paths-"))
+    try {
+      const file = path.join(dir, "files.txt")
+      fs.writeFileSync(file, "libs/ui/a.tsx\n\n  libs/ui/b.tsx  \r\n")
+      assert.deepEqual(readPathList(file), ["libs/ui/a.tsx", "libs/ui/b.tsx"])
+      fs.writeFileSync(file, "")
+      assert.deepEqual(readPathList(file), [])
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("keeps a name with a newline whole when the list is NUL-separated", () => {
+    const names = ["libs/ui/stories/A.md\nb.stories.tsx", "libs/ui/src/x.tsx"]
+    assert.deepEqual(parsePathList(`${names.join("\0")}\0`), names)
+    assert.deepEqual(parsePathList(""), [])
+  })
+})
+
 const REAL_REPO = path.resolve(import.meta.dirname, "../../..")
 const REAL_INDEX = path.join(REAL_REPO, "libs/ui/storybook-static/index.json")
 const REAL_SKIP = fs.existsSync(REAL_INDEX)
@@ -614,7 +728,7 @@ describe("affectedStoriesFromDisk storybookDir", () => {
             changedFiles: ["libs/ui/README.md"],
             storybookDir: dir,
           }),
-        /Storybook index\.json not found/
+        INDEX_NOT_FOUND_PATTERN
       )
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
