@@ -30,36 +30,17 @@ const INPUT_PATHSPECS = [
   // Workflows pin the Node version and spell out the build command.
   ".github/workflows",
 ]
-const NON_INPUT_PREFIXES = [
-  "libs/ui/test/",
-  "libs/ui/tests/",
-  "libs/ui/scripts/",
-  "libs/ui/agent-plugin/",
-]
-/** Files that spell out or shape the build even when a non-input prefix holds them. */
-const BUILD_RECIPE_FILES = new Set([
-  ".gitattributes",
-  "libs/ui/scripts/visual-storybook-build.mjs",
-])
-/** Always inputs: workflows hold the build recipe, and stories import skills markdown with ?raw. */
-const ALWAYS_INPUT_PREFIXES = [".github/workflows/", "libs/ui/skills/"]
+// Everything else under libs/ui is an input: the bundler config imports test
+// helpers and Tailwind scans every tracked file there for class names.
+const BASELINE_PREFIX = "libs/ui/test/visual.spec.ts-snapshots/"
 const RENAME_STATUS = /[RC]/
 
 /**
  * @param {string} file repo-relative POSIX path
- * @returns {boolean} false for paths that never change the Storybook build
+ * @returns {boolean} false only for the committed baseline screenshots
  */
 export function isBuildInput(file) {
-  if (
-    BUILD_RECIPE_FILES.has(file) ||
-    ALWAYS_INPUT_PREFIXES.some((prefix) => file.startsWith(prefix))
-  ) {
-    return true
-  }
-  return !(
-    file.endsWith(".md") ||
-    NON_INPUT_PREFIXES.some((prefix) => file.startsWith(prefix))
-  )
+  return !file.startsWith(BASELINE_PREFIX)
 }
 
 /**

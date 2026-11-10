@@ -67,11 +67,15 @@ describe("inputsHash", () => {
 })
 
 describe("isBuildInput", () => {
-  it("keeps sources, config and root dependency files", () => {
+  it("keeps sources, config, tooling and root dependency files", () => {
     for (const file of [
       "libs/ui/src/atoms/button.tsx",
       "libs/ui/.storybook/preview.ts",
       "libs/ui/stories/atoms/button.stories.tsx",
+      "libs/ui/skills/x/references/ux.md",
+      "libs/ui/scripts/visual-storybook-build.mjs",
+      ".github/workflows/ui-quality.yml",
+      ".gitattributes",
       "pnpm-lock.yaml",
       "patches/x.patch",
     ]) {
@@ -79,38 +83,30 @@ describe("isBuildInput", () => {
     }
   })
 
-  it("drops tests, scripts, plugin files and markdown", () => {
+  it("keeps test helpers the bundler config imports and files Tailwind scans", () => {
     for (const file of [
+      "libs/ui/test/visual-rsc-boundaries.mjs",
       "libs/ui/test/visual.spec.ts",
-      "libs/ui/test/visual-completion.mjs",
       "libs/ui/tests/anything.ts",
-      "libs/ui/scripts/visual-local.mjs",
       "libs/ui/agent-plugin/plugin.json",
       "libs/ui/src/atoms/README.md",
     ]) {
-      assert.equal(isBuildInput(file), false, file)
-    }
-  })
-
-  it("keeps skills markdown, which stories embed with ?raw", () => {
-    assert.equal(isBuildInput("libs/ui/skills/x/references/ux.md"), true)
-    assert.equal(isBuildInput("libs/ui/skills/x/SKILL.md"), true)
-  })
-
-  it("keeps the build recipe and the workflows that pin Node and call it", () => {
-    for (const file of [
-      "libs/ui/scripts/visual-storybook-build.mjs",
-      ".github/workflows/ui-quality.yml",
-      ".gitattributes",
-    ]) {
       assert.equal(isBuildInput(file), true, file)
     }
-    assert.equal(isBuildInput("libs/ui/scripts/visual-local.mjs"), false)
+  })
+
+  it("drops only the committed baseline screenshots", () => {
+    assert.equal(
+      isBuildInput(
+        "libs/ui/test/visual.spec.ts-snapshots/atoms-badge--playground-n1-mobile-light-linux.png"
+      ),
+      false
+    )
   })
 })
 
 describe("storybookInputEntries (real tree)", () => {
-  it("lists tracked build inputs only, with no excluded prefix or markdown", () => {
+  it("lists tracked build inputs only, without the baseline screenshots", () => {
     const entries = storybookInputEntries(REAL_REPO)
     const paths = entries.map((entry) => entry.path)
     assert.ok(paths.includes("libs/ui/package.json"))
