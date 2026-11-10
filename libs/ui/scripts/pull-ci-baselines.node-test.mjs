@@ -74,12 +74,24 @@ function assertThrowsText(fn, text) {
   )
 }
 
+const UNSAFE_NAME = /Unsafe baseline file name/
+
 describe("targetName", () => {
   it("drops the -actual suffix and adds the project and linux platform", () => {
     assert.equal(
       targetName("atoms-actionicon--playground-actual", "akros-desktop-light"),
       "atoms-actionicon--playground-akros-desktop-light-linux.png"
     )
+  })
+
+  it("rejects names that would leave the baseline folder", () => {
+    for (const [attachment, project] of [
+      ["../../x-actual", "akros-desktop-light"],
+      ["atoms-x--y-actual", "../akros"],
+      ["a\\b-actual", "akros-desktop-light"],
+    ]) {
+      assert.throws(() => targetName(attachment, project), UNSAFE_NAME)
+    }
   })
 
   it("rejects names that are not actual-screenshot attachments", () => {
@@ -415,6 +427,30 @@ describe("chooseRun", () => {
       { databaseId: 7, status: "completed", headSha: "ccc" },
     ]
     assert.deepEqual(chooseRun(runs, "branch x"), { id: "8", headSha: "bbb" })
+  })
+
+  it("skips cancelled and skipped runs, which uploaded no screenshots", () => {
+    const runs = [
+      {
+        databaseId: 9,
+        status: "completed",
+        conclusion: "cancelled",
+        headSha: "a",
+      },
+      {
+        databaseId: 8,
+        status: "completed",
+        conclusion: "skipped",
+        headSha: "b",
+      },
+      {
+        databaseId: 7,
+        status: "completed",
+        conclusion: "failure",
+        headSha: "c",
+      },
+    ]
+    assert.deepEqual(chooseRun(runs, "branch x"), { id: "7", headSha: "c" })
   })
 
   it("fails when no run has completed", () => {

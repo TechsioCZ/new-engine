@@ -120,13 +120,19 @@ function gh(args) {
 }
 
 /**
- * Picks the newest completed run. `gh run list` returns newest first.
- * @param {{ databaseId: number, status: string, headSha: string }[]} runs
+ * Picks the newest run that finished its jobs. `gh run list` returns newest
+ * first; cancelled and skipped runs are completed too but uploaded nothing.
+ * @param {{ databaseId: number, status: string, conclusion?: string | null, headSha: string }[]} runs
  * @param {string} label what the runs were listed for
  * @returns {{ id: string, headSha: string }}
  */
 export function chooseRun(runs, label) {
-  const run = runs.find((item) => item.status === "completed")
+  const run = runs.find(
+    (item) =>
+      item.status === "completed" &&
+      item.conclusion !== "cancelled" &&
+      item.conclusion !== "skipped"
+  )
   if (!run) {
     throw new Error(`No completed CI run found for ${label}`)
   }
@@ -192,7 +198,12 @@ export function targetName(attachmentName, projectName) {
     throw new Error(`Not an actual-screenshot attachment: ${attachmentName}`)
   }
   const base = attachmentName.slice(0, -ACTUAL_SUFFIX.length)
-  return `${base}-${projectName}-linux.png`
+  const name = `${base}-${projectName}-linux.png`
+  // Both parts come from a downloaded report; never let them leave the folder.
+  if (name !== path.basename(name) || name.includes("\\")) {
+    throw new Error(`Unsafe baseline file name: ${name}`)
+  }
+  return name
 }
 
 /**

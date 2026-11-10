@@ -188,15 +188,53 @@ describe("ensureStorybookBuild without building", () => {
   })
 })
 
+/** Story files from the source tree, so these guards run without a Storybook build.
+ * @param {string} dir
+ * @returns {string[]} paths relative to libs/ui, "./"-prefixed like index.json importPath
+ */
+function storyFilesUnder(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      return storyFilesUnder(full)
+    }
+    return entry.name.endsWith(".stories.tsx")
+      ? [`./${path.relative(REAL_UI, full).split(path.sep).join("/")}`]
+      : []
+  })
+}
+
 describe("Storybook build inputs cover the story closures (real tree)", () => {
-  it("every file a visual story or the preview imports is a build input", {
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(REAL_UI, "package.json"), "utf8")
+  )
+
+  it("libs/ui declares no workspace dependency (classifyScope relies on it)", () => {
+    const workspaceDependencies = Object.entries({
+      ...pkg.dependencies,
+      ...pkg.devDependencies,
+      ...pkg.peerDependencies,
+    }).filter(([, range]) => String(range).startsWith("workspace:"))
+    assert.deepEqual(workspaceDependencies, [])
+  })
+
+  it("the source-tree story list matches the built index", {
     skip: REAL_SKIP,
   }, () => {
     const entries = JSON.parse(fs.readFileSync(REAL_INDEX, "utf8")).entries
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(REAL_UI, "package.json"), "utf8")
+    const built = new Set(
+      visualStories(entries).map((entry) => entry.importPath)
     )
-    const storyFiles = visualStories(entries).map((entry) => entry.importPath)
+    const onDisk = new Set(storyFilesUnder(path.join(REAL_UI, "stories")))
+    assert.deepEqual(
+      [...built].filter((file) => !onDisk.has(file)),
+      []
+    )
+  })
+
+  it("every file a story or the preview imports is a build input inside libs/ui", () => {
+    const storyFiles = storyFilesUnder(path.join(REAL_UI, "stories"))
+    assert.ok(storyFiles.length > 0)
     const { closures } = buildStoryClosures({
       uiRoot: REAL_UI,
       storyFiles: [...storyFiles, "./.storybook/preview.ts"],
@@ -213,17 +251,11 @@ describe("Storybook build inputs cover the story closures (real tree)", () => {
       [...files].filter((file) => !isBuildInput(file)),
       []
     )
-    // classifyScope answers "none" for other workspace libraries on the
-    // strength of these two facts; if either changes, update it first.
+    // classifyScope answers "none" for other workspace libraries because no
+    // story reaches outside libs/ui; if that changes, update it first.
     assert.deepEqual(
       [...files].filter((file) => !file.startsWith("libs/ui/")),
       []
     )
-    const workspaceDependencies = Object.entries({
-      ...pkg.dependencies,
-      ...pkg.devDependencies,
-      ...pkg.peerDependencies,
-    }).filter(([, range]) => String(range).startsWith("workspace:"))
-    assert.deepEqual(workspaceDependencies, [])
   })
 })
