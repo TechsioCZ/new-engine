@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,7 +13,7 @@ import {
   connect as connectDialog,
   machine as dialogMachine,
 } from "@zag-js/dialog"
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { normalizeProps, useMachine } from "@zag-js/react"
 import {
   type CSSProperties,
   type ReactNode,
@@ -25,7 +25,10 @@ import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { useComposedRefs } from "../internal/molecules/drawer.context"
-import { OverlayContainerProvider } from "../internal/overlay-portal"
+import {
+  OverlayContainerProvider,
+  BodyPortal as Portal,
+} from "../internal/overlay-portal"
 
 const dialogVariants = tv({
   slots: {
