@@ -99,24 +99,34 @@ export const KeyboardDescription: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const page = within(canvasElement.ownerDocument.body)
-    const button = canvas.getByRole('button', { name: 'Keyboard trigger 0' })
+    // Re-query at every step. The hint is portalled to body and the trigger's
+    // name changes after click, so no element reference is held across awaits.
+    const getTrigger = () =>
+      canvas.getByRole('button', { name: /^Keyboard trigger \d+$/ })
     const cleanupsBeforeOpen = tooltipChildRefCleanup.mock.calls.length
-    await expect(button).toHaveAccessibleDescription('Caller description.')
+    await expect(
+      canvas.getByRole('button', { name: 'Keyboard trigger 0' })
+    ).toHaveAccessibleDescription('Caller description.')
     await userEvent.tab()
-    await expect(button).toHaveFocus()
-    await expect(await page.findByRole('tooltip')).toBeVisible()
+    await expect(getTrigger()).toHaveFocus()
+    // Presence wait (same findByRole as before this change), then one
+    // visibility check against a fresh query. No retry wraps the assertion.
+    await page.findByRole('tooltip')
+    await expect(page.getByRole('tooltip')).toBeVisible()
     await waitFor(() => {
-      expect(button).toHaveAccessibleDescription('Caller description. Tooltip description.')
+      expect(getTrigger()).toHaveAccessibleDescription(
+        'Caller description. Tooltip description.'
+      )
     })
-    await userEvent.click(button)
-    await expect(button).toHaveTextContent('Keyboard trigger 1')
+    await userEvent.click(getTrigger())
+    await expect(getTrigger()).toHaveTextContent('Keyboard trigger 1')
     await expect(tooltipChildRefCleanup.mock.calls.length).toBe(cleanupsBeforeOpen)
 
     await userEvent.keyboard('{Escape}')
     await waitFor(() => {
       expect(page.queryByRole('tooltip')).toBeNull()
-      expect(button).toHaveAccessibleDescription('Caller description.')
-      expect(button).toHaveTextContent('Keyboard trigger 1')
+      expect(getTrigger()).toHaveAccessibleDescription('Caller description.')
+      expect(getTrigger()).toHaveTextContent('Keyboard trigger 1')
       expect(tooltipChildRefCleanup.mock.calls.length).toBe(cleanupsBeforeOpen)
     })
   },
