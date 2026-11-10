@@ -293,7 +293,13 @@ test("external filtering displays only the latest debounced query", async ({
     name: "Search country (external)",
   })
   await input.fill("s")
-  await input.fill("ger")
+  // fill() selects the text and then replaces it. The Combobox can move the
+  // caret between those two steps while it reacts to the first query, which
+  // appends instead ("sger"), so repeat until the input holds the new query.
+  await expect(async () => {
+    await input.fill("ger")
+    await expect(input).toHaveValue("ger", { timeout: 1000 })
+  }).toPass()
   await expect(page.getByRole("option")).toHaveText(["Germany"])
   await expect(page.getByRole("status")).toHaveCount(0)
 })
