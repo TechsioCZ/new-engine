@@ -13,6 +13,21 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Textarea v1.0.11
+- Give the Business small Textarea the same 10 px horizontal padding as the small Input, so a form that mixes them stays aligned; medium and large sizes keep their existing padding.
+
+### NumericInput v1.3.12
+- Give the Business small NumericInput the same 10 px horizontal padding as the small Input and Textarea, so a form that mixes them stays aligned; medium and large sizes keep their existing padding.
+
+### Input v1.1.7
+- Give the small Input 10 px horizontal padding in every theme (Business was 12 px, Akros and N1 were 4 px), matching the Figma \`padding/input/x/sm\` value; heights, medium and large sizes, and every other state are unchanged.
+
+### Badge v1.1.2
+- Business status badges (info, success, warning, danger) use the light tint background with dark text from Figma, so they read as soft status chips; solid badges, discount badges and Akros and N1 are unchanged.
+
+### Button v0.6.4
+- Business outlined secondary buttons use the teal secondary text and outline from Figma, and Business button borders follow Figma: primary, secondary and tertiary outlines are no longer forced grey, the borderless secondary text is teal, and medium and large borders are 2 px and 3 px. Akros, N1 and the other button variants are unchanged.
+
 ### Rating v1.3.6
 - Commit uncontrolled Rating focus with its accepted keyboard or pointer value instead of depending on Zag's animation frame; preserve the existing controlled focus path for parent-scheduled transitions, without replaying uncontrolled requests after silent resets or external changes.
 

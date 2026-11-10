@@ -6,6 +6,20 @@ import { expect, type Page, test } from "@playwright/test"
 async function openStory(page: Page, story: string) {
   await page.goto(`/iframe.html?id=${story}&viewMode=story&embed=true`)
   await expect(page.getByRole("combobox").first()).toBeAttached()
+  // The story remounts when Storybook finishes rendering; acting before that
+  // loses the state the test just created.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (
+            window as Window & {
+              __STORYBOOK_PREVIEW__?: { currentRender?: { phase?: string } }
+            }
+          ).__STORYBOOK_PREVIEW__?.currentRender?.phase
+      )
+    )
+    .toBe("finished")
 }
 
 test("input and trigger control the scrollable listbox", async ({ page }) => {

@@ -90,15 +90,15 @@
   --color-availability-status-preorder: var(--color-fg-accent-primary);
   --color-availability-status-unavailable: var(--color-fg-status-error);
   --color-availability-status-unknown: var(--color-fg-secondary);
-  --color-badge-bg-danger: var(--color-bg-badge-danger-solid);
+  --color-badge-bg-danger: var(--color-bg-badge-danger);
   --color-badge-bg-discount: var(--color-bg-badge-danger-solid);
-  --color-badge-bg-info: var(--color-bg-info);
+  --color-badge-bg-info: var(--color-bg-badge-info);
   --color-badge-bg-outline: var(--color-bg-transparent);
   --color-badge-bg-primary: var(--color-bg-badge-primary-solid);
   --color-badge-bg-secondary: var(--color-bg-badge-secondary-solid);
-  --color-badge-bg-success: var(--color-bg-success);
+  --color-badge-bg-success: var(--color-bg-badge-success);
   --color-badge-bg-tertiary: var(--color-bg-tertiary-base);
-  --color-badge-bg-warning: var(--color-bg-warning-base);
+  --color-badge-bg-warning: var(--color-bg-badge-warning);
   --color-badge-border-danger: var(--color-bg-transparent);
   --color-badge-border-discount: var(--color-bg-transparent);
   --color-badge-border-info: var(--color-bg-transparent);
@@ -108,22 +108,26 @@
   --color-badge-border-success: var(--color-bg-transparent);
   --color-badge-border-tertiary: var(--color-bg-transparent);
   --color-badge-border-warning: var(--color-bg-transparent);
-  --color-badge-fg-danger: var(--color-fg-light);
+  --color-badge-fg-danger: var(--color-fg-badge-danger);
   --color-badge-fg-discount: var(--color-fg-light);
-  --color-badge-fg-info: var(--color-fg-light);
+  --color-badge-fg-info: var(--color-fg-badge-info);
   --color-badge-fg-outline: var(--color-fg-secondary);
   --color-badge-fg-primary: var(--color-fg-on-primary-solid-neo);
   --color-badge-fg-secondary: var(--color-fg-badge-on-solid);
-  --color-badge-fg-success: var(--color-base-dark);
+  --color-badge-fg-success: var(--color-fg-badge-success);
   --color-badge-fg-tertiary: var(--color-fg-light);
-  --color-badge-fg-warning: var(--color-base-dark);
+  --color-badge-fg-warning: var(--color-fg-badge-warning);
   --color-base: light-dark(var(--color-white), var(--color-gray-950));
   --color-base-dark: var(--color-gray-950);
   --color-base-light: var(--color-white);
   --color-base-reverse: light-dark(var(--color-gray-950), var(--color-white));
+  --color-bg-badge-danger: var(--color-bg-badge-danger-solid);
   --color-bg-badge-danger-solid: var(--color-bg-danger-base);
+  --color-bg-badge-info: var(--color-bg-info);
   --color-bg-badge-primary-solid: var(--color-bg-primary-base);
   --color-bg-badge-secondary-solid: var(--color-bg-secondary-base);
+  --color-bg-badge-success: var(--color-bg-success);
+  --color-bg-badge-warning: var(--color-bg-warning-base);
   --color-bg-control-checked: light-dark(
     var(--color-success-700),
     var(--color-success-600)
@@ -417,7 +421,7 @@
   --color-button-fg-disabled: var(--color-fg-disabled);
   --color-button-fg-outlined-danger: var(--color-fg-primary);
   --color-button-fg-outlined-primary: var(--color-fg-primary);
-  --color-button-fg-outlined-secondary: var(--color-fg-primary);
+  --color-button-fg-outlined-secondary: var(--color-fg-outlined-secondary);
   --color-button-fg-outlined-tertiary: var(--color-fg-primary);
   --color-button-fg-outlined-warning: var(--color-fg-primary);
   --color-button-fg-primary: var(--color-fg-on-primary-solid-neo);
@@ -699,7 +703,11 @@
     var(--color-warning-700),
     var(--color-warning-300)
   );
+  --color-fg-badge-danger: var(--color-fg-light);
+  --color-fg-badge-info: var(--color-fg-light);
   --color-fg-badge-on-solid: var(--color-fg-light);
+  --color-fg-badge-success: var(--color-base-dark);
+  --color-fg-badge-warning: var(--color-base-dark);
   --color-fg-dark: var(--color-white);
   --color-fg-disabled: var(--color-neutral-500);
   --color-fg-icon-tree: light-dark(
@@ -717,6 +725,7 @@
   --color-fg-on-tertiary: var(--color-fg-on-accent-solid);
   --color-fg-on-tint: light-dark(var(--color-fg-light), var(--color-white));
   --color-fg-on-warning: var(--color-fg-on-accent-solid);
+  --color-fg-outlined-secondary: var(--color-fg-primary);
   --color-fg-placeholder: light-dark(
     var(--color-neutral-600),
     var(--color-neutral-400)
@@ -1977,6 +1986,7 @@
   --padding-input-with-button: var(--dimension-120);
   --padding-input-with-button-left: var(--dimension-120);
   --padding-input-with-button-right: var(--dimension-120);
+  --padding-input-x-sm: var(--spacing-150);
   --padding-menu-content: var(--padding-popup-viewport);
   --padding-menu-item-x: var(--padding-popup-item-x-md);
   --padding-menu-item-y: var(--padding-popup-item-y-md);

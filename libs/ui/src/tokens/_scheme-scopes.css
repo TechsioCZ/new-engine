@@ -395,7 +395,7 @@
     --font-weight-input: var(--font-weight-normal);
     --font-weight-input-placeholder: var(--font-weight-normal);
     --spacing-form-field-gap: var(--spacing-form-field);
-    --padding-input-inline-sm: var(--padding-input-sm);
+    --padding-input-inline-sm: var(--padding-input-x-sm);
     --padding-input-inline-md: var(--padding-input-md);
     --padding-input-inline-lg: var(--padding-input-lg);
     --spacing-label-required: var(--spacing-50);
@@ -1582,15 +1582,15 @@
     --color-akros-product-card-fg: var(--color-fg-primary);
     --color-availability-status-detail: var(--color-fg-secondary);
     --color-availability-status-pending: var(--color-fill-overlay);
-    --color-badge-bg-danger: var(--color-bg-badge-danger-solid);
+    --color-badge-bg-danger: var(--color-bg-badge-danger);
     --color-badge-bg-discount: var(--color-bg-badge-danger-solid);
-    --color-badge-bg-info: var(--color-bg-info);
+    --color-badge-bg-info: var(--color-bg-badge-info);
     --color-badge-bg-outline: var(--color-bg-transparent);
     --color-badge-bg-primary: var(--color-bg-badge-primary-solid);
     --color-badge-bg-secondary: var(--color-bg-badge-secondary-solid);
-    --color-badge-bg-success: var(--color-bg-success);
+    --color-badge-bg-success: var(--color-bg-badge-success);
     --color-badge-bg-tertiary: var(--color-bg-tertiary-base);
-    --color-badge-bg-warning: var(--color-bg-warning-base);
+    --color-badge-bg-warning: var(--color-bg-badge-warning);
     --color-badge-border-danger: var(--color-bg-transparent);
     --color-badge-border-discount: var(--color-bg-transparent);
     --color-badge-border-info: var(--color-bg-transparent);
@@ -1600,18 +1600,22 @@
     --color-badge-border-success: var(--color-bg-transparent);
     --color-badge-border-tertiary: var(--color-bg-transparent);
     --color-badge-border-warning: var(--color-bg-transparent);
-    --color-badge-fg-danger: var(--color-fg-light);
+    --color-badge-fg-danger: var(--color-fg-badge-danger);
     --color-badge-fg-discount: var(--color-fg-light);
-    --color-badge-fg-info: var(--color-fg-light);
+    --color-badge-fg-info: var(--color-fg-badge-info);
     --color-badge-fg-outline: var(--color-fg-secondary);
     --color-badge-fg-primary: var(--color-fg-on-primary-solid-neo);
     --color-badge-fg-secondary: var(--color-fg-badge-on-solid);
-    --color-badge-fg-success: var(--color-base-dark);
+    --color-badge-fg-success: var(--color-fg-badge-success);
     --color-badge-fg-tertiary: var(--color-fg-light);
-    --color-badge-fg-warning: var(--color-base-dark);
+    --color-badge-fg-warning: var(--color-fg-badge-warning);
+    --color-bg-badge-danger: var(--color-bg-badge-danger-solid);
     --color-bg-badge-danger-solid: var(--color-bg-danger-base);
+    --color-bg-badge-info: var(--color-bg-info);
     --color-bg-badge-primary-solid: var(--color-bg-primary-base);
     --color-bg-badge-secondary-solid: var(--color-bg-secondary-base);
+    --color-bg-badge-success: var(--color-bg-success);
+    --color-bg-badge-warning: var(--color-bg-warning-base);
     --color-bg-control-checked: light-dark(
       var(--color-success-700),
       var(--color-success-600)
@@ -1894,7 +1898,7 @@
     --color-button-fg-disabled: var(--color-fg-disabled);
     --color-button-fg-outlined-danger: var(--color-fg-primary);
     --color-button-fg-outlined-primary: var(--color-fg-primary);
-    --color-button-fg-outlined-secondary: var(--color-fg-primary);
+    --color-button-fg-outlined-secondary: var(--color-fg-outlined-secondary);
     --color-button-fg-outlined-tertiary: var(--color-fg-primary);
     --color-button-fg-outlined-warning: var(--color-fg-primary);
     --color-button-fg-primary: var(--color-fg-on-primary-solid-neo);
@@ -2030,7 +2034,11 @@
       var(--color-warning-700),
       var(--color-warning-300)
     );
+    --color-fg-badge-danger: var(--color-fg-light);
+    --color-fg-badge-info: var(--color-fg-light);
     --color-fg-badge-on-solid: var(--color-fg-light);
+    --color-fg-badge-success: var(--color-base-dark);
+    --color-fg-badge-warning: var(--color-base-dark);
     --color-fg-icon-tree: light-dark(
       var(--color-fg-primary),
       var(--color-fg-secondary)
@@ -2045,6 +2053,7 @@
     --color-fg-on-tertiary: var(--color-fg-on-accent-solid);
     --color-fg-on-tint: light-dark(var(--color-fg-light), var(--color-white));
     --color-fg-on-warning: var(--color-fg-on-accent-solid);
+    --color-fg-outlined-secondary: var(--color-fg-primary);
     --color-fg-status-error: light-dark(
       var(--color-danger-700),
       var(--color-danger-300)
@@ -2923,6 +2932,7 @@
     --padding-input-with-button: var(--dimension-120);
     --padding-input-with-button-left: var(--dimension-120);
     --padding-input-with-button-right: var(--dimension-120);
+    --padding-input-x-sm: var(--spacing-150);
     --padding-menu-content: var(--padding-popup-viewport);
     --padding-menu-item-x: var(--padding-popup-item-x-md);
     --padding-menu-item-y: var(--padding-popup-item-y-md);
@@ -3604,9 +3614,13 @@
     :where(:scope, .light, .dark, .always-light, .always-dark, .reverse) {
       --color-base: var(--color-white);
       --color-base-reverse: var(--color-gray-950);
+      --color-bg-badge-danger: var(--color-danger-100);
       --color-bg-badge-danger-solid: var(--color-danger-300);
+      --color-bg-badge-info: var(--color-primary-100);
       --color-bg-badge-primary-solid: var(--color-primary-800);
       --color-bg-badge-secondary-solid: var(--color-secondary-800);
+      --color-bg-badge-success: var(--color-secondary-100);
+      --color-bg-badge-warning: var(--color-warning-100);
       --color-bg-control-checked: var(--color-success-700);
       --color-bg-danger-active: var(--color-danger-500);
       --color-bg-danger-hover: var(--color-danger-400);
@@ -3662,7 +3676,11 @@
       --color-fg-accent-success: var(--color-success-700);
       --color-fg-accent-tertiary: var(--color-tertiary-600);
       --color-fg-accent-warning: var(--color-warning-700);
+      --color-fg-badge-danger: var(--color-danger-800);
+      --color-fg-badge-info: var(--color-primary-800);
       --color-fg-badge-on-solid: var(--color-fg-reverse);
+      --color-fg-badge-success: var(--color-secondary-800);
+      --color-fg-badge-warning: var(--color-warning-800);
       --color-fg-icon-tree: var(--color-fg-primary);
       --color-fg-on-accent-solid: var(--color-fg-reverse);
       --color-fg-on-danger: var(--color-base-dark);
@@ -3672,6 +3690,7 @@
       --color-fg-on-tertiary: var(--color-base-dark);
       --color-fg-on-tint: var(--color-fg-light);
       --color-fg-on-warning: var(--color-base-dark);
+      --color-fg-outlined-secondary: var(--color-fg-accent-secondary);
       --color-fg-placeholder: var(--color-neutral-600);
       --color-fg-primary: var(--color-slate-950);
       --color-fg-reverse: var(--color-white);
@@ -3725,7 +3744,6 @@
       --color-input-border-readonly-hover: var(--color-input-border-base);
       --color-input-border-readonly-focus: var(--color-input-border-base);
       --color-input-bg-focus: var(--color-input-bg-base);
-      --padding-input-inline-sm: var(--dimension-12);
       --padding-input-inline-md: var(--dimension-12);
       --padding-input-inline-lg: var(--dimension-16);
       --radius-textarea-surface-lg: var(--radius-input-lg);
@@ -3743,12 +3761,6 @@
       --font-weight-label: var(--font-weight-semibold);
       --text-button-sm: var(--text-sm);
       --font-weight-button: var(--font-weight-medium);
-      --border-width-button-md: var(--border-width-sm);
-      --border-width-button-lg: var(--border-width-sm);
-      --color-button-border-primary: var(--color-border-control);
-      --color-button-border-secondary: var(--color-border-control);
-      --color-button-border-tertiary: var(--color-border-control);
-      --color-button-fg-secondary-borderless: var(--color-fg-secondary);
       --color-button-fg-tertiary-borderless: light-dark(
         var(--color-tertiary-700),
         var(--color-fg-accent-tertiary)

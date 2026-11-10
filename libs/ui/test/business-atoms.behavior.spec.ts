@@ -214,7 +214,9 @@ test("Business numeric value insets match the sibling Input scale", async ({
     .evaluateAll((nodes) =>
       nodes.map((node) => getComputedStyle(node).paddingInlineStart)
     )
-  expect(insets).toEqual(["12px", "12px", "16px"])
+  // Small follows the Figma small-field inset (10 px, exported in rem).
+  expect(Number.parseFloat(insets[0] ?? "")).toBeCloseTo(10, 0)
+  expect(insets.slice(1)).toEqual(["12px", "16px"])
   expect(numericInsets).toEqual(insets)
 })
 

@@ -6,6 +6,20 @@ async function openStory(page: Page, storyId: string) {
     waitUntil: "domcontentloaded",
   })
   await page.locator("#storybook-root").waitFor()
+  // The story remounts when Storybook finishes rendering; acting before that
+  // loses the state the test just created.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (
+            window as Window & {
+              __STORYBOOK_PREVIEW__?: { currentRender?: { phase?: string } }
+            }
+          ).__STORYBOOK_PREVIEW__?.currentRender?.phase
+      )
+    )
+    .toBe("finished")
 }
 
 test.describe("Drawer behavior", () => {
