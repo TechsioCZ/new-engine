@@ -37,6 +37,15 @@ const CHANGELOG = `
 ### DatePicker v1.4.0
 - DatePicker.Label accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
 
+### Dialog v1.2.3
+- A Dialog that is open when a server-rendered page hydrates keeps the server's generated ids for its content, so fields and popups inside it (Select, Combobox, labels) stay wired and React reports no attribute mismatch. A client-only render still portals on its first commit.
+
+### Drawer v1.0.6
+- Drawer.Portal with a single child no longer shifts the generated ids of an open drawer's content away from the server's when the page hydrates.
+
+### Tour v1.0.10
+- Tour.Portal with a single child no longer shifts the generated ids of its content away from the server's when the page hydrates.
+
 ### Chart v1.2.2
 - Chart tooltips format dates with a fixed en-US medium format (e.g. "Mar 5, 2026") when no locale is given, instead of the viewer's browser locale. Set locale to format dates and numbers for that locale.
 
