@@ -167,7 +167,18 @@ and remove the duplicate bridge declarations. Do not edit generated
 
 ## Visual regression tests (Playwright + Docker)
 
-To keep screenshots stable across machines, run component tests inside Docker.
+Pick the smallest run that answers your question:
+
+| Question | Command | Typical time |
+| --- | --- | --- |
+| Did my change move any pixels? | `pnpm -C libs/ui test:visual:local` (no Docker) | seconds to a few minutes |
+| Do the stories my change can affect still match the committed baselines? | `VISUAL_CHANGED_SINCE=origin/master pnpm -C libs/ui test:components` | seconds to minutes |
+| Does everything match? | `pnpm -C libs/ui test:components` | about 15 minutes of screenshots plus about 10 of behavior specs on an Apple Silicon Mac |
+| The change is intended and I need new baselines | let CI fail, then `pnpm -C libs/ui baselines:pull --pr <number>` | one CI run |
+
+CI renders the committed Linux baselines on `linux/amd64` and is the authority for them.
+
+To keep screenshots stable across machines, comparisons against the committed baselines run inside Docker.
 
 1. Run Playwright tests in a consistent Linux environment (builds Storybook static output by default):
 
@@ -182,7 +193,7 @@ pnpm -C libs/ui test:components:update
 ```
 
 Docker image is defined in `docker/development/playwright/Dockerfile`.
-These tests are intentionally Docker-only; running them directly on the host is blocked to keep snapshots reproducible.
+Comparisons against the committed baselines are Docker-only; running them directly on the host is blocked to keep snapshots reproducible. The local check below runs on the host with its own baselines.
 Make sure Storybook is served at `TEST_BASE_URL` (default `http://127.0.0.1:6006` inside the container).
 You can run `pnpm -C libs/ui storybook` on the host and set `TEST_BASE_URL=http://host.docker.internal:6006`,
 or let Playwright start its own static server inside Docker from `storybook-static`.
@@ -218,20 +229,17 @@ Example: `VISUAL_CHANGED_SINCE=origin/master pnpm -C libs/ui test:components`
 Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
 Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
-### Recommendation for `PLAYWRIGHT_WORKERS` and parallelism
+### Known differences on `linux/arm64`
 
-- If `PLAYWRIGHT_WORKERS` is not set, the Docker runner uses 4 workers to bound
-    browser memory. Override it depending on your machine or CI runner size.
-- The test suite enables `fullyParallel` in Playwright config, so tests can run
-    concurrently across files and workers — ensure tests are isolated and use
-    unique snapshot names (the visual tests already include `story.id` in the
-    screenshot filename, which is good).
+Comparison runs on Apple Silicon use `linux/arm64`. One result differs there from `linux/amd64` in every run and is not a regression: screenshot `molecules-colorselect--keyboard-navigation` on `akros-mobile-light` and `n1-mobile-light`, where 17 pixels differ against an allowance of 16.
 
-Example with parallel workers:
+Behavior specs can be timing-sensitive on a fast machine. `date-picker.behavior.spec.ts` ("portals the popup, moves through the grid, and restores trigger focus", `desktop`) failed in a full run under load and passed 6 of 6 on its own.
 
-```bash
-TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:components
-```
+A failing native run prints the commands that confirm failed screenshot stories and behavior specs on `linux/amd64`.
+
+### Workers
+
+The Docker runner uses 4 workers unless `PLAYWRIGHT_WORKERS` is set. On a 6-CPU Docker VM 4 workers already use every core: 6 workers finished a 372-test sample in 153 seconds against 158. Raise the number only when the VM has more CPUs. The local check without Docker picks its own count from the host's cores.
 
 ### Local visual check without Docker
 
