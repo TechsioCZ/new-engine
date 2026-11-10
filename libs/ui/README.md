@@ -233,7 +233,9 @@ Comparison runs use the host architecture (native arm64 on Apple Silicon); snaps
 
 Comparison runs on Apple Silicon use `linux/arm64`. One result differs there from `linux/amd64` in every run and is not a regression: screenshot `molecules-colorselect--keyboard-navigation` on `akros-mobile-light` and `n1-mobile-light`, where 17 pixels differ against an allowance of 16.
 
-Behavior specs can be timing-sensitive on a fast machine. `date-picker.behavior.spec.ts` ("portals the popup, moves through the grid, and restores trigger focus", `desktop`) failed in a full run under load and passed 6 of 6 on its own.
+Behavior specs can be timing-sensitive on a fast machine, and the cause is usually in the spec. `date-picker.behavior.spec.ts` ("portals the popup, moves through the grid, and restores trigger focus") used to fail now and then because it pressed outside the popup before Zag listened for outside presses. It now waits with `outsideDismissalReady` from `test/outside-dismissal.mjs` and passed 30 of 30 repeats on `mobile`; without the wait it failed 1 of 30. Call that helper before any `page.mouse` press outside an open popup.
+
+One test in that spec is still timing-sensitive: "wraps 12-hour time independently of the day period and cancels keyboard edits" failed 1 of 30 repeats on `mobile`, where its first key press after opening the popup was lost.
 
 A failing native run prints the commands that confirm failed screenshot stories and behavior specs on `linux/amd64`.
 

@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test"
+import { outsideDismissalReady } from "./outside-dismissal.mjs"
 
 const stories = {
   clearAndForm: "molecules-datepicker--clear-and-form-serialization",
@@ -56,20 +57,6 @@ async function openCalendarStory(page: Page, storyId: string) {
   await trigger.click()
   await expect(trigger).toHaveAttribute("aria-expanded", "true")
   await expect(page.locator(contentSelector)).toBeVisible()
-}
-
-// Zag starts listening for outside presses one frame and one task after the
-// popup mounts. On touch devices it also ignores them for two frames after the
-// previous popup closed. `page.mouse` does not wait, so let those frames pass.
-async function outsideDismissalReady(page: Page) {
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => setTimeout(resolve, 0))
-        )
-      })
-  )
 }
 
 function pickerByLabel(page: Page, label: string) {

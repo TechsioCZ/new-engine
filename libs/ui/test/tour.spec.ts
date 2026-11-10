@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test"
+import { outsideDismissalReady } from "./outside-dismissal.mjs"
 
 // Embed mode disables Storybook autoplay: this suite owns all user input.
 // Story play functions remain covered independently by visual.spec.ts.
@@ -275,7 +276,11 @@ test("escape, outside click and arrow navigation can be disabled", async ({
     "/iframe.html?id=molecules-tour--playground&viewMode=story&embed=true&args=closeOnEscape:false;closeOnInteractOutside:false;keyboardNavigation:false"
   )
   await page.getByRole("button", { name: "Start tour" }).click()
+  await expect(
+    page.getByRole("alertdialog", { name: "Make yourself at home" })
+  ).toBeVisible()
   await page.keyboard.press("Escape")
+  await outsideDismissalReady(page)
   await page.mouse.click(5, 5)
   await page.getByRole("button", { name: "Next", exact: true }).focus()
   await page.keyboard.press("ArrowRight")
