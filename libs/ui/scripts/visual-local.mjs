@@ -34,12 +34,16 @@ const localDir = path.join(uiRoot, ".visual-local")
 const sharedStorybookDir = path.join(uiRoot, "storybook-static")
 // The working-tree build lives in .visual-local so a local check never replaces
 // the shared build another run may be serving. An existing shared build is only
-// read, and only when the caller asked not to rebuild.
+// read, and only by runs that do not build: PLAYWRIGHT_STORYBOOK_REBUILD=0 and
+// dry runs.
+const buildsHead =
+  process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0" &&
+  !process.argv.includes("--dry-run")
 const headStorybookDir =
-  process.env.PLAYWRIGHT_STORYBOOK_REBUILD === "0" &&
-  !fs.existsSync(path.join(localDir, "storybook-static", "index.json"))
-    ? sharedStorybookDir
-    : path.join(localDir, "storybook-static")
+  buildsHead ||
+  fs.existsSync(path.join(localDir, "storybook-static", "index.json"))
+    ? path.join(localDir, "storybook-static")
+    : sharedStorybookDir
 const playwrightConfig = "playwright.config.mts"
 const visualSpec = "test/visual.spec.ts"
 const fixtureDir = path.join("test", "fixtures", "visual-assets")
