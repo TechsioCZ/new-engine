@@ -5,7 +5,7 @@ description: >
   supplemental hover/focus help using the Zag.js tooltip wrapper, supported
   timing, placement, interaction, controlled state, and token styling props.
 metadata:
-  component_version: "1.1.2"
+  component_version: "1.1.3"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

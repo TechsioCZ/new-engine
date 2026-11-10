@@ -31,6 +31,19 @@
   --shadow-tooltip-surface: var(--shadow-tooltip);
 }
 
+/*
+ * Zag renders the positioner with `translate3d(var(--x), var(--y), 0)` and
+ * measures it one frame later. Until then --x/--y are unset, the transform is
+ * invalid and the hint paints at the page's top-left corner. A resting mouse
+ * there "enters" the hint, then "leaves" it when it moves into place, and that
+ * pointer leave closes a hint just opened by keyboard focus. Start off-screen,
+ * as Zag does for an unplaced popup; its inline --x/--y override these.
+ */
+@utility tooltip-positioner {
+  --x: 0px;
+  --y: -100vh;
+}
+
 @utility tooltip-surface {
   --arrow-size: var(--tooltip-arrow-size);
   --arrow-background: var(--tooltip-arrow-background);
