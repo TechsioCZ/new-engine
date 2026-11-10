@@ -195,7 +195,7 @@ Run the focused replay contracts with `pnpm -C libs/ui test:visual-assets` after
 
 Optional environment overrides:
 - `TEST_BASE_URL` (default: `http://127.0.0.1:6006` inside the container)
-- `PLAYWRIGHT_STORYBOOK_REBUILD` (default: `1`, rebuilds `storybook-static`; set to `0` to reuse an existing build)
+- `PLAYWRIGHT_STORYBOOK_REBUILD` (unset: rebuilds `storybook-static` only when its inputs changed; `1`: always rebuild; `0`: never rebuild)
 - `VISUAL_STORYBOOK_STATIC_DIR` (absolute path to another Storybook build, e.g. one built from `master`, to test against the committed baselines; skips the rebuild)
 - `VISUAL_BRANDS` (default: `business,akros,n1`; focused development only)
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
@@ -208,7 +208,10 @@ Optional environment overrides:
 - `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to run one project at a time and reduce memory spikes)
 - `VISUAL_CHANGED_SINCE` (git ref, e.g. `origin/master`; screenshots only the stories affected since the merge-base, or a full run when everything could be affected)
 - `VISUAL_CHANGED_FILES` (comma-separated repo-relative paths; used instead of git, and wins over `VISUAL_CHANGED_SINCE` when both are set)
+- `VISUAL_CHANGED_FILES_FROM` (path to a file with one repo-relative path per line, or NUL-separated as `git diff -z` writes it so names with newlines survive; the same as `VISUAL_CHANGED_FILES` for long lists, and it wins over both other changed-mode variables)
 - `VISUAL_CHANGED_DRY_RUN` (set to `1` with a changed-mode variable to print the selection as JSON; needs an existing Storybook build and never builds or starts Docker)
+- `PLAYWRIGHT_SHARD` (`index/total`, e.g. `2/8`; runs one shard of a non-release run, and a shard with no matching tests passes; cannot be combined with `PLAYWRIGHT_RELEASE_SHARD` or `VISUAL_RELEASE_READINESS=1`)
+- `VISUAL_CHANGED_BEHAVIOR` (set to `1` to also run the component behavior specs in a changed subset; by default only screenshot specs run)
 
 Example: `VISUAL_CHANGED_SINCE=origin/master pnpm -C libs/ui test:components`
 
@@ -245,6 +248,10 @@ TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:co
 - Flags: `--base <ref>`, `--all` (every visual story), `--stories <id,id>` (skips change detection), `--workers <n>`, `--rebuild-base` (rebuilds the base build and clears the baselines for the current harness), `--dry-run` (prints the plan as JSON and builds nothing).
 - Install the browsers once: `pnpm -C libs/ui exec playwright install chromium webkit`. If a run reports missing browsers, it says so in the summary.
 - The HTML report goes to `libs/ui/.visual-local/report`. Open it with `pnpm -C libs/ui exec playwright show-report .visual-local/report`.
+
+### Baselines from CI
+
+When a PR's screenshot check fails because the visual change is intended, run `pnpm -C libs/ui baselines:pull --pr <number>` to copy the screenshots that CI rendered into the committed Linux baselines. Use a run id or `--branch <name>` instead of `--pr` to pick another run, and `--out <dir>` or `--dry-run` to write elsewhere or only list the files. Review the images and `git status`, then commit.
 
 ### Release coverage versus focused development
 

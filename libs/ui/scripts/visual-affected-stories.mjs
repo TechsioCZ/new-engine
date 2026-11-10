@@ -57,14 +57,17 @@ const ROOT_BUILD_CONFIG_FILES = new Set([
 const PATCHES_PREFIX = "patches/"
 const DOCKER_PLAYWRIGHT_PREFIX = "docker/development/playwright/"
 const UI_PREFIX = "libs/ui/"
+/** Workflows that run the UI checks; changing one runs everything. */
+const UI_WORKFLOW_FILES = new Set([
+  ".github/workflows/ci.yml",
+  ".github/workflows/ui-quality.yml",
+  ".github/workflows/ui-release.yml",
+  ".github/workflows/storybook-a11y.yml",
+])
 const SNAPSHOT_PATTERN =
   /^libs\/ui\/test\/visual\.spec\.ts-snapshots\/([^/]+)\.png$/
 const SOURCE_ROOTS = ["libs/ui/stories/", "libs/ui/src/"]
-const IGNORED_UI_DIRS = [
-  "libs/ui/tests/",
-  "libs/ui/skills/",
-  "libs/ui/agent-plugin/",
-]
+const IGNORED_UI_DIRS = ["libs/ui/tests/", "libs/ui/agent-plugin/"]
 const IGNORED_UI_FILES = new Set([
   "libs/ui/test/tour.playwright.config.ts",
   "libs/ui/test/vertical-navigation.playwright.config.ts",
@@ -74,8 +77,11 @@ const MAX_REASON_ITEMS = 5
 export const GIT_MAX_BUFFER = 256 * 1024 * 1024
 const DIST_JS_PATTERN = /^\.\/dist\/.+\.js$/
 const UI_TEST_SPEC = /\.spec\.ts$/
+const MARKDOWN_FILE = /\.md$/
+/** Markdown here can reach a story: stories and docs both import it, some with ?raw. */
+const MARKDOWN_IMPORT_ROOTS = [...SOURCE_ROOTS, "libs/ui/skills/"]
 const IGNORED_NAME_PATTERNS = [
-  /\.(md|mdx|d\.ts)$/,
+  /\.d\.ts$/,
   /\.figma\.tsx?$/,
   /\.test\.(ts|tsx|mjs)$/,
   /\.node-test\.mjs$/,
@@ -421,10 +427,20 @@ function isIgnoredByLocation(file) {
   if (IGNORED_UI_DIRS.some((prefix) => file.startsWith(prefix))) {
     return true
   }
-  if (path.posix.dirname(file) === "libs/ui/test" && UI_TEST_SPEC.test(file)) {
-    return !file.endsWith("/visual.spec.ts")
+  if (MARKDOWN_FILE.test(file)) {
+    return !MARKDOWN_IMPORT_ROOTS.some((prefix) => file.startsWith(prefix))
   }
   return IGNORED_UI_FILES.has(file)
+}
+
+/**
+ * Playwright specs directly under libs/ui/test run in the gate: behavior specs
+ * on both devices and visual.spec.ts for the screenshots.
+ * @param {string} file repo-relative POSIX path
+ * @returns {boolean}
+ */
+function isUiTestSpec(file) {
+  return path.posix.dirname(file) === "libs/ui/test" && UI_TEST_SPEC.test(file)
 }
 
 /**
@@ -433,20 +449,32 @@ function isIgnoredByLocation(file) {
  * @returns {Verdict}
  */
 function classifyOutsideUi(file, context) {
+  if (UI_WORKFLOW_FILES.has(file)) {
+    return { all: "rule 2: UI workflow changed" }
+  }
   if (context.storyKeysByFile.has(file)) {
     return { all: "rule 2: imported by a visual story from outside libs/ui" }
   }
-  if (
-    ROOT_DEPENDENCY_FILES.has(path.posix.basename(file)) ||
-    ROOT_BUILD_CONFIG_FILES.has(file) ||
-    file.startsWith(PATCHES_PREFIX) ||
-    file.startsWith(DOCKER_PLAYWRIGHT_PREFIX)
-  ) {
+  if (isRootBuildInput(file)) {
     return {
       all: "rule 2: shared dependency, patch, build config or Playwright image input",
     }
   }
   return { storyIds: [] }
+}
+
+/**
+ * Root files that feed dependency install, Storybook build or the Playwright image.
+ * @param {string} file repo-relative POSIX path outside libs/ui
+ * @returns {boolean}
+ */
+function isRootBuildInput(file) {
+  return (
+    ROOT_DEPENDENCY_FILES.has(path.posix.basename(file)) ||
+    ROOT_BUILD_CONFIG_FILES.has(file) ||
+    file.startsWith(PATCHES_PREFIX) ||
+    file.startsWith(DOCKER_PLAYWRIGHT_PREFIX)
+  )
 }
 
 /**
@@ -461,6 +489,9 @@ function classifyChangedFile(file, context) {
   }
   if (!file.startsWith(UI_PREFIX)) {
     return classifyOutsideUi(file, context)
+  }
+  if (isUiTestSpec(file)) {
+    return { all: `rule 3: ${file} is a Playwright spec that runs in the gate` }
   }
   if (isIgnoredUiFile(file)) {
     return { storyIds: [] }
@@ -528,6 +559,61 @@ export function selectAffectedStories({
     storyIds: sorted,
     reason: `${files.length} changed file(s) affect ${sorted.length} visual stories`,
   }
+}
+
+/**
+ * A change that no rule can route to a story, judged from paths alone. Outside
+ * libs/ui only the shared build inputs (lockfile, patches, root config) count.
+ * @param {string} file repo-relative POSIX path
+ * @returns {boolean}
+ */
+function isScopeNeutral(file) {
+  if (file.startsWith(UI_PREFIX)) {
+    return isIgnoredUiFile(file)
+  }
+  // Other workspace libraries cannot reach a story: libs/ui depends on none of
+  // them and no story imports outside libs/ui (both asserted by the build guard
+  // test in visual-storybook-build.node-test.mjs).
+  return !isRootBuildInput(file)
+}
+
+/**
+ * Coarse scope without the Storybook index, so CI can decide before it builds anything.
+ * @param {string[]} changedFiles repo-relative paths
+ * @returns {"none" | "ui" | "full"} full: a UI workflow changed; none: no file can
+ *   affect a screenshot; ui: anything else
+ */
+export function classifyScope(changedFiles) {
+  const files = changedFiles.map(normalizeRel)
+  if (files.some((file) => UI_WORKFLOW_FILES.has(file))) {
+    return "full"
+  }
+  return files.every(isScopeNeutral) ? "none" : "ui"
+}
+
+/**
+ * Parses a path list. NUL-separated (git diff -z) keeps names that contain a
+ * newline intact; otherwise one path per line, blank lines ignored.
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function parsePathList(text) {
+  if (text.includes("\0")) {
+    return text.split("\0").filter(Boolean)
+  }
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+/**
+ * Reads repo-relative paths, newline- or NUL-separated (see parsePathList).
+ * @param {string} file
+ * @returns {string[]}
+ */
+export function readPathList(file) {
+  return parsePathList(fs.readFileSync(file, "utf8"))
 }
 
 /**
@@ -637,6 +723,15 @@ export function parseCliArgs(argv) {
  */
 function main(argv) {
   const repoRoot = path.resolve(import.meta.dirname, "../../..")
+  if (argv[0] === "--scope") {
+    if (argv.length !== 3 || argv[1] !== "--files-from") {
+      throw new Error(
+        "Usage: visual-affected-stories.mjs --scope --files-from <path>"
+      )
+    }
+    process.stdout.write(`${classifyScope(readPathList(argv[2]))}\n`)
+    return
+  }
   const options = parseCliArgs(argv)
   const changedFiles = options.files ?? gitChangedFiles(repoRoot, options.since)
   const result = affectedStoriesFromDisk({ repoRoot, changedFiles })

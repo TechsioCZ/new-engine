@@ -33,6 +33,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
       - run: timeout 420 pnpm exec playwright install --only-shell chromium
+      - id: storybook-inputs
+        run: |
+          hash="$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)"
+          echo "hash=${hash}" >> "$GITHUB_OUTPUT"
+      # The script re-checks the build marker, so a restored build is used only when it matches the checked-out inputs.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: libs/ui/storybook-static
+          key: ui-storybook-v1-${{ steps.storybook-inputs.outputs.hash }}
       # One supported pair per job; calibration failures are asserted separately.
       # WCAG A/AA rules block; APCA gold and AAA contrast are reported only.
       - name: Enforce product accessibility and reporter calibration

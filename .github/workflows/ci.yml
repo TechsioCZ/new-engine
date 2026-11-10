@@ -82,12 +82,18 @@ jobs:
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: pnpm --dir libs/ui check:package
 
-  # Deliberately runs on every commit: changes to shared dependencies/workflows
-  # must not silently skip UI checks. The reusable workflow validates this SHA.
+  # Pull requests run only what the change can affect (a change that cannot
+  # reach the UI library or its stories skips the components and accessibility
+  # jobs, behavior specs included). Workflow changes
+  # force the full run, and dependency or build-input changes are treated as
+  # "all" by the mapper. Pushes to master always run everything. The reusable
+  # workflow validates this SHA.
   ui-quality:
     uses: ./.github/workflows/ui-quality.yml
     with:
       sha: ${{ github.sha }}
+      mode: ${{ github.event_name == 'pull_request' && 'changed' || 'full' }}
+      base_sha: ${{ github.event.pull_request.base.sha || '' }}
 
   # Required status check for master (ruleset "Master"). It fails unless every
   # job in `needs` succeeded, so the ruleset has one stable name to require.

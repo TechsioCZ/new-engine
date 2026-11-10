@@ -17,6 +17,7 @@ import {
   affectedStoriesFromDisk,
   gitChangedFiles,
 } from "./visual-affected-stories.mjs"
+import { ensureStorybookBuild } from "./visual-storybook-build.mjs"
 
 /**
  * @typedef {{ base: string, all: boolean, stories: string[], workers: number, rebuildBase: boolean, dryRun: boolean }} Options
@@ -1396,9 +1397,13 @@ async function main(options) {
   sweepStaleArtifacts(root)
   const baseSha = mergeBase(options.base)
   const paths = cachePathsFor(root, baseSha, currentHarnessKey())
-  if (process.env.PLAYWRIGHT_STORYBOOK_REBUILD !== "0") {
-    buildStorybook(uiRoot, headStorybookDir)
-  }
+  ensureStorybookBuild({
+    uiRoot,
+    repoRoot,
+    storybookDir: headStorybookDir,
+    externalBuild: false,
+    rebuild: process.env.PLAYWRIGHT_STORYBOOK_REBUILD,
+  })
   const headIds = visualIdsOf(headStorybookDir)
   const selection = selectStories({ options, baseSha, headIds })
   if (selection.mode === "none") {
