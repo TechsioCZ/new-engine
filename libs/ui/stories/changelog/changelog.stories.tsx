@@ -13,6 +13,18 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FormCheckbox v1.3.2
+- FormCheckbox now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored. Note the order: onCheckedChange now runs inside the click, before the input's own onChange.
+
+### Switch v1.3.1
+- Switch now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored. Note the order: onCheckedChange now runs inside the click, before the input's own onChange.
+
+### RadioGroup v1.1.5
+- RadioGroup now applies a selection in the same tick: right after a scripted \`input.click()\`, an item label click or an arrow key, the native radios and FormData hold the new value and onValueChange has run once. Before, the radios kept the old selection until a later task. A change the controlled parent rejects is still restored. Note the order: onValueChange now runs inside the click, before the input's own onChange.
+
+### RadioCard v1.1.5
+- RadioCard now applies a selection in the same tick: right after a scripted \`input.click()\`, an item label click or an arrow key, the native radios and FormData hold the new value and onValueChange has run once. Before, the radios kept the old selection until a later task. A change the controlled parent rejects is still restored. Note the order: onValueChange now runs inside the click, before the input's own onChange.
+
 ### Label v1.1.0
 - Label accepts requiredLabel to translate the screen-reader text announced after the required marker (default '(required)', unchanged); an empty string omits it.
 
