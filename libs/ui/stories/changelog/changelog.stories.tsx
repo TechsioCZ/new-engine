@@ -31,6 +31,9 @@ const CHANGELOG = `
 ### Combobox v1.6.7
 - Combobox now accepts openOnClick to open the list when the input is clicked (default off) and translations to set accessible names for the trigger and clear buttons.
 
+### Toast v1.1.4
+- Toaster no longer throws when the Popover API is missing (jsdom, happy-dom, older browsers) or when showPopover fails, so consumer tests that render Toaster no longer crash; toasts still render, and browsers with the Popover API keep the same top-layer behaviour.
+
 ### Toast v1.1.3
 - Toast and Toaster accept closeLabel, loadingLabel and (Toaster) label for localised accessible names, with defaults that keep the existing names; a loading toast without a title now shows loadingLabel ('loading...') instead of an empty title.
 
