@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from "@playwright/test"
+import { outsideDismissalReady } from "./outside-dismissal.mjs"
 
 const stories = {
   clearAndForm: "molecules-datepicker--clear-and-form-serialization",
@@ -56,6 +57,20 @@ async function openCalendarStory(page: Page, storyId: string) {
   await trigger.click()
   await expect(trigger).toHaveAttribute("aria-expanded", "true")
   await expect(page.locator(contentSelector)).toBeVisible()
+  await popupKeyboardReady(page)
+}
+
+// Opening by the trigger moves focus to the calendar's active day in the frame
+// that first paints the popup (Zag's focusActiveCell). A person cannot act
+// before that paint, but `focus`, `press` and `fill` can: they do not wait for
+// a frame, so the field loses focus again and the key press or typed text goes
+// to the day grid. Call this after opening by the trigger and before the first
+// of those actions inside the popup. A popup that starts open (`defaultOpen`)
+// does not move focus, so there is nothing to wait for.
+async function popupKeyboardReady(page: Page) {
+  await expect(
+    page.locator(`${contentSelector} [data-part="table-cell-trigger"]:focus`)
+  ).toHaveCount(1)
 }
 
 function pickerByLabel(page: Page, label: string) {
@@ -460,12 +475,15 @@ test.describe("DatePicker browser behavior", () => {
       )
     ).toBe(true)
 
+    await popupKeyboardReady(page)
     const focusedDay = page.locator(daySelector).first()
     await focusedDay.focus()
     const before = await focusedDay.getAttribute("data-value")
     await focusedDay.press("ArrowRight")
-    const after = await page.locator(":focus").getAttribute("data-value")
-    expect(after).not.toBe(before)
+    // Zag moves focus to the next day one frame after the key press.
+    await expect
+      .poll(() => page.locator(":focus").getAttribute("data-value"))
+      .not.toBe(before)
 
     await page.keyboard.press("Escape")
     await expect(content).toHaveCount(0)
@@ -491,6 +509,7 @@ test.describe("DatePicker browser behavior", () => {
         })
       )
       .toBe(true)
+    await outsideDismissalReady(page)
     await page.mouse.click(4, 4)
     await expect(content).toHaveCount(0)
   })
@@ -726,6 +745,7 @@ test.describe("DatePicker browser behavior", () => {
     await root.getByRole("button", { name: "Open calendar" }).click()
     const content = page.locator(contentSelector)
     const hour = content.getByRole("spinbutton", { name: "Hour", exact: true })
+    await popupKeyboardReady(page)
     await hour.press("End")
     await expect(hour).toHaveValue("12")
     await hour.press("ArrowUp")
@@ -1093,6 +1113,7 @@ test.describe("DatePicker browser behavior", () => {
     await root
       .locator('[data-scope="date-picker"][data-part="trigger"]')
       .click()
+    await popupKeyboardReady(page)
     await page.getByLabel("End time minute").fill("50")
     await page.getByRole("button", { name: "Cancel" }).click()
     await expect(hidden.nth(0)).toHaveValue(baseline[0])

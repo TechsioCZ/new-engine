@@ -233,7 +233,9 @@ Comparison runs use the host architecture (native arm64 on Apple Silicon); snaps
 
 Comparison runs on Apple Silicon use `linux/arm64`. One result differs there from `linux/amd64` in every run and is not a regression: screenshot `molecules-colorselect--keyboard-navigation` on `akros-mobile-light` and `n1-mobile-light`, where 17 pixels differ against an allowance of 16.
 
-Behavior specs can be timing-sensitive on a fast machine. `date-picker.behavior.spec.ts` ("portals the popup, moves through the grid, and restores trigger focus", `desktop`) failed in a full run under load and passed 6 of 6 on its own.
+Behavior specs can be timing-sensitive on a fast machine, and the cause is usually in the spec. `date-picker.behavior.spec.ts` ("portals the popup, moves through the grid, and restores trigger focus") used to fail now and then because it pressed outside the popup before Zag listened for outside presses. It now waits with `outsideDismissalReady` from `test/outside-dismissal.mjs` and passed 30 of 30 repeats on `mobile`; without the wait it failed 1 of 30. Call that helper before any `page.mouse` press outside an open popup.
+
+A second test in that spec ("wraps 12-hour time independently of the day period and cancels keyboard edits") lost its first key press now and then. Opening the calendar by its trigger moves focus to the active day in the frame that first paints the popup. A person cannot act before that paint, but `focus`, `press` and `fill` do not wait for a frame: the test focused the hour field first, focus then moved to the day, and the `End` key went to the day grid. The spec now waits with `popupKeyboardReady` until a day in the popup has focus; `openCalendarStory` calls it for every test that opens a calendar. Without the wait the test failed 2 of 60 repeats on `mobile`; with it it passed 60 of 60 and then 400 of 400, and the whole spec passed 30 of 30 repeats. A `click` waits for two stable frames on its own, so only a `focus`, `press` or `fill` sent right after opening needs the helper.
 
 A failing native run prints the commands that confirm failed screenshot stories and behavior specs on `linux/amd64`.
 
