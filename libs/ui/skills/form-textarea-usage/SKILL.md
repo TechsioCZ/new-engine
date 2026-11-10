@@ -73,7 +73,6 @@ where actions and feedback live). This section applies them to `FormTextarea`.
 | `state=disabled` | `disabled` |
 | — (not in Figma) | `readOnly` |
 | `required=true` | `required` |
-| `requiredLabel="(povinné)"` | `requiredLabel` (screen-reader text; `""` omits it) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormTextarea → UX guidelines*.
 
@@ -97,6 +96,7 @@ id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 Textarea props: size, resize, readOnly (legacy readonly alias), required, disabled
 ```
 

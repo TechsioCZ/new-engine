@@ -70,7 +70,6 @@ where actions and feedback live). This section applies them to `FormNumericInput
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` (steppers hidden) |
 | `required=true` | `required` |
-| `requiredLabel="(povinné)"` | `requiredLabel` (screen-reader text; `""` omits it) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormNumericInput → UX guidelines*.
 
@@ -96,6 +95,7 @@ label: ReactNode
 children: NumericInput compound parts
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 NumericInputProps excluding children
 ```
 

@@ -25,6 +25,18 @@ const CHANGELOG = `
 ### FormNumericInput v1.3.0
 - FormNumericInput accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
 
+### Combobox v1.7.0
+- Combobox accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### QuantityField v1.1.0
+- QuantityField accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### Switch v1.3.0
+- Switch accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### DatePicker v1.4.0
+- DatePicker.Label accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
 ### Chart v1.2.2
 - Chart tooltips format dates with a fixed en-US medium format (e.g. "Mar 5, 2026") when no locale is given, instead of the viewer's browser locale. Set locale to format dates and numbers for that locale.
 

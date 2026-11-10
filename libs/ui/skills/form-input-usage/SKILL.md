@@ -82,7 +82,6 @@ where actions and feedback live). This section applies them to `FormInput`.
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` |
 | `required=true` | `required` |
-| `requiredLabel="(povinné)"` | `requiredLabel` (screen-reader text; `""` omits it) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormInput → UX guidelines*.
 
@@ -107,6 +106,7 @@ id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 all Input props except where FormInput sets label/status behavior
 ```
 

@@ -2,7 +2,7 @@
  * Switch — @techsio/ui-kit molecule.
  *
  * @component Switch
- * @componentVersion v1.2.2
+ * @componentVersion v1.3.0
  * @skill switch-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -138,6 +138,8 @@ export type SwitchProps = VariantProps<typeof switchVariants> & {
   disabled?: boolean
   readOnly?: boolean
   required?: boolean
+  /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to "(required)". */
+  requiredLabel?: string
   children?: ReactNode
   onCheckedChange?: (checked: boolean) => void
   className?: string
@@ -162,6 +164,7 @@ export function Switch({
   disabled = false,
   readOnly = false,
   required = false,
+  requiredLabel,
   dir = "ltr",
   children,
   className,
@@ -215,6 +218,7 @@ export function Switch({
       <Label
         className={root()}
         required={required}
+        requiredLabel={requiredLabel}
         size={size}
         {...api.getRootProps()}
       >

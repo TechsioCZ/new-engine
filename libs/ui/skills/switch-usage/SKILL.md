@@ -6,7 +6,7 @@ description: >
   checked/defaultChecked, validation status, help text, required, disabled, and
   read-only state.
 metadata:
-  component_version: "1.2.2"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -93,6 +93,7 @@ checked/defaultChecked, onCheckedChange
 name, value, required, disabled, readOnly, dir
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 ```
 
 ## Core Patterns
