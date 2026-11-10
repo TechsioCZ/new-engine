@@ -2,7 +2,7 @@
  * Image — @techsio/ui-kit atom.
  *
  * @component Image
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill image-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,13 @@ import { Icon } from "./icon"
 const imageVariants = tv({
   base: "block max-w-full object-cover",
   variants: {
+    objectFit: {
+      contain: "object-contain",
+      cover: "object-cover",
+      fill: "object-fill",
+      none: "object-none",
+      scaleDown: "object-scale-down",
+    },
     size: {
       sm: "size-image-sm",
       md: "size-image-md",
@@ -37,6 +44,8 @@ const imageVariants = tv({
 })
 
 export type BaseImageProps = {
+  /** Preserve image geometry inside a sized wrapper without consumer CSS. */
+  objectFit?: "contain" | "cover" | "fill" | "none" | "scaleDown"
   src: string
   alt: string
   className?: string
@@ -74,6 +83,7 @@ export function Image<T extends ElementType = "img">({
   src,
   alt,
   size,
+  objectFit,
   className,
   ...props
 }: ImageProps<T>) {
@@ -82,7 +92,7 @@ export function Image<T extends ElementType = "img">({
   return (
     <Component
       alt={alt}
-      className={imageVariants({ size, className })}
+      className={imageVariants({ size, objectFit, className })}
       src={src}
       {...props}
     />
@@ -131,6 +141,7 @@ function ImageFallbackContent<T extends ElementType = "img">({
   src,
   alt,
   size,
+  objectFit,
   className,
   fallbackLabel,
   ...props
@@ -160,7 +171,9 @@ function ImageFallbackContent<T extends ElementType = "img">({
 
   return (
     <span
-      className={styles.root({ className: imageVariants({ size, className }) })}
+      className={styles.root({
+        className: imageVariants({ size, objectFit, className }),
+      })}
       data-image-state={imageState}
       style={reservationStyle}
     >
@@ -181,7 +194,7 @@ function ImageFallbackContent<T extends ElementType = "img">({
         alt={failed ? "" : alt}
         aria-hidden={failed ? true : props["aria-hidden"]}
         className={styles.image({
-          className: imageVariants({ size, className }),
+          className: imageVariants({ size, objectFit, className }),
         })}
         onError={(
           event: Parameters<ReactEventHandler<HTMLImageElement>>[0]

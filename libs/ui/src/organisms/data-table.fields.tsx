@@ -265,7 +265,12 @@ export function FieldSelect({
           </Select.StatusText>
         ) : null}
         <Select.Positioner>
-          <Select.Content>
+          {/*
+           * The listbox takes the same name as the trigger. Zag's content
+           * points `aria-labelledby` at a label this field never renders, so
+           * the dangling reference falls through to `aria-label`.
+           */}
+          <Select.Content aria-label={ariaLabel}>
             {items.map((item) => (
               <Select.Item item={item} key={item.value}>
                 <Select.ItemText />

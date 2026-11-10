@@ -13,6 +13,45 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Chart v1.2.1
+- Chart tooltips now show the category as a title and a named value row instead of raw field names, with new valueLabel, formatCategory, formatTooltipValue and locale props for localized labels and number and date formatting.
+
+### DatePicker v1.3.11
+- DatePicker accepts a \`translations\` prop whose \`segmentLabels\` name each editable segment for screen readers and whose \`emptySegment\` sets the word announced for an empty segment, forwards the remaining keys to the calendar, and no longer sets a dangling \`for\` on its label or \`aria-controls\` on a closed trigger.
+
+### Dialog v1.2.2
+- Dialog adds closeLabel to set the accessible name of the close button (default 'Close dialog'), contentRef to get the content element, and contentStyle to merge inline layout styles into the content; modal dialogs now explicitly allow pointer events on their positioner.
+
+### Drawer v1.0.5
+- Drawer.Backdrop now allows pointer events when the drawer is modal (default), so the backdrop still receives clicks when an ancestor disables pointer events. Drawer.RootProvider now honours the modal setting of the drawer api: a modeless useDrawer({ modal: false }) no longer gets a pointer-events-auto backdrop, and nested providers no longer inherit modal from an outer Drawer.Root.
+
+### Combobox v1.6.7
+- Combobox now accepts openOnClick to open the list when the input is clicked (default off) and translations to set accessible names for the trigger and clear buttons.
+
+### Toast v1.1.3
+- Toast and Toaster accept closeLabel, loadingLabel and (Toaster) label for localised accessible names, with defaults that keep the existing names; a loading toast without a title now shows loadingLabel ('loading...') instead of an empty title.
+
+### Switch v1.2.2
+- Switch: when a visible label (children) is present, the input takes its accessible name from that label; aria-label applies only to label-less switches (an explicit inputProps aria-label still wins).
+
+### DataTable v1.4.7
+- DataTable translations now accept selectRowLabel and editRowLabel to localise the accessible names of row selection checkboxes and inline-edit buttons, and column filter and inline-edit select listboxes are now named by their field label.
+
+### Button v0.6.5
+- Button accepts a density prop. density="compact" gives fixed 28, 36 and 44 px heights for sm, md and lg with tighter padding for dense toolbars; the default density is unchanged.
+
+### LinkButton v1.2.3
+- LinkButton accepts the same density prop as Button, so compact navigation actions match compact buttons; the default is unchanged.
+
+### NumericInput v1.3.13
+- NumericInput has a new density prop: 'compact' gives a fixed-height, dense field at sm, md and lg for toolbars and tables; the default look is unchanged.
+
+### Image v1.2.2
+- Image and ImageWithFallback accept an objectFit prop (contain, cover, fill, none, scaleDown) to fit the picture inside a sized wrapper without consumer CSS; the default is unchanged.
+
+### ProductCard v1.3.3
+- ProductCard adds presentation ("default" or "featured") for a more prominent featured surface, shadow to turn off the card shadow, and ProductCard.Image objectFit (cover, contain, fill; default cover). Default rendering is unchanged, and the featured tokens are new in the component token file.
+
 ### Textarea v1.0.11
 - Give the Business small Textarea the same 10 px horizontal padding as the small Input, so a form that mixes them stays aligned; medium and large sizes keep their existing padding.
 

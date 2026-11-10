@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.6
+ * @componentVersion v1.4.7
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -807,6 +807,10 @@ export type DataTableTranslations = {
   saveErrorLabel?: string
   /** Inline-edit validation error for a blank `meta.required` field. */
   requiredLabel?: string
+  /** Accessible name of a row's selection checkbox; receives `getRowLabel` output. Keep the function stable. */
+  selectRowLabel?: (rowLabel: string) => string
+  /** Accessible name of a row's inline-edit button; receives `getRowLabel` output. */
+  editRowLabel?: (rowLabel: string) => string
 }
 
 const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
@@ -829,6 +833,8 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   editingLabel: "Editing a row — other table controls are locked",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
   requiredLabel: "Enter a value before saving this row.",
+  selectRowLabel: (rowLabel) => `Select ${rowLabel}`,
+  editRowLabel: (rowLabel) => `Edit ${rowLabel}`,
   pageLabel: ({ page, pageCount }) =>
     pageCount == null ? `Page ${page}` : `Page ${page} of ${pageCount}`,
   previousPageLabel: "Previous page",
@@ -2198,6 +2204,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         selectAllLabel: translations.selectAllLabel,
         selectionLabel: translations.selectionLabel,
         reorderLabel: translations.reorderLabel,
+        selectRowLabel: translations.selectRowLabel,
         showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
       }),
     [
@@ -2209,6 +2216,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       translations.selectAllLabel,
       translations.selectionLabel,
       translations.reorderLabel,
+      translations.selectRowLabel,
       selectionMode,
       maxSelectedRows,
     ]
@@ -3562,7 +3570,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
     return (
       <ActionIcon
-        aria-label={`Edit ${getRowLabel?.(row) ?? `row ${row.id}`}`}
+        aria-label={translations.editRowLabel(
+          getRowLabel?.(row) ?? `row ${row.id}`
+        )}
         disabled={isEditing || (canEditRow ? !canEditRow(row) : false)}
         icon="icon-[mdi--pencil-outline]"
         id={`${instanceId}-edit-${row.id}`}
@@ -4255,6 +4265,7 @@ function buildColumns<T extends RowData>({
   selectAllLabel,
   selectionLabel,
   reorderLabel,
+  selectRowLabel,
   showSelectAll,
 }: {
   userColumns: ColumnDef<T, unknown>[]
@@ -4265,6 +4276,7 @@ function buildColumns<T extends RowData>({
   selectAllLabel: string
   selectionLabel: string
   reorderLabel: string
+  selectRowLabel: (rowLabel: string) => string
   showSelectAll: boolean
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
@@ -4305,7 +4317,7 @@ function buildColumns<T extends RowData>({
         ),
       cell: ({ row }) => (
         <Checkbox
-          aria-label={`Select ${getRowLabel?.(row) ?? `row ${row.id}`}`}
+          aria-label={selectRowLabel(getRowLabel?.(row) ?? `row ${row.id}`)}
           checked={row.getIsSelected()}
           disabled={locked || !row.getCanSelect()}
           indeterminate={row.getIsSomeSelected()}

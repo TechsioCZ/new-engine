@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,9 +27,14 @@ import {
   barY,
   type ChartAxisOptions,
   type ChartColorOptions,
+  type ChartFocusPreset,
   type ChartPoint,
   type ChartScene,
+  type ChartTooltipAnchorContext,
+  type ChartTooltipContent,
   type ChartTooltipInput,
+  type ChartTooltipPosition,
+  type ChartTooltipRow,
   type ChartValue,
   colorLegend,
   colorLegendItems,
@@ -113,6 +118,17 @@ export type ChartProps<TDatum> = {
   yLabel?: string
   /** Formats value-axis tick labels (e.g. currency). */
   formatValue?: (value: number) => string
+  /**
+   * Human series name shown in the tooltip row of a single-series chart and pie (e.g. "Tržby"). Falls back to
+   * `yLabel`; the raw `y` field name is never shown. Multi-series rows use the `series` values.
+   */
+  valueLabel?: string
+  /** Formats the tooltip title from the category / x value. Defaults to locale number and date formatting. */
+  formatCategory?: (value: string | number | Date) => string
+  /** Formats values in the tooltip. Defaults to `formatValue`, then locale number formatting. */
+  formatTooltipValue?: (value: number) => string
+  /** BCP 47 locale for the default tooltip number and date formatting (e.g. "cs-CZ"). */
+  locale?: string
   /** Fixed pixel height. When omitted, `aspectRatio` controls sizing. */
   height?: number
   /** Width/height ratio used when `height` is omitted. Defaults to 16/9. */
@@ -146,10 +162,10 @@ const chartVariants = tv({
     alternative: "overflow-auto text-chart-data text-chart-fg",
     summary:
       "cursor-pointer rounded-chart-tooltip focus-visible:outline-chart-fg",
-    cell: "border-chart-tooltip-border border-b p-chart-tooltip text-start",
+    cell: "border-chart-tooltip-border border-b p-chart-cell text-start",
     legend: "flex flex-wrap gap-chart-legend text-chart-data text-chart-fg",
     legendItem: "inline-flex items-center gap-chart-item",
-    fallback: "p-chart-tooltip text-chart-data text-chart-fg",
+    fallback: "p-chart-fallback text-chart-data text-chart-fg",
   },
 })
 
@@ -196,6 +212,10 @@ type BuildConfig<TDatum> = {
   xLabel?: string
   yLabel?: string
   formatValue?: (value: number) => string
+  valueLabel?: string
+  formatCategory?: (value: string | number | Date) => string
+  formatTooltipValue?: (value: number) => string
+  locale?: string
   animate: boolean
   showTooltip: boolean
   tooltipClassName: string
@@ -219,11 +239,10 @@ type ResolvedBuild<TDatum> = {
   bandAxis: ChartAxisOptions<ChartValue>
   /**
    * Tooltip config for a cartesian chart, told which channel carries the value
-   * so `formatValue` lands on the same number the axis ticks format.
+   * so the value formatter lands on the same number the axis ticks format.
    */
   tooltipFor: (
-    valueChannel: "x" | "y",
-    swapped?: boolean
+    valueChannel: "x" | "y"
   ) => false | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom">
   /** Tooltip config for pie/donut, which read the value off the source row. */
   polarTooltip: () =>
@@ -232,6 +251,7 @@ type ResolvedBuild<TDatum> = {
   shared: {
     color?: ChartColorOptions
     svgAnimation: boolean
+    focus?: ChartFocusPreset
   }
 }
 
@@ -241,10 +261,104 @@ const READABLE_TICK_LABELS = { fontSize: 14, opacity: 1 }
 const MAX_SERIES = 6
 const LINE_DASHES = ["", "8 4", "2 4", "8 4 2 4", "12 4", "4 4"]
 
-type TooltipPoint = {
-  xValue: unknown
-  yValue: unknown
-  datum: unknown
+const TOOLTIP_GAP = 12
+const TOOLTIP_EDGE = 8
+let tooltipMeasureContext: CanvasRenderingContext2D | false | undefined
+
+/** A BCP 47 tag the runtime accepts; anything else (e.g. "cs_CZ") is treated as no locale instead of throwing. */
+function validLocale(locale: string | undefined): string | undefined {
+  if (locale == null) {
+    return undefined
+  }
+  try {
+    Intl.getCanonicalLocales(locale)
+    return locale
+  } catch {
+    return undefined
+  }
+}
+
+/** Text width in px for the tooltip font; falls back to a generous per-character estimate without canvas. */
+function tooltipTextWidth(text: string, weight: number) {
+  if (tooltipMeasureContext == null && typeof document !== "undefined") {
+    // `getContext` is absent in some DOM shims, so guard the call as well.
+    tooltipMeasureContext =
+      document.createElement("canvas").getContext?.("2d") ?? false
+  }
+  if (!tooltipMeasureContext) {
+    return 8.5 * text.length
+  }
+  tooltipMeasureContext.font = `${weight} 15px system-ui, sans-serif`
+  return 1.08 * tooltipMeasureContext.measureText(text).width
+}
+
+/** Upper-bound size of the structured tooltip, so the anchor can keep it clear of the hovered mark. */
+function estimateTooltipSize(content: ChartTooltipContent) {
+  const titleWidth = content.title ? tooltipTextWidth(content.title, 650) : 0
+  const rowWidth = Math.max(
+    0,
+    ...content.rows.map(
+      (row) =>
+        40 + tooltipTextWidth(row.label, 500) + tooltipTextWidth(row.value, 600)
+    )
+  )
+  return {
+    width: Math.ceil(Math.max(titleWidth, rowWidth) + 34),
+    height: Math.ceil(30 + (content.title ? 26 : 0) + 24 * content.rows.length),
+  }
+}
+
+/**
+ * Top-left corner for the tooltip (used with placement "bottom-right" and offset 0): above the hovered column when it
+ * fits, otherwise beside it on the side with room, never on top of the mark. The host clamps it inside the chart.
+ */
+function chartTooltipCorner<TDatum>(
+  content: ChartTooltipContent,
+  points: readonly ChartPoint<TDatum, ChartValue, ChartValue>[],
+  context: ChartTooltipAnchorContext<TDatum, ChartValue, ChartValue>,
+  horizontal: boolean
+): ChartTooltipPosition | null {
+  const first = points[0]
+  if (!first) {
+    return null
+  }
+  const { width, height } = estimateTooltipSize(content)
+  const { surface } = context
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
+  const categoryScale = context.scales[horizontal ? "y" : "x"]
+  const band = categoryScale?.bandwidth ?? 0
+  const bandStart =
+    categoryScale && band > 0
+      ? categoryScale.map(horizontal ? first.yValue : first.xValue)
+      : Number.NaN
+  const hasBand = Number.isFinite(bandStart)
+
+  if (horizontal) {
+    const top = hasBand ? bandStart : Math.min(...ys)
+    const bottom = hasBand ? bandStart + band : Math.max(...ys)
+    const end = Math.max(...xs)
+    if (end + TOOLTIP_GAP + width + TOOLTIP_EDGE <= surface.width) {
+      return { x: end + TOOLTIP_GAP, y: (top + bottom - height) / 2 }
+    }
+    if (top - TOOLTIP_GAP - height >= TOOLTIP_EDGE) {
+      return { x: end - width, y: top - TOOLTIP_GAP - height }
+    }
+    return { x: end - width, y: bottom + TOOLTIP_GAP }
+  }
+
+  const left = hasBand ? bandStart : Math.min(...xs)
+  const right = hasBand ? bandStart + band : Math.max(...xs)
+  const top = Math.min(...ys)
+  const center = (left + right) / 2
+  if (top - TOOLTIP_GAP - height >= TOOLTIP_EDGE) {
+    return { x: center - width / 2, y: top - TOOLTIP_GAP - height }
+  }
+  const y = Math.max(TOOLTIP_EDGE, top)
+  if (right + TOOLTIP_GAP + width + TOOLTIP_EDGE <= surface.width) {
+    return { x: right + TOOLTIP_GAP, y }
+  }
+  return { x: left - TOOLTIP_GAP - width, y }
 }
 
 /**
@@ -303,86 +417,130 @@ function resolveBuild<TDatum>(
     use: chartTooltip,
     className: config.tooltipClassName,
   }
-  // Axis labels are optional, but the library falls back to the literal
-  // strings "x" and "y" when they are unset — so an unlabelled chart shows a
-  // tooltip row called "x". Borrow the caller's own field name instead, which
-  // is at least their vocabulary and their language. Undefined (never "") so
-  // the library's own fallback stays reachable when the channel is a function.
-  const channelName = (
-    accessor: ChartAccessor<TDatum, unknown>,
-    label?: string
-  ) => label ?? (typeof accessor === "string" ? accessor : undefined)
-  const xName = channelName(config.x, config.xLabel)
-  const yName = channelName(config.y, config.yLabel)
-  // The tooltip formats values with its own locale formatter and never
-  // consults the axis tick formatter, so `formatValue` has to be handed to it
-  // separately — otherwise the axis reads "81k €" and the tooltip "81,000".
-  const formatChannel = (point: TooltipPoint, channel: "x" | "y") => {
-    const value = channel === "x" ? point.xValue : point.yValue
-    if (typeof value === "number" && formatValue) {
-      return formatValue(value)
+  // Tooltips never show raw field names. Values use the caller's formatters,
+  // then the caller's locale when one is given, and plain String otherwise so
+  // the default output does not depend on the viewer's browser locale.
+  const locale = validLocale(config.locale)
+  const numberFormat = locale ? new Intl.NumberFormat(locale) : undefined
+  const dateFormat = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  })
+  const formatCategory = (value: string | number | Date) => {
+    if (config.formatCategory) {
+      return config.formatCategory(value)
     }
-    return String(value ?? "")
+    if (value instanceof Date) {
+      return dateFormat.format(value)
+    }
+    if (typeof value === "number") {
+      return numberFormat ? numberFormat.format(value) : String(value)
+    }
+    return String(value)
   }
-
-  // `swapped` covers horizontal bars: barX passes { x: getY, y: getX }, so the
-  // spatial x/y channels carry the opposite data than every other chart form.
-  // Labels have to follow the data channel (xName/yName), not the spatial one
-  // — resolve which data channel actually holds the value before naming rows.
-  const tooltipFor = (valueChannel: "x" | "y", swapped = false) => {
-    if (!config.showTooltip) {
-      return false as const
+  // The tooltip never consults the axis tick formatter, so the value formatter
+  // is handed over separately; otherwise the axis reads "81k €" and the
+  // tooltip "81,000".
+  const formatTooltipValue = (value: number) => {
+    const format = config.formatTooltipValue ?? formatValue
+    if (format) {
+      return format(value)
     }
-    const dataValueChannel: "x" | "y" = swapped ? "y" : valueChannel
-    const valueName = dataValueChannel === "x" ? xName : yName
-    const categoryName = dataValueChannel === "x" ? yName : xName
-    const valueItem = {
-      channel: valueChannel,
-      label: valueName,
-      // Only override the text when there is a formatter; otherwise leave it
-      // undefined so the library formats the value itself.
-      text: formatValue
-        ? (point: TooltipPoint) => formatChannel(point, valueChannel)
-        : undefined,
-    }
-    const categoryChannel: "x" | "y" = valueChannel === "x" ? "y" : "x"
-    const categoryItem = {
-      channel: categoryChannel,
-      label: categoryName,
+    return numberFormat ? numberFormat.format(value) : String(value)
+  }
+  // The value row is named by the series (multi-series) or by `valueLabel`,
+  // falling back to `yLabel`. The raw `y` field name is never shown.
+  const valueName = config.valueLabel ?? config.yLabel ?? ""
+  const rowFor = (
+    row: TDatum,
+    point: ChartPoint,
+    active: boolean
+  ): ChartTooltipRow => ({
+    label: getSeries ? String(getSeries(row)) : valueName,
+    value: formatTooltipValue(getY(row)),
+    color: point.color || SERIES_1_PAINT,
+    active,
+  })
+  const cartesianContent = (
+    points: readonly ChartPoint<TDatum, ChartValue, ChartValue>[],
+    primaryPoint: ChartPoint | undefined
+  ): ChartTooltipContent => {
+    const first = points[0]
+    if (!first) {
+      return { rows: [] }
     }
     return {
-      ...tooltipBase,
-      items:
-        valueChannel === "x"
-          ? [valueItem, categoryItem]
-          : [categoryItem, valueItem],
+      title: formatCategory(getX(first.datum)),
+      rows: points.map((point) =>
+        rowFor(point.datum, point, points.length > 1 && point === primaryPoint)
+      ),
     }
   }
-
-  const polarTooltip = () => {
-    if (!config.showTooltip) {
-      return false as const
+  const polarContent = (
+    points: readonly ChartPoint<unknown, ChartValue, ChartValue>[]
+  ): ChartTooltipContent => {
+    const first = points[0]
+    if (!first) {
+      return { rows: [] }
     }
     // Polar points carry the d3 pie interval, and their x/y values are the
     // slice mid-angle in radians and mid-radius in pixels — meaningless to a
     // reader. Read the value straight off the source row instead.
+    const row = (first.datum as PieArcDatum<TDatum>).data
     return {
-      ...tooltipBase,
-      items: [
+      title: formatCategory(getX(row)),
+      rows: [
         {
-          id: "value",
-          // No hardcoded English fallback — this string ships to storefronts
-          // in other languages. `yLabel` is the localized name when given;
-          // otherwise borrow the caller's own field name, which they control.
-          label: yName,
-          text: (point: TooltipPoint) => {
-            const row = (point.datum as PieArcDatum<TDatum>).data
-            const value = getY(row)
-            return formatValue ? formatValue(value) : String(value)
-          },
+          label: valueName,
+          value: formatTooltipValue(getY(row)),
+          color: first.color || SERIES_1_PAINT,
         },
       ],
     }
+  }
+  // Cartesian tooltips sit beside or above the hovered mark, never on top of it.
+  const tooltipFor = (
+    valueChannel: "x" | "y"
+  ): false | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom"> => {
+    if (!config.showTooltip) {
+      return false
+    }
+    const horizontal = valueChannel === "x"
+    return {
+      ...tooltipBase,
+      content: (points, context) =>
+        cartesianContent(points, context.primaryPoint),
+      anchor: (points, context) =>
+        chartTooltipCorner(
+          cartesianContent(points, context.focus.primary),
+          points,
+          context,
+          horizontal
+        ),
+      placement: "bottom-right",
+      offset: 0,
+    }
+  }
+
+  const polarTooltip = ():
+    | false
+    | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom"> => {
+    if (!config.showTooltip) {
+      return false
+    }
+    return {
+      ...tooltipBase,
+      content: polarContent,
+      anchor: "pointer",
+      placement: ["right", "left", "bottom", "top"],
+      offset: 16,
+    }
+  }
+  // Hovering a series focuses the whole group along the category axis, so
+  // the tooltip lists every series at that category.
+  let focus: ChartFocusPreset | undefined
+  if (getSeries != null && !isPolar) {
+    focus = config.type === "bar-horizontal" ? "group-y" : "group-x"
   }
 
   // Value axis: linear, niced, carrying the grid — chart chrome stays
@@ -439,6 +597,7 @@ function resolveBuild<TDatum>(
             : undefined,
       },
       svgAnimation: config.animate,
+      ...(focus ? { focus } : {}),
     },
   }
 }
@@ -577,7 +736,7 @@ function buildBars<TDatum>(
         y: build.bandAxis,
       },
       ...build.shared,
-      tooltip: build.tooltipFor("x", true),
+      tooltip: build.tooltipFor("x"),
     }
   }
   return {
@@ -911,6 +1070,10 @@ export function Chart<TDatum>({
   xLabel,
   yLabel,
   formatValue,
+  valueLabel,
+  formatCategory,
+  formatTooltipValue,
+  locale,
   height,
   aspectRatio,
   initialWidth = 640,
@@ -962,6 +1125,10 @@ export function Chart<TDatum>({
         xLabel,
         yLabel,
         formatValue,
+        valueLabel,
+        formatCategory,
+        formatTooltipValue,
+        locale,
         animate: shouldAnimate,
         showTooltip: tooltip && !dismissed,
         tooltipClassName,
@@ -984,6 +1151,10 @@ export function Chart<TDatum>({
       xLabel,
       yLabel,
       formatValue,
+      valueLabel,
+      formatCategory,
+      formatTooltipValue,
+      locale,
       shouldAnimate,
       tooltip,
       tooltipClassName,

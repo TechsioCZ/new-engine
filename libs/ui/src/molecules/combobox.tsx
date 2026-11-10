@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.6
+ * @componentVersion v1.6.7
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -282,6 +282,10 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     navigate?: ZagComboboxProps["navigate"]
     footer?: ReactNode
     portalled?: boolean
+    /** Open the listbox when the input is clicked. Defaults to false (zag default). */
+    openOnClick?: boolean
+    /** Accessible names forwarded to the zag machine (trigger and clear buttons). */
+    translations?: ZagComboboxProps["translations"]
   }
 
 type ComboboxApi<T> = ZagComboboxApi<PropTypes, ComboboxItem<T>>
@@ -594,6 +598,8 @@ export function Combobox<T = unknown>({
   navigate,
   footer,
   portalled = true,
+  openOnClick = false,
+  translations,
   ref,
   inputProps = {},
   className,
@@ -793,6 +799,8 @@ export function Combobox<T = unknown>({
     disabled,
     readOnly,
     closeOnSelect,
+    openOnClick,
+    translations,
     selectionBehavior: navigation ? "preserve" : selectionBehavior,
     allowCustomValue: !navigation && allowCustomValue,
     autoFocus,

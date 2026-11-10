@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "0.6.4"
+  component_version: "0.6.5"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
   resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""

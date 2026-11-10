@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.0.4
+ * @componentVersion v1.0.5
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -59,6 +59,8 @@ function getDrawerQueryRoot(root: Node): Document | ShadowRoot {
     : (root.ownerDocument ?? document)
 }
 
+type DrawerApiWithModal = DrawerApi & { modal?: boolean }
+
 export function useDrawer(props: UseDrawerProps = {}): DrawerApi {
   const contentRef = useRef<HTMLElement | null>(null)
   const api = useDrawerMachine({
@@ -109,7 +111,14 @@ export function useDrawer(props: UseDrawerProps = {}): DrawerApi {
     previousOpen.current = api.open
   })
   useEffect(() => () => cancelRestore.current?.(), [])
-  return api
+  // Zag's connect API does not expose `modal`, so the hook carries it on the
+  // api. Drawer.Root and Drawer.RootProvider both read it from there. Zag's
+  // default is modal.
+  const apiWithModal: DrawerApiWithModal = {
+    ...api,
+    modal: props.modal ?? true,
+  }
+  return apiWithModal
 }
 
 export type DrawerPlacement = "bottom" | "end" | "start" | "top"
@@ -237,6 +246,7 @@ Drawer.Backdrop = function DrawerBackdrop({
   ...props
 }: DrawerBackdropProps) {
   const { api, presenceOptions, styles } = useDrawerContext()
+  const modal = (api as DrawerApiWithModal).modal ?? true
   const presence = useDrawerPresence({
     ...presenceOptions,
     present: api.open,
@@ -256,7 +266,9 @@ Drawer.Backdrop = function DrawerBackdrop({
   return (
     <div
       {...mergedProps}
-      className={styles.backdrop({ className })}
+      className={styles.backdrop({
+        className: [modal && "pointer-events-auto", className],
+      })}
       ref={composedRef}
     />
   )

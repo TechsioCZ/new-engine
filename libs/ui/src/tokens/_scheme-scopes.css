@@ -297,6 +297,13 @@
     --color-action-icon-fg-danger-active: var(
       --color-action-icon-on-danger-active
     );
+    --height-button-compact-sm: var(--dimension-28);
+    --height-button-compact-md: var(--dimension-36);
+    --height-button-compact-lg: var(--dimension-44);
+    --padding-button-compact-sm: var(--dimension-2) var(--padding-button-x-sm);
+    --padding-button-compact-md: var(--padding-button-y-md) var(--dimension-10);
+    --padding-button-compact-lg: var(--padding-button-y-lg)
+      var(--padding-button-x-lg);
     --color-button-interacting: var(--color-fg-primary);
     --color-button-fg-interacting: var(--color-button-interacting);
     --color-button-warning-readable: var(--color-warning-fg);
@@ -445,6 +452,14 @@
     --color-numeric-input-trigger-fg-disabled: var(
       --color-numeric-input-trigger-disabled
     );
+    --color-numeric-input-compact-border: var(--color-numeric-input-border);
+    --padding-numeric-input-compact-trigger: var(--dimension-6);
+    --padding-numeric-input-compact-sm: var(--dimension-4);
+    --padding-numeric-input-compact-md: var(--dimension-4);
+    --padding-numeric-input-compact-lg: var(--dimension-6);
+    --height-numeric-input-compact-sm: var(--height-button-compact-sm);
+    --height-numeric-input-compact-md: var(--height-button-compact-md);
+    --height-numeric-input-compact-lg: var(--height-button-compact-lg);
     --color-rating-ink: var(--color-fg-primary);
     --color-rating-paper: var(--color-fill-surface);
     --color-rating-fg-selected: var(--color-rating-ink);
@@ -693,13 +708,13 @@
     --gap-chart-legend: var(--spacing-200);
     --gap-chart-item: var(--spacing-100);
     --color-chart-fg: var(--color-fg-primary);
-    --color-chart-tooltip-bg: var(--color-popup-bg);
-    --color-chart-tooltip-fg: var(--color-chart-fg);
-    --color-chart-tooltip-border: var(--color-popup-border);
+    --color-chart-tooltip-bg: var(--color-base);
+    --color-chart-tooltip-fg: var(--color-fg-primary);
+    --color-chart-tooltip-border: var(--color-border-primary);
     --radius-chart-tooltip: var(--radius-popup);
-    --shadow-chart-tooltip: var(--shadow-popup);
-    --text-chart-tooltip: var(--text-tooltip-md);
-    --padding-chart-tooltip: var(--padding-tooltip-md);
+    --text-chart-tooltip: var(--text-sm);
+    --padding-chart-cell: var(--padding-tooltip-md);
+    --padding-chart-fallback: var(--padding-tooltip-md);
     --border-width-chart-tooltip: var(--border-width-popup);
     --font-chart-tooltip: var(--font-body);
     --font-weight-chart-tooltip: var(--font-weight-medium);
@@ -1198,6 +1213,29 @@
     --font-weight-tabs-trigger: var(--font-weight-medium);
     --border-width-tabs-pressed: var(--border-width-sm);
     --font-weight-tabs-trigger-selected: var(--font-weight-semibold);
+    --spacing-product-card-featured-padding: var(
+      --spacing-product-card-padding
+    );
+    --spacing-product-card-featured-col-layout: var(
+      --spacing-product-card-col-layout
+    );
+    --border-width-product-card-featured: var(--border-width-product-card);
+    --border-product-card-featured-width: var(
+      --border-width-product-card-featured
+    );
+    --radius-product-card-featured: var(--radius-product-card);
+    --radius-product-card-featured-image: var(--radius-product-card-image);
+    --color-product-card-featured-bg: var(--color-product-card-bg);
+    --font-weight-product-card-featured-name: var(
+      --font-weight-product-card-name
+    );
+    --font-weight-product-card-featured-stock: var(
+      --font-weight-product-card-stock
+    );
+    --text-product-card-featured-name-size: var(--text-product-card-name-size);
+    --text-product-card-featured-stock-size: var(
+      --text-product-card-stock-size
+    );
     --product-card-layout-row-grid: minmax(
         var(--width-product-card-image-min),
         var(--width-product-card-image-max)

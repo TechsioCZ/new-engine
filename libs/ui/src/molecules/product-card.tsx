@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.3.2
+ * @componentVersion v1.3.3
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,17 +28,13 @@ import { tv } from "../utils"
 
 const productCardVariants = tv({
   slots: {
-    root: [
-      "rounded-product-card p-product-card-padding",
-      "border-(length:--border-product-card-width) max-w-product-card-max border-product-card-border bg-product-card-bg shadow-sm",
-    ],
-    imageSlot: "w-full rounded-product-card-image object-cover",
+    root: ["max-w-product-card-max border-product-card-border"],
+    imageSlot: "w-full",
     nameSlot:
-      "product-card-name line-clamp-product-card-name min-h-product-card-name font-product-card-name text-product-card-name-fg text-product-card-name-size",
+      "product-card-name line-clamp-product-card-name min-h-product-card-name text-product-card-name-fg",
     priceSlot:
       "mt-auto font-product-card-price text-product-card-price-fg text-product-card-price-size",
     stockStatusSlot: [
-      "font-product-card-stock text-product-card-stock-size",
       "data-[stock=in-stock]:text-product-card-stock-fg-in-stock",
       "data-[stock=limited-stock]:text-product-card-stock-fg-limited-stock",
       "data-[stock=out-of-stock]:text-product-card-stock-fg-out-of-stock",
@@ -49,6 +45,31 @@ const productCardVariants = tv({
     button: "",
   },
   variants: {
+    presentation: {
+      default: {
+        root: "border-(length:--border-product-card-width) rounded-product-card bg-product-card-bg p-product-card-padding",
+        imageSlot: "rounded-product-card-image",
+        nameSlot: "font-product-card-name text-product-card-name-size",
+        stockStatusSlot: "font-product-card-stock text-product-card-stock-size",
+      },
+      featured: {
+        root: "border-(length:--border-product-card-featured-width) rounded-product-card-featured bg-product-card-featured-bg p-product-card-featured-padding",
+        imageSlot: "rounded-product-card-featured-image",
+        nameSlot:
+          "font-product-card-featured-name text-product-card-featured-name-size",
+        stockStatusSlot:
+          "font-product-card-featured-stock text-product-card-featured-stock-size",
+      },
+    },
+    shadow: {
+      true: { root: "shadow-sm" },
+      false: { root: "shadow-none" },
+    },
+    objectFit: {
+      cover: { imageSlot: "object-cover" },
+      contain: { imageSlot: "object-contain" },
+      fill: { imageSlot: "object-fill" },
+    },
     buttonVariant: {
       cart: {
         button:
@@ -66,7 +87,7 @@ const productCardVariants = tv({
     },
     layout: {
       column: {
-        root: ["flex h-full flex-col gap-product-card-col-layout"],
+        root: ["flex h-full flex-col"],
         imageSlot: "aspect-product-card-image",
       },
       row: {
@@ -75,7 +96,22 @@ const productCardVariants = tv({
       },
     },
   },
+  compoundVariants: [
+    {
+      presentation: "default",
+      layout: "column",
+      className: { root: "gap-product-card-col-layout" },
+    },
+    {
+      presentation: "featured",
+      layout: "column",
+      className: { root: "gap-product-card-featured-col-layout" },
+    },
+  ],
   defaultVariants: {
+    presentation: "default",
+    shadow: true,
+    objectFit: "cover",
     layout: "column",
     buttonVariant: "cart",
   },
@@ -84,18 +120,28 @@ const productCardVariants = tv({
 // === CONTEXT ===
 type ProductCardContextValue = {
   layout?: "column" | "row"
+  presentation?: "default" | "featured"
 }
 
 const ProductCardContext = createContext<ProductCardContextValue>({})
 
 // === TYPE DEFINITIONS ===
 export type ProductCardProps = HTMLAttributes<HTMLDivElement> &
-  Omit<VariantProps<typeof productCardVariants>, "buttonVariant"> & {
+  Omit<
+    VariantProps<typeof productCardVariants>,
+    "buttonVariant" | "objectFit"
+  > & {
+    /** Preserve the default surface shadow, or disable it for flat catalogues. */
+    shadow?: boolean
+    /** Opt-in featured composition; default retains the original component token roles. */
+    presentation?: "default" | "featured"
     children: ReactNode
     ref?: Ref<HTMLDivElement>
   }
 
 type ProductCardImageProps<T extends ElementType = typeof Image> = {
+  /** Image fitting inside the card media slot. Defaults to cover. */
+  objectFit?: "cover" | "contain" | "fill"
   as?: T
   ref?: T extends typeof Image
     ? Ref<HTMLImageElement>
@@ -151,14 +197,16 @@ type ProductCardButtonProps = Omit<
 export function ProductCard({
   children,
   layout = "column",
+  presentation = "default",
+  shadow = true,
   className,
   ref,
   ...props
 }: ProductCardProps) {
-  const { root } = productCardVariants({ layout })
+  const { root } = productCardVariants({ shadow, presentation, layout })
 
   return (
-    <ProductCardContext.Provider value={{ layout }}>
+    <ProductCardContext.Provider value={{ presentation, layout }}>
       <div
         className={root({ className })}
         ref={ref}
@@ -174,9 +222,19 @@ export function ProductCard({
 // === SUB-COMPONENTS ===
 ProductCard.Image = function ProductCardImage<
   T extends ElementType = typeof Image,
->({ as, className, ref, ...props }: ProductCardImageProps<T>) {
+>({
+  as,
+  objectFit = "cover",
+  className,
+  ref,
+  ...props
+}: ProductCardImageProps<T>) {
   const context = useContext(ProductCardContext)
-  const { imageSlot } = productCardVariants({ layout: context.layout })
+  const { imageSlot } = productCardVariants({
+    objectFit,
+    presentation: context.presentation,
+    layout: context.layout,
+  })
   // Public wrappers retain adapter contracts; media records are resolved at runtime.
   const Media: ElementType = ImageWithFallback
   return (
@@ -197,7 +255,10 @@ ProductCard.Name = function ProductCardName({
   ...props
 }: ProductCardNameProps) {
   const context = useContext(ProductCardContext)
-  const { nameSlot } = productCardVariants({ layout: context.layout })
+  const { nameSlot } = productCardVariants({
+    presentation: context.presentation,
+    layout: context.layout,
+  })
 
   return (
     <Heading className={nameSlot({ className })} ref={ref} {...props}>
@@ -231,6 +292,7 @@ ProductCard.Stock = function ProductCardStock({
 }: ProductCardStockProps) {
   const context = useContext(ProductCardContext)
   const { stockStatusSlot } = productCardVariants({
+    presentation: context.presentation,
     layout: context.layout,
   })
 

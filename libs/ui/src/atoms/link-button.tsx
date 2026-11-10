@@ -2,7 +2,7 @@
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.2.2
+ * @componentVersion v1.2.3
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -48,6 +48,7 @@ export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   >
 
 export function LinkButton<T extends ElementType = "a">({
+  density,
   href,
   icon,
   as,
@@ -78,6 +79,7 @@ export function LinkButton<T extends ElementType = "a">({
       {...props}
       aria-disabled={disabled === true ? true : props["aria-disabled"]}
       className={linkButton({
+        density,
         variant,
         theme,
         size,
