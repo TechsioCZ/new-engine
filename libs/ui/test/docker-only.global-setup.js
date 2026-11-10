@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import path from "node:path"
 
 const containerMarkers = ["docker", "containerd", "kubepods", "podman"]
 
@@ -35,7 +36,23 @@ const runningInContainer = () => {
   )
 }
 
+const assertNativeSnapshotDir = (snapshotDir) => {
+  if (snapshotDir && path.isAbsolute(snapshotDir)) {
+    return
+  }
+  throw new Error(
+    [
+      "Native visual runs never touch the committed Linux baselines.",
+      "Set VISUAL_SNAPSHOT_DIR to an absolute directory for the native snapshots.",
+    ].join("\n")
+  )
+}
+
 export default function dockerOnlyGlobalSetup() {
+  if (process.env.VISUAL_NATIVE === "1") {
+    assertNativeSnapshotDir(process.env.VISUAL_SNAPSHOT_DIR)
+    return
+  }
   const dockerRunnerFlag = process.env.PLAYWRIGHT_DOCKER === "1"
   if (!(dockerRunnerFlag && runningInContainer())) {
     throw new Error(

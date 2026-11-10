@@ -201,13 +201,19 @@ Optional environment overrides:
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
 - `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
 - `VISUAL_ASSET_HAR_PATH` (absolute path to an alternative HAR; its directory and attachments mount read-only)
-- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`)
+- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`, with an `-arm64` suffix on `linux/arm64`)
+- `PLAYWRIGHT_DOCKER_PLATFORM` (`linux/amd64` or `linux/arm64`; default: host architecture, or `linux/amd64` for snapshot updates and release runs)
 - `PLAYWRIGHT_DOCKER_SHM_SIZE` (default: `2g`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to run one project at a time and reduce memory spikes)
+- `VISUAL_CHANGED_SINCE` (git ref, e.g. `origin/master`; screenshots only the stories affected since the merge-base, or a full run when everything could be affected)
+- `VISUAL_CHANGED_FILES` (comma-separated repo-relative paths; used instead of git, and wins over `VISUAL_CHANGED_SINCE` when both are set)
+- `VISUAL_CHANGED_DRY_RUN` (set to `1` with a changed-mode variable to print the selection as JSON; needs an existing Storybook build and never builds or starts Docker)
+
+Example: `VISUAL_CHANGED_SINCE=origin/master pnpm -C libs/ui test:components`
 
 Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
-Tests always run as `linux/amd64`, matching the committed baselines. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
+Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
 ### Recommendation for `PLAYWRIGHT_WORKERS` and parallelism
 
@@ -223,6 +229,22 @@ Example with parallel workers:
 ```bash
 TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:components
 ```
+
+### Local visual check without Docker
+
+`pnpm -C libs/ui test:visual:local` answers one question: did your working tree change any pixels compared with the commit you branched from?
+
+- It runs on your machine and needs no Docker.
+- It renders the base commit (`--base`, default `origin/master`, compared at `git merge-base HEAD <ref>`) and compares your changes against it.
+- The first run per base commit builds that commit in a temporary worktree (about 2 minutes) and needs 3 GiB free in the temporary directory.
+- Base screenshots are captured with the test harness of the branch you run from. They are cached per machine, per base commit and per harness: the build is shared, the baselines are not. The harness is `libs/ui/test/visual.spec.ts`, `libs/ui/test/visual-*.mjs` (not `*.test.mjs`), `libs/ui/playwright.config.mts` and `libs/ui/test/fixtures/visual-assets`. When any of them changes, the baselines are re-captured automatically on the next run.
+- Cache layout: `<root>/builds/<base>/storybook-static` and `<root>/<platform>-<arch>-pw<version>-h<harness>/<base>/snapshots`. The `<root>` is `VISUAL_LOCAL_CACHE` when set, otherwise `~/Library/Caches/techsio-ui-visual` on macOS and `~/.cache/techsio-ui-visual` elsewhere. Caches from the older single-key layout are ignored and can be deleted.
+- Each cache level keeps the 5 most recently used base commits. `VISUAL_LOCAL_CACHE_KEEP=<n>` changes that number. Directories used by the current run and directories locked by a live run are never removed.
+- Runs for the same base commit wait for each other, so a commit is never built or captured twice at once. A failed or killed capture leaves no baselines behind.
+- Nothing is written to the committed Linux baselines. CI stays the authority for those.
+- Flags: `--base <ref>`, `--all` (every visual story), `--stories <id,id>` (skips change detection), `--workers <n>`, `--rebuild-base` (rebuilds the base build and clears the baselines for the current harness), `--dry-run` (prints the plan as JSON and builds nothing).
+- Install the browsers once: `pnpm -C libs/ui exec playwright install chromium webkit`. If a run reports missing browsers, it says so in the summary.
+- The HTML report goes to `libs/ui/.visual-local/report`. Open it with `pnpm -C libs/ui exec playwright show-report .visual-local/report`.
 
 ### Release coverage versus focused development
 
