@@ -35,6 +35,41 @@ export function getControlledChoiceInputProps(
   }
 }
 
+/** @internal Zag's `send` waits a microtask, by which time React has already
+ * restored the controlled input to its previous value. Commit the toggle inside
+ * the click instead, so a same-tick read (a test, a script, a form submit) sees
+ * the new state and a rejected proposal is still restored by React. */
+export function commitChoiceClick(
+  machine: ComponentPropsWithRef<"input">,
+  readOnly: boolean,
+  commit: (checked: boolean) => void
+): ComponentPropsWithRef<"input"> {
+  return {
+    ...machine,
+    onClick(event) {
+      if (readOnly) {
+        event.preventDefault()
+        return
+      }
+      commit(event.currentTarget.checked)
+    },
+  }
+}
+
+/** @internal The same commit for a radio item. A radio click only ever selects,
+ * so the group's value is committed when the clicked input ends up checked. */
+export function commitRadioClick(
+  machine: ComponentPropsWithRef<"input">,
+  readOnly: boolean,
+  select: () => void
+): ComponentPropsWithRef<"input"> {
+  return commitChoiceClick(machine, readOnly, (checked) => {
+    if (checked) {
+      select()
+    }
+  })
+}
+
 /** React 19 ref cleanup, including callback disposers and object refs. */
 export function useChoiceInputRef(
   ref: Ref<HTMLInputElement> | undefined,

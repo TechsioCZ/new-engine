@@ -2,14 +2,13 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.9
+ * @componentVersion v1.0.10
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 import {
   mergeProps,
   normalizeProps,
-  Portal,
   type PropTypes,
   useMachine,
 } from "@zag-js/react"
@@ -37,6 +36,7 @@ import {
 } from "react"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
+import { BodyPortal as Portal } from "../internal/overlay-portal"
 import { tv } from "../utils"
 
 const tourStyles = tv({

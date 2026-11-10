@@ -2,7 +2,7 @@
  * QuantityField — @techsio/ui-kit molecule.
  *
  * @component QuantityField
- * @componentVersion v1.0.2
+ * @componentVersion v1.1.0
  * @skill quantity-field-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -60,6 +60,8 @@ export type QuantityFieldProps = Omit<
     helperText?: ReactNode
     error?: ReactNode
     hideLabel?: boolean
+    /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to "(required)". */
+    requiredLabel?: string
     ref?: Ref<HTMLInputElement>
   }
 
@@ -87,6 +89,7 @@ export function QuantityField({
   disabled = false,
   readOnly = false,
   required,
+  requiredLabel,
   describedBy,
   "aria-describedby": ariaDescribedBy,
   "aria-label": ariaLabel,
@@ -132,6 +135,7 @@ export function QuantityField({
         disabled={disabled || pending}
         htmlFor={inputId}
         required={required}
+        requiredLabel={requiredLabel}
         size={size}
       >
         {label}

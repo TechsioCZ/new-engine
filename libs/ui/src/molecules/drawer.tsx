@@ -2,14 +2,14 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.0.5
+ * @componentVersion v1.0.6
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 "use client"
 
 import type * as drawer from "@zag-js/drawer"
-import { mergeProps, Portal, type PortalProps } from "@zag-js/react"
+import { mergeProps, type PortalProps } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   type ReactNode,
@@ -42,6 +42,7 @@ import {
 } from "../internal/molecules/drawer.styles"
 import {
   OverlayContainerProvider,
+  BodyPortal as Portal,
   restoreFocusAfterOverlayClose,
 } from "../internal/overlay-portal"
 

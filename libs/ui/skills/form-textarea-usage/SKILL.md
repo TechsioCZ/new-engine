@@ -5,7 +5,7 @@ description: >
   for labeled multi-line text fields with Textarea, Label, StatusText,
   validation status, help text, size, resize, required, and disabled props.
 metadata:
-  component_version: "1.1.3"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -96,6 +96,7 @@ id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 Textarea props: size, resize, readOnly (legacy readonly alias), required, disabled
 ```
 

@@ -6,7 +6,7 @@ description: >
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
 metadata:
-  component_version: "1.1.4"
+  component_version: "1.1.5"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -190,6 +190,12 @@ focusable and submitted. Object refs and React 19 callback cleanup are supported
 If an actively focused option is removed/disabled, recovery chooses a surviving
 enabled focus target without changing selection; updates never steal outside
 focus.
+
+A click on a radio or its item label, an arrow key, and a scripted
+`input.click()` each select once and call `onValueChange` inside that click.
+The native checked state and FormData are current in the same tick, so a test
+can click and then submit without waiting. A controlled parent that keeps its
+`value` still gets the native radios restored.
 
 ## Common Mistakes
 

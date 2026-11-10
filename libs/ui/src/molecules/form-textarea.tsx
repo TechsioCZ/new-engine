@@ -2,7 +2,7 @@
  * FormTextarea — @techsio/ui-kit molecule.
  *
  * @component FormTextarea
- * @componentVersion v1.1.3
+ * @componentVersion v1.2.0
  * @skill form-textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,6 +25,8 @@ type FormTextareaProps = TextareaProps & {
   helpText?: ReactNode
   /** Validation state icons always remain enabled. */
   showHelpTextIcon?: boolean
+  /** Screen-reader text for the required state. Pass a translation; "" omits it. Defaults to "(required)". */
+  requiredLabel?: string
 }
 
 // The legacy Raw export accepts precomposed StatusText as well as plain copy.
@@ -37,6 +39,7 @@ export function FormTextareaRaw({
   showHelpTextIcon,
   size = "md",
   required,
+  requiredLabel,
   disabled,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
@@ -74,6 +77,7 @@ export function FormTextareaRaw({
         disabled={disabled}
         htmlFor={controlId}
         required={required}
+        requiredLabel={requiredLabel}
         size={size}
       >
         {label}

@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.2.2
+ * @componentVersion v1.3.0
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,8 @@ type FormNumericInputProps = Omit<NumericInputProps, "children"> & {
   validateStatus?: ValidateStatus
   helpText?: ReactNode
   showHelpTextIcon?: boolean
+  /** Screen-reader text for the required state. Pass a translation; "" omits it. Defaults to "(required)". */
+  requiredLabel?: string
   children: ReactNode
 }
 
@@ -35,6 +37,7 @@ export function FormNumericInput({
   showHelpTextIcon = validateStatus !== "default",
   size = "md",
   required,
+  requiredLabel,
   disabled,
   describedBy,
   "aria-describedby": ariaDescribedBy,
@@ -66,6 +69,7 @@ export function FormNumericInput({
         disabled={disabled}
         htmlFor={inputId}
         required={required}
+        requiredLabel={requiredLabel}
         size={size}
       >
         {label}

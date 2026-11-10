@@ -13,6 +13,51 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### FormCheckbox v1.3.2
+- FormCheckbox now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored. Note the order: onCheckedChange now runs inside the click, before the input's own onChange.
+
+### Switch v1.3.1
+- Switch now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored. Note the order: onCheckedChange now runs inside the click, before the input's own onChange.
+
+### RadioGroup v1.1.5
+- RadioGroup now applies a selection in the same tick: right after a scripted \`input.click()\`, an item label click or an arrow key, the native radios and FormData hold the new value and onValueChange has run once. Before, the radios kept the old selection until a later task. A change the controlled parent rejects is still restored. Note the order: onValueChange now runs inside the click, before the input's own onChange.
+
+### RadioCard v1.1.5
+- RadioCard now applies a selection in the same tick: right after a scripted \`input.click()\`, an item label click or an arrow key, the native radios and FormData hold the new value and onValueChange has run once. Before, the radios kept the old selection until a later task. A change the controlled parent rejects is still restored. Note the order: onValueChange now runs inside the click, before the input's own onChange.
+
+### Label v1.1.0
+- Label accepts requiredLabel to translate the screen-reader text announced after the required marker (default '(required)', unchanged); an empty string omits it.
+
+### FormInput v1.2.0
+- FormInput accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### FormTextarea v1.2.0
+- FormTextarea accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### FormNumericInput v1.3.0
+- FormNumericInput accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### Combobox v1.7.0
+- Combobox accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### QuantityField v1.1.0
+- QuantityField accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### Switch v1.3.0
+- Switch accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### DatePicker v1.4.0
+- DatePicker.Label accepts requiredLabel and passes it to its Label, so the required screen-reader text can be translated; the default is unchanged.
+
+### Dialog v1.2.3
+- A Dialog that is open when a server-rendered page hydrates keeps the server's generated ids for its content, so fields and popups inside it (Select, Combobox, labels) stay wired and React reports no attribute mismatch. A client-only render still portals on its first commit.
+
+### Drawer v1.0.6
+- Drawer.Portal with a single child no longer shifts the generated ids of an open drawer's content away from the server's when the page hydrates.
+
+### Tour v1.0.10
+- Tour.Portal with a single child no longer shifts the generated ids of its content away from the server's when the page hydrates.
+
 ### Chart v1.2.2
 - Chart tooltips format dates with a fixed en-US medium format (e.g. "Mar 5, 2026") when no locale is given, instead of the viewer's browser locale. Set locale to format dates and numbers for that locale.
 
@@ -30,6 +75,9 @@ const CHANGELOG = `
 
 ### Combobox v1.6.7
 - Combobox now accepts openOnClick to open the list when the input is clicked (default off) and translations to set accessible names for the trigger and clear buttons.
+
+### Toast v1.1.4
+- Toaster no longer throws when the Popover API is missing (jsdom, happy-dom, older browsers) or when showPopover fails, so consumer tests that render Toaster no longer crash; toasts still render, and browsers with the Popover API keep the same top-layer behaviour.
 
 ### Toast v1.1.3
 - Toast and Toaster accept closeLabel, loadingLabel and (Toaster) label for localised accessible names, with defaults that keep the existing names; a loading toast without a title now shows loadingLabel ('loading...') instead of an empty title.
