@@ -12,9 +12,19 @@
  *   - `--font-weight-button` (also used by LinkButton). Code-owned until
  *     the shared Figma library exports the same alias.
  *   - `--text-button-icon-{sm,md,lg}` glyph sizes, defaulting to the label.
+ *   - `--height-button-compact-{sm,md,lg}` and matching padding bridges for
+ *     `density="compact"`. Fixed-height, dense actions; the default density
+ *     keeps content-driven sizing.
  */
 
 @theme static {
+  --height-button-compact-sm: var(--dimension-28);
+  --height-button-compact-md: var(--dimension-36);
+  --height-button-compact-lg: var(--dimension-44);
+  --padding-button-compact-sm: var(--dimension-2) var(--padding-button-x-sm);
+  --padding-button-compact-md: var(--padding-button-y-md) var(--dimension-10);
+  --padding-button-compact-lg: var(--padding-button-y-lg)
+    var(--padding-button-x-lg);
   --color-button-interacting: var(--color-fg-primary);
   --color-button-fg-interacting: var(--color-button-interacting);
   --color-button-warning-readable: var(--color-warning-fg);

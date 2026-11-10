@@ -42,13 +42,21 @@
   --gap-chart-legend: var(--spacing-200);
   --gap-chart-item: var(--spacing-100);
   --color-chart-fg: var(--color-fg-primary);
-  --color-chart-tooltip-bg: var(--color-popup-bg);
-  --color-chart-tooltip-fg: var(--color-chart-fg);
-  --color-chart-tooltip-border: var(--color-popup-border);
+  /* The chart tooltip is an opaque page-surface card: `--color-base` is opaque in every theme (white / gray-950),
+   * and primary ink on it clears WCAG AA in light and dark. Brand themes that make `--color-popup-bg` translucent
+   * must not leak into the chart card. */
+  --color-chart-tooltip-bg: var(--color-base);
+  --color-chart-tooltip-fg: var(--color-fg-primary);
+  --color-chart-tooltip-border: var(--color-border-primary);
+  --shadow-chart-tooltip:
+    0 4px 16px oklch(0% 0 none / 0.16), 0 1px 3px oklch(0% 0 none / 0.12);
   --radius-chart-tooltip: var(--radius-popup);
-  --shadow-chart-tooltip: var(--shadow-popup);
-  --text-chart-tooltip: var(--text-tooltip-md);
-  --padding-chart-tooltip: var(--padding-tooltip-md);
+  --text-chart-tooltip: var(--text-sm);
+  --padding-chart-tooltip: 0.5rem 0.75rem;
+  /* Table cells and the empty/invalid fallback are not tooltips: they keep the
+   * padding they had before the tooltip card was tightened. */
+  --padding-chart-cell: var(--padding-tooltip-md);
+  --padding-chart-fallback: var(--padding-tooltip-md);
   --border-width-chart-tooltip: var(--border-width-popup);
   --font-chart-tooltip: var(--font-body);
   --font-weight-chart-tooltip: var(--font-weight-medium);
@@ -87,6 +95,16 @@
     var(--color-chart-tooltip-border) !important;
   border-radius: var(--radius-chart-tooltip) !important;
   padding: var(--padding-chart-tooltip) !important;
+  line-height: 1.45 !important;
+  min-width: 9rem;
+  /* The hovered series row is bold; no extra tint box inside the card. */
+  --ts-chart-tooltip-active-row-background: transparent;
+  --ts-chart-tooltip-active-row-shadow: none;
+  --ts-chart-tooltip-active-row-font-weight: 700;
+
+  & .ts-chart-tooltip__row {
+    column-gap: 0.75rem !important;
+  }
   /* The inline `font` shorthand sets family, weight, size and line-height in
    * one go, so countering only the size would leave the chart tooltip in
    * system-ui while every other tooltip in the library uses --font-body. */

@@ -2,7 +2,7 @@
  * Switch — @techsio/ui-kit molecule.
  *
  * @component Switch
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill switch-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -200,6 +200,10 @@ export function Switch({
     mergeChoiceInputProps(nativeInputProps, api.getHiddenInputProps()),
     api.checked
   )
+  // A visible label (children) owns the accessible name; the aria-label prop
+  // only names a switch that has no visible label. Native input aria-label wins.
+  const inputAriaLabel =
+    nativeInputProps["aria-label"] ?? (children ? undefined : ariaLabel)
 
   const inputRef = useChoiceInputRef(ref)
   const { root, control, thumb, label, hiddenInput } = switchVariants({
@@ -224,11 +228,11 @@ export function Switch({
           )}
           aria-errormessage={invalid && helpText ? helpTextId : undefined}
           aria-invalid={invalid || undefined}
-          aria-label={nativeInputProps["aria-label"] ?? ariaLabel}
+          aria-label={inputAriaLabel}
           aria-labelledby={
             nativeInputProps["aria-labelledby"] ??
             ariaLabelledBy ??
-            ((nativeInputProps["aria-label"] ?? ariaLabel) || !children
+            (inputAriaLabel || !children
               ? undefined
               : inputProps["aria-labelledby"])
           }

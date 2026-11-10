@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.10
+ * @componentVersion v1.3.11
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -15,9 +15,11 @@ import type {
 import {
   connect as connectDateInput,
   type Api as DateInputApi,
+  machine as dateInputMachine,
 } from "@zag-js/date-input"
 import {
   connect as connectDatePicker,
+  type IntlTranslations as DatePickerIntlTranslations,
   machine as datePickerMachine,
   type PositioningOptions,
   type Api as ZagDatePickerApi,
@@ -90,6 +92,29 @@ export type DatePickerTimedRange =
   | DatePickerRange<ZonedDateTime>
 type DatePickerPublicValue = DateValue | DatePickerRange<DateValue>
 
+/** Editable date-input segment kinds whose accessible names can be overridden. */
+export type DatePickerSegmentType =
+  | "era"
+  | "year"
+  | "month"
+  | "day"
+  | "hour"
+  | "minute"
+  | "second"
+  | "dayPeriod"
+  | "timeZoneName"
+
+/**
+ * Accessible names for the calendar (forwarded to the zag date-picker machine) plus
+ * `segmentLabels` and `emptySegment`, which replace zag date-input's fixed English segment names and
+ * announcements.
+ */
+export type DatePickerTranslations = DatePickerIntlTranslations & {
+  /** Word the screen-reader announcement uses for an empty segment. Defaults to "Empty". */
+  emptySegment?: string
+  segmentLabels?: Partial<Record<DatePickerSegmentType, string>>
+}
+
 export type DatePickerValueChangeDetails<T extends DatePickerPublicValue> = {
   value: T | null
   valueAsString: T extends DatePickerRange<DateValue>
@@ -134,6 +159,7 @@ type DatePickerCommonRootProps<T extends DatePickerPublicValue> = Omit<
   slide?: PositioningOptions["slide"]
   startOfWeek?: 0 | 1 | 2 | 3 | 4 | 5 | 6
   timeZone?: string
+  translations?: DatePickerTranslations
   value?: T | null
 }
 
@@ -191,6 +217,105 @@ export type DatePickerRootProps =
   | DatePickerRangeRootProps
 
 export type DatePickerProps = DatePickerRootProps
+
+type DatePickerDateInputActions = NonNullable<
+  NonNullable<(typeof datePickerInputMachine)["implementations"]>["actions"]
+>
+type DatePickerSegmentAnnouncementParams = Parameters<
+  NonNullable<DatePickerDateInputActions["announceSegmentValue"]>
+>[0]
+
+/** Props the date-input machine receives beyond zag's own schema. */
+type DatePickerLocalizedSegmentProps = {
+  emptySegmentLabel?: string
+  segmentLabels?: Partial<Record<DatePickerSegmentType, string>>
+}
+
+// zag's English segment names (SEGMENT_LABELS in @zag-js/date-input). Used when a segment has no
+// translation so the unlabelled announcement matches zag's own aria-label fallback.
+const DATE_PICKER_ENGLISH_SEGMENT_LABELS: Record<string, string> = {
+  era: "Era",
+  year: "Year",
+  month: "Month",
+  day: "Day",
+  hour: "Hour",
+  minute: "Minute",
+  second: "Second",
+  dayPeriod: "AM/PM",
+  timeZoneName: "Time zone",
+}
+
+/** @internal Screen-reader text for one segment change: "<segment name>, <value>". */
+export function formatDatePickerSegmentAnnouncement(
+  segment: { type: string; text: string; isPlaceholder?: boolean },
+  options: {
+    emptySegmentLabel?: string
+    segmentLabels?: Partial<Record<DatePickerSegmentType, string>>
+  }
+) {
+  const name =
+    options.segmentLabels?.[segment.type as DatePickerSegmentType] ??
+    DATE_PICKER_ENGLISH_SEGMENT_LABELS[segment.type] ??
+    segment.type
+  const valueText = segment.isPlaceholder
+    ? (options.emptySegmentLabel ?? "Empty")
+    : segment.text
+  return `${name}, ${valueText}`
+}
+
+// zag date-input announces each segment change with fixed English words ("Day, Empty").
+// Announce the DatePicker's `segmentLabels` and `emptySegment` translations instead; without
+// them the original zag action runs unchanged.
+const announceLocalizedSegment = (
+  params: DatePickerSegmentAnnouncementParams
+) => {
+  const { computed, context, prop, refs } = params
+  // zag's schema does not declare these keys, but the machine keeps unknown props at runtime.
+  const readLocalizedProp = prop as unknown as <
+    K extends keyof DatePickerLocalizedSegmentProps,
+  >(
+    key: K
+  ) => DatePickerLocalizedSegmentProps[K]
+  const segmentLabels = readLocalizedProp("segmentLabels")
+  const emptySegmentLabel = readLocalizedProp("emptySegmentLabel")
+  if (!(segmentLabels || emptySegmentLabel)) {
+    dateInputMachine.implementations?.actions?.announceSegmentValue?.(params)
+    return
+  }
+  const announcer = refs.get("announcer")
+  if (!announcer) {
+    return
+  }
+  const index = context.get("activeIndex")
+  const segmentIndexToUse =
+    refs.get("segmentToAnnounceIndex") ?? context.get("activeSegmentIndex")
+  refs.set("segmentToAnnounceIndex", null)
+  const allSegments = computed("segments")
+  const groupOffset = allSegments
+    .slice(0, index)
+    .reduce((total, group) => total + group.length, 0)
+  const segment = allSegments[index]?.[segmentIndexToUse - groupOffset]
+  if (!segment || segment.type === "literal") {
+    return
+  }
+  announcer.announce(
+    formatDatePickerSegmentAnnouncement(segment, {
+      emptySegmentLabel,
+      segmentLabels,
+    })
+  )
+}
+
+const localizedDateInputMachine: typeof datePickerInputMachine = {
+  ...datePickerInputMachine,
+  implementations: {
+    ...datePickerInputMachine.implementations,
+    actions: {
+      ...datePickerInputMachine.implementations?.actions,
+      announceSegmentValue: announceLocalizedSegment,
+    },
+  },
+}
 
 const DATE_PICKER_ASCII_DIGIT = /[0-9]/
 
@@ -440,6 +565,7 @@ type DatePickerContextValue = {
   pickerApi: ZagDatePickerApi
   requestOpen: (open: boolean) => void
   required: boolean
+  segmentLabels: DatePickerTranslations["segmentLabels"]
   selectionMode: DatePickerSelectionMode
   setDraftTimePart: (
     part: DatePickerDraftTimePart,
@@ -647,9 +773,12 @@ export function DatePicker({
   startOfWeek,
   startName,
   timeZone = "UTC",
+  translations,
   value,
   ...htmlProps
 }: DatePickerRootProps) {
+  const { emptySegment, segmentLabels, ...pickerTranslations } =
+    translations ?? {}
   const generatedId = useId()
   const uniqueId = id ?? generatedId
   const { rootElementRef, disabledProbeRef, rootRef, disabled, dir } =
@@ -938,11 +1067,17 @@ export function DatePicker({
     selectionMode,
     startOfWeek,
     timeZone,
+    translations: pickerTranslations,
     value: pickerValues,
   })
   const pickerApi = connectDatePicker(pickerService, normalizeProps)
 
-  const dateInputService = useMachine(datePickerInputMachine, {
+  const localizedSegmentProps: DatePickerLocalizedSegmentProps = {
+    emptySegmentLabel: emptySegment,
+    segmentLabels,
+  }
+  const dateInputService = useMachine(localizedDateInputMachine, {
+    ...localizedSegmentProps,
     disabled,
     dir,
     granularity,
@@ -1199,6 +1334,7 @@ export function DatePicker({
         pickerApi,
         requestOpen,
         required: Boolean(required),
+        segmentLabels,
         selectionMode,
         setDraftTimePart: (part, nextValue, index = 0) => {
           if (!interactionBlocked && granularity !== "day") {
@@ -1327,7 +1463,9 @@ DatePicker.Label = function DatePickerLabel({
 }: DatePickerLabelProps) {
   const { dateInputApi, pickerApi, required, size, styles } =
     useDatePickerContext()
-  const labelProps = mergeProps(
+  // The machines point htmlFor at inputs that are never rendered; the segment group is
+  // aria-labelledby this label and the label's click handler focuses the first segment.
+  const { htmlFor: _unrenderedInputId, ...labelProps } = mergeProps(
     { ...props, ref },
     pickerApi.getLabelProps(),
     dateInputApi.getLabelProps()
@@ -1438,6 +1576,7 @@ DatePicker.Segments = function DatePickerSegments({
     validationMessage,
     validationMessageId,
     required,
+    segmentLabels,
     selectionMode,
     styles,
     descriptions,
@@ -1473,6 +1612,9 @@ DatePicker.Segments = function DatePickerSegments({
         <span
           role="spinbutton"
           {...dateInputApi.getSegmentProps({ index, segment })}
+          {...(segmentLabels?.[segment.type]
+            ? { "aria-label": segmentLabels[segment.type] }
+            : {})}
           aria-describedby={joinDescribedBy(
             props["aria-describedby"],
             descriptions.describedById,
@@ -1668,6 +1810,7 @@ DatePicker.Trigger = function DatePickerTrigger({
   return (
     <Button
       {...triggerProps}
+      aria-controls={pickerApi.open ? triggerProps["aria-controls"] : undefined}
       aria-invalid={dateInputApi.invalid || undefined}
       className={styles.trigger({ className })}
       icon={icon ?? (children ? undefined : "token-icon-date-picker-calendar")}

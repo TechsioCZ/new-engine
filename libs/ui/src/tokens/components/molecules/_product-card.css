@@ -17,6 +17,27 @@
  */
 
 @theme static {
+  /* Featured presentation starts from the default card roles; override these to restyle it. */
+  --spacing-product-card-featured-padding: var(--spacing-product-card-padding);
+  --spacing-product-card-featured-col-layout: var(
+    --spacing-product-card-col-layout
+  );
+  --border-width-product-card-featured: var(--border-width-product-card);
+  --border-product-card-featured-width: var(
+    --border-width-product-card-featured
+  );
+  --radius-product-card-featured: var(--radius-product-card);
+  --radius-product-card-featured-image: var(--radius-product-card-image);
+  --color-product-card-featured-bg: var(--color-product-card-bg);
+  --font-weight-product-card-featured-name: var(
+    --font-weight-product-card-name
+  );
+  --font-weight-product-card-featured-stock: var(
+    --font-weight-product-card-stock
+  );
+  --text-product-card-featured-name-size: var(--text-product-card-name-size);
+  --text-product-card-featured-stock-size: var(--text-product-card-stock-size);
+
   --product-card-layout-row-grid: minmax(
       var(--width-product-card-image-min),
       var(--width-product-card-image-max)

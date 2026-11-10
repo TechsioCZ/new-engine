@@ -58,6 +58,16 @@
   --color-numeric-input-trigger-fg-disabled: var(
     --color-numeric-input-trigger-disabled
   );
+
+  /* Compact density: fixed field height that follows the button compact scale. */
+  --color-numeric-input-compact-border: var(--color-numeric-input-border);
+  --padding-numeric-input-compact-trigger: var(--dimension-6);
+  --padding-numeric-input-compact-sm: var(--dimension-4);
+  --padding-numeric-input-compact-md: var(--dimension-4);
+  --padding-numeric-input-compact-lg: var(--dimension-6);
+  --height-numeric-input-compact-sm: var(--height-button-compact-sm);
+  --height-numeric-input-compact-md: var(--height-button-compact-md);
+  --height-numeric-input-compact-lg: var(--height-button-compact-lg);
 }
 
 /* Match the unlayered foundation focus rule, but paint its contrast halo once

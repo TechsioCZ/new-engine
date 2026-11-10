@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,7 +14,14 @@ import {
   machine as dialogMachine,
 } from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, useId, useState } from "react"
+import {
+  type CSSProperties,
+  type ReactNode,
+  type Ref,
+  useId,
+  useMemo,
+  useState,
+} from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
@@ -101,6 +108,7 @@ const dialogVariants = tv({
     behavior: {
       modal: {
         backdrop: "bg-dialog-backdrop-bg-modal",
+        positioner: "pointer-events-auto",
       },
       modeless: {
         backdrop: "pointer-events-none bg-transparent",
@@ -217,9 +225,23 @@ export type DialogProps = VariantProps<typeof dialogVariants> & {
   children?: ReactNode
   actions?: ReactNode
   hideCloseButton?: boolean
+  /** Accessible name of the built-in close button. Defaults to "Close dialog". */
+  closeLabel?: string
   className?: string
+  /** Ref to the actual dialog content element. */
+  contentRef?: Ref<HTMLDivElement>
+  /** Inline layout overrides, merged with the dialog machine styles. */
+  contentStyle?: CSSProperties
   modal?: boolean
   portal?: boolean
+}
+
+function assignRef<T>(ref: Ref<T> | undefined, node: T | null) {
+  if (typeof ref === "function") {
+    ref(node)
+  } else if (ref) {
+    ref.current = node
+  }
 }
 
 export function Dialog({
@@ -244,8 +266,11 @@ export function Dialog({
   description,
   children,
   hideCloseButton = false,
+  closeLabel = "Close dialog",
   actions,
   className,
+  contentRef,
+  contentStyle,
   modal,
   portal = true,
 }: DialogProps) {
@@ -254,6 +279,13 @@ export function Dialog({
   const isModal = modal ?? behavior !== "modeless"
   const [contentElement, setContentElement] = useState<HTMLDivElement | null>(
     null
+  )
+  const setContentNode = useMemo(
+    () => (node: HTMLDivElement | null) => {
+      setContentElement(node)
+      assignRef(contentRef, node)
+    },
+    [contentRef]
   )
 
   const service = useMachine(dialogMachine, {
@@ -297,7 +329,8 @@ export function Dialog({
         <div
           className={content({ className })}
           {...api.getContentProps()}
-          ref={setContentElement}
+          ref={setContentNode}
+          style={{ ...api.getContentProps().style, ...contentStyle }}
         >
           <OverlayContainerProvider container={isModal ? contentElement : null}>
             {!hideCloseButton && (
@@ -307,7 +340,7 @@ export function Dialog({
                 size="md"
                 tone="neutral"
                 {...api.getCloseTriggerProps()}
-                aria-label="Close dialog"
+                aria-label={closeLabel}
               />
             )}
             <div className={scrollViewport()}>

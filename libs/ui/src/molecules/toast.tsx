@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.1.2
+ * @componentVersion v1.1.3
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -80,9 +80,20 @@ type ToastProps = {
   index: number
   parent: toast.GroupService
   placement?: toast.Placement
+  /** Accessible name of the close button. Defaults to "Close notification". */
+  closeLabel?: string
+  /** Title shown for a loading toast without its own title. Defaults to "loading...". */
+  loadingLabel?: string
 }
 
-export function Toast({ actor, index, parent, placement }: ToastProps) {
+export function Toast({
+  actor,
+  index,
+  parent,
+  placement,
+  closeLabel = "Close notification",
+  loadingLabel = "loading...",
+}: ToastProps) {
   const composedProps = {
     ...actor,
     index,
@@ -113,7 +124,7 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
           <span className={icon()} data-type={api.type} />
         </span>
         <div className={title()} {...api.getTitleProps()} data-type={api.type}>
-          {api.title}
+          {api.type === "loading" ? (api.title ?? loadingLabel) : api.title}
         </div>
         {api.closable && (
           <ActionIcon
@@ -122,7 +133,7 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
             size="sm"
             tone="neutral"
             {...api.getCloseTriggerProps()}
-            aria-label="Close notification"
+            aria-label={closeLabel}
           />
         )}
       </div>
@@ -233,7 +244,21 @@ const scopedGroupMachine: typeof toast.group.machine = {
   },
 }
 
-export function Toaster({ store = toaster }: ToastContainerProps = {}) {
+export type ToasterProps = ToastContainerProps & {
+  /** Accessible name of each toast's close button. Defaults to "Close notification". */
+  closeLabel?: string
+  /** Accessible name of the toast region. Defaults to zag's "Notifications, <placement> (<hotkey>)". */
+  label?: string
+  /** Title shown for a loading toast without its own title. Defaults to "loading...". */
+  loadingLabel?: string
+}
+
+export function Toaster({
+  store = toaster,
+  closeLabel,
+  label,
+  loadingLabel,
+}: ToasterProps = {}) {
   const groupId = useId()
   const modalContainer = useActiveModalContainer()
   const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null)
@@ -262,21 +287,24 @@ export function Toaster({ store = toaster }: ToastContainerProps = {}) {
     store,
   })
   const api = toast.group.connect(service, normalizeProps)
+  const groupProps = api.getGroupProps()
+  const regionProps = {
+    ...groupProps,
+    "aria-label": label ?? groupProps["aria-label"],
+  }
   const { group } = toastVariants()
   if (!portalHost) {
     return null
   }
   return createPortal(
-    <div
-      className={group()}
-      {...api.getGroupProps()}
-      id={`toast-group:${groupId}`}
-    >
+    <div className={group()} {...regionProps} id={`toast-group:${groupId}`}>
       {api.getToasts().map((notification, index) => (
         <Toast
           actor={notification}
+          closeLabel={closeLabel}
           index={index}
           key={notification.id}
+          loadingLabel={loadingLabel}
           parent={service}
         />
       ))}

@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.12
+ * @componentVersion v1.3.13
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -128,7 +128,6 @@ const numericInputVariants = tv({
     root: ["relative flex min-w-0 flex-col"],
     container: [
       "group numeric-input-focus-owner form-control-base numeric-input-validation numeric-input-readonly relative flex",
-      "border-numeric-input-border",
       "min-w-0 items-center overflow-clip",
       "hover:border-numeric-input-border-hover",
       "focus-within:border-numeric-input-border-focus",
@@ -164,7 +163,7 @@ const numericInputVariants = tv({
     trigger: [
       "flex min-h-numeric-input-trigger-min min-w-numeric-input-trigger-min flex-1 place-items-center",
       "pointer-coarse:min-w-numeric-input-trigger-touch-min",
-      "px-numeric-input-trigger-x py-numeric-input-trigger-y",
+      "py-numeric-input-trigger-y",
       "bg-transparent hover:bg-numeric-input-trigger-bg-hover active:bg-numeric-input-trigger-bg-active",
       "text-numeric-input-trigger-fg",
       "cursor-pointer",
@@ -175,31 +174,94 @@ const numericInputVariants = tv({
     scrubber: "absolute inset-0 cursor-ew-resize",
   },
   variants: {
+    // Compact is a fixed-height dense field for toolbars and tables; default keeps
+    // the field's own form-control geometry.
+    density: {
+      default: {
+        container: "border-numeric-input-border",
+        trigger: "px-numeric-input-trigger-x",
+      },
+      compact: {
+        container: "border-numeric-input-compact-border",
+        trigger: "px-numeric-input-compact-trigger",
+      },
+    },
     size: {
       sm: {
         root: "gap-numeric-input-sm text-numeric-input-sm",
-        container: "h-form-control-sm rounded-numeric-input-sm",
+        container: "rounded-numeric-input-sm",
         trigger: "text-numeric-input-sm",
         triggerIcon: "numeric-input-trigger-icon-sm",
-        input: "ps-numeric-input-input-sm text-numeric-input-sm",
+        input: "text-numeric-input-sm",
       },
       md: {
         root: "gap-numeric-input-md text-numeric-input-md",
-        container: "h-form-control-md rounded-numeric-input-md",
+        container: "rounded-numeric-input-md",
         trigger: "text-numeric-input-md",
         triggerIcon: "numeric-input-trigger-icon-md",
-        input: "ps-numeric-input-input-md text-numeric-input-md",
+        input: "text-numeric-input-md",
       },
       lg: {
         root: "gap-numeric-input-lg text-numeric-input-lg",
-        container: "h-form-control-lg rounded-numeric-input-lg",
+        container: "rounded-numeric-input-lg",
         trigger: "text-numeric-input-lg",
         triggerIcon: "numeric-input-trigger-icon-lg",
-        input: "ps-numeric-input-input-lg text-numeric-input-lg",
+        input: "text-numeric-input-lg",
       },
     },
   },
+  compoundVariants: [
+    {
+      density: "default",
+      size: "sm",
+      className: {
+        container: "h-form-control-sm",
+        input: "ps-numeric-input-input-sm",
+      },
+    },
+    {
+      density: "default",
+      size: "md",
+      className: {
+        container: "h-form-control-md",
+        input: "ps-numeric-input-input-md",
+      },
+    },
+    {
+      density: "default",
+      size: "lg",
+      className: {
+        container: "h-form-control-lg",
+        input: "ps-numeric-input-input-lg",
+      },
+    },
+    {
+      density: "compact",
+      size: "sm",
+      className: {
+        container: "h-numeric-input-compact-sm",
+        input: "ps-numeric-input-compact-sm",
+      },
+    },
+    {
+      density: "compact",
+      size: "md",
+      className: {
+        container: "h-numeric-input-compact-md",
+        input: "ps-numeric-input-compact-md",
+      },
+    },
+    {
+      density: "compact",
+      size: "lg",
+      className: {
+        container: "h-numeric-input-compact-lg",
+        input: "ps-numeric-input-compact-lg",
+      },
+    },
+  ],
   defaultVariants: {
+    density: "default",
     size: "md",
   },
 })
@@ -248,6 +310,7 @@ export type NumericInputProps = Omit<
     ComponentPropsWithoutRef<"div">,
     "onChange" | "children" | "defaultValue"
   > & {
+    density?: "default" | "compact"
     size?: "sm" | "md" | "lg"
     value?: number | string
     defaultValue?: number | string
@@ -262,6 +325,7 @@ export type NumericInputProps = Omit<
   }
 
 export function NumericInput({
+  density,
   id,
   size,
   value,
@@ -514,7 +578,7 @@ export function NumericInput({
       service.send({ type: "INPUT.FOCUS" })
     }
   }, [api, service])
-  const styles = numericInputVariants({ size })
+  const styles = numericInputVariants({ density, size })
   const inputDisabled = api.getInputProps().disabled
 
   return (

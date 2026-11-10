@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.6.4
+ * @componentVersion v0.6.5
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -42,6 +42,11 @@ export const buttonVariants = tv({
         "motion-safe:not-disabled:not-data-disabled:not-data-loading:active:scale-97",
       ],
     },
+    // Density selects the fixed compact geometry; default keeps content-driven sizing.
+    density: {
+      default: "",
+      compact: "",
+    },
     variant: {
       primary: "",
       secondary: "",
@@ -61,9 +66,9 @@ export const buttonVariants = tv({
       true: "uppercase",
     },
     size: {
-      sm: "button-size-sm min-w-0 gap-button-sm rounded-button-sm p-button-sm text-button-sm",
-      md: "button-size-md min-w-0 gap-button-md rounded-button-md p-button-md text-button-md",
-      lg: "button-size-lg min-w-0 gap-button-lg rounded-button-lg p-button-lg text-button-lg",
+      sm: "min-w-0 gap-button-sm rounded-button-sm text-button-sm",
+      md: "min-w-0 gap-button-md rounded-button-md text-button-md",
+      lg: "min-w-0 gap-button-lg rounded-button-lg text-button-lg",
       current: "button-current-size gap-button-md",
     },
     block: {
@@ -71,6 +76,26 @@ export const buttonVariants = tv({
     },
   },
   compoundVariants: [
+    // Geometry lives in density compounds so compact never inherits the
+    // content-driven min-height of button-size-*.
+    { density: "default", size: "sm", className: "button-size-sm p-button-sm" },
+    { density: "default", size: "md", className: "button-size-md p-button-md" },
+    { density: "default", size: "lg", className: "button-size-lg p-button-lg" },
+    {
+      density: "compact",
+      size: "sm",
+      className: "h-button-compact-sm p-button-compact-sm",
+    },
+    {
+      density: "compact",
+      size: "md",
+      className: "h-button-compact-md p-button-compact-md",
+    },
+    {
+      density: "compact",
+      size: "lg",
+      className: "h-button-compact-lg p-button-compact-lg",
+    },
     {
       variant: "primary",
       theme: "solid",
@@ -264,6 +289,7 @@ export const buttonVariants = tv({
   ],
   defaultVariants: {
     composition: false,
+    density: "default",
     variant: "primary",
     theme: "solid",
     size: "md",
@@ -300,6 +326,7 @@ export type ButtonProps = Omit<
   }
 
 export function Button({
+  density,
   variant,
   theme,
   size,
@@ -352,6 +379,7 @@ export function Button({
         disabled || isLoading || props["aria-disabled"] || undefined
       }
       className={buttonVariants({
+        density,
         variant,
         theme,
         size,
