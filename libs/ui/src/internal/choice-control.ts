@@ -56,6 +56,20 @@ export function commitChoiceClick(
   }
 }
 
+/** @internal The same commit for a radio item. A radio click only ever selects,
+ * so the group's value is committed when the clicked input ends up checked. */
+export function commitRadioClick(
+  machine: ComponentPropsWithRef<"input">,
+  readOnly: boolean,
+  select: () => void
+): ComponentPropsWithRef<"input"> {
+  return commitChoiceClick(machine, readOnly, (checked) => {
+    if (checked) {
+      select()
+    }
+  })
+}
+
 /** React 19 ref cleanup, including callback disposers and object refs. */
 export function useChoiceInputRef(
   ref: Ref<HTMLInputElement> | undefined,

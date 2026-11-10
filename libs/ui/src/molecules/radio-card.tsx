@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.1.4
+ * @componentVersion v1.1.5
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,6 +28,7 @@ import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import {
+  commitRadioClick,
   getControlledChoiceInputProps,
   handleChoiceArrowKey,
   isSilentChoiceReset,
@@ -315,6 +316,7 @@ type RadioCardContextValue = {
   errorMessageId?: string
   registerError: DescribedBy["registerDescription"]
   api: ReturnType<typeof connect>
+  selectValue: (value: string) => void
   variant: RadioCardVariant
   size: RadioCardSize
   itemOrientation: RadioCardItemOrientation
@@ -429,6 +431,7 @@ export function RadioCard({
     <RadioCardContext.Provider
       value={{
         api,
+        selectValue: (value) => service.context.set("value", value),
         readOnly: readOnly && !disabled,
         callerDescribedBy: ariaDescribedByProp,
         errorMessageId: errors.describedById,
@@ -563,6 +566,7 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
 }: RadioCardItemHiddenInputProps) {
   const {
     api,
+    selectValue,
     size,
     variant,
     readOnly,
@@ -575,7 +579,12 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
     useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
   const hiddenInputProps = getControlledChoiceInputProps(
-    mergeChoiceInputProps(props, api.getItemHiddenInputProps(itemProps)),
+    mergeChoiceInputProps(
+      props,
+      commitRadioClick(api.getItemHiddenInputProps(itemProps), readOnly, () =>
+        selectValue(itemProps.value)
+      )
+    ),
     api.getItemState(itemProps).checked
   )
 

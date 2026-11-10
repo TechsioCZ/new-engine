@@ -19,6 +19,12 @@ const CHANGELOG = `
 ### Switch v1.2.3
 - Switch now applies a click in the same tick: right after a scripted \`input.click()\`, a label click or Space, the native input and FormData hold the new value and onCheckedChange has run once. Before, the input kept the old value until a later task. A change the controlled parent rejects is still restored.
 
+### RadioGroup v1.1.5
+- RadioGroup now applies a selection in the same tick: right after a scripted \`input.click()\`, an item label click or an arrow key, the native radios and FormData hold the new value and onValueChange has run once. Before, the radios kept the old selection until a later task. A change the controlled parent rejects is still restored.
+
+### RadioCard v1.1.5
+- RadioCard now applies a selection in the same tick: right after a scripted \`input.click()\`, an item label click or an arrow key, the native radios and FormData hold the new value and onValueChange has run once. Before, the radios kept the old selection until a later task. A change the controlled parent rejects is still restored.
+
 ### Chart v1.2.2
 - Chart tooltips format dates with a fixed en-US medium format (e.g. "Mar 5, 2026") when no locale is given, instead of the viewer's browser locale. Set locale to format dates and numbers for that locale.
 
