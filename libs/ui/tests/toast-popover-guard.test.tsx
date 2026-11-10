@@ -89,4 +89,20 @@ describe("Toaster without a working Popover API", () => {
 
     expect(document.body.textContent).toContain("Still visible")
   })
+
+  it("still opens the host in the top layer when showPopover exists", async () => {
+    const opened: HTMLElement[] = []
+    Object.defineProperty(HTMLElement.prototype, "showPopover", {
+      configurable: true,
+      writable: true,
+      value(this: HTMLElement) {
+        opened.push(this)
+      },
+    })
+
+    await mountToaster()
+
+    expect(opened).toHaveLength(1)
+    expect(opened[0]?.isConnected).toBe(true)
+  })
 })
