@@ -6,7 +6,7 @@ description: >
   transactional time entry, single or range typed values, and canonical form
   serialization through one integrated field.
 metadata:
-  component_version: "1.3.11"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -208,6 +208,7 @@ open/defaultOpen/onOpenChange
 locale, timeZone, hourCycle, hideTimeZone, shouldForceLeadingZeros
 min, max, startOfWeek, numOfMonths, isDateUnavailable, isTimeUnavailable
 disabled, readOnly, invalid, required
+DatePicker.Label accepts requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 single: name, form
 range: startName, endName, form
 placement, gutter, offset, flip, sameWidth, slide, overflowPadding

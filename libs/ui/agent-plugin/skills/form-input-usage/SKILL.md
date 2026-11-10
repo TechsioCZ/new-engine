@@ -5,7 +5,7 @@ description: >
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
 metadata:
-  component_version: "1.1.4"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -101,6 +101,7 @@ id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 all Input props except where FormInput sets label/status behavior
 ```
 

@@ -5,7 +5,7 @@ description: >
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
 metadata:
-  component_version: "1.2.2"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -95,6 +95,7 @@ label: ReactNode
 children: NumericInput compound parts
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 NumericInputProps excluding children
 ```
 

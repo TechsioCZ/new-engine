@@ -5,7 +5,7 @@ description: >
   searchable selection with Zag.js collection behavior, controlled value/input,
   multiple mode, validation status, clear trigger, and token styling.
 metadata:
-  component_version: "1.6.7"
+  component_version: "1.7.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -99,6 +99,7 @@ Supported props:
 items: { id, label, value, disabled, data, href }[]
 groups: { id, label?, items }[] (alternative to items; never pass both)
 value/defaultValue: string | string[]
+required, requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 inputValue, multiple, clearable, closeOnSelect, allowCustomValue
 validateStatus: default | error | success | warning
 inputBehavior: autohighlight | autocomplete | none
