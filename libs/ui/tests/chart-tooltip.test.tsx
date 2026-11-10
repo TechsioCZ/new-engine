@@ -163,6 +163,14 @@ describe("chart tooltip content", () => {
     )
   })
 
+  it("formats dates as the fixed en-US medium date when no locale is given", () => {
+    const instant = new Date(Date.UTC(2026, 2, 5))
+    const dated = [{ month: instant, revenue: 42_000, channel: "A" }]
+    const tooltip = tooltipOf(render({ data: dated }))
+    const content = tooltip.content([point(dated[0])], {})
+    expect(content.title).toBe("Mar 5, 2026")
+  })
+
   it("names multi-series rows by series and marks only the primary row active", () => {
     const seriesRows: Row[] = [
       { month: "Jan", revenue: 42, channel: "Online" },

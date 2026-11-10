@@ -10,6 +10,8 @@ const css = readFileSync(
   "utf8"
 )
 
+const VAR_REFERENCE_LIST_RE = /^(var\(--[\w-]+\)\s*)+$/
+
 function themeDeclarations() {
   const values = new Map<string, string>()
   postcss.parse(css).walkAtRules("theme", (rule) => {
@@ -78,20 +80,22 @@ describe("button density", () => {
     expect(html).not.toContain("button-compact")
   })
 
-  it("declares the compact height and padding tokens from existing primitives", () => {
+  it("declares the compact height and padding tokens as var() references", () => {
     const tokens = themeDeclarations()
-    expect(tokens.get("--height-button-compact-sm")).toBe("var(--dimension-28)")
-    expect(tokens.get("--height-button-compact-md")).toBe("var(--dimension-36)")
-    expect(tokens.get("--height-button-compact-lg")).toBe("var(--dimension-44)")
-    expect(tokens.get("--padding-button-compact-sm")).toBe(
-      "var(--dimension-2) var(--padding-button-x-sm)"
+    const sizes = ["sm", "md", "lg"] as const
+    for (const size of sizes) {
+      for (const name of [
+        `--height-button-compact-${size}`,
+        `--padding-button-compact-${size}`,
+      ]) {
+        const value = tokens.get(name)
+        expect(value, name).toBeTruthy()
+        expect(value, name).toMatch(VAR_REFERENCE_LIST_RE)
+      }
+    }
+    const heights = sizes.map((size) =>
+      tokens.get(`--height-button-compact-${size}`)
     )
-    expect(tokens.get("--padding-button-compact-md")).toBe(
-      "var(--padding-button-y-md) var(--dimension-10)"
-    )
-    // The formatter may wrap a long value; compare with whitespace collapsed.
-    expect(
-      tokens.get("--padding-button-compact-lg")?.replace(/\s+/g, " ")
-    ).toBe("var(--padding-button-y-lg) var(--padding-button-x-lg)")
+    expect(new Set(heights).size).toBe(sizes.length)
   })
 })

@@ -123,6 +123,6 @@ describe("FieldSelect listbox name", () => {
         onChange: () => undefined,
       })
     )
-    expect(labelsOf(html)).not.toContain("Filter Role")
+    expect(labelsOf(html)).toEqual([])
   })
 })

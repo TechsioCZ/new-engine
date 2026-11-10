@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -123,11 +123,11 @@ export type ChartProps<TDatum> = {
    * `yLabel`; the raw `y` field name is never shown. Multi-series rows use the `series` values.
    */
   valueLabel?: string
-  /** Formats the tooltip title from the category / x value. Defaults to locale number and date formatting. */
+  /** Formats the tooltip title from the category / x value. Numbers are plain `String`; dates use a fixed `en-US` medium format unless `locale` is set. */
   formatCategory?: (value: string | number | Date) => string
   /** Formats values in the tooltip. Defaults to `formatValue`, then locale number formatting. */
   formatTooltipValue?: (value: number) => string
-  /** BCP 47 locale for the default tooltip number and date formatting (e.g. "cs-CZ"). */
+  /** BCP 47 locale for the default tooltip number and date formatting (e.g. "cs-CZ"). Unset: numbers are plain `String` and dates use a fixed `en-US` medium format. */
   locale?: string
   /** Fixed pixel height. When omitted, `aspectRatio` controls sizing. */
   height?: number
@@ -215,6 +215,7 @@ type BuildConfig<TDatum> = {
   valueLabel?: string
   formatCategory?: (value: string | number | Date) => string
   formatTooltipValue?: (value: number) => string
+  /** Unset: numbers are plain `String` and dates use a fixed `en-US` medium format. */
   locale?: string
   animate: boolean
   showTooltip: boolean
@@ -418,11 +419,12 @@ function resolveBuild<TDatum>(
     className: config.tooltipClassName,
   }
   // Tooltips never show raw field names. Values use the caller's formatters,
-  // then the caller's locale when one is given, and plain String otherwise so
-  // the default output does not depend on the viewer's browser locale.
+  // then the caller's locale when one is given. Without a locale, numbers are
+  // plain String and dates fall back to a fixed en-US medium date, so the
+  // default output does not depend on the viewer's browser locale.
   const locale = validLocale(config.locale)
   const numberFormat = locale ? new Intl.NumberFormat(locale) : undefined
-  const dateFormat = new Intl.DateTimeFormat(locale, {
+  const dateFormat = new Intl.DateTimeFormat(locale ?? "en-US", {
     dateStyle: "medium",
     timeZone: "UTC",
   })

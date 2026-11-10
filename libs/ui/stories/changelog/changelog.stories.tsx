@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Chart v1.2.2
+- Chart tooltips format dates with a fixed en-US medium format (e.g. "Mar 5, 2026") when no locale is given, instead of the viewer's browser locale. Set locale to format dates and numbers for that locale.
+
 ### Chart v1.2.1
 - Chart tooltips now show the category as a title and a named value row instead of raw field names, with new valueLabel, formatCategory, formatTooltipValue and locale props for localized labels and number and date formatting.
 
