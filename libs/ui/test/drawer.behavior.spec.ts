@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test"
+import { expect, type Locator, type Page, test } from "@playwright/test"
 
 async function openStory(page: Page, storyId: string) {
   await page.emulateMedia({ reducedMotion: "reduce" })
@@ -20,6 +20,17 @@ async function openStory(page: Page, storyId: string) {
       )
     )
     .toBe("finished")
+}
+
+// A fast machine reaches Escape before the drawer takes focus and starts
+// listening for it; press it only once focus is inside.
+async function pressEscapeOnceFocused(page: Page, dialog: Locator) {
+  await expect
+    .poll(() =>
+      dialog.evaluate((node) => node.contains(document.activeElement))
+    )
+    .toBe(true)
+  await page.keyboard.press("Escape")
 }
 
 test.describe("Drawer behavior", () => {
@@ -157,7 +168,7 @@ test.describe("Drawer behavior", () => {
     await expect(
       dialog.getByRole("textbox", { name: "Full name" })
     ).toHaveValue("Ada Lovelace")
-    await page.keyboard.press("Escape")
+    await pressEscapeOnceFocused(page, dialog)
     await expect(dialog).toHaveCount(0)
 
     const graceTrigger = page.getByRole("button", { name: "Edit Grace" })
@@ -166,7 +177,7 @@ test.describe("Drawer behavior", () => {
     await expect(
       dialog.getByRole("textbox", { name: "Email address" })
     ).toHaveValue("grace@example.com")
-    await page.keyboard.press("Escape")
+    await pressEscapeOnceFocused(page, dialog)
     await expect(dialog).toHaveCount(0)
     await expect(graceTrigger).toBeFocused()
   })
