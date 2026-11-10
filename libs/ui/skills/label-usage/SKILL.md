@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Label for
   form-control labels with valid size, disabled, required, and htmlFor usage.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -86,6 +86,7 @@ Supported props:
 size: sm | md | lg | current
 disabled: boolean
 required: boolean
+requiredLabel: string — screen-reader text after the required marker. Default "(required)"; pass a translation; "" omits it.
 htmlFor: native label target
 ```
 

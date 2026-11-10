@@ -5,7 +5,7 @@ description: >
   for controlled quantity drafts with a visible unit, helper/error feedback,
   bounded stepping, accessible pending state and compact cart presentation.
 metadata:
-  component_version: "1.0.2"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -32,6 +32,7 @@ set both `aria-invalid` and `aria-errormessage`. Read-only keeps text selectable
 with a text cursor and focusable, guards value/commit callbacks, and omits step
 buttons; disabled and pending remain unavailable states rather than read-only
 shortcuts.
+The `requiredLabel` prop sets the screen-reader text after the required marker (default "(required)"; "" omits it).
 
 ## UX/UI guidelines
 

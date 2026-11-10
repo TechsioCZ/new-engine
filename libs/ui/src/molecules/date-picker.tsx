@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.3.11
+ * @componentVersion v1.4.0
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -1453,12 +1453,15 @@ function DatePickerFormValue({
 
 export type DatePickerLabelProps = ComponentPropsWithoutRef<"label"> & {
   ref?: Ref<HTMLLabelElement>
+  /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to "(required)". */
+  requiredLabel?: string
 }
 
 DatePicker.Label = function DatePickerLabel({
   children,
   className,
   ref,
+  requiredLabel,
   ...props
 }: DatePickerLabelProps) {
   const { dateInputApi, pickerApi, required, size, styles } =
@@ -1477,6 +1480,7 @@ DatePicker.Label = function DatePickerLabel({
       className={styles.label({ className })}
       disabled={dateInputApi.disabled}
       required={required}
+      requiredLabel={requiredLabel}
       size={size}
     >
       {children}

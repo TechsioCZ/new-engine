@@ -105,6 +105,35 @@ export function restoreFocusAfterOverlayClose(
   return () => view.cancelAnimationFrame(frame)
 }
 
+/** A portal's own children get no useId position, unlike the same children
+ * rendered inline on the server. Mounting them one component lower gives the
+ * children the server's positions back. */
+function PortalChildren({ children }: { children?: ReactNode }) {
+  return children
+}
+
+/** @internal Zag's Portal targets, with the children's tree shape kept equal to
+ * the inline server render. Zag maps each child to its own portal, which turns
+ * a single child into a one-item list on the client only. Every useId below
+ * then differs from the server's, and a hydrated overlay keeps server ids its
+ * machines cannot look up. Here React adopts the server nodes as they are, and
+ * a client-only render still portals on its first commit. */
+export function BodyPortal({
+  children,
+  container,
+  disabled,
+  getRootNode,
+}: PortalProps & { children?: ReactNode }) {
+  if (typeof document === "undefined" || disabled) {
+    return <>{children}</>
+  }
+  const doc = getRootNode?.().ownerDocument ?? document
+  return createPortal(
+    <PortalChildren>{children}</PortalChildren>,
+    container?.current ?? doc.body
+  )
+}
+
 /** @internal Uses React portals rather than moving React-owned DOM nodes. */
 export function OverlayPortal({
   children,

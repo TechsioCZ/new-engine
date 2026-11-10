@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.6.7
+ * @componentVersion v1.7.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -246,6 +246,8 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     disabled?: boolean
     readOnly?: boolean
     required?: boolean
+    /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to "(required)". */
+    requiredLabel?: string
     value?: string | string[]
     defaultValue?: string | string[]
     defaultInputValue?: string
@@ -561,6 +563,7 @@ export function Combobox<T = unknown>({
   disabled: explicitDisabled = false,
   readOnly = false,
   required = false,
+  requiredLabel,
   items,
   groups,
   value,
@@ -1081,6 +1084,7 @@ export function Combobox<T = unknown>({
         <Label
           className={labelStyles()}
           required={required}
+          requiredLabel={requiredLabel}
           size={size}
           {...api.getLabelProps()}
         >

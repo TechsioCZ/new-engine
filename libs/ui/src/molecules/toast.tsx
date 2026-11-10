@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.1.3
+ * @componentVersion v1.1.4
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -253,6 +253,21 @@ export type ToasterProps = ToastContainerProps & {
   loadingLabel?: string
 }
 
+// Show the portal host in the top layer when the Popover API is available.
+// Environments without it (jsdom, happy-dom, older browsers) keep the host as a
+// plain element so toasts still render; an already-open or detached host is left alone.
+function showToastPortalHost(host: HTMLElement) {
+  if (typeof host.showPopover !== "function" || !host.isConnected) {
+    return
+  }
+  try {
+    host.showPopover()
+  } catch {
+    // An already-open host throws here, and opening the top layer is
+    // progressive enhancement; never break rendering.
+  }
+}
+
 export function Toaster({
   store = toaster,
   closeLabel,
@@ -279,7 +294,7 @@ export function Toaster({
       parent.appendChild(portalHost)
       // Keep DOM membership in the focus scope, but escape transformed drawer
       // containing blocks. Manual popovers do not light-dismiss or consume Escape.
-      portalHost.showPopover()
+      showToastPortalHost(portalHost)
     }
   }, [modalContainer, portalHost])
   const service = useMachine(scopedGroupMachine, {

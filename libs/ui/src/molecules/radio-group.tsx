@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.1.4
+ * @componentVersion v1.1.5
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,6 +29,7 @@ import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
 import { StatusText as StatusTextComponent } from "../atoms/status-text"
 import {
+  commitRadioClick,
   getControlledChoiceInputProps,
   handleChoiceArrowKey,
   isSilentChoiceReset,
@@ -220,6 +221,7 @@ type RadioGroupContextValue = {
   errorMessageId?: string
   registerError: DescribedBy["registerDescription"]
   api: ReturnType<typeof connect>
+  selectValue: (value: string) => void
   variant: RadioGroupVariant
   size: RadioGroupSize
   orientation: "horizontal" | "vertical"
@@ -324,6 +326,7 @@ export function RadioGroup({
     <RadioGroupContext.Provider
       value={{
         api,
+        selectValue: (value) => service.context.set("value", value),
         readOnly: readOnly && !disabled,
         callerDescribedBy: ariaDescribedByProp,
         errorMessageId: errors.describedById,
@@ -482,6 +485,7 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
 }: RadioGroupItemHiddenInputProps) {
   const {
     api,
+    selectValue,
     size,
     variant,
     readOnly,
@@ -494,7 +498,12 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
     useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
   const inputProps = getControlledChoiceInputProps(
-    mergeChoiceInputProps(props, api.getItemHiddenInputProps(itemProps)),
+    mergeChoiceInputProps(
+      props,
+      commitRadioClick(api.getItemHiddenInputProps(itemProps), readOnly, () =>
+        selectValue(itemProps.value)
+      )
+    ),
     api.getItemState(itemProps).checked
   )
 
