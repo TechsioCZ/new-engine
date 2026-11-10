@@ -231,13 +231,11 @@ Comparison runs use the host architecture (native arm64 on Apple Silicon); snaps
 
 ### Known differences on `linux/arm64`
 
-Comparison runs on Apple Silicon use `linux/arm64`. Three results have differed there from `linux/amd64` in every run so far and are not regressions:
+Comparison runs on Apple Silicon use `linux/arm64`. One result differs there from `linux/amd64` in every run and is not a regression: screenshot `molecules-colorselect--keyboard-navigation` on `akros-mobile-light` and `n1-mobile-light`, where 17 pixels differ against an allowance of 16.
 
-- Screenshot `molecules-colorselect--keyboard-navigation` on `akros-mobile-light` and `n1-mobile-light`: 17 pixels differ against an allowance of 16.
-- Behavior spec `date-picker.behavior.spec.ts`, "portals the popup, moves through the grid, and restores trigger focus" (`desktop`).
-- Behavior spec `drawer.behavior.spec.ts`, "edits the active profile, persists saves, discards cancelled drafts and restores focus" (`desktop`).
+Behavior specs can be timing-sensitive on a fast machine. `date-picker.behavior.spec.ts` ("portals the popup, moves through the grid, and restores trigger focus", `desktop`) failed in a full run under load and passed 6 of 6 on its own.
 
-A failing native run prints the command that confirms failed screenshot stories on `linux/amd64`. For a behavior spec, rerun its file with `PLAYWRIGHT_DOCKER_PLATFORM=linux/amd64`.
+A failing native run prints the commands that confirm failed screenshot stories and behavior specs on `linux/amd64`.
 
 ### Workers
 
