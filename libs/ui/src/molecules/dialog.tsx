@@ -19,12 +19,12 @@ import {
   type ReactNode,
   type Ref,
   useId,
-  useMemo,
   useState,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
+import { useComposedRefs } from "../internal/molecules/drawer.context"
 import { OverlayContainerProvider } from "../internal/overlay-portal"
 
 const dialogVariants = tv({
@@ -236,14 +236,6 @@ export type DialogProps = VariantProps<typeof dialogVariants> & {
   portal?: boolean
 }
 
-function assignRef<T>(ref: Ref<T> | undefined, node: T | null) {
-  if (typeof ref === "function") {
-    ref(node)
-  } else if (ref) {
-    ref.current = node
-  }
-}
-
 export function Dialog({
   "aria-label": ariaLabel,
   id,
@@ -280,13 +272,7 @@ export function Dialog({
   const [contentElement, setContentElement] = useState<HTMLDivElement | null>(
     null
   )
-  const setContentNode = useMemo(
-    () => (node: HTMLDivElement | null) => {
-      setContentElement(node)
-      assignRef(contentRef, node)
-    },
-    [contentRef]
-  )
+  const setContentNode = useComposedRefs(setContentElement, contentRef)
 
   const service = useMachine(dialogMachine, {
     id: uniqueId,

@@ -178,4 +178,39 @@ describe("Dialog contentRef", () => {
     expect(content).not.toBeNull()
     expect(contentRef.current).toBe(content)
   })
+
+  it("runs the cleanup returned by a callback contentRef on unmount without a null call", async () => {
+    const cleanup = vi.fn()
+    const contentRef = vi.fn((_node: HTMLDivElement | null) => cleanup)
+    const container = document.createElement("div")
+    document.body.append(container)
+    root = createRoot(container)
+
+    await act(async () =>
+      root?.render(
+        h(Dialog, {
+          id: "cleanup-ref-dialog",
+          open: true,
+          portal: false,
+          title: "Title",
+          contentRef,
+        })
+      )
+    )
+
+    const content = container.querySelector<HTMLDivElement>(
+      '[data-part="content"]'
+    )
+    expect(content).not.toBeNull()
+    expect(contentRef).toHaveBeenCalledTimes(1)
+    expect(contentRef).toHaveBeenCalledWith(content)
+    expect(cleanup).not.toHaveBeenCalled()
+
+    await act(async () => root?.unmount())
+    root = undefined
+
+    expect(cleanup).toHaveBeenCalledTimes(1)
+    expect(contentRef).toHaveBeenCalledTimes(1)
+    expect(contentRef).not.toHaveBeenCalledWith(null)
+  })
 })
