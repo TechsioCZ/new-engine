@@ -3,7 +3,9 @@ import { stat } from "node:fs/promises"
 import { createServer } from "node:http"
 import path from "node:path"
 
-const root = path.resolve(import.meta.dirname, "../storybook-static")
+const root = process.env.VISUAL_STORYBOOK_STATIC_DIR
+  ? path.resolve(process.env.VISUAL_STORYBOOK_STATIC_DIR)
+  : path.resolve(import.meta.dirname, "../storybook-static")
 const port = Number(process.env.VISUAL_STORYBOOK_PORT ?? "6006")
 const trailingSlash = /\/?$/
 // Explicit types keep image decoding independent of browser MIME sniffing.

@@ -52,7 +52,9 @@ export default defineConfig({
       name: project.name,
       metadata: { brand: project.brand },
       testMatch: "visual.spec.ts",
-      snapshotPathTemplate: `{testDir}/{testFilePath}-snapshots/{arg}-${project.name}-{platform}{ext}`,
+      snapshotPathTemplate: process.env.VISUAL_SNAPSHOT_DIR
+        ? `${process.env.VISUAL_SNAPSHOT_DIR}/{arg}-${project.name}-{platform}{ext}`
+        : `{testDir}/{testFilePath}-snapshots/{arg}-${project.name}-{platform}{ext}`,
       use: {
         ...devices[project.isMobile ? "iPhone 15" : "Desktop Chrome"],
         browserName: project.isMobile ? "webkit" : "chromium",
