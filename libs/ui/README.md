@@ -49,6 +49,38 @@ export function CheckoutAction() {
 }
 ```
 
+## Language
+
+The kit has no fixed language. Every word a component shows or announces on
+its own (placeholders, close buttons, table and filter labels, screen-reader
+announcements, validation messages, zag-js labels) comes from one typed
+catalog, `UiMessages`. English ships as `enUiMessages` and applies without
+setup. An app in another language passes its catalog once, near the root:
+
+```tsx
+import type { UiMessagesInput } from '@techsio/ui-kit/messages/ui-messages'
+import { UiMessagesProvider } from '@techsio/ui-kit/messages/ui-messages-provider'
+
+const csMessages: UiMessagesInput = {
+  locale: 'cs-CZ',
+  label: { required: '(povinné)' },
+  dialog: { close: 'Zavřít dialog' },
+  dataTable: { selectRowLabel: (row) => `Vybrat ${row}` },
+}
+
+export function AppProviders({ children }: { children: React.ReactNode }) {
+  return <UiMessagesProvider messages={csMessages}>{children}</UiMessagesProvider>
+}
+```
+
+- Any subset works; missing entries fall back to an outer provider, then English.
+- Messages that include a value are functions, so a translation orders words its own way.
+- `locale` is the default formatting locale for components that format numbers or dates.
+- A text passed as a prop to one component (`placeholder`, `closeLabel`, `translations`, …) still wins over the catalog.
+- Define the catalog as a module constant or memoize it, so components do not re-render.
+- Server components stay server components; only the parts that read the catalog run on the client.
+- One provider covers every copy of the kit on the page, so module-federation remotes that bundle their own copy follow the host's provider.
+
 ## Brands and modes
 
 Brand selection uses `data-theme` on `html`; mode uses one `.light` or `.dark`

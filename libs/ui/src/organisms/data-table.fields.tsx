@@ -17,6 +17,7 @@ import { createContext, type ReactNode, useContext } from "react"
 import { ActionIcon } from "../atoms/action-icon"
 import { Input } from "../atoms/input"
 import { NumericInput } from "../atoms/numeric-input"
+import { type DataTableMessages, enUiMessages } from "../messages/ui-messages"
 import { Combobox } from "../molecules/combobox"
 import { Menu } from "../molecules/menu"
 import { Select, type SelectItem } from "../molecules/select"
@@ -64,8 +65,10 @@ export type DataTableFilterValue =
 
 export type DataTableFilterContext<T extends RowData = RowData> = {
   column: Column<T, unknown>
-  /** Localised operator labels, keyed by operator. */
+  /** The table's own `translations.operatorLabels`, keyed by operator; the full set is in `messages`. */
   operatorLabels?: Partial<Record<string, string>>
+  /** Localised control text. DataTable passes the merged catalog; English without it. */
+  messages?: DataTableMessages
   type: DataTableColumnType
   value: DataTableFilterValue | undefined
   setValue: (value: DataTableFilterValue | undefined) => void
@@ -88,6 +91,8 @@ export type DataTableEditorContext<T extends RowData = RowData> = {
   options: DataTableOption[]
   /** Validation message for this field, if the last commit attempt failed. */
   error?: string
+  /** Localised control text. DataTable passes the merged catalog; English without it. */
+  messages?: DataTableMessages
   /** Commit the whole row (e.g. on Enter). */
   commit: () => void
   /** Discard the row draft (e.g. on Escape). */
@@ -144,12 +149,21 @@ export const NUMBER_FILTER_OPERATORS: {
 ]
 
 const TEXT_OPS: DataTableOption[] = TEXT_FILTER_OPERATORS
-const NUMBER_OPS: DataTableOption[] = NUMBER_FILTER_OPERATORS
 
-const BOOLEAN_FILTER_ITEMS: SelectItem[] = [
-  { label: "All", value: "" },
-  { label: "Yes", value: "true" },
-  { label: "No", value: "false" },
+/** Number operators named by the catalog's `numberOperatorLabels` (symbols in English). */
+function numberOperatorOptions(
+  labels: Partial<Record<string, string>>
+): DataTableOption[] {
+  return NUMBER_FILTER_OPERATORS.map((o) => ({
+    ...o,
+    label: labels[o.value] ?? o.label,
+  }))
+}
+
+const booleanFilterItems = (t: DataTableMessages): SelectItem[] => [
+  { label: t.filterAllLabel, value: "" },
+  { label: t.booleanTrueLabel, value: "true" },
+  { label: t.booleanFalseLabel, value: "false" },
 ]
 
 const HHMM_RE = /^(\d{1,2}):(\d{2})/
@@ -296,6 +310,7 @@ function FilterConditionMenu({
   disabled,
   size,
   columnName,
+  messages,
 }: {
   operators: DataTableOption[]
   operatorLabels?: Partial<Record<string, string>>
@@ -304,6 +319,7 @@ function FilterConditionMenu({
   disabled?: boolean
   size: DataTableControlSize
   columnName: string
+  messages: DataTableMessages
 }) {
   const labelled = operators.map((o) => ({
     ...o,
@@ -312,10 +328,13 @@ function FilterConditionMenu({
   const active = labelled.find((o) => o.value === value)
   return (
     <Menu
-      aria-label={`Filter condition for ${columnName}`}
+      aria-label={messages.filterConditionLabel(columnName)}
       customTrigger={
         <ActionIcon
-          aria-label={`Filter condition for ${columnName}: ${active?.label ?? value}`}
+          aria-label={messages.filterConditionValueLabel({
+            column: columnName,
+            condition: active?.label ?? value,
+          })}
           disabled={disabled}
           icon="icon-[mdi--filter-variant]"
           size={size}
@@ -341,7 +360,21 @@ export const DEFAULT_FILTER_RENDERERS: Record<
   DataTableColumnType,
   DataTableFilterRenderer
 > = {
-  string: ({ column, value, setValue, disabled, size, operatorLabels }) => {
+  string: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    size,
+    operatorLabels: ownOperatorLabels,
+    messages: providedMessages,
+  }) => {
+    const messages = providedMessages ?? enUiMessages.dataTable
+    // DataTable resolves the catalog and its own labels into `messages`; a hand-built context
+    // without `messages` names conditions by `operatorLabels`, as before.
+    const operatorLabels = providedMessages
+      ? providedMessages.operatorLabels
+      : ownOperatorLabels
     const v = (value ?? {}) as TextFilterValue
     const operator = v.operator ?? "contains"
     const activeLabel =
@@ -351,17 +384,20 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     return (
       <>
         <Input
-          aria-label={`Filter value for ${columnLabel(column)}`}
+          aria-label={messages.filterValueLabel(columnLabel(column))}
           className="flex-1"
           disabled={disabled || !needsValue}
           onChange={(e) => setValue({ ...v, operator, value: e.target.value })}
-          placeholder={needsValue ? "Value" : activeLabel}
+          placeholder={
+            needsValue ? messages.filterValuePlaceholder : activeLabel
+          }
           size={size}
           value={needsValue ? (v.value ?? "") : ""}
         />
         <FilterConditionMenu
           columnName={columnLabel(column)}
           disabled={disabled}
+          messages={messages}
           onChange={(op) => setValue({ ...v, operator: op })}
           operatorLabels={operatorLabels}
           operators={TEXT_OPS}
@@ -374,24 +410,41 @@ export const DEFAULT_FILTER_RENDERERS: Record<
 
   int: (ctx) => DEFAULT_FILTER_RENDERERS.number(ctx),
 
-  number: ({ column, value, setValue, disabled, size, operatorLabels }) => {
+  number: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    size,
+    operatorLabels,
+    messages: providedMessages,
+  }) => {
+    const messages = providedMessages ?? enUiMessages.dataTable
     const v = (value ?? {}) as NumberFilterValue
     const operator = v.operator ?? "equals"
     /* `empty` / `notEmpty` test the cell, not a typed number. Leaving the input
      * live would show a constraint that `matchNumber` ignores — the string
      * filter has always gated it this way. */
     const needsValue = operator !== "empty" && operator !== "notEmpty"
-    const activeLabel =
-      operatorLabels?.[operator] ??
-      NUMBER_FILTER_OPERATORS.find((o) => o.value === operator)?.label
+    // DataTable resolves number labels into `messages`; its `operatorLabels` name text
+    // conditions. A hand-built context without `messages` keeps naming numbers by `operatorLabels`.
+    const numberOps = numberOperatorOptions(
+      providedMessages
+        ? providedMessages.numberOperatorLabels
+        : { ...messages.numberOperatorLabels, ...operatorLabels }
+    )
+    const activeLabel = numberOps.find((o) => o.value === operator)?.label
     let valuePlaceholder = activeLabel
     if (needsValue) {
-      valuePlaceholder = operator === "between" ? "From" : "Value"
+      valuePlaceholder =
+        operator === "between"
+          ? messages.filterFromPlaceholder
+          : messages.filterValuePlaceholder
     }
     return (
       <>
         <Input
-          aria-label={`Filter value for ${columnLabel(column)}`}
+          aria-label={messages.filterValueLabel(columnLabel(column))}
           className="flex-1"
           disabled={disabled || !needsValue}
           onChange={(e) => setValue({ ...v, operator, value: e.target.value })}
@@ -402,11 +455,11 @@ export const DEFAULT_FILTER_RENDERERS: Record<
         />
         {operator === "between" && (
           <Input
-            aria-label={`Filter upper bound for ${columnLabel(column)}`}
+            aria-label={messages.filterUpperBoundLabel(columnLabel(column))}
             className="flex-1"
             disabled={disabled}
             onChange={(e) => setValue({ ...v, operator, to: e.target.value })}
-            placeholder="To"
+            placeholder={messages.filterToPlaceholder}
             size={size}
             type="number"
             value={v.to ?? ""}
@@ -415,6 +468,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
         <FilterConditionMenu
           columnName={columnLabel(column)}
           disabled={disabled}
+          messages={messages}
           // Leaving `between` drops the upper bound: `matchNumber` ignores it
           // for every other operator, so keeping it would only resurface a
           // stale "To" value if the user came back to `between`.
@@ -425,8 +479,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
                 : { operator: op, value: v.value }
             )
           }
-          operatorLabels={operatorLabels}
-          operators={NUMBER_OPS}
+          operators={numberOps}
           size={size}
           value={operator}
         />
@@ -434,41 +487,67 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     )
   },
 
-  boolean: ({ column, value, setValue, disabled, size }) => {
+  boolean: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => {
     const v = (value ?? {}) as BooleanFilterValue
     const current = v.value === undefined ? "" : String(v.value)
     return (
       <FieldSelect
-        ariaLabel={`Filter ${columnLabel(column)}`}
+        ariaLabel={messages.filterLabel(columnLabel(column))}
         disabled={disabled}
-        items={BOOLEAN_FILTER_ITEMS}
+        items={booleanFilterItems(messages)}
         onChange={(next) =>
           setValue(next === "" ? undefined : { value: next === "true" })
         }
-        placeholder="All"
+        placeholder={messages.filterAllLabel}
         size={size}
         value={current}
       />
     )
   },
 
-  enum: ({ column, value, setValue, disabled, options, size }) => {
+  enum: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    options,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => {
     const v = (value ?? {}) as EnumFilterValue
     const current = v.values?.[0] ?? ""
     return (
       <FieldSelect
-        ariaLabel={`Filter ${columnLabel(column)}`}
+        ariaLabel={messages.filterLabel(columnLabel(column))}
         disabled={disabled}
-        items={[{ label: "All", value: "" }, ...toSelectItems(options)]}
+        items={[
+          { label: messages.filterAllLabel, value: "" },
+          ...toSelectItems(options),
+        ]}
         onChange={(next) => setValue(next ? { values: [next] } : undefined)}
-        placeholder="All"
+        placeholder={messages.filterAllLabel}
         size={size}
         value={current}
       />
     )
   },
 
-  multiEnum: ({ column, value, setValue, disabled, options, size }) => {
+  multiEnum: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    options,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => {
     const v = (value ?? {}) as EnumFilterValue
     return (
       <Combobox
@@ -484,18 +563,25 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           const arr = Array.isArray(next) ? next : [next].filter(Boolean)
           setValue(arr.length ? { values: arr as string[] } : undefined)
         }}
-        placeholder={`Filter ${columnLabel(column)}`}
+        placeholder={messages.filterLabel(columnLabel(column))}
         size={size}
         value={v.values ?? []}
       />
     )
   },
 
-  date: ({ column, value, setValue, disabled, size }) => {
+  date: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => {
     const v = (value ?? {}) as DateRangeFilterValue
     return (
       <Input
-        aria-label={`Filter ${columnLabel(column)}`}
+        aria-label={messages.filterLabel(columnLabel(column))}
         disabled={disabled}
         onChange={(e) =>
           setValue(
@@ -514,11 +600,18 @@ export const DEFAULT_FILTER_RENDERERS: Record<
   // Sets only `from`, so a single picked instant filters "at or after" rather
   // than an exact match — a datetime-local value has minute precision while the
   // cell usually carries seconds, and an equality filter would match nothing.
-  datetime: ({ column, value, setValue, disabled, size }) => {
+  datetime: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => {
     const v = (value ?? {}) as DateRangeFilterValue
     return (
       <Input
-        aria-label={`Filter ${columnLabel(column)}`}
+        aria-label={messages.filterLabel(columnLabel(column))}
         disabled={disabled}
         onChange={(e) =>
           setValue(e.target.value ? { from: e.target.value } : undefined)
@@ -532,14 +625,21 @@ export const DEFAULT_FILTER_RENDERERS: Record<
 
   // Time-only: compared as minutes-since-midnight, so it filters a "start/end"
   // window independently of any date part.
-  time: ({ column, value, setValue, disabled, size }) => {
+  time: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => {
     const v = (value ?? {}) as DateRangeFilterValue
     const patch = (next: DateRangeFilterValue) =>
       setValue(next.from || next.to ? next : undefined)
     return (
       <>
         <Input
-          aria-label={`Filter ${columnLabel(column)} from`}
+          aria-label={messages.filterFromLabel(columnLabel(column))}
           disabled={disabled}
           onChange={(e) => patch({ ...v, from: e.target.value })}
           size={size}
@@ -547,7 +647,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           value={v.from ?? ""}
         />
         <Input
-          aria-label={`Filter ${columnLabel(column)} to`}
+          aria-label={messages.filterToLabel(columnLabel(column))}
           disabled={disabled}
           onChange={(e) => patch({ ...v, to: e.target.value })}
           size={size}
@@ -558,14 +658,21 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     )
   },
 
-  dateRange: ({ column, value, setValue, disabled, size }) => {
+  dateRange: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => {
     const v = (value ?? {}) as DateRangeFilterValue
     const patch = (next: DateRangeFilterValue) =>
       setValue(next.from || next.to ? next : undefined)
     return (
       <>
         <Input
-          aria-label={`Filter ${columnLabel(column)} from`}
+          aria-label={messages.filterFromLabel(columnLabel(column))}
           disabled={disabled}
           onChange={(e) => patch({ ...v, from: e.target.value })}
           size={size}
@@ -573,7 +680,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           value={v.from ?? ""}
         />
         <Input
-          aria-label={`Filter ${columnLabel(column)} to`}
+          aria-label={messages.filterToLabel(columnLabel(column))}
           disabled={disabled}
           // Guard the classic from > to mistake at the control level.
           min={v.from || undefined}
@@ -624,12 +731,13 @@ function dateLikeEditor(
     cancel,
     size,
     errorId,
+    messages = enUiMessages.dataTable,
   }) => (
     <Input
       aria-describedby={error ? errorId : undefined}
       aria-errormessage={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${columnLabel(column)}`}
+      aria-label={messages.editCellLabel(columnLabel(column))}
       disabled={disabled}
       onChange={(e) => setValue(e.target.value)}
       size={size}
@@ -654,12 +762,13 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     cancel,
     size,
     errorId,
+    messages = enUiMessages.dataTable,
   }) => (
     <Input
       aria-describedby={error ? errorId : undefined}
       aria-errormessage={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${columnLabel(column)}`}
+      aria-label={messages.editCellLabel(columnLabel(column))}
       disabled={disabled}
       onChange={(e) => setValue(e.target.value)}
       size={size}
@@ -680,6 +789,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     size,
     error,
     errorId,
+    messages = enUiMessages.dataTable,
   }) => (
     /*
      * `NumericInput` is a compound component whose root renders only its
@@ -715,7 +825,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
         <NumericInput.Input
           aria-errormessage={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
-          aria-label={`Edit ${columnLabel(column)}`}
+          aria-label={messages.editCellLabel(columnLabel(column))}
         />
         <NumericInput.TriggerContainer>
           <NumericInput.IncrementTrigger />
@@ -727,7 +837,15 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
 
   // Choice widgets own their feedback so each message is associated through
   // the widget's supported compound/hidden-input API, not a wrapper div.
-  boolean: ({ column, value, setValue, disabled, error, size }) => (
+  boolean: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    error,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => (
     <Switch
       checked={Boolean(value)}
       disabled={disabled}
@@ -736,7 +854,9 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
       size={size}
       validateStatus={error ? "error" : "default"}
     >
-      <span className="sr-only">{`Edit ${columnLabel(column)}`}</span>
+      <span className="sr-only">
+        {messages.editCellLabel(columnLabel(column))}
+      </span>
     </Switch>
   ),
 
@@ -749,9 +869,10 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     error,
     errorId,
     size,
+    messages = enUiMessages.dataTable,
   }) => (
     <FieldSelect
-      ariaLabel={`Edit ${columnLabel(column)}`}
+      ariaLabel={messages.editCellLabel(columnLabel(column))}
       disabled={disabled}
       error={error}
       errorId={errorId}
@@ -763,9 +884,18 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     />
   ),
 
-  multiEnum: ({ column, value, setValue, disabled, options, error, size }) => (
+  multiEnum: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    options,
+    error,
+    size,
+    messages = enUiMessages.dataTable,
+  }) => (
     <Combobox
-      aria-label={`Edit ${columnLabel(column)}`}
+      aria-label={messages.editCellLabel(columnLabel(column))}
       disabled={disabled}
       helpText={error}
       // See the multiEnum filter above: re-mapping breaks `Combobox`'s
@@ -773,7 +903,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
       items={options}
       multiple
       onChange={(next) => setValue(Array.isArray(next) ? next : [next])}
-      placeholder={`Edit ${columnLabel(column)}`}
+      placeholder={messages.editCellLabel(columnLabel(column))}
       size={size}
       validateStatus={error ? "error" : "default"}
       value={(value as string[]) ?? []}
@@ -796,6 +926,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     commit,
     cancel,
     size,
+    messages = enUiMessages.dataTable,
   }) => {
     const v = (value ?? {}) as { from?: string; to?: string }
     return (
@@ -804,7 +935,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
           aria-describedby={error ? errorId : undefined}
           aria-errormessage={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
-          aria-label={`Edit ${columnLabel(column)} from`}
+          aria-label={messages.editCellFromLabel(columnLabel(column))}
           disabled={disabled}
           onChange={(e) => setValue({ ...v, from: e.target.value })}
           size={size}
@@ -816,7 +947,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
           aria-describedby={error ? errorId : undefined}
           aria-errormessage={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
-          aria-label={`Edit ${columnLabel(column)} to`}
+          aria-label={messages.editCellToLabel(columnLabel(column))}
           disabled={disabled}
           min={v.from || undefined}
           onChange={(e) => setValue({ ...v, to: e.target.value })}

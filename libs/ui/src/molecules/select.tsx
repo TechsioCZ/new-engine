@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.3.2
+ * @componentVersion v1.4.0
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -43,8 +43,11 @@ import {
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
+// Drops undefined entries so a prop left unset does not hide the catalog's translation.
 // Zag dispatches a native change event from a watcher that runs after React
 // commits, outside the synchronous reset callback. Remember the reset projection.
 const selectResetValues = new WeakMap<object, string>()
@@ -278,8 +281,10 @@ export function Select({
   className,
   children,
   ref,
+  translations,
   ...machineProps
 }: SelectProps) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const [disabledElement, setDisabledElement] =
     useState<HTMLInputElement | null>(null)
@@ -348,6 +353,11 @@ export function Select({
     },
     onOpenChange,
     onHighlightChange,
+    translations: {
+      clearTriggerLabel: messages.select.clear,
+      ...messages.select.translations,
+      ...definedEntries(translations),
+    },
   })
 
   // Collection updates are parent-owned changes, including while read-only.
@@ -492,7 +502,7 @@ export function Select({
         {children}
         {readOnly && !disabled && (
           <span className="sr-only" id={`${id}-readonly`}>
-            Read-only selection
+            {messages.select.readOnly}
           </span>
         )}
       </div>
@@ -627,13 +637,14 @@ type SelectValueTextProps = Omit<
 }
 
 Select.ValueText = function SelectValueText({
-  placeholder = "Select an option",
+  placeholder,
   className,
   size: sizeProp,
   ref,
   children,
   ...props
 }: SelectValueTextProps) {
+  const messages = useUiMessages()
   const { api, size: contextSize, items } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
@@ -645,7 +656,7 @@ Select.ValueText = function SelectValueText({
 
   const renderContent = () => {
     if (!hasValue) {
-      return placeholder
+      return placeholder ?? messages.select.placeholder
     }
 
     if (typeof children === "function") {
@@ -686,6 +697,7 @@ Select.ClearTrigger = function SelectClearTrigger({
   ref,
   ...props
 }: SelectClearTriggerProps) {
+  const messages = useUiMessages()
   const { api, size, readOnly, disabled } = useSelectContext()
   const styles = selectVariants({ size })
   if (readOnly) {
@@ -700,7 +712,7 @@ Select.ClearTrigger = function SelectClearTrigger({
       size={toControlSize(size)}
       tone="neutral"
       {...mergeProps(api.getClearTriggerProps(), props)}
-      aria-label={props["aria-label"] ?? "Clear selection"}
+      aria-label={props["aria-label"] ?? messages.select.clear}
       disabled={disabled || props.disabled}
       type="button"
     />

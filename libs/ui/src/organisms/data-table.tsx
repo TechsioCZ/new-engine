@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.4.7
+ * @componentVersion v1.5.0
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -81,6 +81,8 @@ import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
 import { Skeleton } from "../atoms/skeleton"
 import { StatusText } from "../atoms/status-text"
+import type { DataTableMessages } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { SearchForm } from "../molecules/search-form"
@@ -354,47 +356,64 @@ const tableSortablePlugins: NonNullable<
 > = (defaults) =>
   defaults.filter((plugin) => plugin !== OptimisticSortingPlugin)
 
-const tableDragAccessibility: NonNullable<
+type DataTableDragAccessibility = NonNullable<
   ConstructorParameters<typeof Accessibility>[1]
-> = {
-  screenReaderInstructions: {
-    draggable:
-      "To reorder, focus a drag handle and press Space or Enter. " +
-      "Use Up and Down for rows, or Left and Right for columns. " +
-      "Press Space or Enter to drop, or Escape to cancel.",
-  },
-  announcements: {
-    dragstart: ({ operation: { source } }) =>
-      source
-        ? `Picked up ${source.data.label}, position ${source.data.index + 1}.`
-        : undefined,
-    dragover: ({ operation: { source, target } }) => {
-      if (!(source && target) || source.id === target.id) {
-        return
-      }
-      const side = source.data.index < target.data.index ? "after" : "before"
-      return `${source.data.label} will move ${side} ${target.data.label}.`
+>
+
+// dnd-kit reads this configuration once, when its manager starts. The
+// announcements read the table's current texts through `latest`, so they follow
+// a later provider or `translations` change; the instructions are read at start.
+function buildTableDragAccessibility(latest: {
+  readonly current: DataTableMessages
+}): DataTableDragAccessibility {
+  const t = () => latest.current
+  return {
+    screenReaderInstructions: {
+      draggable: latest.current.reorderInstructions,
     },
-    dragend: ({ canceled, operation: { source, target } }) => {
-      if (!source) {
-        return
-      }
-      if (canceled || !target) {
-        return `Reordering ${source.data.label} canceled.`
-      }
-      return `Dropped ${source.data.label}, position ${target.data.index + 1}.`
+    announcements: {
+      dragstart: ({ operation: { source } }) =>
+        source
+          ? t().reorderPickedUp({
+              label: source.data.label,
+              position: source.data.index + 1,
+            })
+          : undefined,
+      dragover: ({ operation: { source, target } }) => {
+        if (!(source && target) || source.id === target.id) {
+          return
+        }
+        const side = source.data.index < target.data.index ? "after" : "before"
+        return t().reorderMoving({
+          label: source.data.label,
+          target: target.data.label,
+          side,
+        })
+      },
+      dragend: ({ canceled, operation: { source, target } }) => {
+        if (!source) {
+          return
+        }
+        if (canceled || !target) {
+          return t().reorderCanceled(source.data.label)
+        }
+        return t().reorderDropped({
+          label: source.data.label,
+          position: target.data.index + 1,
+        })
+      },
     },
-  },
+  }
 }
 
-const tableDragPlugins: NonNullable<DragDropManagerInput["plugins"]> = (
-  defaults
-) =>
-  defaults.map((plugin) =>
-    plugin === Accessibility
-      ? Accessibility.configure(tableDragAccessibility)
-      : plugin
-  )
+function createTableDragPlugins(
+  accessibility: DataTableDragAccessibility
+): NonNullable<DragDropManagerInput["plugins"]> {
+  return (defaults) =>
+    defaults.map((plugin) =>
+      plugin === Accessibility ? Accessibility.configure(accessibility) : plugin
+    )
+}
 
 const tableDragSensors: NonNullable<DragDropManagerInput["sensors"]> = (
   defaults
@@ -772,78 +791,53 @@ function useDataTableContext<T extends RowData>() {
 
 /* ── Props ───────────────────────────────────────────────────────────────── */
 
-export type DataTableTranslations = {
-  /** Accessible name of the keyboard-scrollable region when no caption is present. */
-  scrollLabel?: string
-  searchPlaceholder?: string
-  /** Accessible name of the global search input. */
-  searchLabel?: string
-  /** Accessible name of the search field's clear button. */
-  clearSearchLabel?: string
-  /** Accessible name of the search submit button joined to the input. */
-  searchButtonLabel?: string
-  columnsLabel?: string
-  emptyTitle?: string
-  emptyDescription?: string
-  pageSizeLabel?: string
-  actionsLabel?: string
-  filtersLabel?: string
-  selectAllLabel?: string
-  /** Accessible name of the selection column without a select-all control. */
-  selectionLabel?: string
-  /** Accessible name of the row-reordering column header. */
-  reorderLabel?: string
-  loadingLabel?: string
-  /** Override the filter condition labels, keyed by operator. */
-  operatorLabels?: Partial<Record<string, string>>
-  editingLabel?: string
-  rangeLabel?: (info: { start: number; end: number; total: number }) => string
-  pageLabel?: (info: { page: number; pageCount?: number }) => string
-  previousPageLabel?: string
-  nextPageLabel?: string
-  paginationPendingLabel?: string
-  invalidRangeLabel?: string
-  savePendingLabel?: string
-  saveErrorLabel?: string
-  /** Inline-edit validation error for a blank `meta.required` field. */
-  requiredLabel?: string
-  /** Accessible name of a row's selection checkbox; receives `getRowLabel` output. Keep the function stable. */
-  selectRowLabel?: (rowLabel: string) => string
-  /** Accessible name of a row's inline-edit button; receives `getRowLabel` output. */
-  editRowLabel?: (rowLabel: string) => string
-}
+/** Per-table text overrides. They win over the `UiMessagesProvider` catalog for this table only. */
+export type DataTableTranslations = Partial<DataTableMessages>
 
-const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
-  scrollLabel: "Scrollable records",
-  searchPlaceholder: "Search…",
-  searchLabel: "Search",
-  clearSearchLabel: "Clear search",
-  searchButtonLabel: "Submit search",
-  columnsLabel: "Column settings",
-  emptyTitle: "No records",
-  emptyDescription: "There is no data to display.",
-  pageSizeLabel: "Rows per page",
-  actionsLabel: "Actions",
-  filtersLabel: "Column filters",
-  selectAllLabel: "Select all rows",
-  selectionLabel: "Select rows",
-  reorderLabel: "Reorder rows",
-  loadingLabel: "Loading data",
-  operatorLabels: {},
-  editingLabel: "Editing a row — other table controls are locked",
-  rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
-  requiredLabel: "Enter a value before saving this row.",
-  selectRowLabel: (rowLabel) => `Select ${rowLabel}`,
-  editRowLabel: (rowLabel) => `Edit ${rowLabel}`,
-  pageLabel: ({ page, pageCount }) =>
-    pageCount == null ? `Page ${page}` : `Page ${page} of ${pageCount}`,
-  previousPageLabel: "Previous page",
-  nextPageLabel: "Next page",
-  paginationPendingLabel: "Page unavailable — requesting an available page.",
-  invalidRangeLabel: "Enter valid dates with the start on or before the end.",
-  savePendingLabel: "Saving row…",
-  saveErrorLabel:
-    "Could not save this row. Your changes are kept; try Save again.",
+/**
+ * The catalog in effect for one table: the provider's `dataTable` entries with the `translations`
+ * prop laid over them. Undefined entries are dropped rather than spread over the defaults, so a
+ * missed i18n lookup such as `translations={{ emptyTitle: t?.tableEmpty }}` keeps the catalog text.
+ * `operatorLabels` merges per key.
+ */
+function resolveDataTableTranslations(
+  base: DataTableMessages,
+  overrides: DataTableTranslations | undefined
+): DataTableMessages {
+  const resolved: DataTableMessages = {
+    ...base,
+    operatorLabels: { ...base.operatorLabels },
+    numberOperatorLabels: { ...base.numberOperatorLabels },
+  }
+  if (!overrides) {
+    return resolved
+  }
+  for (const [key, value] of Object.entries(overrides)) {
+    if (
+      value !== undefined &&
+      key !== "operatorLabels" &&
+      key !== "numberOperatorLabels"
+    ) {
+      ;(resolved as Record<string, unknown>)[key] = value
+    }
+  }
+  for (const [key, value] of Object.entries(overrides.operatorLabels ?? {})) {
+    if (value !== undefined) {
+      resolved.operatorLabels[key] = value
+      // A table's own `operatorLabels` has always named number conditions too.
+      if (overrides.numberOperatorLabels?.[key] === undefined) {
+        resolved.numberOperatorLabels[key] = value
+      }
+    }
+  }
+  for (const [key, value] of Object.entries(
+    overrides.numberOperatorLabels ?? {}
+  )) {
+    if (value !== undefined) {
+      resolved.numberOperatorLabels[key] = value
+    }
+  }
+  return resolved
 }
 
 export type DataTableProps<T extends RowData> = {
@@ -1191,15 +1185,15 @@ function pinClass<T extends RowData>(
 function HeaderDragHandle({
   styles,
   handleRef,
-  label,
+  ariaLabel,
 }: {
   styles: DataTableStyles
-  label: string
+  ariaLabel: string
   handleRef: (node: Element | null) => void
 }) {
   return (
     <button
-      aria-label={`Drag to reorder ${label}`}
+      aria-label={ariaLabel}
       className={styles.dragHandle()}
       onFocus={handleTableDragFocus}
       ref={handleRef}
@@ -1274,11 +1268,11 @@ function renderCellContent<T extends RowData>({
   size,
   tableLayout,
   isDragCol,
-  rowLabel,
+  dragHandleLabel,
 }: {
   cell: Cell<T, unknown>
   column: Column<T, unknown>
-  rowLabel: string
+  dragHandleLabel: string
   styles: DataTableStyles
   enableRowReorder: boolean
   dnd?: { dragHandleProps: DataTableDragHandleProps }
@@ -1292,7 +1286,7 @@ function renderCellContent<T extends RowData>({
   if (isDragCol && enableRowReorder && dnd) {
     return (
       <button
-        aria-label={`Drag to reorder ${rowLabel}`}
+        aria-label={dragHandleLabel}
         className={styles.dragHandle()}
         onClick={(e) => e.stopPropagation()}
         type="button"
@@ -1362,7 +1356,7 @@ function DataTableBodyCell<T extends RowData>({
   editorErrorId,
   size,
   indentColumnId,
-  rowLabel,
+  dragHandleLabel,
   pinningStyle,
 }: {
   pinningStyle?: CSSProperties
@@ -1379,7 +1373,7 @@ function DataTableBodyCell<T extends RowData>({
   editorErrorId?: string
   size: DataTableControlSize
   indentColumnId?: string
-  rowLabel: string
+  dragHandleLabel: string
 }) {
   const tableLayout = useContext(FieldTableLayoutContext)
   const column = cell.column
@@ -1416,7 +1410,7 @@ function DataTableBodyCell<T extends RowData>({
         size,
         tableLayout,
         isDragCol,
-        rowLabel,
+        dragHandleLabel,
       })}
     </Table.Cell>
   )
@@ -1893,14 +1887,19 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * calls it unconditionally, so an undefined one threw "not a function" and
    * took the whole table down the moment `enablePagination` was set.
    */
-  const translations = { ...DEFAULT_TRANSLATIONS }
-  if (translationsProp) {
-    for (const [key, value] of Object.entries(translationsProp)) {
-      if (value !== undefined) {
-        ;(translations as Record<string, unknown>)[key] = value
-      }
-    }
-  }
+  const messages = useUiMessages()
+  const translations = useMemo(
+    () => resolveDataTableTranslations(messages.dataTable, translationsProp),
+    [messages.dataTable, translationsProp]
+  )
+  const dragMessages = useRef(translations)
+  useEffect(() => {
+    dragMessages.current = translations
+  }, [translations])
+  // One plugin set per table: a new one would restart dnd-kit's manager.
+  const [tableDragPlugins] = useState(() =>
+    createTableDragPlugins(buildTableDragAccessibility(dragMessages))
+  )
   const outlined = variant === "outline"
   // `variant="striped"` forwards to the `Table` organism, which stripes via
   // `odd:`/`even:` DOM-sibling pseudo-classes — the same drift bug fixed
@@ -2139,7 +2138,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   useEffect(() => {
     if (savePending || saveError) {
       scrollRef.current
-        ?.querySelector<HTMLElement>('[aria-label="Save row"]')
+        ?.querySelector<HTMLElement>('[data-action="save-row"]')
         ?.focus()
     }
   }, [saveError, savePending])
@@ -2205,6 +2204,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         selectionLabel: translations.selectionLabel,
         reorderLabel: translations.reorderLabel,
         selectRowLabel: translations.selectRowLabel,
+        rowFallbackLabel: translations.rowFallbackLabel,
         showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
       }),
     [
@@ -2217,6 +2217,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       translations.selectionLabel,
       translations.reorderLabel,
       translations.selectRowLabel,
+      translations.rowFallbackLabel,
       selectionMode,
       maxSelectedRows,
     ]
@@ -3201,7 +3202,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       setValue: (next) => column.setFilterValue(next),
       disabled: locked,
       size,
-      operatorLabels: translations.operatorLabels,
+      operatorLabels: translationsProp?.operatorLabels,
+      messages: translations,
       options: meta?.options ?? meta?.filterOptions ?? [],
     }
     if (meta?.renderFilter) {
@@ -3330,8 +3332,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         <div className={styles.headerLabel()}>
           {dnd && (
             <HeaderDragHandle
+              ariaLabel={translations.dragHandleLabel(columnLabel(column))}
               handleRef={dnd.handleRef}
-              label={columnLabel(column)}
               styles={styles}
             />
           )}
@@ -3347,8 +3349,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         column.columns.length === 0 &&
         column.getCanResize() ? (
           <button
-            aria-description="Use Left and Right arrows to resize; Shift changes by 50 pixels. Enter resets the width."
-            aria-label={`Resize ${columnLabel(column)}`}
+            aria-description={translations.resizeColumnDescription}
+            aria-label={translations.resizeColumnLabel(columnLabel(column))}
             className={styles.resizeHandle()}
             onDoubleClick={() => column.resetSize()}
             onKeyDown={(event) => handleColumnResizeKeyDown(event, column)}
@@ -3521,6 +3523,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       errorId: `${instanceId}-err-${row.id}-${column.id}`,
       commit: commitEdit,
       cancel: cancelEdit,
+      messages: translations,
     }
     if (meta.renderEditor) {
       return meta.renderEditor(ctx)
@@ -3540,7 +3543,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return (
         <>
           <Button
-            aria-label="Cancel edit"
+            aria-label={translations.cancelEditLabel}
             disabled={savePending}
             icon="token-icon-close"
             onClick={(event) => {
@@ -3555,7 +3558,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             aria-describedby={
               saveError ? `${instanceId}-save-error` : undefined
             }
-            aria-label="Save row"
+            aria-label={translations.saveRowLabel}
+            data-action="save-row"
             icon="token-icon-check"
             isLoading={savePending}
             onClick={(event) => {
@@ -3571,7 +3575,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     return (
       <ActionIcon
         aria-label={translations.editRowLabel(
-          getRowLabel?.(row) ?? `row ${row.id}`
+          getRowLabel?.(row) ?? translations.rowFallbackLabel(row.id)
         )}
         disabled={isEditing || (canEditRow ? !canEditRow(row) : false)}
         icon="icon-[mdi--pencil-outline]"
@@ -3649,7 +3653,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           <Button
             aria-controls={expandAriaControls(row.id)}
             aria-expanded={row.getIsExpanded()}
-            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+            aria-label={
+              row.getIsExpanded()
+                ? translations.collapseRowLabel
+                : translations.expandRowLabel
+            }
             disabled={locked}
             // Gated like every other affordance: expanding a row *above* the
             // one being edited inserts a detail row and shifts the edited row
@@ -3729,7 +3737,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     rowIndex: number,
     dnd?: { dragHandleProps: DataTableDragHandleProps }
   ) => {
-    const rowLabel = getRowLabel?.(row) ?? `row ${row.id}`
+    const rowLabel = getRowLabel?.(row) ?? translations.rowFallbackLabel(row.id)
     return cells.map((cell) => {
       const span = getCellSpan?.(cell, { row, rows, rowIndex })
       if (span?.hidden) {
@@ -3746,6 +3754,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           cell={cell}
           columnSizing={columnSizing}
           dnd={dnd}
+          dragHandleLabel={translations.dragHandleLabel(rowLabel)}
           editor={renderCellEditor(row, column)}
           editorError={
             editingRowId === row.id && !ownsFeedback
@@ -3759,7 +3768,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           key={cell.id}
           pinningStyle={pinningStyles(column)}
           row={row}
-          rowLabel={rowLabel}
           size={size}
           span={span}
           styles={styles}
@@ -3931,7 +3939,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       <SortableRow
         index={rootRowIds.indexOf(row.id)}
         key={row.id}
-        label={getRowLabel?.(row) ?? `row ${row.id}`}
+        label={getRowLabel?.(row) ?? translations.rowFallbackLabel(row.id)}
         row={row}
       >
         {(dnd) => renderBodyRow(row, rowIndex, dnd)}
@@ -4266,6 +4274,7 @@ function buildColumns<T extends RowData>({
   selectionLabel,
   reorderLabel,
   selectRowLabel,
+  rowFallbackLabel,
   showSelectAll,
 }: {
   userColumns: ColumnDef<T, unknown>[]
@@ -4277,6 +4286,7 @@ function buildColumns<T extends RowData>({
   selectionLabel: string
   reorderLabel: string
   selectRowLabel: (rowLabel: string) => string
+  rowFallbackLabel: (rowId: string) => string
   showSelectAll: boolean
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
@@ -4317,7 +4327,9 @@ function buildColumns<T extends RowData>({
         ),
       cell: ({ row }) => (
         <Checkbox
-          aria-label={selectRowLabel(getRowLabel?.(row) ?? `row ${row.id}`)}
+          aria-label={selectRowLabel(
+            getRowLabel?.(row) ?? rowFallbackLabel(row.id)
+          )}
           checked={row.getIsSelected()}
           disabled={locked || !row.getCanSelect()}
           indeterminate={row.getIsSomeSelected()}

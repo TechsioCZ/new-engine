@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.3.13
+ * @componentVersion v1.4.0
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

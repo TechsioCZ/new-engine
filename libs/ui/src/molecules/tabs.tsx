@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.2.4
+ * @componentVersion v1.3.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,6 +26,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const tabsVariants = tv({
@@ -315,9 +316,11 @@ export function Tabs({
   const previousValues = useRef<string[]>([])
   const lastFocused = useRef<HTMLElement | null>(null)
   const recoveryRequest = useRef<string | null>(null)
+  const messages = useUiMessages()
 
   const service = useMachine(tabs.machine, {
     id: uniqueId,
+    translations: messages.tabs.translations,
     value,
     defaultValue,
     orientation,

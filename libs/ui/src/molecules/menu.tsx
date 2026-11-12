@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.3.5
+ * @componentVersion v1.4.0
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,6 +28,7 @@ import { tv, type VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useUiMessages } from "../messages/ui-messages-provider"
 
 type ActionMenuItem = {
   type: "action"
@@ -485,7 +486,7 @@ export function Menu({
 
   // CUSTOM PROPS
   items,
-  triggerText = "Menu",
+  triggerText,
   triggerIcon,
   customTrigger,
   contextMenu = false,
@@ -494,6 +495,7 @@ export function Menu({
   onCheckedChange,
 }: MenuProps) {
   const generatedId = useId()
+  const messages = useUiMessages()
   const contextInvoker = useRef<HTMLElement | null>(null)
   const restoreContextFocus = useRef(false)
   const contextMenuWasOpen = useRef(false)
@@ -617,7 +619,7 @@ export function Menu({
           {typeof customTrigger === "string" ||
           typeof customTrigger === "number"
             ? customTrigger
-            : triggerText}
+            : (triggerText ?? messages.menu.trigger)}
           <span {...api.getIndicatorProps()}>
             <Icon
               icon={triggerIcon ?? "token-icon-menu-trigger"}

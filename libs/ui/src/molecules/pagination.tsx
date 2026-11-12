@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.0
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,6 +29,8 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { Icon } from "../atoms/icon"
 import { LinkButton, type LinkButtonProps } from "../atoms/link-button"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 export const paginationVariants = tv({
@@ -313,6 +315,7 @@ export function Pagination<T extends ElementType = "a">({
   translations,
   ...props
 }: PaginationProps<T>) {
+  const messages = useUiMessages()
   const uniqueId = useId()
 
   const {
@@ -349,7 +352,10 @@ export function Pagination<T extends ElementType = "a">({
       onChange?.(details.page)
       onPageChange?.(details.page)
     },
-    translations,
+    translations: {
+      ...messages.pagination.translations,
+      ...definedEntries(translations),
+    },
   })
 
   const api = connectPagination(service, normalizeProps)
@@ -444,9 +450,7 @@ export function Pagination<T extends ElementType = "a">({
   return (
     <nav className={base({ className })} {...rootProps}>
       {pendingCorrection ? (
-        <span role="status">
-          Page unavailable. Choose a page within the current results.
-        </span>
+        <span role="status">{messages.pagination.unavailable}</span>
       ) : (
         <ul className={list()}>
           {showPrevNext && (
@@ -472,7 +476,10 @@ export function Pagination<T extends ElementType = "a">({
                   page: totalPages === 0 ? 0 : effectivePage,
                   totalPages,
                 }) ??
-                  `${totalPages === 0 ? 0 : effectivePage} of ${totalPages}`}
+                  messages.pagination.compact({
+                    page: totalPages === 0 ? 0 : effectivePage,
+                    totalPages,
+                  })}
               </span>
             </li>
           ) : (

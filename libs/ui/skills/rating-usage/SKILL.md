@@ -5,7 +5,7 @@ description: >
   accessible rating capture or display using the Zag.js rating-group wrapper,
   supported value/count/allowHalf/readOnly/displayOnly/disabled props, and token styling.
 metadata:
-  component_version: "1.3.6"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.1.7
+ * @componentVersion v1.2.0
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -53,6 +53,7 @@ import {
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 export type CascadeSelectSize = "xs" | "sm" | "md" | "lg"
@@ -650,10 +651,11 @@ type CascadeSelectValueTextProps = Omit<
 CascadeSelect.ValueText = function CascadeSelectValueText({
   children,
   className,
-  placeholder = "Select an option",
+  placeholder,
   ref,
   ...props
 }: CascadeSelectValueTextProps) {
+  const messages = useUiMessages()
   const { api, formatValue, size } = useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
   const selectedItems = resolveSelectedItems(api)
@@ -661,7 +663,9 @@ CascadeSelect.ValueText = function CascadeSelectValueText({
     formatValue?.(selectedItems) ?? formatSelectedItems(api, selectedItems)
   const hasValue = api.hasSelectedItems
 
-  let content: ReactNode = hasValue ? valueText : placeholder
+  let content: ReactNode = hasValue
+    ? valueText
+    : (placeholder ?? messages.cascadeSelect.placeholder)
 
   if (hasValue && typeof children === "function") {
     content = children(selectedItems)
@@ -727,11 +731,12 @@ type CascadeSelectClearTriggerProps = Omit<
 }
 
 CascadeSelect.ClearTrigger = function CascadeSelectClearTrigger({
-  "aria-label": ariaLabel = "Clear selection",
+  "aria-label": ariaLabel,
   className,
   ref,
   ...props
 }: CascadeSelectClearTriggerProps) {
+  const messages = useUiMessages()
   const { api, size, readOnly } = useCascadeSelectContext()
   const styles = cascadeSelectVariants({ size })
 
@@ -742,7 +747,7 @@ CascadeSelect.ClearTrigger = function CascadeSelectClearTrigger({
   return (
     <ActionIcon
       {...mergeProps(api.getClearTriggerProps(), props)}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? messages.cascadeSelect.clear}
       className={styles.clearTrigger({ className })}
       icon="token-icon-cascade-select-clear"
       ref={ref}
@@ -1131,7 +1136,7 @@ function CascadeSelectTreeNode({
 type CascadeSelectNodeProps = {
   indexPath?: number[]
   node?: CascadeSelectItem
-  /** Heading for the first column; subsequent columns use the parent label. */
+  /** Heading for the first column; subsequent columns use the parent label. Defaults to the UiMessagesProvider catalog's `cascadeSelect.rootLabel` ("Options" in English). */
   rootLabel?: string
   value?: string[]
 }
@@ -1139,16 +1144,17 @@ type CascadeSelectNodeProps = {
 CascadeSelect.Node = function CascadeSelectNode({
   indexPath = [],
   node,
-  rootLabel = "Options",
+  rootLabel,
   value = [],
 }: CascadeSelectNodeProps) {
+  const messages = useUiMessages()
   const { api } = useCascadeSelectContext()
 
   return (
     <CascadeSelectTreeNode
       indexPath={indexPath}
       node={node ?? api.collection.rootNode}
-      rootLabel={rootLabel}
+      rootLabel={rootLabel ?? messages.cascadeSelect.rootLabel}
       value={value}
     />
   )

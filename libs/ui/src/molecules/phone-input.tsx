@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.1.3
+ * @componentVersion v1.2.0
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -45,6 +45,7 @@ import {
   useRegisterDescription,
 } from "../internal/described-by"
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 import { Select } from "./select"
 
@@ -88,8 +89,7 @@ type PhoneInputValueDetailsOptions = {
 const phoneDigit = /\d/
 const phoneNonDigits = /\D/g
 
-const defaultNativeValidationMessage = "Enter a valid phone number."
-
+// English defaults. PhoneInput localizes these from the UiMessagesProvider catalog when no countries are passed.
 export const defaultPhoneInputCountries: PhoneInputCountry[] = [
   { value: "SK", label: "Slovakia", name: "Slovakia" },
   { value: "CZ", label: "Czechia", name: "Czechia" },
@@ -253,7 +253,7 @@ export type PhoneInputProps = VariantProps<typeof phoneInputVariants> &
   }
 
 export function PhoneInput({
-  countries: countriesProp = defaultPhoneInputCountries,
+  countries: countriesProp,
   value,
   defaultValue = "",
   country,
@@ -265,7 +265,7 @@ export function PhoneInput({
   disabled = false,
   readOnly = false,
   nativeValidation = false,
-  nativeValidationMessage = defaultNativeValidationMessage,
+  nativeValidationMessage,
   validateStatus = "default",
   onValueChange,
   onCountryChange,
@@ -276,15 +276,28 @@ export function PhoneInput({
   ref,
   ...props
 }: PhoneInputProps) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const id = providedId || generatedId
+  const localizedDefaultCountries = useMemo(
+    () =>
+      localizePhoneInputCountries(
+        defaultPhoneInputCountries,
+        messages.phoneInput.countries
+      ),
+    [messages]
+  )
   const countries = useMemo(
     () =>
       normalizePhoneInputCountries(
-        countriesProp.length > 0 ? countriesProp : defaultPhoneInputCountries
+        countriesProp && countriesProp.length > 0
+          ? countriesProp
+          : localizedDefaultCountries
       ),
-    [countriesProp]
+    [countriesProp, localizedDefaultCountries]
   )
+  const resolvedNativeValidationMessage =
+    nativeValidationMessage ?? messages.phoneInput.invalid
   const fallbackCountry = resolveCountry(
     countries,
     getInitialCountry(value ?? defaultValue, defaultCountry, countries)
@@ -430,7 +443,7 @@ export function PhoneInput({
         details,
         disabled,
         nativeValidation,
-        nativeValidationMessage,
+        nativeValidationMessage: resolvedNativeValidationMessage,
         readOnly,
         required,
         validateStatus,
@@ -756,10 +769,11 @@ type PhoneInputInputProps = Omit<
 PhoneInput.Input = function PhoneInputInput({
   className,
   onChange,
-  placeholder = "Phone number",
+  placeholder,
   ref,
   ...props
 }: PhoneInputInputProps) {
+  const messages = useUiMessages()
   const {
     details,
     disabled,
@@ -986,7 +1000,7 @@ PhoneInput.Input = function PhoneInputInput({
         setCompositionValue(event.currentTarget.value)
         props.onCompositionStart?.(event)
       }}
-      placeholder={placeholder}
+      placeholder={placeholder ?? messages.phoneInput.placeholder}
       readOnly={readOnly}
       ref={setInputRef}
       required={required}
@@ -1215,6 +1229,16 @@ function getPhoneInputValueDetailsInternal(
     isPossible,
     isValid,
   }
+}
+
+function localizePhoneInputCountries(
+  countries: PhoneInputCountry[],
+  names: Partial<Record<string, string>>
+): PhoneInputCountry[] {
+  return countries.map((item) => {
+    const name = names[item.value]
+    return name === undefined ? item : { ...item, label: name, name }
+  })
 }
 
 function normalizePhoneInputCountries(

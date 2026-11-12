@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.0
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -38,6 +38,7 @@ import {
 } from "../internal/described-by"
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const searchFormVariants = tv({
@@ -337,10 +338,11 @@ type SearchFormInputProps = Omit<
 
 SearchForm.Input = function SearchFormInput({
   className,
-  placeholder = "Search...",
+  placeholder,
   ref,
   ...props
 }: SearchFormInputProps) {
+  const messages = useUiMessages()
   const {
     inputId,
     inputValue,
@@ -373,14 +375,17 @@ SearchForm.Input = function SearchFormInput({
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
       <InputComponent
-        aria-label={props["aria-label"] ?? (hasLabel ? undefined : "Search")}
+        aria-label={
+          props["aria-label"] ??
+          (hasLabel ? undefined : messages.searchForm.search)
+        }
         className={styles.input({ className })}
         data-clearable={
           hasValue && hasClearButton && !readOnly && !disabled ? "" : undefined
         }
         id={inputId}
         onChange={(e) => setInputValue(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? messages.searchForm.placeholder}
         ref={ref}
         size={size}
         type="search"
@@ -417,6 +422,7 @@ SearchForm.Button = function SearchFormButton({
   iconPosition = "right",
   ...props
 }: SearchFormButtonProps) {
+  const messages = useUiMessages()
   const { size, gapped, disabled, setHasButton } = useSearchFormContext()
   useEffect(() => {
     setHasButton(true)
@@ -431,7 +437,7 @@ SearchForm.Button = function SearchFormButton({
   return (
     <ButtonComponent
       // An icon-only submit (no children) still needs a name; callers override.
-      aria-label={children ? undefined : "Search"}
+      aria-label={children ? undefined : messages.searchForm.search}
       className={styles.button({ className })}
       icon={effectiveIcon}
       iconPosition={iconPosition}
@@ -458,6 +464,7 @@ SearchForm.ClearButton = function SearchFormClearButton({
   tone = "neutral",
   ...props
 }: SearchFormClearButtonProps) {
+  const messages = useUiMessages()
   const {
     size,
     gapped,
@@ -486,7 +493,7 @@ SearchForm.ClearButton = function SearchFormClearButton({
   // ActionIcon supplies the shared size, glyph and hover pill.
   return createPortal(
     <ActionIcon
-      aria-label={`Clear search: ${inputValue}`}
+      aria-label={messages.searchForm.clear(inputValue)}
       className={styles.clearButton({ className })}
       icon={icon}
       onClick={clearInput}

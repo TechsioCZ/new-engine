@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.2.3
+ * @componentVersion v1.3.0
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,6 +29,7 @@ import {
   OverlayContainerProvider,
   BodyPortal as Portal,
 } from "../internal/overlay-portal"
+import { useUiMessages } from "../messages/ui-messages-provider"
 
 const dialogVariants = tv({
   slots: {
@@ -228,7 +229,7 @@ export type DialogProps = VariantProps<typeof dialogVariants> & {
   children?: ReactNode
   actions?: ReactNode
   hideCloseButton?: boolean
-  /** Accessible name of the built-in close button. Defaults to "Close dialog". */
+  /** Accessible name of the built-in close button. Defaults to the UiMessagesProvider catalog entry ("Close dialog"). */
   closeLabel?: string
   className?: string
   /** Ref to the actual dialog content element. */
@@ -256,12 +257,12 @@ export function Dialog({
   preventScroll,
   trapFocus,
   customTrigger = false,
-  triggerText = "Open",
+  triggerText,
   title,
   description,
   children,
   hideCloseButton = false,
-  closeLabel = "Close dialog",
+  closeLabel,
   actions,
   className,
   contentRef,
@@ -269,6 +270,7 @@ export function Dialog({
   modal,
   portal = true,
 }: DialogProps) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const uniqueId = id || generatedId
   const isModal = modal ?? behavior !== "modeless"
@@ -329,7 +331,7 @@ export function Dialog({
                 size="md"
                 tone="neutral"
                 {...api.getCloseTriggerProps()}
-                aria-label={closeLabel}
+                aria-label={closeLabel ?? messages.dialog.close}
               />
             )}
             <div className={scrollViewport()}>
@@ -364,7 +366,7 @@ export function Dialog({
           variant="primary"
           {...api.getTriggerProps()}
         >
-          {triggerText}
+          {triggerText ?? messages.dialog.open}
         </Button>
       )}
 

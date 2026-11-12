@@ -13,6 +13,99 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### UiMessagesProvider v1.0.0
+- New: \`@techsio/ui-kit/messages/ui-messages\` (the typed \`UiMessages\` catalog and English \`enUiMessages\`) and \`@techsio/ui-kit/messages/ui-messages-provider\` (\`UiMessagesProvider\`, \`useUiMessages\`). Every word a component shows or announces on its own comes from the catalog, so an app sets its language once near the root; nested providers override parts; \`locale\` sets formatting defaults. One provider covers every copy of the kit on the page, including module-federation remotes. Without a provider every text is the English it was before.
+
+### Label v1.2.0
+- Label reads its default texts from the UiMessagesProvider catalog (\`label\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins. Label stays a server component; only the required text reads the catalog, in a small client part.
+
+### NumericInput v1.4.0
+- NumericInput reads its default texts from the UiMessagesProvider catalog (\`numericInput\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins. Its formatting locale falls back to the catalog's \`locale\`, then \`cs-CZ\` as before.
+
+### Rating v1.4.0
+- Rating reads its default texts from the UiMessagesProvider catalog (\`rating\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Skeleton v1.1.0
+- Skeleton reads its default texts from the UiMessagesProvider catalog (\`skeleton\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Carousel v1.4.0
+- Carousel reads its default texts from the UiMessagesProvider catalog (\`carousel\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### CascadeSelect v1.2.0
+- CascadeSelect reads its default texts from the UiMessagesProvider catalog (\`cascadeSelect\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Chart v1.3.0
+- Chart reads its default texts from the UiMessagesProvider catalog (\`chart\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins. Its tooltip formatting locale falls back to the catalog's \`locale\`, then \`en-US\` as before.
+
+### ColorSelect v1.2.0
+- ColorSelect reads its default texts from the UiMessagesProvider catalog (\`colorSelect\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Combobox v1.8.0
+- Combobox reads its default texts from the UiMessagesProvider catalog (\`combobox\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins. The clear button's English name now also reaches zag, which supplied its own before.
+
+### DatePicker v1.5.0
+- DatePicker reads its default texts from the UiMessagesProvider catalog (\`datePicker\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins. Its locale falls back to the catalog's \`locale\`, then \`en-US\` as before.
+
+### Dialog v1.3.0
+- Dialog reads its default texts from the UiMessagesProvider catalog (\`dialog\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Drawer v1.1.0
+- Drawer reads its default texts from the UiMessagesProvider catalog (\`drawer\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### FileUpload v1.2.0
+- FileUpload reads its default texts from the UiMessagesProvider catalog (\`fileUpload\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### FormErrorSummary v1.3.0
+- FormErrorSummary reads its default texts from the UiMessagesProvider catalog (\`formErrorSummary\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Menu v1.4.0
+- Menu reads its default texts from the UiMessagesProvider catalog (\`menu\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Pagination v1.2.0
+- Pagination reads its default texts from the UiMessagesProvider catalog (\`pagination\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### PhoneInput v1.2.0
+- PhoneInput reads its default texts from the UiMessagesProvider catalog (\`phoneInput\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Popover v1.2.0
+- Popover reads its default texts from the UiMessagesProvider catalog (\`popover\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins. PopoverTemplate stays hook-free; its fallback name is read in a client part.
+
+### SearchForm v1.2.0
+- SearchForm reads its default texts from the UiMessagesProvider catalog (\`searchForm\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Select v1.4.0
+- Select reads its default texts from the UiMessagesProvider catalog (\`select\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Steps v1.3.0
+- Steps reads its default texts from the UiMessagesProvider catalog (\`steps\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Tabs v1.3.0
+- Tabs reads its default texts from the UiMessagesProvider catalog (\`tabs\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Toast v1.2.0
+- Toast reads its default texts from the UiMessagesProvider catalog (\`toast\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Tour v1.1.0
+- Tour reads its default texts from the UiMessagesProvider catalog (\`tour\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### TreeView v1.2.0
+- TreeView reads its default texts from the UiMessagesProvider catalog (\`treeView\`) instead of fixed English, including accessible names and screen-reader text, and passes the catalog's zag-js labels to its machine. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### DataTable v1.5.0
+- DataTable reads its default texts from the UiMessagesProvider catalog (\`dataTable\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins. \`DataTableTranslations\` gains keys for texts that were fixed English before: drag-and-drop announcements, drag, resize, save, cancel and expand controls, filter and inline-editor labels and placeholders, boolean filter options, \`numberOperatorLabels\` (symbols in English) and \`rowFallbackLabel\`. A table's own \`operatorLabels\` still name its number conditions. The Save button is found by \`data-action="save-row"\`, not by its label.
+
+### Gallery v1.2.0
+- Gallery reads its default texts from the UiMessagesProvider catalog (\`gallery\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### Header v1.3.0
+- Header reads its default texts from the UiMessagesProvider catalog (\`header\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### FacetFilterPanel v1.3.0
+- FacetFilterPanel reads its default texts from the UiMessagesProvider catalog (\`facetFilterPanel\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
+### ProductCard v1.4.0
+- ProductCard reads its default texts from the UiMessagesProvider catalog (\`productCard\`) instead of fixed English, including accessible names and screen-reader text. Without a provider the English texts are unchanged, and a text passed as a prop still wins.
+
 ### Tooltip v1.1.3
 - A Tooltip opened by keyboard focus no longer closes at once when the mouse rests near the page's top-left corner. Before its first measurement the hint was painted in that corner for a frame, so a resting pointer "entered" and then "left" it, and the leave closed the hint. The positioner now starts off-screen until it is placed.
 

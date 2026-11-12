@@ -2,7 +2,7 @@
  * Label — @techsio/ui-kit atom.
  *
  * @component Label
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill label-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,7 @@
  */
 import type { ComponentPropsWithRef, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { RequiredLabelText } from "../internal/required-label-text"
 import { tv } from "../utils"
 
 const labelVariants = tv({
@@ -35,7 +36,7 @@ const labelVariants = tv({
 export type LabelProps = ComponentPropsWithRef<"label"> &
   VariantProps<typeof labelVariants> & {
     required?: boolean
-    /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to "(required)". */
+    /** Screen-reader text announced after the label when required; "" omits it. Defaults to the UiMessagesProvider catalog's `label.required` ("(required)" in English). */
     requiredLabel?: string
     children: ReactNode
     className?: string
@@ -45,7 +46,7 @@ export function Label({
   size,
   disabled,
   required,
-  requiredLabel = "(required)",
+  requiredLabel,
   children,
   className,
   ...props
@@ -69,8 +70,12 @@ export function Label({
           >
             *
           </span>
-          {requiredLabel && (
-            <span className="sr-only">{` ${requiredLabel}`}</span>
+          {requiredLabel === undefined ? (
+            <RequiredLabelText />
+          ) : (
+            requiredLabel && (
+              <span className="sr-only">{` ${requiredLabel}`}</span>
+            )
           )}
         </>
       )}

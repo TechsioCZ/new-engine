@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.1.1
+ * @componentVersion v1.2.0
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -39,6 +39,8 @@ import {
   OverlayContainerProvider,
   OverlayPortal as Portal,
 } from "../internal/overlay-portal"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const popoverVariants = tv({
@@ -162,6 +164,7 @@ export function Popover({
   slide = true,
   ...props
 }: PopoverRootProps) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const uniqueId = id || generatedId
   const [titleId, setTitleId] = useState<string | null>()
@@ -169,6 +172,10 @@ export function Popover({
 
   const service = useMachine(machine, {
     ...props,
+    translations: {
+      ...messages.popover.translations,
+      ...definedEntries(props.translations),
+    },
     autoFocus,
     closeOnEscape,
     closeOnInteractOutside,
@@ -507,6 +514,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   type = "button",
   ...props
 }: PopoverCloseTriggerProps) {
+  const messages = useUiMessages()
   const { api, styles } = usePopoverContext()
   const chromeContainer = useContext(PopoverChromeContext)
   const { onClick: onMachineClick, ...machineCloseTriggerProps } =
@@ -536,7 +544,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   ) : (
     <ActionIcon
       {...buttonProps}
-      aria-label={props["aria-label"] ?? "Close popover"}
+      aria-label={props["aria-label"] ?? messages.popover.close}
       className={styles.closeTrigger({ className })}
       icon={icon ?? "token-icon-close"}
       onClick={handleClick}

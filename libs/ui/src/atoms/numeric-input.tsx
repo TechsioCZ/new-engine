@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.3.13
+ * @componentVersion v1.4.0
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -42,6 +42,8 @@ import {
   type NumericInputEditing,
   syncNumericInputValue,
 } from "../internal/numeric-input-editing"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 import { Button } from "./button"
 import type { IconType } from "./icon"
@@ -324,6 +326,7 @@ export type NumericInputProps = Omit<
     locale?: string
   }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the catalog locale fallback adds one branch to the existing input contract.
 export function NumericInput({
   density,
   id,
@@ -341,9 +344,11 @@ export function NumericInput({
   children,
   ref,
   className,
-  locale = "cs-CZ",
+  locale,
   ...props
 }: NumericInputProps) {
+  const messages = useUiMessages()
+  const resolvedLocale = locale ?? messages.locale ?? "cs-CZ"
   const generatedId = useId()
   const [inputId, setInputId] = useState<string>()
   const description = useDescribedBy()
@@ -385,7 +390,7 @@ export function NumericInput({
     if (typeof inputValue === "string" || !resolvedFormatOptions) {
       return String(inputValue)
     }
-    return new Intl.NumberFormat(locale, resolvedFormatOptions).format(
+    return new Intl.NumberFormat(resolvedLocale, resolvedFormatOptions).format(
       inputValue
     )
   }
@@ -484,7 +489,11 @@ export function NumericInput({
           }
         : machineProps.ids,
     dir,
-    locale,
+    locale: resolvedLocale,
+    translations: {
+      ...messages.numericInput.translations,
+      ...definedEntries(machineProps.translations),
+    },
     value: resolvedValue,
     defaultValue:
       defaultValue === undefined ? undefined : formatValue(defaultValue),
@@ -547,7 +556,7 @@ export function NumericInput({
     resolvedFormatOptions.maximumFractionDigits === 0 &&
     (!resolvedFormatOptions.style || resolvedFormatOptions.style === "decimal")
   ) {
-    const separator = new Intl.NumberFormat(locale)
+    const separator = new Intl.NumberFormat(resolvedLocale)
       .formatToParts(1.1)
       .find((part) => part.type === "decimal")?.value
     if (separator) {

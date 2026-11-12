@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.2.3
+ * @componentVersion v1.3.0
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -34,6 +34,7 @@ import { flushSync } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
 import { Icon } from "../atoms/icon"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const stepsVariants = tv({
@@ -923,13 +924,14 @@ type StepsProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
 }
 
 Steps.Progress = function StepsProgress({
-  "aria-label": ariaLabel = "Step progress",
+  "aria-label": ariaLabel,
   className,
   ref,
   style,
   ...props
 }: StepsProgressProps) {
   const { api, orientation, styles } = useStepsContext()
+  const messages = useUiMessages()
   // A progressbar needs an accessible name (axe aria-progressbar-name).
   const progressProps = mergeProps(props, api.getProgressProps())
 
@@ -938,7 +940,7 @@ Steps.Progress = function StepsProgress({
       className={styles.progress({ className })}
       ref={ref}
       {...progressProps}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? messages.steps.progress}
       data-orientation={orientation}
       role="progressbar"
       style={style}
@@ -963,6 +965,7 @@ Steps.CompletedContent = function StepsCompletedContent({
   ...props
 }: StepsCompletedContentProps) {
   const { api, styles } = useStepsContext()
+  const messages = useUiMessages()
   const {
     "aria-labelledby": _triggerLabel,
     role: _tabPanelRole,
@@ -979,7 +982,7 @@ Steps.CompletedContent = function StepsCompletedContent({
       {...contentProps}
       aria-label={
         props["aria-label"] ??
-        (props["aria-labelledby"] ? undefined : "Workflow complete")
+        (props["aria-labelledby"] ? undefined : messages.steps.complete)
       }
       data-complete={api.isCompleted || undefined}
       data-part="completed-content"

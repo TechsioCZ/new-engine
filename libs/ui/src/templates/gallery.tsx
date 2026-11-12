@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.0
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
