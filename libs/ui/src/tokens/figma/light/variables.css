@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-11-09T14:11:31.647Z
+ * Exported at: 2026-11-12T09:50:49.601Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -1606,7 +1606,9 @@
   --padding-input-with-button: var(--dimension-120);
   --padding-input-with-button-left: var(--dimension-120);
   --padding-input-with-button-right: var(--dimension-120);
-  --padding-input-x-sm: var(--spacing-150);
+  --padding-input-x-lg: var(--spacing-input-inline-lg);
+  --padding-input-x-md: var(--spacing-input-inline-md);
+  --padding-input-x-sm: var(--spacing-input-inline-sm);
   --padding-menu-content: var(--padding-popup-viewport);
   --padding-menu-item-x: var(--padding-popup-item-x-md);
   --padding-menu-item-y: var(--padding-popup-item-y-md);
@@ -2025,6 +2027,9 @@
   --spacing-header-nav-md: var(--dimension-24);
   --spacing-header-nav-sm: var(--dimension-16);
   --spacing-hotkeys-gap: var(--spacing-50);
+  --spacing-input-inline-lg: var(--spacing-150);
+  --spacing-input-inline-md: var(--spacing-150);
+  --spacing-input-inline-sm: var(--spacing-150);
   --spacing-label: var(--size-4);
   --spacing-line-item: var(--spacing-line-item-separated);
   --spacing-line-item-reference: var(--spacing-150);

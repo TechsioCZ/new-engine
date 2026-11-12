@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-11-09T14:11:31.671Z
+ * Exported at: 2026-11-12T09:50:49.620Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -439,6 +439,9 @@
   --size-6: 0.38rem;
   --size-8: 0.5rem;
   --size-800: 50rem;
+  --spacing-input-inline-lg: var(--spacing-150);
+  --spacing-input-inline-md: var(--spacing-150);
+  --spacing-input-inline-sm: var(--spacing-150);
   --text-2xl: var(--dimension-32);
   --text-2xl-max: var(--text-2xl);
   --text-2xl-min: var(--dimension-32);
