@@ -2,7 +2,7 @@
  * Header — @techsio/ui-kit organism.
  *
  * @component Header
- * @componentVersion v1.2.1
+ * @componentVersion v1.3.0
  * @skill header-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,6 +26,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const headerVariants = tv({
@@ -433,9 +434,10 @@ Header.Hamburger = function HeaderHamburger({
   className,
   ref,
   onClick,
-  "aria-label": ariaLabel = "Toggle mobile menu",
+  "aria-label": ariaLabel,
   ...props
 }: ComponentProps<typeof Button>) {
+  const messages = useUiMessages()
   const {
     toggleMobileMenu,
     isMobileMenuOpen,
@@ -450,7 +452,7 @@ Header.Hamburger = function HeaderHamburger({
       aria-controls={mobileMenuId}
       aria-expanded={isMobileMenuOpen}
       {...props}
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? messages.header.toggleMenu}
       className={hamburger({ className })}
       icon={
         isMobileMenuOpen ? "token-icon-header-close" : "token-icon-header-menu"

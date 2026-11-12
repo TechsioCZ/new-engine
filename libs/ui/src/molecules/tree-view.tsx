@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -34,6 +34,8 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Icon, type IconType } from "../atoms/icon"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 export type TreeNode = {
@@ -269,6 +271,7 @@ export function TreeView({
   className,
   ...props
 }: TreeViewRootProps) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const [machineProps, rootProps] = splitTreeProps(props)
   const collection = useMemo(
@@ -351,6 +354,10 @@ export function TreeView({
     typeahead: true,
     ...machineProps,
     id: machineProps.id ?? generatedId,
+    translations: {
+      ...messages.treeView.translations,
+      ...definedEntries(machineProps.translations),
+    },
     collection,
     selectedValue,
     focusedValue: focusTarget,
@@ -681,13 +688,18 @@ TreeView.BranchIndicator = function TreeViewBranchIndicator({
 }: TreeViewBranchIndicatorProps) {
   const { api, styles } = useTreeViewContext()
   const { node, nodeProps, nodeState } = useTreeViewNodeContext()
+  const messages = useUiMessages()
 
   return (
     <button
       {...api.getBranchIndicatorProps(nodeProps)}
       aria-expanded={nodeState.expanded}
       aria-hidden={undefined}
-      aria-label={`${nodeState.expanded ? "Collapse" : "Expand"} ${node.name}`}
+      aria-label={
+        nodeState.expanded
+          ? messages.treeView.collapse(node.name)
+          : messages.treeView.expand(node.name)
+      }
       className={styles.branchIndicator({ className })}
       disabled={nodeState.disabled}
       onClick={(event) => {

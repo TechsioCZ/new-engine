@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.0
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,6 +28,7 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { Image, ImageWithFallback } from "../atoms/image"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import {
   Carousel,
   type CarouselRootProps,
@@ -172,12 +173,6 @@ function clampPage(page: number, maxPage: number) {
   return Math.min(maxPage, Math.max(0, Math.trunc(page)))
 }
 
-function getDefaultThumbnailAriaLabel({
-  index,
-}: GalleryThumbnailAriaLabelParams) {
-  return `Show slide ${index + 1}`
-}
-
 export function Gallery<T extends ElementType = typeof Image>({
   items,
   children,
@@ -189,12 +184,17 @@ export function Gallery<T extends ElementType = typeof Image>({
   hideThumbnailsWhenSingle = true,
   thumbnailSize = 60,
   thumbnailImageAs,
-  getThumbnailAriaLabel = getDefaultThumbnailAriaLabel,
+  getThumbnailAriaLabel: thumbnailAriaLabelProp,
   carouselProps,
   emptyState,
   className,
   ...props
 }: GalleryProps<T>) {
+  const messages = useUiMessages()
+  const getThumbnailAriaLabel =
+    thumbnailAriaLabelProp ??
+    (({ index }: GalleryThumbnailAriaLabelParams) =>
+      messages.gallery.showSlide(index + 1))
   const maxPage = Math.max(items.length - 1, 0)
   const [internalPage, setInternalPage] = useState(defaultValue)
   const isControlled = value !== undefined
@@ -489,6 +489,7 @@ type GalleryCarouselComponentProps<T extends ElementType = typeof Image> = Omit<
 Gallery.Carousel = function GalleryCarousel<
   T extends ElementType = typeof Image,
 >({ children, onPageChange, ...props }: GalleryCarouselComponentProps<T>) {
+  const messages = useUiMessages()
   const { items, page, setPage, carouselProps } = useGalleryContext()
   const inheritedProps = (carouselProps || {}) as GalleryCarouselProps<T>
   const mergedProps = { ...inheritedProps, ...props }
@@ -510,7 +511,7 @@ Gallery.Carousel = function GalleryCarousel<
 
   return (
     <Carousel
-      aria-label="Product images"
+      aria-label={messages.gallery.images}
       {...mergedProps}
       onPageChange={handlePageChange}
       page={page}

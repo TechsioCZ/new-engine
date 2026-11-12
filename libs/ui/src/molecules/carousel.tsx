@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.3.4
+ * @componentVersion v1.4.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,6 +29,8 @@ import { ActionIcon } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
 import { Image, ImageWithFallback } from "../atoms/image"
 import { usePrefersReducedMotion } from "../internal/reduced-motion"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 /** Local integration fixes for Zag 1.45: observe current nodes and leave widget keys alone. */
@@ -529,6 +531,7 @@ export function Carousel<T extends ElementType = typeof Image>({
       })
     },
   }
+  const messages = useUiMessages()
   const service = useMachine(motionAwareMachine, {
     id: id ?? fallbackId,
     slideCount,
@@ -544,6 +547,10 @@ export function Carousel<T extends ElementType = typeof Image>({
     snapType,
     onPageChange,
     ...props,
+    translations: {
+      ...messages.carousel.translations,
+      ...definedEntries(props.translations),
+    },
   })
 
   const api = connect(service, normalizeProps)
@@ -716,7 +723,7 @@ Carousel.Previous = function CarouselPrevious({
       size={toTriggerSize(size)}
       {...triggerProps}
       aria-disabled={disabled}
-      aria-label={triggerProps["aria-label"] ?? "Previous slide"}
+      aria-label={triggerProps["aria-label"]}
       data-disabled={disabled ? "" : undefined}
       disabled={disabled}
       icon={resolvedIcon}
@@ -745,7 +752,7 @@ Carousel.Next = function CarouselNext({ className, icon }: CarouselNextProps) {
       size={toTriggerSize(size)}
       {...triggerProps}
       aria-disabled={disabled}
-      aria-label={triggerProps["aria-label"] ?? "Next slide"}
+      aria-label={triggerProps["aria-label"]}
       data-disabled={disabled ? "" : undefined}
       disabled={disabled}
       icon={resolvedIcon}
@@ -823,10 +830,7 @@ Carousel.Autoplay = function CarouselAutoplay({
       }
       size={toTriggerSize(size)}
       {...triggerProps}
-      aria-label={
-        triggerProps["aria-label"] ??
-        (api.isPlaying ? "Stop slide rotation" : "Start slide rotation")
-      }
+      aria-label={triggerProps["aria-label"]}
     />
   )
 }

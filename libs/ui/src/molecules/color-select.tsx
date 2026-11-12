@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.1.3
+ * @componentVersion v1.2.0
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,6 +22,7 @@ import { StatusText } from "../atoms/status-text"
 import { useChoiceFocusRecovery } from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const colorSelectVariants = tv({
@@ -183,13 +184,16 @@ export const ColorSelect = ({
   disabled: explicitDisabled,
   onColorClick,
   selectionMode = "single",
-  label = "Color",
+  label,
   name,
   readOnly = false,
   helpText,
   validateStatus = "default",
   ...props
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the swatch group keeps its label, selection and keyboard handling together.
 }: ColorSelectProps) => {
+  const messages = useUiMessages()
+  const resolvedLabel = label ?? messages.colorSelect.label
   const id = useId()
   const recoveryRef = useChoiceFocusRecovery(
     'button[role="radio"], button[role="checkbox"]'
@@ -271,9 +275,9 @@ export const ColorSelect = ({
   }
   return (
     <div className={root()}>
-      {label && (
+      {resolvedLabel && (
         <Label id={`${id}-label`} size={controlSize}>
-          {label}
+          {resolvedLabel}
         </Label>
       )}
       {/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: Both conditional group roles support names. */}
@@ -283,7 +287,7 @@ export const ColorSelect = ({
         aria-label={props["aria-label"]}
         aria-labelledby={
           props["aria-labelledby"] ??
-          (props["aria-label"] || !label ? undefined : `${id}-label`)
+          (props["aria-label"] || !resolvedLabel ? undefined : `${id}-label`)
         }
         aria-readonly={(selectionMode === "single" && immutable) || undefined}
         className={group({ className: props.className })}
@@ -302,7 +306,9 @@ export const ColorSelect = ({
               aria-describedby={describedBy}
               aria-errormessage={errorMessageId}
               aria-invalid={invalid || undefined}
-              aria-label={`Select color ${colorItem.label ?? colorItem.color}`}
+              aria-label={messages.colorSelect.selectColor(
+                colorItem.label ?? colorItem.color
+              )}
               aria-readonly={checkboxReadOnly}
               className={`${atom()} ${colorItem.disabled ? "select-disabled" : ""}`}
               data-readonly={readOnly ? "" : undefined}
@@ -358,7 +364,7 @@ export const ColorSelect = ({
       </div>
       {immutable && (
         <span className="sr-only" id={readOnlyId}>
-          Read-only color selection
+          {messages.colorSelect.readOnly}
         </span>
       )}
       {helpText && (

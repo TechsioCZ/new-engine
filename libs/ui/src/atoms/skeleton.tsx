@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.8
+ * @componentVersion v1.1.0
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,6 +16,7 @@ import {
   type Ref,
   useContext,
 } from "react"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const skeletonVariants = tv({
@@ -109,7 +110,6 @@ function useResolvedSkeletonProps(props: {
 const LOADING_STATUS_PROPS = {
   role: "status",
   "aria-busy": true,
-  "aria-label": "Loading content",
 } as const
 
 /**
@@ -121,13 +121,14 @@ const LOADING_STATUS_PROPS = {
  */
 function useSkeletonA11yProps(ariaHidden?: boolean | "true" | "false") {
   const context = useSkeletonContext()
+  const messages = useUiMessages()
   if (context) {
     return { "aria-hidden": true } as const
   }
   if (ariaHidden === true || ariaHidden === "true") {
     return { "aria-busy": true, "aria-hidden": true } as const
   }
-  return LOADING_STATUS_PROPS
+  return { ...LOADING_STATUS_PROPS, "aria-label": messages.skeleton.loading }
 }
 
 type SkeletonRootProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {

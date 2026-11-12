@@ -19,6 +19,8 @@ sources:
   - "libs/ui/src/atoms/image.tsx"
   - "libs/ui/src/molecules/breadcrumb.tsx"
   - "libs/ui/src/molecules/pagination.tsx"
+  - "libs/ui/src/messages/ui-messages.ts"
+  - "libs/ui/src/messages/ui-messages-provider.tsx"
 ---
 
 This skill builds on `component-usage-ux`. Read it first for component
@@ -203,3 +205,17 @@ persisted theme switching import AppThemeProvider/BrandThemeScript from
 not forced brand settings. Place the brand script before visible body content,
 use suppressHydrationWarning on the Next root html, and gate theme-dependent UI
 on useAppTheme().mounted. Base/Neo support light+dark; Business/Akros light only.
+
+## Language
+
+Components carry no fixed language. For an app that is not English, render
+`UiMessagesProvider` from `@techsio/ui-kit/messages/ui-messages-provider` once
+near the root with a `UiMessagesInput` catalog (type from
+`@techsio/ui-kit/messages/ui-messages`); it is a client component, so in Next
+place it inside the app's `'use client'` providers module. Define the catalog as
+a module constant. Do not pass the same translated text to every instance
+(`closeLabel`, `placeholder`, `translations`) — that is what the catalog is for;
+keep per-instance props for texts specific to that instance. Set `locale` in
+the catalog for number and date formatting defaults. One provider covers every
+copy of the kit on the page, including module-federation remotes that bundle
+their own copy.

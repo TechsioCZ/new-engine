@@ -2,7 +2,7 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.2.1
+ * @componentVersion v1.3.0
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -10,6 +10,7 @@ import type { ReactNode } from "react"
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react"
 import { Button } from "../atoms/button"
 import { StatusText } from "../atoms/status-text"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { Accordion } from "../molecules/accordion"
 import { Dialog } from "../molecules/dialog"
 import { FormCheckbox } from "../molecules/form-checkbox"
@@ -256,10 +257,10 @@ function FacetFilterPanelContent({
   size = "md",
   pending = false,
   pendingLabel,
-  activeFiltersLabel = "Active filters",
-  resetLabel = "Clear filters",
-  showMoreLabel = (hiddenCount) => `Show ${hiddenCount} more`,
-  showLessLabel = "Show less",
+  activeFiltersLabel,
+  resetLabel,
+  showMoreLabel,
+  showLessLabel,
   expandedGroups,
   defaultExpandedGroups,
   onExpandedGroupsChange,
@@ -272,6 +273,8 @@ function FacetFilterPanelContent({
   titleId,
 }: FacetFilterPanelProps & { showTitle: boolean; titleId?: string }) {
   const styles = facetFilterPanelStyles()
+  const messages = useUiMessages()
+  const showMoreText = showMoreLabel ?? messages.facetFilterPanel.showMore
   const interactionDisabled = disabled || pending
   const optionGroupIds = groups
     .filter((group) => group.type === "options")
@@ -315,11 +318,11 @@ function FacetFilterPanelContent({
       <FacetFilterPanel.ActiveFilters
         disabled={interactionDisabled}
         items={activeFilters}
-        label={activeFiltersLabel}
+        label={activeFiltersLabel ?? messages.facetFilterPanel.activeFilters}
         onRemove={onRemoveFilter}
         onReset={onReset}
         readOnly={readOnly}
-        resetLabel={resetLabel}
+        resetLabel={resetLabel ?? messages.facetFilterPanel.reset}
       />
 
       <Accordion
@@ -342,8 +345,8 @@ function FacetFilterPanelContent({
                 <Slider
                   aria-label={
                     group["aria-label"] ?? [
-                      `Minimum ${group.label.toLocaleLowerCase()}`,
-                      `Maximum ${group.label.toLocaleLowerCase()}`,
+                      messages.facetFilterPanel.minimum(group.label),
+                      messages.facetFilterPanel.maximum(group.label),
                     ]
                   }
                   disabled={interactionDisabled || group.disabled}
@@ -394,8 +397,10 @@ function FacetFilterPanelContent({
                   onOptionChange={onOptionChange}
                   readOnly={readOnly}
                   selectedValues={selectedValues[group.id] ?? []}
-                  showLessLabel={showLessLabel}
-                  showMoreLabel={showMoreLabel}
+                  showLessLabel={
+                    showLessLabel ?? messages.facetFilterPanel.showLess
+                  }
+                  showMoreLabel={showMoreText}
                   size={size}
                 />
               </Accordion.Content>
@@ -486,8 +491,8 @@ export function FacetFilterPanel({
 
 FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
   items,
-  label = "Active filters",
-  resetLabel = "Clear filters",
+  label,
+  resetLabel,
   disabled = false,
   readOnly = false,
   className,
@@ -496,6 +501,8 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
   fallbackFocusEl,
 }: FacetFilterActiveFiltersProps) {
   const styles = facetFilterPanelStyles()
+  const messages = useUiMessages()
+  const resolvedLabel = label ?? messages.facetFilterPanel.activeFilters
 
   const sectionRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<{
@@ -557,7 +564,11 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
   return (
     // biome-ignore lint/a11y/useSemanticElements: Applied-filter summaries are a named group, not a separate page landmark or form fieldset.
     <div
-      aria-label={typeof label === "string" ? label : "Active filters"}
+      aria-label={
+        typeof resolvedLabel === "string"
+          ? resolvedLabel
+          : messages.facetFilterPanel.activeFilters
+      }
       className={styles.activeRoot({ className })}
       data-empty={items.length === 0 ? "" : undefined}
       ref={sectionRef}
@@ -567,7 +578,7 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
       {items.length > 0 && (
         <>
           <div className={styles.activeHeader()}>
-            <h3 className={styles.activeTitle()}>{label}</h3>
+            <h3 className={styles.activeTitle()}>{resolvedLabel}</h3>
             {!readOnly && (
               <Button
                 disabled={disabled}
@@ -580,7 +591,7 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
                 type="button"
                 variant="primary"
               >
-                {resetLabel}
+                {resetLabel ?? messages.facetFilterPanel.reset}
               </Button>
             )}
           </div>

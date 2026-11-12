@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit template.
  *
  * @component Popover
- * @componentVersion v1.1.1
+ * @componentVersion v1.2.0
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,6 +10,7 @@
  * the popover-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ReactNode, Ref } from "react"
+import { PopoverTemplateContent } from "../internal/popover-template-content"
 import {
   Popover,
   type PopoverContentProps,
@@ -55,13 +56,7 @@ export function PopoverTemplate({
   triggerRef,
   ...rootProps
 }: PopoverTemplateProps) {
-  const fallbackName =
-    typeof trigger === "string" ? trigger : "Additional details"
   const unnamed = !(title || contentProps?.["aria-labelledby"])
-  const accessibleName =
-    contentProps?.["aria-label"] ??
-    ariaLabel ??
-    (unnamed ? fallbackName : undefined)
   return (
     <Popover.Root {...rootProps}>
       <Popover.Trigger
@@ -73,11 +68,13 @@ export function PopoverTemplate({
         {trigger}
       </Popover.Trigger>
       <Popover.Positioner>
-        <Popover.Content
+        <PopoverTemplateContent
           {...contentProps}
-          aria-label={accessibleName}
+          aria-label={contentProps?.["aria-label"] ?? ariaLabel}
           className={contentClassName}
+          fallbackName={typeof trigger === "string" ? trigger : undefined}
           ref={contentRef}
+          unnamed={unnamed}
         >
           {showCloseButton && <Popover.CloseTrigger />}
           {showArrow && <Popover.Arrow />}
@@ -86,7 +83,7 @@ export function PopoverTemplate({
             <Popover.Description>{description}</Popover.Description>
           )}
           {children}
-        </Popover.Content>
+        </PopoverTemplateContent>
       </Popover.Positioner>
     </Popover.Root>
   )

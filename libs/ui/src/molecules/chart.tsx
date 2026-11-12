@@ -2,7 +2,7 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.2.2
+ * @componentVersion v1.3.0
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -58,6 +58,7 @@ import { scaleUtc } from "d3-scale"
 import { curveMonotoneX, type PieArcDatum, pie } from "d3-shape"
 import { useMemo, useRef, useState } from "react"
 import { usePrefersReducedMotion } from "../internal/reduced-motion"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 export type { ChartPoint } from "@tanstack/charts"
@@ -215,7 +216,7 @@ type BuildConfig<TDatum> = {
   valueLabel?: string
   formatCategory?: (value: string | number | Date) => string
   formatTooltipValue?: (value: number) => string
-  /** Unset: numbers are plain `String` and dates use a fixed `en-US` medium format. */
+  /** Unset: the UiMessagesProvider locale; without one, numbers are plain `String` and dates use a fixed `en-US` medium format. */
   locale?: string
   animate: boolean
   showTooltip: boolean
@@ -974,6 +975,7 @@ function ChartDataAlternative<TDatum>({
   ariaLabel,
   dataTableLabel,
 }: ChartProps<TDatum>) {
+  const messages = useUiMessages()
   const { alternative, summary, cell } = chartVariants()
   const getX = toAccessor(x)
   const getY = toAccessor(y)
@@ -989,14 +991,18 @@ function ChartDataAlternative<TDatum>({
             {getSeries && (
               <th className={cell()} scope="col">
                 {legendLabel ??
-                  (typeof series === "string" ? series : "Series")}
+                  (typeof series === "string"
+                    ? series
+                    : messages.chart.seriesHeader)}
               </th>
             )}
             <th className={cell()} scope="col">
-              {xLabel ?? (typeof x === "string" ? x : "Category")}
+              {xLabel ??
+                (typeof x === "string" ? x : messages.chart.categoryHeader)}
             </th>
             <th className={cell()} scope="col">
-              {yLabel ?? (typeof y === "string" ? y : "Value")}
+              {yLabel ??
+                (typeof y === "string" ? y : messages.chart.valueHeader)}
             </th>
           </tr>
         </thead>
@@ -1056,6 +1062,7 @@ function ChartLineLegend({
   )
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: each fallback text (catalog entry) adds one branch to the public Chart root.
 export function Chart<TDatum>({
   type = "line",
   data,
@@ -1084,11 +1091,13 @@ export function Chart<TDatum>({
   ariaLabel,
   ariaDescription,
   className,
-  dataTableLabel = "View chart data",
-  emptyLabel = "No data to display.",
-  invalidLabel = "Pie and donut values must be finite, non-negative numbers with a positive total.",
+  dataTableLabel,
+  emptyLabel,
+  invalidLabel,
   onSelect,
 }: ChartProps<TDatum>) {
+  const messages = useUiMessages()
+  const resolvedLocale = locale ?? messages.locale
   const { root, tooltip: tooltipSlot, fallback } = chartVariants()
   const tooltipClassName = tooltipSlot()
   const prefersReducedMotion = usePrefersReducedMotion()
@@ -1130,7 +1139,7 @@ export function Chart<TDatum>({
         valueLabel,
         formatCategory,
         formatTooltipValue,
-        locale,
+        locale: resolvedLocale,
         animate: shouldAnimate,
         showTooltip: tooltip && !dismissed,
         tooltipClassName,
@@ -1156,7 +1165,7 @@ export function Chart<TDatum>({
       valueLabel,
       formatCategory,
       formatTooltipValue,
-      locale,
+      resolvedLocale,
       shouldAnimate,
       tooltip,
       tooltipClassName,
@@ -1205,7 +1214,9 @@ export function Chart<TDatum>({
     >
       {invalidPolar || validData.length === 0 ? (
         <p className={fallback()} role="status">
-          {invalidPolar ? invalidLabel : emptyLabel}
+          {invalidPolar
+            ? (invalidLabel ?? messages.chart.invalidLabel)
+            : (emptyLabel ?? messages.chart.emptyLabel)}
         </p>
       ) : (
         <TanstackChart
@@ -1230,7 +1241,7 @@ export function Chart<TDatum>({
         <ChartDataAlternative
           ariaLabel={ariaLabel}
           data={validData}
-          dataTableLabel={dataTableLabel}
+          dataTableLabel={dataTableLabel ?? messages.chart.dataTableLabel}
           formatValue={formatValue}
           legendLabel={legendLabel}
           series={series}

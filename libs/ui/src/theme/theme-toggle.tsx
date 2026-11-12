@@ -7,6 +7,7 @@
  */
 
 import { Button } from "../atoms/button"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 import { getBrand, type ModeSetting } from "./theme-config"
 import { useAppTheme } from "./theme-provider"
@@ -24,22 +25,22 @@ const themeToggle = tv({
   },
 })
 
-const MODE_LABELS: Record<ModeSetting, string> = {
-  light: "Light",
-  dark: "Dark",
-  system: "System",
-}
-
 export function ThemeToggle({ className }: { className?: string }) {
   const { brand, brands, setBrand, mode, setMode, availableModes, mounted } =
     useAppTheme()
+  const messages = useUiMessages()
+  const modeLabels: Record<ModeSetting, string> = {
+    light: messages.themeToggle.light,
+    dark: messages.themeToggle.dark,
+    system: messages.themeToggle.system,
+  }
   const showModes = mounted && availableModes.length > 1
   const { root, group, modeGroup, label, row, choice } = themeToggle()
 
   return (
     <div className={root({ className })}>
       <fieldset className={group()}>
-        <legend className={label()}>Brand</legend>
+        <legend className={label()}>{messages.themeToggle.brand}</legend>
         <div className={row()}>
           {brands.map((key) => (
             <Button
@@ -60,7 +61,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 
       {showModes && (
         <fieldset className={modeGroup()}>
-          <legend className={label()}>Mode</legend>
+          <legend className={label()}>{messages.themeToggle.mode}</legend>
           <div className={row()}>
             {availableModes.map((value) => (
               <Button
@@ -73,7 +74,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                 type="button"
                 variant="secondary"
               >
-                {MODE_LABELS[value]}
+                {modeLabels[value]}
               </Button>
             ))}
           </div>

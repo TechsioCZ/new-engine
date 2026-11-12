@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.1.4
+ * @componentVersion v1.2.0
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -26,6 +26,7 @@ import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { useActiveModalContainer } from "../internal/overlay-portal"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 // Toast Item Variants
@@ -80,9 +81,9 @@ type ToastProps = {
   index: number
   parent: toast.GroupService
   placement?: toast.Placement
-  /** Accessible name of the close button. Defaults to "Close notification". */
+  /** Accessible name of the close button. Defaults to the UiMessagesProvider catalog entry ("Close notification"). */
   closeLabel?: string
-  /** Title shown for a loading toast without its own title. Defaults to "loading...". */
+  /** Title shown for a loading toast without its own title. Defaults to the UiMessagesProvider catalog's `toast.loading` ("loading..."). */
   loadingLabel?: string
 }
 
@@ -91,9 +92,10 @@ export function Toast({
   index,
   parent,
   placement,
-  closeLabel = "Close notification",
-  loadingLabel = "loading...",
+  closeLabel,
+  loadingLabel,
 }: ToastProps) {
+  const messages = useUiMessages()
   const composedProps = {
     ...actor,
     index,
@@ -124,7 +126,9 @@ export function Toast({
           <span className={icon()} data-type={api.type} />
         </span>
         <div className={title()} {...api.getTitleProps()} data-type={api.type}>
-          {api.type === "loading" ? (api.title ?? loadingLabel) : api.title}
+          {api.type === "loading"
+            ? (api.title ?? loadingLabel ?? messages.toast.loading)
+            : api.title}
         </div>
         {api.closable && (
           <ActionIcon
@@ -133,7 +137,7 @@ export function Toast({
             size="sm"
             tone="neutral"
             {...api.getCloseTriggerProps()}
-            aria-label={closeLabel}
+            aria-label={closeLabel ?? messages.toast.close}
           />
         )}
       </div>
@@ -245,11 +249,11 @@ const scopedGroupMachine: typeof toast.group.machine = {
 }
 
 export type ToasterProps = ToastContainerProps & {
-  /** Accessible name of each toast's close button. Defaults to "Close notification". */
+  /** Accessible name of each toast's close button. Defaults to the UiMessagesProvider catalog entry ("Close notification"). */
   closeLabel?: string
   /** Accessible name of the toast region. Defaults to zag's "Notifications, <placement> (<hotkey>)". */
   label?: string
-  /** Title shown for a loading toast without its own title. Defaults to "loading...". */
+  /** Title shown for a loading toast without its own title. Defaults to the UiMessagesProvider catalog's `toast.loading` ("loading..."). */
   loadingLabel?: string
 }
 

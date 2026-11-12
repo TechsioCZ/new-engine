@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.3.3
+ * @componentVersion v1.4.0
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,6 +12,7 @@
 import type { ElementType, ReactNode } from "react"
 import { Badge, type BadgeProps } from "../atoms/badge"
 import { Link, type LinkProps } from "../atoms/link"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { ProductCard, type ProductCardProps } from "../molecules/product-card"
 import { tv } from "../utils"
 
@@ -63,6 +64,7 @@ export type ProductCardTemplateProps<T extends ElementType = "a"> = Pick<
   className?: string
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: each catalog fallback text adds one branch to the template.
 export function ProductCardTemplate<T extends ElementType = "a">({
   image,
   name,
@@ -72,8 +74,8 @@ export function ProductCardTemplate<T extends ElementType = "a">({
   linkProps,
   price,
   originalPrice,
-  originalPriceLabel = "Original price",
-  currentPriceLabel = "Current price",
+  originalPriceLabel,
+  currentPriceLabel,
   badges,
   rating,
   stock,
@@ -81,13 +83,14 @@ export function ProductCardTemplate<T extends ElementType = "a">({
   onAddToCart,
   onViewDetails,
   onAddToWishlist,
-  cartButtonText = "Add to Cart",
-  detailButtonText = "View Details",
-  wishlistButtonText = "Add to Wishlist",
+  cartButtonText,
+  detailButtonText,
+  wishlistButtonText,
   layout = "column",
   className,
 }: ProductCardTemplateProps<T>) {
   const slots = styles()
+  const messages = useUiMessages()
   const NameLink = Link<ElementType>
   return (
     <ProductCard className={className} layout={layout}>
@@ -117,13 +120,17 @@ export function ProductCardTemplate<T extends ElementType = "a">({
         <div className={slots.prices()}>
           {originalPrice && (
             <del>
-              <span className="sr-only">{originalPriceLabel}: </span>
+              <span className="sr-only">
+                {originalPriceLabel ?? messages.productCard.originalPrice}:{" "}
+              </span>
               {originalPrice}
             </del>
           )}
           {price && (
             <ProductCard.Price>
-              <span className="sr-only">{currentPriceLabel}: </span>
+              <span className="sr-only">
+                {currentPriceLabel ?? messages.productCard.currentPrice}:{" "}
+              </span>
               {price}
             </ProductCard.Price>
           )}
@@ -159,7 +166,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
               icon="token-icon-cart-button"
               onClick={onAddToCart}
             >
-              {cartButtonText}
+              {cartButtonText ?? messages.productCard.addToCart}
             </ProductCard.Button>
           )}
           {onViewDetails && (
@@ -168,7 +175,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
               icon="token-icon-detail-button"
               onClick={onViewDetails}
             >
-              {detailButtonText}
+              {detailButtonText ?? messages.productCard.viewDetails}
             </ProductCard.Button>
           )}
           {onAddToWishlist && (
@@ -177,7 +184,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
               icon="token-icon-wishlist-button"
               onClick={onAddToWishlist}
             >
-              {wishlistButtonText}
+              {wishlistButtonText ?? messages.productCard.addToWishlist}
             </ProductCard.Button>
           )}
         </ProductCard.Actions>

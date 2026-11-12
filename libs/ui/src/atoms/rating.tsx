@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.3.6
+ * @componentVersion v1.4.0
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -34,6 +34,9 @@ import {
   syncReactFormControl,
 } from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import type { UiMessages } from "../messages/ui-messages"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 import { Label } from "./label"
 import { StatusText } from "./status-text"
@@ -267,6 +270,11 @@ export function Rating({
   ...props
 }: RatingProps) {
   const readOnly = readOnlyProp || displayOnly
+  const messages = useUiMessages()
+  const zagTranslations = {
+    ...messages.rating.translations,
+    ...definedEntries(translations),
+  }
   const [controlElement, setControlElement] = useState<HTMLDivElement | null>(
     null
   )
@@ -314,7 +322,7 @@ export function Rating({
     allowHalf,
     name,
     dir,
-    translations,
+    translations: zagTranslations,
     onValueChange: ({ value: newValue }) => {
       if (interactive && !isSilentChoiceReset(service.context)) {
         onChange?.(newValue)
@@ -386,7 +394,8 @@ export function Rating({
           isDisplay,
           labelText,
           ariaLabel,
-          ariaLabelledBy
+          ariaLabelledBy,
+          messages
         )}
         aria-describedby={describedBy}
         aria-errormessage={errorMessageId}
@@ -402,9 +411,10 @@ export function Rating({
           errorMessageId={errorMessageId}
           invalid={invalid}
           isDisplay={isDisplay}
+          itemValueText={messages.rating.itemValueText}
           showExactValue={readOnly}
           styles={styles}
-          translations={translations}
+          translations={zagTranslations}
         />
       </div>
       <span
@@ -457,17 +467,22 @@ function RatingLabel({
 function getRatingControlProps(
   api: RatingApi,
   isDisplay: boolean,
-  labelText?: string,
-  ariaLabel?: string,
-  ariaLabelledBy?: string
+  labelText: string | undefined,
+  ariaLabel: string | undefined,
+  ariaLabelledBy: string | undefined,
+  messages: UiMessages
 ): HTMLAttributes<HTMLDivElement> {
   if (isDisplay) {
     const label = labelText ?? ariaLabel
     return {
       role: "img",
       "aria-labelledby": ariaLabelledBy,
-      "aria-label": `${label ? `${label}: ` : ""}${Math.max(0, api.value)} out of ${api.count}`,
-      "aria-description": "Average rating",
+      "aria-label": messages.rating.valueText({
+        label,
+        value: Math.max(0, api.value),
+        count: api.count,
+      }),
+      "aria-description": messages.rating.averageDescription,
     }
   }
   const visibleLabelId =
@@ -475,7 +490,8 @@ function getRatingControlProps(
   return {
     ...api.getControlProps(),
     "aria-label":
-      ariaLabel ?? (labelText || ariaLabelledBy ? undefined : "Rating"),
+      ariaLabel ??
+      (labelText || ariaLabelledBy ? undefined : messages.rating.label),
     "aria-labelledby": ariaLabelledBy ?? visibleLabelId,
   }
 }
@@ -490,6 +506,7 @@ function RatingItems({
   errorMessageId,
   invalid,
   translations,
+  itemValueText,
 }: {
   api: ReturnType<typeof connect>
   dir: NonNullable<RatingProps["dir"]>
@@ -500,6 +517,7 @@ function RatingItems({
   errorMessageId?: string
   invalid: boolean
   translations?: IntlTranslations
+  itemValueText: (value: number) => string
 }) {
   return (
     <>
@@ -515,7 +533,7 @@ function RatingItems({
           tabIndex: itemProps["aria-disabled"] ? undefined : tabIndex,
           "aria-label": checked
             ? (translations?.ratingValueText?.(api.value) ??
-              `${api.value} stars`)
+              itemValueText(api.value))
             : itemProps["aria-label"],
         }
         return (

@@ -2,7 +2,7 @@
  * Tour — @techsio/ui-kit molecule.
  *
  * @component Tour
- * @componentVersion v1.0.10
+ * @componentVersion v1.1.0
  * @skill tour-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -37,6 +37,8 @@ import {
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import { BodyPortal as Portal } from "../internal/overlay-portal"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const tourStyles = tv({
@@ -103,6 +105,7 @@ export function Tour({
   steps,
   ...props
 }: TourRootProps) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const previousFocus = useRef<HTMLElement | null>(null)
   const effectCleanup = useRef<(() => void) | undefined>(undefined)
@@ -111,6 +114,10 @@ export function Tour({
     // Zag 1.43.3 unconditionally clears inert for existing targets and skips
     // late targets. Own both paths below so cleanup preserves application writes.
     preventInteraction: false,
+    translations: {
+      ...messages.tour.translations,
+      ...definedEntries(props.translations),
+    },
     getRootNode,
     id: id ?? generatedId,
     steps: steps.map(prepareStep),
@@ -434,11 +441,12 @@ Tour.Description = function TourDescription({
   ...props
 }: TourPartProps) {
   const api = useTourContext()
+  const messages = useUiMessages()
   return (
     // biome-ignore lint/a11y/useAriaPropsSupportedByRole: The default named group is keyboard-scrollable; callers can override its role.
     <div
       {...mergeProps(props, api.getDescriptionProps())}
-      aria-label={props["aria-label"] ?? "Tour guidance"}
+      aria-label={props["aria-label"] ?? messages.tour.guidance}
       className={tourStyles().description({ className })}
       ref={ref}
       role={props.role ?? "group"}
@@ -544,7 +552,8 @@ Tour.CloseTrigger = function TourCloseTrigger({
   return (
     <ActionIcon
       {...mergeProps(props, machineProps)}
-      aria-label={props["aria-label"] ?? machineLabel ?? "Close tour"}
+      // zag always names the close trigger; translate it with `translations.close`.
+      aria-label={props["aria-label"] ?? machineLabel ?? ""}
       className={tourStyles().closeTrigger({ className })}
       icon={icon}
       onClick={(event) => {

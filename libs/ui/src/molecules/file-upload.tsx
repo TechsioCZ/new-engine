@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.1.5
+ * @componentVersion v1.2.0
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -47,6 +47,8 @@ import {
 } from "../internal/described-by"
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const fileUploadStyles = tv({
@@ -207,6 +209,7 @@ export function FileUpload({
   validate,
   ...props
 }: FileUploadProps) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const probeRef = useRef<HTMLInputElement>(null)
   const [disabledElement, setDisabledElement] =
@@ -250,6 +253,7 @@ export function FileUpload({
     },
     []
   )
+  const processingFailed = messages.fileUpload.processingFailed
   // Override only the async acceptance action: the upstream action validates
   // before awaiting, then appends stale batches without checking current capacity.
   const coordinatedMachine = useMemo<FileUploadMachine>(() => {
@@ -423,9 +427,7 @@ export function FileUpload({
               })
               .catch(() => {
                 if (fresh()) {
-                  setProcessingError(
-                    "Files could not be processed. Choose the files again to retry."
-                  )
+                  setProcessingError(processingFailed)
                 }
               })
               .finally(() => {
@@ -439,7 +441,7 @@ export function FileUpload({
         },
       },
     }
-  }, [])
+  }, [processingFailed])
   const service = useMachine(coordinatedMachine, {
     accept,
     acceptedFiles,
@@ -486,7 +488,10 @@ export function FileUpload({
     readOnly,
     required,
     transformFiles,
-    translations,
+    translations: {
+      ...messages.fileUpload.translations,
+      ...definedEntries(translations),
+    },
     validate,
   })
   useLayoutEffect(() => {
@@ -542,11 +547,7 @@ export function FileUpload({
         ref={ref}
         tabIndex={readOnly && !disabled ? 0 : -1}
         {...rootProps}
-        aria-description={
-          readOnly
-            ? "Read-only files. Uploading and removing files is unavailable."
-            : undefined
-        }
+        aria-description={readOnly ? messages.fileUpload.readOnly : undefined}
         aria-disabled={disabled || undefined}
       >
         <input ref={disabledRef} type="hidden" />
@@ -624,6 +625,7 @@ FileUpload.Dropzone = function FileUploadDropzone({
     onKeyDown: onMachineKeyDown,
     ...machineDropzoneProps
   } = api.getDropzoneProps({ disableClick }) as ComponentPropsWithoutRef<"div">
+  const messages = useUiMessages()
   const dropzoneProps = mergeProps<ComponentPropsWithoutRef<"div">>(
     props,
     machineDropzoneProps,
@@ -632,7 +634,7 @@ FileUpload.Dropzone = function FileUploadDropzone({
       tabIndex: api.disabled ? undefined : 0,
       "aria-disabled": api.disabled || undefined,
       "aria-description": api.readOnly
-        ? "Read-only files. Uploading and removing files is unavailable."
+        ? messages.fileUpload.readOnly
         : undefined,
       "aria-describedby": joinDescribedBy(
         props["aria-describedby"],
@@ -1093,7 +1095,8 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
       tone="neutral"
       type="button"
       {...deleteProps}
-      aria-label={deleteProps["aria-label"] ?? `Delete file ${file.name}`}
+      // zag always names the delete trigger; translate it with `translations.deleteFile`.
+      aria-label={deleteProps["aria-label"] ?? ""}
     />
   )
 }
@@ -1101,7 +1104,7 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
 export type FileUploadClearTriggerProps = FileUploadActionIconProps
 
 FileUpload.ClearTrigger = function FileUploadClearTrigger({
-  "aria-label": ariaLabel = "Clear files",
+  "aria-label": ariaLabel,
   className,
   disabled,
   icon = "token-icon-file-upload-clear",
@@ -1110,6 +1113,7 @@ FileUpload.ClearTrigger = function FileUploadClearTrigger({
   ...props
 }: FileUploadClearTriggerProps) {
   const { api, styles, size } = useFileUploadContext()
+  const messages = useUiMessages()
   const {
     disabled: machineDisabled,
     onClick: onMachineClick,
@@ -1123,7 +1127,7 @@ FileUpload.ClearTrigger = function FileUploadClearTrigger({
 
   return (
     <ActionIcon
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? messages.fileUpload.clear}
       className={styles.clearTrigger({ className })}
       disabled={isDisabled}
       icon={icon}

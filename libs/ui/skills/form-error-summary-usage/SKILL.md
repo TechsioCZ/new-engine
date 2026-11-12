@@ -5,7 +5,7 @@ description: >
   for a focusable error summary that links to invalid fields, without depending
   on a specific form library.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.4.0
+ * @componentVersion v1.5.0
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -80,8 +80,11 @@ import {
   restoreFocusAfterOverlayClose,
 } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { definedEntries, enUiMessages } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
+// Drops undefined entries so a prop left unset does not hide the catalog's translation.
 export type DatePickerGranularity = "day" | "hour" | "minute" | "second"
 export type DatePickerSelectionMode = "single" | "range"
 export type DatePickerSize = "sm" | "md" | "lg"
@@ -110,7 +113,7 @@ export type DatePickerSegmentType =
  * announcements.
  */
 export type DatePickerTranslations = DatePickerIntlTranslations & {
-  /** Word the screen-reader announcement uses for an empty segment. Defaults to "Empty". */
+  /** Word the screen-reader announcement uses for an empty segment. Defaults to the UiMessagesProvider catalog's `datePicker.emptySegment` ("Empty" in English). */
   emptySegment?: string
   segmentLabels?: Partial<Record<DatePickerSegmentType, string>>
 }
@@ -231,21 +234,10 @@ type DatePickerLocalizedSegmentProps = {
   segmentLabels?: Partial<Record<DatePickerSegmentType, string>>
 }
 
-// zag's English segment names (SEGMENT_LABELS in @zag-js/date-input). Used when a segment has no
-// translation so the unlabelled announcement matches zag's own aria-label fallback.
-const DATE_PICKER_ENGLISH_SEGMENT_LABELS: Record<string, string> = {
-  era: "Era",
-  year: "Year",
-  month: "Month",
-  day: "Day",
-  hour: "Hour",
-  minute: "Minute",
-  second: "Second",
-  dayPeriod: "AM/PM",
-  timeZoneName: "Time zone",
-}
-
-/** @internal Screen-reader text for one segment change: "<segment name>, <value>". */
+/**
+ * @internal Screen-reader text for one segment change: "<segment name>, <value>".
+ * Names and the empty word fall back to the English catalog (zag's own names) when not given.
+ */
 export function formatDatePickerSegmentAnnouncement(
   segment: { type: string; text: string; isPlaceholder?: boolean },
   options: {
@@ -255,10 +247,10 @@ export function formatDatePickerSegmentAnnouncement(
 ) {
   const name =
     options.segmentLabels?.[segment.type as DatePickerSegmentType] ??
-    DATE_PICKER_ENGLISH_SEGMENT_LABELS[segment.type] ??
+    enUiMessages.datePicker.segments[segment.type as DatePickerSegmentType] ??
     segment.type
   const valueText = segment.isPlaceholder
-    ? (options.emptySegmentLabel ?? "Empty")
+    ? (options.emptySegmentLabel ?? enUiMessages.datePicker.emptySegment)
     : segment.text
   return `${name}, ${valueText}`
 }
@@ -751,7 +743,7 @@ export function DatePicker({
   invalid,
   isDateUnavailable,
   isTimeUnavailable,
-  locale = "en-US",
+  locale: explicitLocale,
   max: maximum,
   min: minimum,
   name,
@@ -777,8 +769,22 @@ export function DatePicker({
   value,
   ...htmlProps
 }: DatePickerRootProps) {
-  const { emptySegment, segmentLabels, ...pickerTranslations } =
-    translations ?? {}
+  const messages = useUiMessages()
+  const {
+    emptySegment: explicitEmptySegment,
+    segmentLabels: explicitSegmentLabels,
+    ...explicitPickerTranslations
+  } = translations ?? {}
+  const emptySegment = explicitEmptySegment ?? messages.datePicker.emptySegment
+  const segmentLabels = {
+    ...messages.datePicker.segments,
+    ...definedEntries(explicitSegmentLabels),
+  }
+  const pickerTranslations = {
+    ...messages.datePicker.translations,
+    ...definedEntries(explicitPickerTranslations),
+  }
+  const locale = explicitLocale ?? messages.locale ?? "en-US"
   const generatedId = useId()
   const uniqueId = id ?? generatedId
   const { rootElementRef, disabledProbeRef, rootRef, disabled, dir } =
@@ -1219,7 +1225,7 @@ export function DatePicker({
         !candidateAllowed(
           Array.isArray(candidate) && candidate.length === 0 ? null : candidate
         )
-        ? "Complete an available date and time."
+        ? messages.datePicker.unavailableValue
         : ""
     )
   })
@@ -1288,10 +1294,13 @@ export function DatePicker({
     (coordinator.draft?.candidate != null &&
       !candidateAllowed(coordinator.draft.candidate))
   let validationMessage = nativeInvalid
-    ? "Complete every date and time segment before submitting."
+    ? messages.datePicker.incompleteValue
     : undefined
   if (invalidCandidate) {
-    validationMessage = `Choose an available date and time${min ? ` on or after ${min.toString()}` : ""}${max ? ` on or before ${max.toString()}` : ""}.`
+    validationMessage = messages.datePicker.outOfRange({
+      min: min?.toString(),
+      max: max?.toString(),
+    })
   }
   const rootProps = mergeProps(htmlProps, pickerApi.getRootProps())
 
@@ -1453,7 +1462,7 @@ function DatePickerFormValue({
 
 export type DatePickerLabelProps = ComponentPropsWithoutRef<"label"> & {
   ref?: Ref<HTMLLabelElement>
-  /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to "(required)". */
+  /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to the UiMessagesProvider catalog's `label.required` ("(required)" in English). */
   requiredLabel?: string
 }
 
@@ -1566,12 +1575,15 @@ export type DatePickerSegmentsProps = Omit<
 
 DatePicker.Segments = function DatePickerSegments({
   className,
-  endLabel = "End",
+  endLabel: explicitEndLabel,
   ref,
   separator = "–",
-  startLabel = "Start",
+  startLabel: explicitStartLabel,
   ...props
 }: DatePickerSegmentsProps) {
+  const messages = useUiMessages()
+  const endLabel = explicitEndLabel ?? messages.datePicker.end
+  const startLabel = explicitStartLabel ?? messages.datePicker.start
   const {
     dateInputApi,
     locale,
@@ -2495,11 +2507,14 @@ export type DatePickerTimeControlProps = Omit<
 
 DatePicker.TimeControl = function DatePickerTimeControl({
   className,
-  endLabel = "End time",
+  endLabel: explicitEndLabel,
   ref,
-  startLabel = "Start time",
+  startLabel: explicitStartLabel,
   ...props
 }: DatePickerTimeControlProps) {
+  const messages = useUiMessages()
+  const endLabel = explicitEndLabel ?? messages.datePicker.endTime
+  const startLabel = explicitStartLabel ?? messages.datePicker.startTime
   const {
     coordinator,
     granularity,
@@ -2522,12 +2537,22 @@ DatePicker.TimeControl = function DatePickerTimeControl({
     label: string
     part: DatePickerDraftTimePart
   }> = [
-    { label: "Hour", part: "hour" },
+    { label: messages.datePicker.segments.hour, part: "hour" },
     ...(granularity === "minute" || granularity === "second"
-      ? [{ label: "Minute", part: "minute" as const }]
+      ? [
+          {
+            label: messages.datePicker.segments.minute,
+            part: "minute" as const,
+          },
+        ]
       : []),
     ...(granularity === "second"
-      ? [{ label: "Second", part: "second" as const }]
+      ? [
+          {
+            label: messages.datePicker.segments.second,
+            part: "second" as const,
+          },
+        ]
       : []),
   ]
   const draftValues = toDateValues(coordinator.draft?.candidate)
@@ -2649,12 +2674,14 @@ DatePicker.TimeControl = function DatePickerTimeControl({
           })}
           {hourCycle === 12 ? (
             <div className={styles.timeField()}>
-              <span className={styles.timeLabel()}>Day period</span>
+              <span className={styles.timeLabel()}>
+                {messages.datePicker.dayPeriod}
+              </span>
               <select
                 aria-label={
                   selectionMode === "range"
-                    ? `${accessibleLabel} day period`
-                    : "Day period"
+                    ? messages.datePicker.dayPeriodOf(accessibleLabel)
+                    : messages.datePicker.dayPeriod
                 }
                 className={styles.dayPeriod()}
                 disabled={isDisabled}
@@ -2669,8 +2696,8 @@ DatePicker.TimeControl = function DatePickerTimeControl({
                 value={timeParts.dayPeriod ?? ""}
               >
                 <option value="">--</option>
-                <option value="0">AM</option>
-                <option value="12">PM</option>
+                <option value="0">{messages.datePicker.am}</option>
+                <option value="12">{messages.datePicker.pm}</option>
               </select>
             </div>
           ) : null}
@@ -2690,7 +2717,9 @@ DatePicker.TimeControl = function DatePickerTimeControl({
       {...props}
       aria-label={
         props["aria-label"] ??
-        (selectionMode === "single" ? "Time" : "Start and end times")
+        (selectionMode === "single"
+          ? messages.datePicker.time
+          : messages.datePicker.startAndEndTimes)
       }
       className={styles.timeControl({ className })}
       data-granularity={granularity}
@@ -2701,7 +2730,10 @@ DatePicker.TimeControl = function DatePickerTimeControl({
       ref={ref}
       role="group"
     >
-      {renderTimeGroup(0, selectionMode === "range" ? startLabel : "Time")}
+      {renderTimeGroup(
+        0,
+        selectionMode === "range" ? startLabel : messages.datePicker.time
+      )}
       {selectionMode === "range" ? renderTimeGroup(1, endLabel) : null}
     </div>
   )
@@ -2734,7 +2766,7 @@ export type DatePickerCancelTriggerProps = ButtonProps & {
 }
 
 DatePicker.CancelTrigger = function DatePickerCancelTrigger({
-  children = "Cancel",
+  children: explicitChildren,
   className,
   onClick,
   ref,
@@ -2744,6 +2776,8 @@ DatePicker.CancelTrigger = function DatePickerCancelTrigger({
   variant = "secondary",
   ...props
 }: DatePickerCancelTriggerProps) {
+  const messages = useUiMessages()
+  const children = explicitChildren ?? messages.datePicker.cancel
   const { requestOpen, size, styles } = useDatePickerContext()
   const actionSize = sizeProp ?? (size === "lg" ? "md" : "sm")
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -2776,7 +2810,7 @@ export type DatePickerConfirmTriggerProps = ButtonProps & {
 }
 
 DatePicker.ConfirmTrigger = function DatePickerConfirmTrigger({
-  children = "Confirm",
+  children: explicitChildren,
   className,
   disabled,
   onClick,
@@ -2787,6 +2821,8 @@ DatePicker.ConfirmTrigger = function DatePickerConfirmTrigger({
   variant = "primary",
   ...props
 }: DatePickerConfirmTriggerProps) {
+  const messages = useUiMessages()
+  const children = explicitChildren ?? messages.datePicker.confirm
   const { canConfirm, size, styles, submitDraft } = useDatePickerContext()
   const actionSize = sizeProp ?? (size === "lg" ? "md" : "sm")
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {

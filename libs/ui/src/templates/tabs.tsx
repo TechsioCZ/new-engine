@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit template.
  *
  * @component Tabs
- * @componentVersion v1.2.4
+ * @componentVersion v1.3.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *

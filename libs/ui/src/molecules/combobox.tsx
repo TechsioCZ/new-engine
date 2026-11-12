@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.7.0
+ * @componentVersion v1.8.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -53,8 +53,11 @@ import {
 } from "../internal/form-control-lifecycle"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
+// Drops undefined entries so a prop left unset does not hide the catalog's translation.
 const comboboxVariants = tv({
   slots: {
     root: ["relative flex w-full flex-col"],
@@ -246,7 +249,7 @@ export type ComboboxProps<T = unknown> = VariantProps<typeof comboboxVariants> &
     disabled?: boolean
     readOnly?: boolean
     required?: boolean
-    /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to "(required)". */
+    /** Screen-reader text announced after the label when required. Pass a translation; "" omits it. Defaults to the UiMessagesProvider catalog's `label.required` ("(required)" in English). */
     requiredLabel?: string
     value?: string | string[]
     defaultValue?: string | string[]
@@ -462,6 +465,7 @@ function ComboboxClearTrigger<T>({
   clearIcon: IconType
   navigation: boolean
 }) {
+  const messages = useUiMessages()
   const hasValue = navigation ? Boolean(api.inputValue) : api.value.length > 0
   if (readOnly || !(clearable && hasValue)) {
     return null
@@ -472,7 +476,9 @@ function ComboboxClearTrigger<T>({
       size={size ?? "md"}
       tone="neutral"
       {...api.getClearTriggerProps()}
-      aria-label={api.getClearTriggerProps()["aria-label"] ?? "Clear value"}
+      aria-label={
+        api.getClearTriggerProps()["aria-label"] ?? messages.combobox.clear
+      }
       disabled={disabled || readOnly}
       hidden={false}
       onClick={(event) => {
@@ -559,7 +565,7 @@ export function Combobox<T = unknown>({
   "aria-describedby": ariaDescribedBy,
   label,
   size,
-  placeholder = "Select option",
+  placeholder,
   disabled: explicitDisabled = false,
   readOnly = false,
   required = false,
@@ -574,7 +580,7 @@ export function Combobox<T = unknown>({
   validateStatus,
   helpText,
   showHelpTextIcon = true,
-  noResultsMessage = 'No results found for "{inputValue}"',
+  noResultsMessage,
   clearable = true,
   selectionBehavior = "replace",
   closeOnSelect = true,
@@ -589,9 +595,9 @@ export function Combobox<T = unknown>({
   inputBehavior = "autocomplete",
   filterBehavior = "local",
   loading = false,
-  loadingMessage = "Loading results",
+  loadingMessage,
   error,
-  retryLabel = "Retry",
+  retryLabel,
   onRetry,
   renderItem,
   onChange,
@@ -608,6 +614,7 @@ export function Combobox<T = unknown>({
   className,
   ...rootProps
 }: ComboboxProps<T>) {
+  const messages = useUiMessages()
   const generatedId = useId()
   const uniqueId = id || generatedId
   const listId = `${uniqueId}-listbox`
@@ -803,7 +810,11 @@ export function Combobox<T = unknown>({
     readOnly,
     closeOnSelect,
     openOnClick,
-    translations,
+    translations: {
+      clearTriggerLabel: messages.combobox.clear,
+      ...messages.combobox.translations,
+      ...definedEntries(translations),
+    },
     selectionBehavior: navigation ? "preserve" : selectionBehavior,
     allowCustomValue: !navigation && allowCustomValue,
     autoFocus,
@@ -969,10 +980,15 @@ export function Combobox<T = unknown>({
   useEffect(() => {
     inputRef.current?.setCustomValidity(
       !navigation && required && api.value.length === 0
-        ? "Select an option from the suggestions."
+        ? messages.combobox.chooseSuggestion
         : ""
     )
-  }, [navigation, required, api.value.length])
+  }, [
+    navigation,
+    required,
+    api.value.length,
+    messages.combobox.chooseSuggestion,
+  ])
   const selectedText = api.value
     .map(
       (selectedValue) =>
@@ -1162,7 +1178,7 @@ export function Combobox<T = unknown>({
             }
             api.getInputProps().onKeyDown?.(event)
           }}
-          placeholder={placeholder}
+          placeholder={placeholder ?? messages.combobox.placeholder}
           readOnly={readOnly}
           ref={focusableRef}
           required={navigation && required}
@@ -1217,11 +1233,11 @@ export function Combobox<T = unknown>({
               disabled={disabled}
               error={error}
               inputValue={api.inputValue}
-              loadingMessage={loadingMessage}
-              noResultsMessage={noResultsMessage}
+              loadingMessage={loadingMessage ?? messages.combobox.loading}
+              noResultsMessage={noResultsMessage ?? messages.combobox.noResults}
               onRetry={onRetry}
               readOnly={readOnly}
-              retryLabel={retryLabel}
+              retryLabel={retryLabel ?? messages.combobox.retry}
               state={state}
               styles={styles}
             />
@@ -1256,9 +1272,12 @@ export function Combobox<T = unknown>({
       {multiple && !navigation && api.value.length > 0 && (
         <div>
           <StatusText className="sr-only" id={selectedTextId} size={size}>
-            Selected: {selectedText}
+            {messages.combobox.selectedStatus(selectedText)}
           </StatusText>
-          <ul aria-label="Selected values" className={styles.selectedList()}>
+          <ul
+            aria-label={messages.combobox.selectedValues}
+            className={styles.selectedList()}
+          >
             {api.value.map((selectedValue) => {
               const selectedLabel =
                 allItems.find((item) => item.value === selectedValue)?.label ??
@@ -1272,7 +1291,7 @@ export function Combobox<T = unknown>({
                   </span>
                   {!readOnly && (
                     <ActionIcon
-                      aria-label={`Remove ${selectedLabel}`}
+                      aria-label={messages.combobox.removeValue(selectedLabel)}
                       disabled={disabled}
                       icon="token-icon-combobox-clear"
                       onClick={() => {

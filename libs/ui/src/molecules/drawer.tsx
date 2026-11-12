@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.0.6
+ * @componentVersion v1.1.0
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -45,6 +45,7 @@ import {
   BodyPortal as Portal,
   restoreFocusAfterOverlayClose,
 } from "../internal/overlay-portal"
+import { useUiMessages } from "../messages/ui-messages-provider"
 
 export type {
   DrawerApi,
@@ -456,6 +457,7 @@ export type DrawerCloseTriggerProps =
 Drawer.CloseTrigger = function DrawerCloseTrigger(
   props: DrawerCloseTriggerProps
 ) {
+  const messages = useUiMessages()
   const { api, styles } = useDrawerContext()
   const { onClick: onMachineClick, ...machineProps } =
     api.getCloseTriggerProps()
@@ -477,7 +479,7 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
     return (
       <ActionIcon
         {...mergedProps}
-        aria-label={mergedProps["aria-label"] ?? "Close drawer"}
+        aria-label={mergedProps["aria-label"] ?? messages.drawer.close}
         className={styles.closeTrigger({ className: iconClassName })}
         icon={iconName}
         onClick={(event) => {

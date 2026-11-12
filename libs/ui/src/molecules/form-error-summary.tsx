@@ -2,7 +2,7 @@
  * FormErrorSummary — @techsio/ui-kit molecule.
  *
  * @component FormErrorSummary
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill form-error-summary-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,6 +10,7 @@
  * the form-error-summary-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { type Ref, useId } from "react"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 export type FormErrorSummaryError = {
@@ -50,13 +51,14 @@ const formErrorSummaryVariants = tv({
 })
 
 export function FormErrorSummary({
-  title = "There is a problem",
+  title,
   errors,
   onFieldFocus,
   revealField,
   className,
   ref,
 }: FormErrorSummaryProps) {
+  const messages = useUiMessages()
   const titleId = useId()
   if (errors.length === 0) {
     return null
@@ -73,7 +75,7 @@ export function FormErrorSummary({
       tabIndex={-1}
     >
       <h2 className={styles.title()} id={titleId}>
-        {title}
+        {title ?? messages.formErrorSummary.title}
       </h2>
       <ul className={styles.list()}>
         {errors.map((error) => (
