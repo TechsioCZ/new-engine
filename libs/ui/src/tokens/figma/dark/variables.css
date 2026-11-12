@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-11-09T14:11:31.661Z
+ * Exported at: 2026-11-12T09:50:49.615Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -476,6 +476,9 @@
   --spacing-command-item-gap: var(--spacing-popup-item-md);
   --spacing-command-list-max: var(--container-xs);
   --spacing-hotkeys-gap: var(--spacing-50);
+  --spacing-input-inline-lg: var(--spacing-150);
+  --spacing-input-inline-md: var(--spacing-150);
+  --spacing-input-inline-sm: var(--spacing-150);
   --text-2xl: 2.5rem;
   --text-2xl-max: var(--text-2xl);
   --text-2xl-min: 1.88rem;
