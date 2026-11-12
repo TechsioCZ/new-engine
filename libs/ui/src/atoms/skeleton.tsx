@@ -149,6 +149,7 @@ export function Skeleton({
   ...props
 }: SkeletonRootProps) {
   const styles = skeletonVariants({ variant, speed })
+  const messages = useUiMessages()
 
   return (
     <SkeletonContext.Provider value={{ isLoaded, variant, speed }}>
@@ -157,6 +158,7 @@ export function Skeleton({
       ) : (
         <div
           {...LOADING_STATUS_PROPS}
+          aria-label={messages.skeleton.loading}
           className={styles.root({ className })}
           ref={ref}
           {...props}

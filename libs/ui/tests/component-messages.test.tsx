@@ -268,4 +268,19 @@ describe("component messages", () => {
       document.querySelector('[aria-label="Další stránka"]')
     ).not.toBeNull()
   })
+
+  it("a Skeleton wrapping content names its loading status from the catalog", () => {
+    render(<Skeleton>content</Skeleton>)
+    expect(
+      document.querySelector('[role="status"][aria-label="Loading content"]')
+    ).not.toBeNull()
+    render(
+      <UiMessagesProvider messages={csCatalog}>
+        <Skeleton>obsah</Skeleton>
+      </UiMessagesProvider>
+    )
+    expect(
+      document.querySelector('[role="status"][aria-label="Načítání obsahu"]')
+    ).not.toBeNull()
+  })
 })
