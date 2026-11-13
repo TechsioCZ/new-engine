@@ -32,14 +32,14 @@ const SOLID_SEVERITY = {
 } as const
 
 const OUTLINE_BORDER = {
-  primary: "border-badge-border-primary",
-  secondary: "border-badge-border-secondary",
-  tertiary: "border-badge-border-tertiary",
-  discount: "border-badge-border-discount",
-  info: "border-badge-border-info",
-  success: "border-badge-border-success",
-  warning: "border-badge-border-warning",
-  danger: "border-badge-border-danger",
+  primary: "border-badge-border-outline-primary",
+  secondary: "border-badge-border-outline-secondary",
+  tertiary: "border-badge-border-outline-tertiary",
+  discount: "border-badge-border-outline-discount",
+  info: "border-badge-border-outline-info",
+  success: "border-badge-border-outline-success",
+  warning: "border-badge-border-outline-warning",
+  danger: "border-badge-border-outline-danger",
 } as const
 
 const badgeVariants = tv({

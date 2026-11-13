@@ -744,7 +744,6 @@ function ComponentComparison() {
                 count={stepsItems.length}
                 onStepChange={(details) => setCurrentStep(details.step)}
                 step={currentStep}
-                appearance="subtle"
               >
                 <Steps.List>
                   {stepsItems.map((item, index) => (
@@ -863,7 +862,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Table" bodyClassName="w-full">
             <div className="w-full overflow-x-auto">
-              <Table appearance="line">
+              <Table>
                 <Table.Caption>Product Inventory</Table.Caption>
                 <Table.Header>
                   <Table.Row>
@@ -977,7 +976,7 @@ function UIProviderPlayground() {
         <p className="text-fg-secondary text-sm">
           <strong className="text-fg-primary">UIProvider</strong> — every
           component below follows these values. Props set explicitly in the
-          page (Icon, Label, Image, Tabs line, Tooltip trigger) still win;
+          page (Icon, Label, Image, Tabs line, Tooltip trigger, the fixed sm / md rows) still win;
           unsupported values fall back to each component&apos;s default.
         </p>
         <PlaygroundChoice
