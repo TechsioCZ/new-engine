@@ -43,6 +43,11 @@ import { TreeView, type TreeNode } from '../../src/molecules/tree-view'
 import { Footer } from '../../src/organisms/footer'
 import { Header } from '../../src/organisms/header'
 import { Table } from '../../src/organisms/table'
+import {
+  type UIAppearance,
+  UIProvider,
+  type UISize,
+} from '../../src/theme/ui-provider'
 
 const meta: Meta = {
   title: 'Overview/Component Comparison',
@@ -336,8 +341,8 @@ function ComponentComparison() {
             <Badge severity="secondary">Beta</Badge>
           </ComponentCard>
           <ComponentCard title="Button">
-            <Button size="md">Primary</Button>
-            <Button size="md" severity="secondary">
+            <Button>Primary</Button>
+            <Button severity="secondary">
               Secondary
             </Button>
           </ComponentCard>
@@ -359,7 +364,7 @@ function ComponentComparison() {
             />
           </ComponentCard>
           <ComponentCard title="Input" bodyClassName="w-full max-w-xs">
-            <Input placeholder="Email address" size="md" />
+            <Input placeholder="Email address" />
           </ComponentCard>
           <ComponentCard title="Label">
             <Label required size="md">
@@ -368,7 +373,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="NumericInput" bodyClassName="w-full max-w-xs">
             <Label htmlFor={`${id}-quantity`} size="md">Order quantity</Label>
-            <NumericInput defaultValue={12} size="md">
+            <NumericInput defaultValue={12}>
               <NumericInput.Control>
                 <NumericInput.Input id={`${id}-quantity`} />
                 <NumericInput.TriggerContainer>
@@ -379,26 +384,26 @@ function ComponentComparison() {
             </NumericInput>
           </ComponentCard>
           <ComponentCard title="Rating">
-            <Rating defaultValue={4} size="md" />
+            <Rating defaultValue={4} />
           </ComponentCard>
           <ComponentCard title="Skeleton" bodyClassName="flex items-center gap-200">
-            <Skeleton.Circle size="md" />
+            <Skeleton.Circle />
             <Skeleton.Text
               containerClassName="w-full max-w-xs"
               noOfLines={2}
             />
           </ComponentCard>
           <ComponentCard title="StatusText">
-            <StatusText showIcon size="md" status="success">
+            <StatusText showIcon status="success">
               Saved successfully.
             </StatusText>
           </ComponentCard>
           <ComponentCard title="Textarea" bodyClassName="w-full max-w-xs">
-            <Textarea placeholder="Notes..." size="md" />
+            <Textarea placeholder="Notes..." />
           </ComponentCard>
           <ComponentCard title="Tooltip">
-            <Tooltip content="Tooltip content" size="md">
-              <Button size="md" appearance="ghost">
+            <Tooltip content="Tooltip content">
+              <Button appearance="ghost">
                 Hover
               </Button>
             </Tooltip>
@@ -524,7 +529,7 @@ function ComponentComparison() {
           gridClassName="grid grid-cols-1 gap-300 md:grid-cols-2 2xl:grid-cols-3"
         >
           <ComponentCard title="Accordion" bodyClassName="w-full max-w-sm">
-            <Accordion defaultValue={['item-1']} size="md">
+            <Accordion defaultValue={['item-1']}>
               <Accordion.Item value="item-1">
                 <Accordion.Header>
                   <Accordion.Title>First</Accordion.Title>
@@ -542,7 +547,7 @@ function ComponentComparison() {
             </Accordion>
           </ComponentCard>
           <ComponentCard title="Breadcrumb" bodyClassName="w-full">
-            <BreadcrumbTemplate items={breadcrumbItems} size="md" />
+            <BreadcrumbTemplate items={breadcrumbItems} />
           </ComponentCard>
           <ComponentCard
             title="Carousel"
@@ -554,7 +559,6 @@ function ComponentComparison() {
                 aria-label="Landscape photos"
                 aspectRatio="landscape"
                 className="w-full min-w-0"
-                size="md"
                 slideCount={carouselSlides.length}
               >
                 <Carousel.Slides
@@ -573,7 +577,7 @@ function ComponentComparison() {
             </div>
           </ComponentCard>
           <ComponentCard title="ColorSelect">
-            <ColorSelect colors={colorOptions} layout="grid" size="md" />
+            <ColorSelect colors={colorOptions} layout="grid" />
           </ComponentCard>
           <ComponentCard title="Combobox" bodyClassName="w-full max-w-xs">
             <Combobox
@@ -581,14 +585,12 @@ function ComponentComparison() {
               items={comboboxItems}
               label="Fruit"
               placeholder="Pick a fruit"
-              size="md"
             />
           </ComponentCard>
           <ComponentCard title="Dialog">
             <Dialog
-              actions={<Button size="md">Done</Button>}
+              actions={<Button>Done</Button>}
               description="Short dialog description."
-              size="md"
               title="Dialog title"
               triggerText="Open dialog"
             >
@@ -598,14 +600,13 @@ function ComponentComparison() {
             </Dialog>
           </ComponentCard>
           <ComponentCard title="FormCheckbox">
-            <FormCheckbox label="Accept terms" size="md" />
+            <FormCheckbox label="Accept terms" />
           </ComponentCard>
           <ComponentCard title="FormInput" bodyClassName="w-full max-w-xs">
             <FormInput
               id="audit-form-input"
               label="Email"
               placeholder="name@domain.com"
-              size="md"
             />
           </ComponentCard>
           <ComponentCard
@@ -616,7 +617,6 @@ function ComponentComparison() {
               defaultValue={2}
               id="audit-form-numeric"
               label="Quantity"
-              size="md"
             >
               <NumericInput.Control>
                 <NumericInput.Input />
@@ -635,11 +635,10 @@ function ComponentComparison() {
               id="audit-form-textarea"
               label="Message"
               placeholder="Write a short note..."
-              size="md"
             />
           </ComponentCard>
           <ComponentCard title="Menu">
-            <Menu items={menuItems} size="md" triggerText="Actions" />
+            <Menu items={menuItems} triggerText="Actions" />
           </ComponentCard>
           <ComponentCard title="Pagination" bodyClassName="w-full overflow-x-auto">
             <Pagination
@@ -649,11 +648,10 @@ function ComponentComparison() {
                 `#component-pagination?page=${page}&pageSize=${pageSize}`
               }
               pageSize={1}
-              size="md"
             />
           </ComponentCard>
           <ComponentCard title="Popover">
-            <Popover.Root id="popover" size="md">
+            <Popover.Root id="popover">
               <Popover.Trigger>Details</Popover.Trigger>
               <Popover.Positioner>
                 <Popover.Content>
@@ -695,7 +693,7 @@ function ComponentComparison() {
             </div>
           </ComponentCard>
           <ComponentCard title="SearchForm" bodyClassName="w-full max-w-sm">
-            <SearchForm defaultValue="Query" size="md">
+            <SearchForm defaultValue="Query">
               <SearchForm.Label>Search</SearchForm.Label>
               <SearchForm.Control>
                 <SearchForm.Input placeholder="Search..." />
@@ -705,7 +703,7 @@ function ComponentComparison() {
             </SearchForm>
           </ComponentCard>
           <ComponentCard title="Select" bodyClassName="w-full max-w-xs">
-            <Select defaultValue={['us']} items={selectItems} size="md">
+            <Select defaultValue={['us']} items={selectItems}>
               <Select.Label>Country</Select.Label>
               <Select.Control>
                 <Select.Trigger>
@@ -733,7 +731,6 @@ function ComponentComparison() {
                 id="audit-slider"
                 label="Volume"
                 showValueText
-                size="md"
               />
             </div>
           </ComponentCard>
@@ -746,7 +743,6 @@ function ComponentComparison() {
               <Steps
                 count={stepsItems.length}
                 onStepChange={(details) => setCurrentStep(details.step)}
-                size="md"
                 step={currentStep}
                 appearance="subtle"
               >
@@ -785,7 +781,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Tabs" className="md:col-span-2" bodyClassName="w-full">
             <div className="w-full max-w-md">
-              <Tabs defaultValue="overview" size="md" appearance="line" fitted>
+              <Tabs defaultValue="overview" appearance="line" fitted>
                 <Tabs.List>
                   {tabsItems.map((tab) => (
                     <Tabs.Trigger key={tab.value} value={tab.value}>
@@ -806,7 +802,7 @@ function ComponentComparison() {
             <ToastPreview />
           </ComponentCard>
           <ComponentCard title="TreeView" bodyClassName="w-full">
-            <TreeView className="w-full max-w-sm p-200" data={treeData} size="md">
+            <TreeView className="w-full max-w-sm p-200" data={treeData}>
               <TreeView.Label>Project Files</TreeView.Label>
               <TreeView.Tree>
                 {treeData.map((node, index) => (
@@ -834,7 +830,7 @@ function ComponentComparison() {
                 </Header.Nav>
                 <Header.Actions>
                   <Header.ActionItem>
-                    <Button size="md" unstyled>
+                    <Button unstyled>
                       Sign in
                     </Button>
                   </Header.ActionItem>
@@ -923,6 +919,104 @@ export const SideBySide: Story = {
   },
 }
 
+
+const PLAYGROUND_SIZES = ['default', 'sm', 'md', 'lg'] as const
+const PLAYGROUND_APPEARANCES = [
+  'default',
+  'solid',
+  'subtle',
+  'outline',
+  'ghost',
+  'plain',
+] as const
+
+function PlaygroundChoice<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: readonly T[]
+  value: T
+  onChange: (value: T) => void
+}) {
+  return (
+    <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-100 border-0 p-0">
+      <legend className="float-left w-2xs text-fg-secondary text-sm">
+        {label}
+      </legend>
+      {options.map((option) => (
+        <Button
+          appearance={option === value ? 'solid' : 'outline'}
+          aria-pressed={option === value}
+          key={option}
+          onClick={() => onChange(option)}
+          severity="secondary"
+          size="sm"
+        >
+          {option === 'default' ? 'Component default' : option}
+        </Button>
+      ))}
+    </fieldset>
+  )
+}
+
+/** Every component on one page under a UIProvider you control from the bar. */
+function UIProviderPlayground() {
+  const [size, setSize] =
+    useState<(typeof PLAYGROUND_SIZES)[number]>('default')
+  const [appearance, setAppearance] =
+    useState<(typeof PLAYGROUND_APPEARANCES)[number]>('default')
+  return (
+    <>
+      <section
+        aria-label="UIProvider settings"
+        className="sticky top-0 z-10 flex flex-col gap-200 border-border-secondary border-b bg-surface p-300"
+      >
+        <p className="text-fg-secondary text-sm">
+          <strong className="text-fg-primary">UIProvider</strong> — every
+          component below follows these values. Props set explicitly in the
+          page (Icon, Label, Image, Tabs line, Tooltip trigger) still win;
+          unsupported values fall back to each component&apos;s default.
+        </p>
+        <PlaygroundChoice
+          label="Size"
+          onChange={setSize}
+          options={PLAYGROUND_SIZES}
+          value={size}
+        />
+        <PlaygroundChoice
+          label="Appearance"
+          onChange={setAppearance}
+          options={PLAYGROUND_APPEARANCES}
+          value={appearance}
+        />
+      </section>
+      <UIProvider
+        appearance={
+          appearance === 'default' ? undefined : (appearance as UIAppearance)
+        }
+        size={size === 'default' ? undefined : (size as UISize)}
+      >
+        <ComponentComparison />
+      </UIProvider>
+    </>
+  )
+}
+
+export const UIProviderSettings: Story = {
+  name: 'UIProvider Playground',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'All components on one page inside a UIProvider. Switch the global size and appearance in the bar to see which components follow and which keep their own default.',
+      },
+    },
+  },
+  render: () => <UIProviderPlayground />,
+}
 
 export const NestedFormPopup: Story = {
   parameters: { docs: { description: { story: "An editable delivery reference inside a nested popover checks opaque surfaces, managed stacking, popup-first Escape dismissal and focus restoration in the active brand." } } },
