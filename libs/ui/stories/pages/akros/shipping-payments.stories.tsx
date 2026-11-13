@@ -200,10 +200,10 @@ function ShippingEditor({
     <Dialog
       actions={
         <>
-          <Button onClick={onClose} theme="outlined" variant="secondary">
+          <Button onClick={onClose} appearance="outline" severity="secondary">
             Cancel
           </Button>
-          <Button onClick={save} variant="primary">
+          <Button onClick={save} severity="primary">
             Save method
           </Button>
         </>
@@ -544,7 +544,7 @@ function ShippingPaymentsPage({
           {configError}
         </StatusText>
       )}
-      <Tabs defaultValue={initialTab} variant="line">
+      <Tabs defaultValue={initialTab} appearance="line">
         <Tabs.List>
           <Tabs.Trigger value="shipping">Shipping</Tabs.Trigger>
           <Tabs.Trigger value="payment">Payment</Tabs.Trigger>
@@ -598,7 +598,7 @@ function ShippingPaymentsPage({
               tabIndex={0}
               className="min-w-0 max-w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-focus-ring"
             >
-              <Table className="min-w-3xl whitespace-nowrap" size="sm" variant="line">
+              <Table className="min-w-3xl whitespace-nowrap" size="sm" appearance="line">
                 <Table.Header>
                   <Table.Row>
                     <Table.ColumnHeader>Shipping</Table.ColumnHeader>
@@ -616,7 +616,7 @@ function ShippingPaymentsPage({
                         <span className="flex items-center gap-100">
                           {method.name}
                           {!method.enabled && (
-                            <Badge size="sm" variant="outline">
+                            <Badge size="sm" appearance="outline" severity="neutral">
                               Off
                             </Badge>
                           )}

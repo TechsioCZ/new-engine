@@ -98,12 +98,13 @@ Use `tv()` for styling. No state machine needed.
 ```tsx
 import type { ButtonHTMLAttributes, Ref } from 'react'
 import type { VariantProps } from 'tailwind-variants'
+import { useUIDefaults } from '../theme/ui-provider'
 import { tv } from '../utils'
 
 const buttonVariants = tv({
   base: 'inline-flex items-center justify-center',
   variants: {
-    variant: {
+    severity: {
       primary: 'bg-button-bg-primary text-button-fg-primary',
       secondary: 'bg-button-bg-secondary text-button-fg-secondary',
     },
@@ -112,7 +113,7 @@ const buttonVariants = tv({
       md: 'h-button-md px-button-md text-button-md',
     },
   },
-  defaultVariants: { variant: 'primary', size: 'md' },
+  defaultVariants: { severity: 'primary', size: 'md' },
 })
 
 type ButtonVariants = VariantProps<typeof buttonVariants>
@@ -120,12 +121,30 @@ type ButtonVariants = VariantProps<typeof buttonVariants>
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   ButtonVariants & { ref?: Ref<HTMLButtonElement> }
 
-export function Button({ variant, size, className, ref, ...props }: ButtonProps) {
+export function Button({ severity, size: sizeProp, className, ref, ...props }: ButtonProps) {
+  // Prop → nearest UIProvider → defaultVariants.
+  const { size } = useUIDefaults('Button', { size: sizeProp }, buttonVariants)
   return (
-    <button ref={ref} className={buttonVariants({ variant, size, className })} {...props} />
+    <button ref={ref} className={buttonVariants({ severity, size, className })} {...props} />
   )
 }
 ```
+
+### Style prop names (locked)
+
+Every component uses the same prop name for the same visual axis:
+
+| Prop | Meaning | Values |
+|---|---|---|
+| `appearance` | fill style | `solid` · `subtle` · `outline` · `ghost` (no frame: actions get a hover surface, containers such as Accordion/Textarea drop their border) · `plain` (Breadcrumb, VerticalNavigation surfaces) (+ structural extras a component owns: `line`, `underline`, `striped`) |
+| `severity` | color intent | `primary` · `secondary` · `tertiary` · `neutral` · `info` · `success` · `warning` · `danger` · `discount` |
+| `validateStatus` | validation state | `default` · `error` · `success` · `warning` |
+| `size` | size scale only | the component's subset of `xs`…`2xl`, plus `full` / `current` |
+
+- Never use `variant`, `theme`, `tone` or `color` for these axes. `theme` is reserved for brand × mode theming.
+- Resolve `size` / `appearance` with `useUIDefaults` in the root component and register the name in `UIComponentName` (`src/theme/ui-provider.tsx`). `UIProvider` (and `AppThemeProvider`, with a `size="md" appearance="solid"` baseline plus brand `defaults`) then sets them globally; an explicit prop always wins and unsupported values fall back to the component default.
+- A size that is not on the scale gets its own name (`Sidebar.Pane` `paneSize`).
+- When a component renders `Icon` / `Label` inside itself, pass `size="current"` so a global size never resizes nested glyphs.
 
 ### Interactive Components (Zag.js)
 

@@ -36,14 +36,14 @@ const meta: Meta<typeof Button> = {
   component: Button,
   tags: ["autodocs"],
   argTypes: {
-    variant: {
+    severity: {
       control: "select",
       options: ["primary", "secondary", "tertiary", "warning", "danger"],
     },
     disabled: { control: "boolean" },
   },
   args: {
-    variant: "primary",
+    severity: "primary",
     disabled: false,
     children: "Button",
     onClick: fn(),
@@ -79,9 +79,9 @@ Include a section only when the component supports it.
 
 ```tsx
 argTypes: {
-  theme: {
+  appearance: {
     control: "select",
-    options: ["solid", "light", "outlined", "borderless", "unstyled"],
+    options: ["solid", "subtle", "outline", "ghost"],
   },
 }
 ```
@@ -94,7 +94,7 @@ or callbacks with no visible effect.
 ```tsx
 <VariantGroup title="Disabled states">
   <Button disabled>Disabled</Button>
-  <Button theme="outlined" disabled>Outlined</Button>
+  <Button appearance="outline" disabled>Outlined</Button>
 </VariantGroup>
 ```
 
@@ -150,7 +150,7 @@ Wrong:
 
 ```tsx
 export const Default: Story = {
-  render: () => <Button variant="primary">Button</Button>,
+  render: () => <Button severity="primary">Button</Button>,
 }
 ```
 
@@ -158,7 +158,7 @@ Correct:
 
 ```tsx
 export const Playground: Story = {
-  args: { variant: "primary", children: "Button" },
+  args: { severity: "primary", children: "Button" },
   render: (args) => <Button {...args} />,
 }
 ```
@@ -205,7 +205,7 @@ Correct:
 
 ```tsx
 argTypes: {
-  variant: { control: "select", options: ["primary", "danger"] },
+  severity: { control: "select", options: ["primary", "danger"] },
   disabled: { control: "boolean" },
 }
 ```

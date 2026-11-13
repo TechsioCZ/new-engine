@@ -131,7 +131,7 @@ Three parts, in this order: **what happened**, **why** (if known), **what to do*
 Use one word per state across the product and map it to the same Badge
 variant everywhere:
 
-| Meaning | Word | Badge `variant` |
+| Meaning | Word | Badge `severity` |
 | --- | --- | --- |
 | Visible / completed successfully | `Active`, `Published`, `Paid` | `success` |
 | Done, informational | `Fulfilled`, `Shipped` | `info` |

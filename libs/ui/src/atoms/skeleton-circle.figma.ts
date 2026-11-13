@@ -4,7 +4,8 @@
 
 import figma from "figma"
 
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names the property variant; code reads severity.
+const severity = figma.selectedInstance.getEnum("variant", {
   primary: "primary",
   secondary: "secondary",
 })
@@ -33,7 +34,7 @@ export default {
   )}${figma.helpers.react.renderProp(
     "speed",
     speed
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("severity", severity)}>
           <div className="size-16 rounded-full ${placeholderBgClass}"/>
         </Skeleton.Circle>`,
   metadata: { nestable: false },

@@ -657,7 +657,7 @@ export const ReadOnlyTransition: Story = {
     const [query, setQuery] = useState("Czech Republic")
     return (
       <form className="mx-auto grid w-full max-w-sm gap-150" aria-label="Saved delivery countries" onSubmit={(event) => event.preventDefault()}>
-        <Button variant="secondary" onPointerDown={(event) => event.preventDefault()} onClick={() => setReadOnly((current) => !current)}>{readOnly ? "Unlock countries" : "Lock countries"}</Button>
+        <Button severity="secondary" onPointerDown={(event) => event.preventDefault()} onClick={() => setReadOnly((current) => !current)}>{readOnly ? "Unlock countries" : "Lock countries"}</Button>
         <Combobox inputBehavior="none" items={countries} label="Delivery country" name="country" defaultValue="cz" readOnly={readOnly} />
         <Combobox inputBehavior="none" items={countries} label="Controlled delivery country" name="controlledCountry" value="cz" inputValue={query} onInputValueChange={setQuery} readOnly={readOnly} />
       </form>
@@ -733,7 +733,7 @@ function IntegratedMultiple() {
     <Combobox label="Delivery countries" items={countries} multiple value={values}
       onChange={setValues} selectionBehavior="clear" ref={input}
       inputProps={{ onBlur: () => setBlurred(true), "aria-describedby": "selection-external-hint" }} />
-    <Button variant="secondary" onClick={() => input.current?.focus()}>Focus countries</Button>
+    <Button severity="secondary" onClick={() => input.current?.focus()}>Focus countries</Button>
     <output aria-label="Touched field">{blurred ? "Touched" : "Untouched"}</output>
   </div>
 }
@@ -773,7 +773,7 @@ function FocusableRefLifecycle() {
   })
   return <div className="flex flex-col gap-200">
     {mounted && <Combobox label="Registered country" items={countries} ref={inputRef} />}
-    <Button variant="secondary" onClick={() => setMounted((next) => !next)}>{mounted ? "Hide field" : "Show field"}</Button>
+    <Button severity="secondary" onClick={() => setMounted((next) => !next)}>{mounted ? "Hide field" : "Show field"}</Button>
     <output aria-label="Ref lifecycle">{mounts} mounts, {cleanups} cleanups</output>
   </div>
 }
@@ -838,8 +838,8 @@ function ResetAuthorityCountries() {
       <Combobox items={countries} label="Initial country query" name="initial" defaultValue="cz" defaultInputValue="Seed" inputBehavior="none" />
       <Combobox items={countries} label="Saved country" name="saved" value={savedCountry} inputBehavior="none" />
       <Combobox items={countries} label="Authoritative query" name="query" value={savedCountry} inputValue="Parent query" inputBehavior="none" />
-      <Button theme="outlined" onClick={() => setSavedCountry((current) => current === "de" ? "cz" : "de")}>Change saved country</Button>
-      <Button theme="outlined" type="reset">Reset country fields</Button>
+      <Button appearance="outline" onClick={() => setSavedCountry((current) => current === "de" ? "cz" : "de")}>Change saved country</Button>
+      <Button appearance="outline" type="reset">Reset country fields</Button>
     </form>
   )
 }

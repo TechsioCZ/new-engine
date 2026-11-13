@@ -69,7 +69,7 @@ function SignInForm({ error = false }: { error?: boolean }) {
           contacted.
         </StatusText>
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             setSignedIn(false)
             setPassword("")
@@ -154,7 +154,7 @@ function SignInForm({ error = false }: { error?: boolean }) {
             </Link>
           </div>
         )}
-        <Button block type="submit" variant="primary">
+        <Button block type="submit" severity="primary">
           {recovery ? "Show demo recovery instructions" : "Sign in"}
         </Button>
       </form>
@@ -166,8 +166,8 @@ function SignInForm({ error = false }: { error?: boolean }) {
       )}
       {recovery ? (
         <Button
-          variant="secondary"
-          theme="outlined"
+          severity="secondary"
+          appearance="outline"
           onClick={() => {
             setRecovery(false)
             setRecoveryRequested(false)
@@ -178,8 +178,8 @@ function SignInForm({ error = false }: { error?: boolean }) {
         </Button>
       ) : (
         <Button
-          variant="secondary"
-          theme="outlined"
+          severity="secondary"
+          appearance="outline"
           onClick={() => {
             setRecovery(true)
             setRecoveryRequested(false)
@@ -339,7 +339,7 @@ export const TwoFactor: Story = {
               verified || (recovery ? !code.trim() : !/^\d{6}$/.test(code))
             }
             type="submit"
-            variant="primary"
+            severity="primary"
           >
             {verified ? "Demo verified" : "Verify"}
           </Button>
@@ -362,8 +362,8 @@ export const TwoFactor: Story = {
                 setVerified(false)
               }}
               size="sm"
-              theme="borderless"
-              variant="secondary"
+              appearance="ghost"
+              severity="secondary"
             >
               {recovery ? "Use authenticator code" : "Use a recovery code"}
             </Button>
@@ -375,8 +375,8 @@ export const TwoFactor: Story = {
                 setVerified(false)
               }}
               size="sm"
-              theme="borderless"
-              variant="secondary"
+              appearance="ghost"
+              severity="secondary"
             >
               Reset demo code
             </Button>
@@ -403,7 +403,7 @@ export const Split: Story = {
       <section className="hidden w-1/2 flex-col justify-between bg-surface p-350 lg:flex">
         <Brand environment="Admin" />
         <div className="flex flex-col gap-200">
-          <Badge size="sm" variant="outline">
+          <Badge size="sm" appearance="outline" severity="neutral">
             Release 2026.9
           </Badge>
           <h2 className="max-w-prose font-semibold text-2xl">

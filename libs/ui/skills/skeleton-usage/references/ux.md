@@ -32,7 +32,7 @@ that content will have. It exists only while the app is really waiting.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=primary` / `secondary` | `variant="primary" \| "secondary"` | Placeholder tone, for contrast with the surface. No meaning. |
+| `variant=primary` / `secondary` | `severity="primary" \| "secondary"` | Placeholder tone, for contrast with the surface. No meaning. |
 | `speed=slow` / `normal` / `fast` | `speed="slow" \| "normal" \| "fast"` | Pulse tempo only. It never conveys progress or time left. |
 | Circle `size=sm` … `xl` | `Skeleton.Circle size` | Circle diameter. `xl` is a legacy media size. |
 | Text `size=sm` … `xl` | `Skeleton.Text size` | Gap between lines. |

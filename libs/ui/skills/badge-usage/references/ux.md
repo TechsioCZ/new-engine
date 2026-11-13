@@ -36,14 +36,14 @@ identity; it is not a form part or a confirmation.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=info` | `variant="info"` (default) | Neutral supporting information. |
-| `variant=success` | `variant="success"` | A favourable or completed state, said in the text. |
-| `variant=warning` | `variant="warning"` | A limitation or something needing attention, said in the text. |
-| `variant=danger` | `variant="danger"` | Failed, blocked or ended badly (`Failed`, `Out of stock`). Not just "red". |
-| `variant=discount` | `variant="discount"` | Only for a documented price reduction. Never a buy action. |
-| `variant=outline` | `variant="outline"` | Low emphasis: not visible yet or retired (`Draft`, `Archived`). |
-| `variant=primary` / `secondary` / `tertiary` | same values | Brand emphasis for categories or flags. Style only; no data state. |
-| — | `variant="dynamic"` + `bgColor`, `fgColor`, `borderColor` | Escape hatch for runtime colours (swatches). Text stays readable and meaningful. |
+| `variant=info` | `severity="info"` (default) | Neutral supporting information. |
+| `variant=success` | `severity="success"` | A favourable or completed state, said in the text. |
+| `variant=warning` | `severity="warning"` | A limitation or something needing attention, said in the text. |
+| `variant=danger` | `severity="danger"` | Failed, blocked or ended badly (`Failed`, `Out of stock`). Not just "red". |
+| `variant=discount` | `severity="discount"` | Only for a documented price reduction. Never a buy action. |
+| `variant=outline` | `appearance="outline" severity="neutral"` | Low emphasis: not visible yet or retired (`Draft`, `Archived`). |
+| `variant=primary` / `secondary` / `tertiary` | `severity` (same values) | Brand emphasis for categories or flags. Style only; no data state. |
+| — | `severity="custom"` + `bgColor`, `fgColor`, `borderColor` | Escape hatch for runtime colours (swatches). Text stays readable and meaningful. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. `md` is the default. |
 | `size=xl` | `size="xl"` | Display composition only, not a fourth control size. |
 

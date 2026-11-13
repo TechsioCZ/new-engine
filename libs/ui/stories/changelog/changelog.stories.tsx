@@ -13,6 +13,192 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### UIProvider v1.0.0
+- New: \`@techsio/ui-kit/theme/ui-provider\` (\`UIProvider\`, \`useUIDefaults\`). Set one \`size\` and one \`appearance\` (\`solid\` · \`subtle\` · \`outline\` · \`ghost\` · \`plain\`) for every component, refine per component with \`components={{ Button: { appearance: "ghost" } }}\`, and nest providers for local sections. Resolution: prop → nearest provider's component map → its global value → parent providers → the component's own default; a value a component does not support is skipped. \`AppThemeProvider\` places a root provider with the \`size="md" appearance="solid"\` baseline merged with the active brand's optional \`defaults\`. Prop names are now one meaning each: \`appearance\` = fill style, \`severity\` = color, \`validateStatus\` = validation, \`size\` = size scale. Migrate with \`node libs/ui/codemods/unified-style-props/index.mjs <paths>\`.
+
+### Accordion v2.0.0
+- **Breaking:** \`variant\` → \`appearance\`: \`default\` → \`outline\`, \`borderless\` → \`ghost\`; \`variant="child"\` → \`appearance="ghost" nested\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### ActionIcon v2.0.0
+- **Breaking:** \`tone\` → \`severity\` (same values). Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### AvailabilityStatus v1.0.2
+- The status glyph keeps \`size="current"\` under a \`UIProvider\` size.
+
+### Badge v2.0.0
+- **Breaking:** \`variant\` splits into \`severity\` (\`primary\` … \`danger\`, \`discount\`, plus \`neutral\`) and \`appearance\` (\`solid\` | \`outline\`). \`variant="outline"\` → \`appearance="outline" severity="neutral"\`; \`variant="dynamic"\` → \`severity="custom"\`. An outline badge with a severity now draws a colored border. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Breadcrumb v2.0.0
+- **Breaking:** \`variant\` → \`appearance\` (\`plain\` | \`underline\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Button v1.0.0
+- **Breaking:** \`variant\` → \`severity\` (same values) and \`theme\` → \`appearance\`: \`solid\`, \`light\` → \`subtle\`, \`outlined\` → \`outline\`, \`borderless\` → \`ghost\`; \`theme="unstyled"\` → the boolean \`unstyled\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Carousel v1.5.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### CascadeSelect v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Checkbox v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### ColorSelect v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Combobox v1.9.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Command v2.0.0
+- **Breaking:** \`Command.Input\` forwards Input's \`validateStatus\` instead of the validation \`variant\`.
+
+### DataTable v2.0.0
+- **Breaking:** \`variant\` → \`appearance\`; row actions \`tone\` → \`severity\`; toolbar actions take Button's \`severity\` / \`appearance\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### DatePicker v2.0.0
+- **Breaking:** trigger parts take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Dialog v1.4.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Drawer v2.0.0
+- **Breaking:** \`Drawer.Trigger\` / \`Drawer.CloseTrigger\` take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`; \`CloseTrigger\` \`tone\` → \`severity\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### FacetFilterPanel v1.4.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Its nested accordion uses \`appearance="ghost" nested\`.
+
+### FileUpload v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Footer v1.2.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### FormCheckbox v1.4.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### FormInput v2.0.0
+- **Breaking:** Input's validation \`variant\` prop is now \`validateStatus\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### FormNumericInput v1.4.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### FormTextarea v2.0.0
+- **Breaking:** Textarea's validation \`variant\` prop is now \`validateStatus\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Gallery v1.2.1
+- Internal triggers use the renamed Button props.
+
+### Header v2.0.0
+- **Breaking:** Header triggers take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Hotkeys v1.2.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Icon v2.0.0
+- **Breaking:** \`color\` → \`severity\` (same values). \`size\` follows the nearest \`UIProvider\`; glyphs placed by other components keep \`size="current"\`.
+
+### Image v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Input v2.0.0
+- **Breaking:** the validation \`variant\` → \`validateStatus\` (\`default\` | \`error\` | \`success\` | \`warning\`), matching every form molecule. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Label v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### LineItem v2.0.0
+- **Breaking:** \`LineItem.Remove\` takes Button's \`appearance\` (default \`ghost\`) instead of \`theme\`.
+
+### Link v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### LinkButton v2.0.0
+- **Breaking:** same renames as Button — \`variant\` → \`severity\`, \`theme\` → \`appearance\` (\`subtle\` / \`outline\` / \`ghost\`), \`theme="unstyled"\` → \`unstyled\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Menu v1.5.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Item glyphs keep \`size="current"\`.
+
+### NumericInput v2.0.0
+- **Breaking:** \`IncrementTrigger\` / \`DecrementTrigger\` take \`severity\` / \`appearance\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Pagination v2.0.0
+- **Breaking:** \`variant\` → \`appearance\`: \`filled\` → \`solid\`, \`outlined\` → \`outline\`, \`minimal\` → \`ghost\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### PhoneInput v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Popover v2.0.0
+- **Breaking:** \`Popover.Trigger\` / \`Popover.CloseTrigger\` take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### PriceBlock v1.0.2
+- Internal discount badge uses Badge \`severity\`.
+
+### ProductCard v2.0.0
+- **Breaking:** \`ProductCard.Button\` \`buttonVariant\` → \`action\` (\`cart\` | \`detail\` | \`wishlist\` | \`custom\`); badges take Badge's \`severity\`.
+
+### QuantityField v1.2.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### RadioCard v2.0.0
+- **Breaking:** \`variant\` → \`appearance\` (\`outline\` | \`subtle\` | \`solid\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### RadioGroup v2.0.0
+- **Breaking:** \`variant\` → \`appearance\` (\`outline\` | \`subtle\` | \`solid\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Rating v1.5.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### SearchForm v2.0.0
+- **Breaking:** \`SearchForm.Button\` takes Button's \`severity\` / \`appearance\`; the clear trigger \`tone\` → \`severity\`; the control forwards \`validateStatus\` to Input. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Select v1.5.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Sidebar v2.0.0
+- **Breaking:** \`Sidebar.Pane\` \`size\` → \`paneSize\` (\`rail\` | \`content\` | \`auto\`); \`Sidebar.CloseTrigger\` \`tone\` → \`severity\` and its size follows the nearest \`UIProvider\`.
+
+### Skeleton v2.0.0
+- **Breaking:** \`variant\` → \`severity\` (\`primary\` | \`secondary\`). Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Slider v1.5.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### StatusText v1.2.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Steps v2.0.0
+- **Breaking:** \`variant\` → \`appearance\` (\`subtle\` | \`solid\`); \`PrevTrigger\` / \`NextTrigger\` take \`severity\` / \`appearance\` instead of \`variant\` / \`theme\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Switch v1.4.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+
+### Table v2.0.0
+- **Breaking:** \`variant\` → \`appearance\` (\`line\` | \`outline\` | \`striped\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Tabs v2.0.0
+- **Breaking:** \`variant\` → \`appearance\`; \`default\` → \`underline\`, \`line\` / \`solid\` / \`outline\` unchanged. \`Tabs.Trigger\` takes Button's \`appearance\` / \`severity\` / \`unstyled\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Textarea v2.0.0
+- **Breaking:** the validation \`variant\` → \`validateStatus\`; \`variant="borderless"\` → \`appearance="ghost"\` (default \`outline\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### Toast v1.2.1
+- Internal action button uses the renamed Button props.
+
+### Tooltip v2.0.0
+- **Breaking:** \`variant\` → \`appearance\`; \`default\` → \`solid\`, \`outline\` unchanged. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
+### TotalsSummary v2.0.0
+- **Breaking:** row \`emphasis\` → \`severity\`; \`default\` → \`neutral\`, \`discount\` unchanged.
+
+### Tour v2.0.0
+- **Breaking:** action triggers take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`.
+
+### TreeView v1.3.0
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Node glyphs keep \`size="current"\`.
+
+### VerticalNavigation v2.0.0
+- **Breaking:** on \`Group\` / \`BranchContent\` the props swap to the shared names — \`tone\` → \`appearance\` (\`plain\` | \`subtle\` | \`solid\`, was \`accent\`) and \`variant\` → \`severity\`; \`data-tone\` / \`data-variant\` become \`data-appearance\` / \`data-severity\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+
 ### UiMessagesProvider v1.0.0
 - New: \`@techsio/ui-kit/messages/ui-messages\` (the typed \`UiMessages\` catalog and English \`enUiMessages\`) and \`@techsio/ui-kit/messages/ui-messages-provider\` (\`UiMessagesProvider\`, \`useUiMessages\`). Every word a component shows or announces on its own comes from the catalog, so an app sets its language once near the root; nested providers override parts; \`locale\` sets formatting defaults. One provider covers every copy of the kit on the page, including module-federation remotes. Without a provider every text is the English it was before.
 

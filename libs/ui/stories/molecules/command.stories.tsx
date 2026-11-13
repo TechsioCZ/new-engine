@@ -325,7 +325,7 @@ function ChangingItemsExample(args: CommandProps) {
         >
           Remove Orders
         </Button>
-        <Button onClick={() => setItems(args.items)} theme="outlined">
+        <Button onClick={() => setItems(args.items)} appearance="outline">
           Reset actions
         </Button>
       </div>

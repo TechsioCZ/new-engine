@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit template.
  *
  * @component Tabs
- * @componentVersion v1.3.0
+ * @componentVersion v2.0.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -31,8 +31,6 @@ export function TabsTemplate({
   items,
   tablistProps,
   showIndicator = false,
-  variant = "default",
-  size = "md",
   fitted = false,
   justify = "start",
   orientation = "horizontal",
@@ -52,9 +50,7 @@ export function TabsTemplate({
       onValueChange={onValueChange}
       orientation={orientation}
       ref={ref}
-      size={size}
       value={value}
-      variant={variant}
       {...tabsProps}
     >
       <Tabs.List {...tablistProps}>

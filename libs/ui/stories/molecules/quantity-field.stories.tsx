@@ -299,7 +299,7 @@ export const RejectedUpdate: Story = {
             Reject update
           </Button>
           <Button
-            theme="outlined"
+            appearance="outline"
             onClick={() => {
               setValue("2")
               setError(undefined)
@@ -544,7 +544,7 @@ export const FormIdentity: Story = {
             Submit quantity
           </Button>
         </form>
-        <Button theme="outlined" onClick={() => inputRef.current?.focus()}>
+        <Button appearance="outline" onClick={() => inputRef.current?.focus()}>
           Focus quantity
         </Button>
         <p data-testid="submitted-value">Submitted: {submitted}</p>

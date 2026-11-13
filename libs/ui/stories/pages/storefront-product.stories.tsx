@@ -134,7 +134,7 @@ function ProductDetailPage() {
               <div className="flex flex-wrap items-center gap-150">
                 <Rating count={5} value={4.8} displayOnly size="sm" />
                 <span className="text-fg-secondary text-sm">542 reviews</span>
-                <Badge size="sm" variant="success">
+                <Badge size="sm" severity="success">
                   In stock
                 </Badge>
               </div>
@@ -147,7 +147,7 @@ function ProductDetailPage() {
               <del className="text-fg-secondary">
                 <span className="sr-only">Original price: </span>179 €
               </del>
-              <Badge size="sm" variant="danger">
+              <Badge size="sm" severity="danger">
                 −22%
               </Badge>
             </div>
@@ -171,8 +171,8 @@ function ProductDetailPage() {
                 <Button
                   onClick={() => setGuideOpen(true)}
                   size="sm"
-                  theme="borderless"
-                  variant="secondary"
+                  appearance="ghost"
+                  severity="secondary"
                 >
                   Size guide
                 </Button>
@@ -185,8 +185,8 @@ function ProductDetailPage() {
                     key={option}
                     onClick={() => setSize(option)}
                     size="sm"
-                    theme={option === size ? "solid" : "outlined"}
-                    variant="secondary"
+                    appearance={option === size ? "solid" : "outline"}
+                    severity="secondary"
                   >
                     {option}
                   </Button>
@@ -245,7 +245,7 @@ function ProductDetailPage() {
                     description: `Runner low · EU ${size} · ${quantity} pc · saved to this demo cart`,
                   })
                 }}
-                variant="primary"
+                severity="primary"
               >
                 Add to cart
               </Button>
@@ -259,8 +259,8 @@ function ProductDetailPage() {
                 icon={
                   wishlisted ? "icon-[mdi--heart]" : "icon-[mdi--heart-outline]"
                 }
-                theme="outlined"
-                variant="secondary"
+                appearance="outline"
+                severity="secondary"
               />
             </div>
 
@@ -268,7 +268,7 @@ function ProductDetailPage() {
               defaultValue="standard"
               name="delivery"
               size="sm"
-              variant="outline"
+              appearance="outline"
             >
               <RadioCard.Label>Delivery</RadioCard.Label>
               <RadioCard.Item value="standard">
@@ -313,7 +313,7 @@ function ProductDetailPage() {
         <Tabs
           className="overflow-hidden rounded-lg border border-border-primary"
           defaultValue="description"
-          variant="line"
+          appearance="line"
         >
           <Tabs.List className="px-250 pt-250">
             <Tabs.Trigger value="description">Description</Tabs.Trigger>
@@ -335,7 +335,7 @@ function ProductDetailPage() {
           </Tabs.Content>
 
           <Tabs.Content className="p-250" value="specs">
-            <Table size="sm" variant="line">
+            <Table size="sm" appearance="line">
               <Table.Body>
                 <Table.Row>
                   <Table.ColumnHeader scope="row">Upper</Table.ColumnHeader>

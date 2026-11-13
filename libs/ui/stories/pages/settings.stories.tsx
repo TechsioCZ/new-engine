@@ -242,7 +242,7 @@ function SettingsPage() {
           The local example is closed. No live products, orders, customers or
           workspace were deleted.
         </StatusText>
-        <Button variant="secondary" onClick={() => setWorkspaceDeleted(false)}>
+        <Button severity="secondary" onClick={() => setWorkspaceDeleted(false)}>
           Restore demo workspace
         </Button>
       </Frame>
@@ -288,7 +288,7 @@ function SettingsPage() {
         defaultValue="general"
         justify="start"
         orientation={wide ? "vertical" : "horizontal"}
-        variant="line"
+        appearance="line"
       >
         <Tabs.List className="w-full shrink-0 lg:w-3xs">
           <Tabs.Trigger value="general">General</Tabs.Trigger>
@@ -353,7 +353,7 @@ function SettingsPage() {
                     saved("Workspace details saved in this demo")
                   }}
                   size="sm"
-                  variant="primary"
+                  severity="primary"
                 >
                   Save changes
                 </Button>
@@ -412,7 +412,7 @@ function SettingsPage() {
                   id: "remove",
                   label: "Remove from workspace",
                   icon: "icon-[mdi--account-remove-outline]",
-                  tone: "danger",
+                  severity: "danger",
                   disabled: (row) => row.original.role === "Owner",
                   onAction: (row) => setRemoving(row.original),
                 },
@@ -555,7 +555,7 @@ function SettingsPage() {
                 </span>
               </span>
               <div className="flex items-center gap-100">
-                <Badge size="sm" variant="success">
+                <Badge size="sm" severity="success">
                   Active
                 </Badge>
               </div>
@@ -575,8 +575,8 @@ function SettingsPage() {
                 icon="icon-[mdi--delete-outline]"
                 onClick={() => setConfirmDelete(true)}
                 size="sm"
-                theme="outlined"
-                variant="danger"
+                appearance="outline"
+                severity="danger"
               >
                 Delete workspace
               </Button>
@@ -596,11 +596,11 @@ function SettingsPage() {
         }}
         actions={
           <>
-            <Button variant="secondary" onClick={() => setRemoving(null)}>
+            <Button severity="secondary" onClick={() => setRemoving(null)}>
               Cancel
             </Button>
             <Button
-              variant="danger"
+              severity="danger"
               onClick={() => {
                 if (removing)
                   setTeam((current) =>
@@ -620,8 +620,8 @@ function SettingsPage() {
           <>
             <Button
               onClick={() => setConfirmDelete(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
@@ -630,7 +630,7 @@ function SettingsPage() {
                 setConfirmDelete(false)
                 setWorkspaceDeleted(true)
               }}
-              variant="danger"
+              severity="danger"
             >
               Delete workspace
             </Button>

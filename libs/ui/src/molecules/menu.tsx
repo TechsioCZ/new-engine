@@ -2,7 +2,7 @@
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
- * @componentVersion v1.4.0
+ * @componentVersion v1.5.0
  * @skill menu-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -29,6 +29,7 @@ import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 
 type ActionMenuItem = {
   type: "action"
@@ -238,12 +239,13 @@ function renderMenuItem(
           key={menuItem.value}
         >
           {menuItem.icon && (
-            <Icon className={itemIcon()} icon={menuItem.icon} />
+            <Icon className={itemIcon()} icon={menuItem.icon} size="current" />
           )}
           <span className={itemText()}>{menuItem.label}</span>
           <Icon
             className={slots.submenuIndicator()}
             icon="token-icon-menu-submenu"
+            size="current"
           />
         </li>
       )
@@ -304,7 +306,7 @@ function renderMenuItem(
           target={menuItem.target}
         >
           {menuItem.icon && (
-            <Icon className={itemIcon()} icon={menuItem.icon} />
+            <Icon className={itemIcon()} icon={menuItem.icon} size="current" />
           )}
           <span className={itemText()}>{menuItem.label}</span>
         </a>
@@ -322,7 +324,9 @@ function renderMenuItem(
         disabled: menuItem.disabled,
       })}
     >
-      {menuItem.icon && <Icon className={itemIcon()} icon={menuItem.icon} />}
+      {menuItem.icon && (
+        <Icon className={itemIcon()} icon={menuItem.icon} size="current" />
+      )}
       <span className={itemText()}>{menuItem.label}</span>
     </li>
   )
@@ -398,9 +402,15 @@ function SubmenuItem({
         aria-disabled={item.disabled || undefined}
         data-disabled={item.disabled ? "" : undefined}
       >
-        {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
+        {item.icon && (
+          <Icon className={itemIcon()} icon={item.icon} size="current" />
+        )}
         <span className={itemText()}>{item.label}</span>
-        <Icon className={submenuIndicator()} icon="token-icon-menu-submenu" />
+        <Icon
+          className={submenuIndicator()}
+          icon="token-icon-menu-submenu"
+          size="current"
+        />
       </li>
 
       <Portal>
@@ -491,9 +501,14 @@ export function Menu({
   customTrigger,
   contextMenu = false,
   className,
-  size = "md",
+  size: sizeProp,
   onCheckedChange,
 }: MenuProps) {
+  const { size = "md" } = useUIDefaults(
+    "Menu",
+    { size: sizeProp },
+    menuVariants
+  )
   const generatedId = useId()
   const messages = useUiMessages()
   const contextInvoker = useRef<HTMLElement | null>(null)

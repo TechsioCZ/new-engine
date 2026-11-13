@@ -5,7 +5,7 @@ description: >
   supplemental hover/focus help using the Zag.js tooltip wrapper, supported
   timing, placement, interaction, controlled state, and token styling props.
 metadata:
-  component_version: "1.1.3"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -72,7 +72,7 @@ where actions and feedback live). This section applies them to `Tooltip`.
 | Figma | Code |
 | --- | --- |
 | `placement=…` (8 values) | `placement` (any Zag placement; flips on collision) |
-| `Tooltip/md/default/right-start` frame | `size="md" variant="default" placement="right-start"` |
+| `Tooltip/md/default/right-start` frame | `size="md" appearance="solid" placement="right-start"` |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Tooltip → UX guidelines*.
 
@@ -92,7 +92,7 @@ Supported UI-kit props:
 ```text
 content: ReactNode
 size: sm | md | lg
-variant: default | outline
+appearance: solid | outline
 openDelay, closeDelay, interactive, defaultOpen, open, onOpenChange, disabled
 closeOnEscape, closeOnPointerDown, closeOnScroll, closeOnClick
 placement, gutter, offset, flip, sameWidth, boundary, listeners, strategy
@@ -114,7 +114,7 @@ If the text is required to complete the task, render visible help text instead.
 
 ```tsx
 <Tooltip content="Delete product">
-  <ActionIcon tone="danger" aria-label="Delete product" icon="icon-[mdi--trash-can-outline]" />
+  <ActionIcon severity="danger" aria-label="Delete product" icon="icon-[mdi--trash-can-outline]" />
 </Tooltip>
 ```
 
@@ -187,7 +187,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Tooltip content="Help" variant="default" size="md" />
+<Tooltip content="Help" appearance="solid" size="md" />
 ```
 
 Use `_tooltip.css` or app token overrides for visual changes.

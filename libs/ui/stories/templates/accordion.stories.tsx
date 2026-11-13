@@ -38,10 +38,10 @@ const meta: Meta<typeof AccordionTemplate> = {
         category: "Content",
       },
     },
-    variant: {
+    appearance: {
       control: "select",
-      options: ["default", "borderless", "child"],
-      description: "Visual style variant",
+      options: ["outline", "ghost"],
+      description: "Visual style appearance",
       table: {
         category: "Appearance",
       },
@@ -49,7 +49,7 @@ const meta: Meta<typeof AccordionTemplate> = {
     size: {
       control: "select",
       options: ["sm", "md", "lg"],
-      description: "Size variant",
+      description: "Size appearance",
       table: {
         category: "Appearance",
       },
@@ -142,8 +142,6 @@ export const Playground: Story = {
         disabled: true,
       },
     ],
-    variant: "default",
-    size: "md",
     shadow: "none",
     collapsible: true,
     multiple: true,
@@ -163,8 +161,6 @@ export const Default: Story = {
   },
   args: {
     items: defaultItems,
-    variant: "default",
-    size: "md",
     shadow: "none",
     collapsible: true,
     multiple: false,

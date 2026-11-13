@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.2.1
+ * @componentVersion v2.0.0
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,6 +21,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Icon, type IconProps, type IconType } from "../atoms/icon"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const accordionVariants = tv({
@@ -55,13 +56,16 @@ const accordionVariants = tv({
     ],
   },
   variants: {
-    variant: {
-      default: {
+    appearance: {
+      outline: {
         root: "border-(length:--border-width-accordion) border-accordion-border",
         item: "border-b-(length:--border-width-accordion) border-accordion-border last:border-b-0",
       },
-      borderless: {},
-      child: {},
+      ghost: {},
+    },
+    // A nested accordion inherits its parent's panel surface.
+    nested: {
+      true: {},
     },
     shadow: {
       sm: {
@@ -97,7 +101,7 @@ const accordionVariants = tv({
   },
   compoundVariants: [
     {
-      variant: "child",
+      nested: true,
       size: ["sm", "md", "lg"],
       className: {
         content: "bg-inherit",
@@ -107,7 +111,7 @@ const accordionVariants = tv({
   defaultVariants: {
     size: "md",
     shadow: "none",
-    variant: "default",
+    appearance: "outline",
   },
 })
 
@@ -117,7 +121,6 @@ type AccordionContextValue = {
   size?: "sm" | "md" | "lg"
   shadow?: "sm" | "md" | "none"
   styles: ReturnType<typeof accordionVariants>
-  variant?: "default" | "borderless" | "child"
 }
 
 const AccordionContext = createContext<AccordionContextValue | null>(null)
@@ -134,7 +137,6 @@ function useAccordionContext() {
 type AccordionItemContextValue = {
   value: string
   disabled?: boolean
-  variant?: "default" | "borderless" | "child"
 }
 
 const AccordionItemContext = createContext<AccordionItemContextValue | null>(
@@ -152,7 +154,10 @@ function useAccordionItemContext() {
 }
 
 // Root component
-export type AccordionProps = VariantProps<typeof accordionVariants> &
+export type AccordionProps = Omit<
+  VariantProps<typeof accordionVariants>,
+  "appearance" | "nested"
+> &
   Omit<ComponentPropsWithoutRef<"div">, "onChange"> & {
     id?: string
     defaultValue?: string[]
@@ -163,7 +168,13 @@ export type AccordionProps = VariantProps<typeof accordionVariants> &
     dir?: "ltr" | "rtl"
     onChange?: (value: string[]) => void
     ref?: Ref<HTMLDivElement>
+    /** Frame style. Falls back to the nearest `UIProvider`, then `outline`. */
+    appearance?: AccordionAppearance
+    /** Nested inside another accordion's panel: inherits its surface. */
+    nested?: boolean
   }
+
+export type AccordionAppearance = "outline" | "ghost"
 
 export function Accordion({
   id,
@@ -173,15 +184,21 @@ export function Accordion({
   multiple = false,
   dir = "ltr",
   onChange,
-  size,
+  size: sizeProp,
   shadow,
   disabled = false,
   children,
   ref,
   className,
-  variant,
+  appearance: appearanceProp,
+  nested = false,
   ...props
 }: AccordionProps) {
+  const { size, appearance } = useUIDefaults(
+    "Accordion",
+    { size: sizeProp, appearance: appearanceProp },
+    accordionVariants
+  )
   const generatedId = useId()
   const uniqueId = id || generatedId
 
@@ -200,10 +217,10 @@ export function Accordion({
   })
 
   const api = accordion.connect(service, normalizeProps)
-  const styles = accordionVariants({ size, shadow, variant })
+  const styles = accordionVariants({ size, shadow, appearance, nested })
 
   return (
-    <AccordionContext.Provider value={{ api, size, shadow, styles, variant }}>
+    <AccordionContext.Provider value={{ api, size, shadow, styles }}>
       <div
         className={styles.root({ className })}
         ref={ref}
@@ -231,10 +248,10 @@ Accordion.Item = function AccordionItem({
   className,
   ...props
 }: AccordionItemProps) {
-  const { api, styles, variant } = useAccordionContext()
+  const { api, styles } = useAccordionContext()
 
   return (
-    <AccordionItemContext.Provider value={{ value, disabled, variant }}>
+    <AccordionItemContext.Provider value={{ value, disabled }}>
       <div
         ref={ref}
         {...props}

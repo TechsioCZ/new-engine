@@ -40,13 +40,14 @@ Release       -> ui-kit-publish-readiness
 
 ```text
 src/atoms/button.tsx:
-  variant: primary | secondary | tertiary | danger | warning
-  theme: solid | light | borderless | outlined | unstyled
+  severity: primary | secondary | tertiary | danger | warning
+  appearance: solid | subtle | outline | ghost
+  unstyled: boolean
   size: sm | md | lg | current
 
 stories/atoms/button.stories.tsx:
-  argTypes.variant.options must match real variants
-  argTypes.theme.options must match real themes
+  argTypes.severity.options must match real severities
+  argTypes.appearance.options must match real appearances
   argTypes.size.options must match real sizes
 ```
 
@@ -91,7 +92,7 @@ Wrong:
 
 ```tsx
 argTypes: {
-  variant: { options: ["primary", "ghost"] },
+  severity: { options: ["primary", "ghost"] },
 }
 ```
 
@@ -99,7 +100,7 @@ Correct:
 
 ```tsx
 argTypes: {
-  variant: { options: ["primary", "secondary", "tertiary", "warning", "danger"] },
+  severity: { options: ["primary", "secondary", "tertiary", "warning", "danger"] },
 }
 ```
 

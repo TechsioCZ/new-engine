@@ -9,7 +9,7 @@ const playgroundSource = `import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 
 export function ProjectTabs() {
   return (
-    <Tabs defaultValue="tab1" variant="line" size="md" className="w-md max-w-full">
+    <Tabs defaultValue="tab1" appearance="line" size="md" className="w-md max-w-full">
       <Tabs.List aria-label="Project views">
         <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
         <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
@@ -82,7 +82,7 @@ Content requires Tabs context and is a sibling of List, not nested inside a Trig
 | ref | HTMLDivElement for the decorative active-tab rail, not a trigger or panel. |
 | className / style | Optional DOM styling overrides; no value or children are required. |
 
-Indicator requires Tabs context and belongs inside List so measured positioning follows the selected Trigger. It is optional, is visible for the line variant, and does not own focus, selection or the accessible name.
+Indicator requires Tabs context and belongs inside List so measured positioning follows the selected Trigger. It is optional, is visible for the line appearance, and does not own focus, selection or the accessible name.
 
 All four members accept common React DOM attributes for their ref element (Trigger also accepts Button props); see the [React DOM attribute reference](https://react.dev/reference/react-dom/components/common) for event and data attributes. See the Playground source for a complete public-import example.`,
       },
@@ -97,11 +97,11 @@ All four members accept common React DOM attributes for their ref element (Trigg
     ),
   ],
   argTypes: {
-    variant: {
+    appearance: {
       control: "select",
-      options: ["default", "line", "solid", "outline"],
-      description: "Visual style variant",
-      table: { defaultValue: { summary: "default" }, category: "Appearance" },
+      options: ["underline", "line", "solid", "outline"],
+      description: "Visual style appearance",
+      table: { defaultValue: { summary: "underline" }, category: "Appearance" },
     },
     size: {
       control: "select",
@@ -161,8 +161,7 @@ export const Playground: Story = {
     },
   },
   args: {
-    variant: "line",
-    size: "md",
+    appearance: "line",
     orientation: "horizontal",
     fitted: false,
     justify: "start",
@@ -215,14 +214,14 @@ export const AllVariants: Story = {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-400">
         <div className="w-full max-w-2xl">
           <h3 className="text-lg font-semibold mb-150">Default</h3>
-          <Tabs defaultValue="tab1" variant="default" fitted>
+          <Tabs defaultValue="tab1" appearance="underline" fitted>
             <Tabs.List>
               <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
               <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
               <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
             </Tabs.List>
             <Tabs.Content value="tab1">
-              <div className="p-200">Default variant content</div>
+              <div className="p-200">Default appearance content</div>
             </Tabs.Content>
             <Tabs.Content value="tab2">
               <div className="p-200">Details content</div>
@@ -235,7 +234,7 @@ export const AllVariants: Story = {
 
         <div className="w-full max-w-2xl">
           <h3 className="text-lg font-semibold mb-150">Line</h3>
-          <Tabs defaultValue="tab1" variant="line" fitted>
+          <Tabs defaultValue="tab1" appearance="line" fitted>
             <Tabs.List>
               <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
               <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
@@ -243,7 +242,7 @@ export const AllVariants: Story = {
               <Tabs.Indicator />
             </Tabs.List>
             <Tabs.Content value="tab1">
-              <div className="p-200">Line variant content</div>
+              <div className="p-200">Line appearance content</div>
             </Tabs.Content>
             <Tabs.Content value="tab2">
               <div className="p-200">Details content</div>
@@ -256,7 +255,7 @@ export const AllVariants: Story = {
 
         <div className="w-full max-w-2xl">
           <h3 className="text-lg font-semibold mb-150">Solid</h3>
-          <Tabs defaultValue="tab1" variant="solid" fitted>
+          <Tabs defaultValue="tab1" appearance="solid" fitted>
             <Tabs.List>
               <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
               <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
@@ -264,7 +263,7 @@ export const AllVariants: Story = {
               <Tabs.Indicator />
             </Tabs.List>
             <Tabs.Content value="tab1">
-              <div className="p-200">Solid variant content</div>
+              <div className="p-200">Solid appearance content</div>
             </Tabs.Content>
             <Tabs.Content value="tab2">
               <div className="p-200">Details content</div>
@@ -277,14 +276,14 @@ export const AllVariants: Story = {
 
         <div className="w-full max-w-2xl">
           <h3 className="text-lg font-semibold mb-150">Outline</h3>
-          <Tabs defaultValue="tab1" variant="outline" fitted>
+          <Tabs defaultValue="tab1" appearance="outline" fitted>
             <Tabs.List>
               <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
               <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
               <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
             </Tabs.List>
             <Tabs.Content value="tab1">
-              <div className="p-200">Outline variant content</div>
+              <div className="p-200">Outline appearance content</div>
             </Tabs.Content>
             <Tabs.Content value="tab2">
               <div className="p-200">Details content</div>
@@ -317,7 +316,7 @@ export const Sizes: Story = {
           <h3 className="mb-150 font-semibold text-lg">
             {["Small (sm)", "Medium (md)", "Large (lg)"][i]}
           </h3>
-          <Tabs defaultValue="overview" size={size} variant="line">
+          <Tabs defaultValue="overview" size={size} appearance="line">
             <Tabs.List aria-label="Project details">
               <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
               <Tabs.Trigger value="activity">Activity</Tabs.Trigger>
@@ -349,7 +348,7 @@ export const DisabledTabs: Story = {
   },
   render: () => (
     <div className="w-full max-w-2xl">
-      <Tabs defaultValue="tab1" variant="line">
+      <Tabs defaultValue="tab1" appearance="line">
         <Tabs.List>
           <Tabs.Trigger value="tab1">Active Tab</Tabs.Trigger>
           <Tabs.Trigger value="tab2" disabled>
@@ -392,7 +391,7 @@ export const VerticalOrientation: Story = {
       <Tabs
         defaultValue="tab1"
         orientation="vertical"
-        variant="line"
+        appearance="line"
         className="w-md max-w-full"
       >
         <Tabs.List>
@@ -458,7 +457,7 @@ export const Controlled: Story = {
             Current tab: {selectedTab}
           </span>
         </div>
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} variant="line">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} appearance="line">
           <Tabs.List>
             <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
             <Tabs.Trigger value="tab2">Tab 2</Tabs.Trigger>
@@ -494,10 +493,10 @@ export const FittedTabs: Story = {
   render: () => (
     <VariantContainer>
       <div className="w-full max-w-2xl">
-        <h3 className="text-lg font-semibold mb-150">Fitted - Line variant</h3>
+        <h3 className="text-lg font-semibold mb-150">Fitted - Line appearance</h3>
         <Tabs
           defaultValue="tab1"
-          variant="line"
+          appearance="line"
           fitted
           className="w-md max-w-full"
         >
@@ -520,8 +519,8 @@ export const FittedTabs: Story = {
       </div>
 
       <div className="w-full max-w-2xl">
-        <h3 className="text-lg font-semibold mb-150">Fitted - Solid variant</h3>
-        <Tabs defaultValue="tab1" variant="solid" fitted>
+        <h3 className="text-lg font-semibold mb-150">Fitted - Solid appearance</h3>
+        <Tabs defaultValue="tab1" appearance="solid" fitted>
           <Tabs.List>
             <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
             <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
@@ -559,7 +558,7 @@ export const JustifyOptions: Story = {
         <h3 className="text-lg font-semibold mb-150">Justify Start</h3>
         <Tabs
           defaultValue="tab1"
-          variant="line"
+          appearance="line"
           justify="start"
           className="w-md max-w-full"
         >
@@ -581,7 +580,7 @@ export const JustifyOptions: Story = {
         <h3 className="text-lg font-semibold mb-150">Justify Center</h3>
         <Tabs
           defaultValue="tab1"
-          variant="line"
+          appearance="line"
           justify="center"
           className="w-md max-w-full"
         >
@@ -603,7 +602,7 @@ export const JustifyOptions: Story = {
         <h3 className="text-lg font-semibold mb-150">Justify End</h3>
         <Tabs
           defaultValue="tab1"
-          variant="line"
+          appearance="line"
           justify="end"
           className="w-md max-w-full"
         >
@@ -637,7 +636,7 @@ export const WithIcons: Story = {
   },
   render: () => (
     <div className="w-full max-w-2xl">
-      <Tabs defaultValue="tab1" variant="line">
+      <Tabs defaultValue="tab1" appearance="line">
         <Tabs.List>
           <Tabs.Trigger icon="icon-[mdi--home]" iconSize="sm" value="tab1">
             Home
@@ -686,17 +685,17 @@ export const WithBadges: Story = {
   },
   render: () => (
     <div className="w-full max-w-2xl">
-      <Tabs defaultValue="tab1" variant="line">
+      <Tabs defaultValue="tab1" appearance="line">
         <Tabs.List>
           <Tabs.Trigger value="tab1">
             Overview
-            <Badge variant="primary" className="ml-50">
+            <Badge severity="primary" className="ml-50">
               New
             </Badge>
           </Tabs.Trigger>
           <Tabs.Trigger value="tab2">
             Messages
-            <Badge variant="primary" className="ml-50">
+            <Badge severity="primary" className="ml-50">
               12
             </Badge>
           </Tabs.Trigger>
@@ -739,7 +738,7 @@ export const RTLSupport: Story = {
   },
   render: () => (
     <div className="w-full max-w-2xl" dir="rtl">
-      <Tabs defaultValue="tab1" dir="rtl" variant="line">
+      <Tabs defaultValue="tab1" dir="rtl" appearance="line">
         <Tabs.List>
           <Tabs.Trigger value="tab1">علامة التبويب الأولى</Tabs.Trigger>
           <Tabs.Trigger value="tab2">علامة التبويب الثانية</Tabs.Trigger>
@@ -772,7 +771,7 @@ export const SectionedContent: Story = {
   },
   render: () => (
     <div className="w-full max-w-2xl">
-      <Tabs defaultValue="account" variant="line">
+      <Tabs defaultValue="account" appearance="line">
         <Tabs.List aria-label="Settings">
           <Tabs.Trigger value="account">Account</Tabs.Trigger>
           <Tabs.Trigger value="privacy">Privacy</Tabs.Trigger>
@@ -819,7 +818,7 @@ export const ScrollableAlignment: Story = {
               dir={dir}
               justify={justify}
               size="lg"
-              variant="line"
+              appearance="line"
             >
               <Tabs.List aria-label={`${dir} ${justify} project views`}>
                 <Tabs.Trigger value="overview">Project overview</Tabs.Trigger>

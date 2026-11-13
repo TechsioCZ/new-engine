@@ -65,7 +65,7 @@ describe("disabled action treatments", () => {
           aria-label="Remove item"
           disabled
           icon="token-icon-close"
-          tone={tone}
+          severity={tone}
         />
       )
       expect(html).toContain("action-icon-surface")
@@ -88,22 +88,25 @@ describe("disabled action treatments", () => {
     expect(html).not.toContain("disabled:bg-action-icon-bg-disabled")
   })
 
-  it.each(["borderless", "outlined"] as const)(
+  it.each([
+    ["ghost", "borderless"],
+    ["outline", "outlined"],
+  ] as const)(
     "shares the %s silhouette with disabled navigation",
-    (theme) => {
+    (theme, treatment) => {
       for (const html of [
         renderToStaticMarkup(
-          <Button disabled theme={theme}>
+          <Button appearance={theme} disabled>
             Unavailable action
           </Button>
         ),
         renderToStaticMarkup(
-          <LinkButton disabled href="/project" theme={theme}>
+          <LinkButton appearance={theme} disabled href="/project">
             Unavailable route
           </LinkButton>
         ),
       ]) {
-        expect(html).toContain(`button-disabled-${theme}`)
+        expect(html).toContain(`button-disabled-${treatment}`)
         expect(html).not.toContain("disabled:border-0")
         expect(html).not.toContain("disabled:bg-button-bg-disabled")
         expect(html).toContain("button-size-md")
@@ -138,7 +141,7 @@ describe("disabled action treatments", () => {
 
   it("preserves disabled navigation semantics and filled unavailable actions", () => {
     const link = renderToStaticMarkup(
-      <LinkButton disabled href="/project" theme="outlined">
+      <LinkButton appearance="outline" disabled href="/project">
         Unavailable route
       </LinkButton>
     )
@@ -146,9 +149,9 @@ describe("disabled action treatments", () => {
     expect(link).toContain('aria-disabled="true"')
     expect(link).toContain('tabindex="-1"')
     expect(link).not.toContain("href=")
-    for (const theme of ["solid", "light"] as const) {
+    for (const theme of ["solid", "subtle"] as const) {
       const html = renderToStaticMarkup(
-        <Button disabled theme={theme}>
+        <Button appearance={theme} disabled>
           Unavailable action
         </Button>
       )

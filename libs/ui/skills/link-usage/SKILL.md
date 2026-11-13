@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Link atom for inline or unstyled navigation, including
   external links and framework adapter usage.
 metadata:
-  component_version: "1.2.4"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -118,7 +118,7 @@ Default to the framework link adapter in Next apps.
 ### Escalate styled CTA to LinkButton
 
 ```tsx
-<LinkButton as={NextLink} href="/checkout" variant="primary">
+<LinkButton as={NextLink} href="/checkout" severity="primary">
   Checkout
 </LinkButton>
 ```
@@ -156,7 +156,7 @@ Wrong:
 Correct:
 
 ```tsx
-<LinkButton href="/checkout" variant="primary">Checkout</LinkButton>
+<LinkButton href="/checkout" severity="primary">Checkout</LinkButton>
 ```
 
 Source: libs/ui/src/atoms/link-button.tsx

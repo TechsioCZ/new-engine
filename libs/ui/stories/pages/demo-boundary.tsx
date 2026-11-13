@@ -91,7 +91,7 @@ export function DemoBoundary({ children }: { children: ReactNode }) {
         {children}
         <Dialog
           actions={
-            <Button onClick={() => setDestination(null)} variant="secondary">
+            <Button onClick={() => setDestination(null)} severity="secondary">
               Back to example
             </Button>
           }

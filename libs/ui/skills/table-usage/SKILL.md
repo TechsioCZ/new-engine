@@ -6,7 +6,7 @@ description: >
   headers, numeric cells, selected rows, variants, interactive rows, sticky
   header/first column, column borders, and size props.
 metadata:
-  component_version: "1.3.1"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -70,7 +70,7 @@ where actions and feedback live). This section applies them to `Table`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=line\|outline\|striped`, `size=sm…lg` | same prop names and values |
+| `variant=line\|outline\|striped`, `size=sm…lg` | `appearance` (same values), `size` |
 | — | `interactive`, `stickyHeader`, `stickyFirstColumn`, `showColumnBorder`, `captionPlacement`, `Row selected` (code only) |
 | Toolbar, FilterRow, PaginationBar in the Table doc | `DataTable`, not Table |
 
@@ -79,7 +79,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 ## Setup
 
 ```tsx
-<Table variant="line" size="md" stickyHeader>
+<Table appearance="line" size="md" stickyHeader>
   <Table.Caption>Orders</Table.Caption>
   <Table.Header>
     <Table.Row><Table.ColumnHeader>Order</Table.ColumnHeader><Table.ColumnHeader numeric>Total</Table.ColumnHeader></Table.Row>
@@ -93,7 +93,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 Supported props:
 
 ```text
-variant: line | outline | striped
+appearance: line | outline | striped
 size: sm | md | lg
 interactive, stickyHeader, stickyFirstColumn, showColumnBorder
 captionPlacement: top | bottom
@@ -187,7 +187,7 @@ Source: libs/ui/src/organisms/table.tsx
 ```sh
 rg -n "grid-cols.*(Order|Total|Price)|<table\\b|<Table\\.(Row|Cell|ColumnHeader)[^>]*className=.*(hover:|border-|text-right|p-)" apps
 rg -n "<Table\\.Cell[^>]*className=\"[^\"]*text-right|<Table\\.ColumnHeader[^>]*className=\"[^\"]*text-right" apps
-rg -n "<Table[^>]*variant=\"(default|bordered)\"|captionPlacement=\"(left|right)\"" apps
+rg -n "<Table[^>]*(variant=|appearance=\"(default|bordered)\")|captionPlacement=\"(left|right)\"" apps
 ```
 
 

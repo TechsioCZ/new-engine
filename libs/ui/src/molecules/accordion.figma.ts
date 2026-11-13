@@ -9,10 +9,14 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("variant", {
-  default: "default",
-  borderless: "borderless",
-  child: "child",
+// Figma still names the property variant; code reads appearance (+ nested).
+const appearance = figma.selectedInstance.getEnum("variant", {
+  default: "outline",
+  borderless: "ghost",
+  child: "ghost",
+})
+const nested = figma.selectedInstance.getEnum("variant", {
+  child: true,
 })
 const shadow = figma.selectedInstance.getEnum("shadow", {
   none: "none",
@@ -29,7 +33,10 @@ export default {
   )}${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("appearance", appearance)}${figma.helpers.react.renderProp(
+    "nested",
+    nested
+  )}>
         <Accordion.Item value="item-1">
           <Accordion.Header>Title</Accordion.Header>
           <Accordion.Content>Content</Accordion.Content>

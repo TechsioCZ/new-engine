@@ -132,6 +132,63 @@ do not access those members on a client reference from a server page. Callbacks
 and render functions belong in client code. Ordinary SSR and RSC are separate
 integration contracts.
 
+## Global size and appearance (`UIProvider`)
+
+Every component uses the same names for the same visual axis:
+
+| Prop | Meaning | Values |
+|---|---|---|
+| `appearance` | fill style | `solid` · `subtle` · `outline` · `ghost` (no frame — buttons, Pagination, Accordion, Textarea) · `plain` (Breadcrumb, VerticalNavigation) (+ component extras such as Tabs `line`) |
+| `severity` | color intent | `primary` · `secondary` · `tertiary` · `neutral` · `info` · `success` · `warning` · `danger` · `discount` |
+| `validateStatus` | validation state | `default` · `error` · `success` · `warning` |
+| `size` | size scale | the component's subset of `xs`…`2xl`, plus `full` / `current` |
+
+`UIProvider` sets `size` and `appearance` for every component below it:
+
+```tsx
+'use client'
+
+import { UIProvider } from '@techsio/ui-kit/theme/ui-provider'
+
+export function Defaults({ children }: PropsWithChildren) {
+  return (
+    <UIProvider
+      size="md"
+      appearance="solid"
+      components={{ Button: { appearance: 'outline' }, Dialog: { size: 'lg' } }}
+    >
+      {children}
+    </UIProvider>
+  )
+}
+```
+
+A value resolves as: the prop on the component → `components[Name]` of the
+nearest provider → its global value → the same for each parent provider →
+the component's own default. A value a component does not support (for example
+`appearance="ghost"` on Tabs) is skipped, so the component keeps its default.
+Providers nest, so a dense toolbar can wrap its controls in `size="sm"`.
+
+`AppThemeProvider` already renders a root `UIProvider` with the
+`size="md" appearance="solid"` baseline, merged with the active brand's
+optional `defaults` from `theme-config.ts`. Without any provider every
+component keeps its own default.
+
+### Migrating from `variant` / `theme` / `tone`
+
+```sh
+node libs/ui/codemods/unified-style-props/index.mjs src            # rewrite
+node libs/ui/codemods/unified-style-props/index.mjs src --dry      # preview
+```
+
+The codemod rewrites JSX props and literal values (`theme="outlined"` →
+`appearance="outline"`, Button `variant` → `severity`, Badge
+`variant="outline"` → `appearance="outline" severity="neutral"`, Input
+`variant` → `validateStatus`, …) and lists the computed values it could not map.
+Run your type checker afterwards; story `args`, wrapper components and
+data objects are reported there. The full table is in
+`codemods/unified-style-props/README.md`.
+
 ## Source layout and token ownership
 
 ```text

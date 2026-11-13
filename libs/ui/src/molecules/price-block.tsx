@@ -2,7 +2,7 @@
  * PriceBlock — @techsio/ui-kit molecule.
  *
  * @component PriceBlock
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill price-block-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -205,7 +205,7 @@ export function PriceBlock({
               </del>
             ) : null}
             {state === "discounted" && discountLabel ? (
-              <Badge size="sm" variant="discount">
+              <Badge severity="discount" size="sm">
                 {discountLabel}
               </Badge>
             ) : null}

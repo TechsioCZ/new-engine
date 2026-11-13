@@ -34,10 +34,13 @@ describe("actions wave 3 contracts", () => {
   })
 
   it("offers an explicit composition opt-out without changing unstyled semantics", () => {
-    const unstyled = buttonVariants({ theme: "unstyled" })
+    const unstyled = buttonVariants({ appearance: "unstyled" })
     expect(unstyled).toContain("font-button")
     expect(unstyled).toContain("active:scale-97")
-    const composed = buttonVariants({ composition: true, theme: "unstyled" })
+    const composed = buttonVariants({
+      composition: true,
+      appearance: "unstyled",
+    })
     expect(composed).not.toContain("font-button")
     expect(composed).not.toContain("active:scale-97")
     expect(composed).toContain("focus-visible:")

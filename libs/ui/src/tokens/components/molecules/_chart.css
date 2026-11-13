@@ -35,7 +35,7 @@
 
   /* Derived layer — chart chrome and tooltip surface. Axis/tick/legend text
    * renders at small sizes inside the SVG, so it wears primary ink rather than
-   * the secondary tone.
+   * the secondary severity.
    *
    * Chart overrides upstream label opacity at the scene boundary. */
   --text-chart-data: var(--text-sm);

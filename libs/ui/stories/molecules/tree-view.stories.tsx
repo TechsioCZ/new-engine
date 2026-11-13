@@ -269,7 +269,7 @@ export const CustomComposition: Story = {
                         <TreeView.NodeIcon />
                         <TreeView.BranchText />
                         {node.children && (
-                          <Badge variant="secondary" className="ml-xs">
+                          <Badge severity="secondary" className="ml-xs">
                             {String(node.children.length)}
                           </Badge>
                         )}
@@ -292,12 +292,12 @@ export const CustomComposition: Story = {
                     <TreeView.NodeIcon />
                     <TreeView.ItemText />
                     {node.name.endsWith('.tsx') && (
-                      <Badge variant="info" className="ml-auto">
+                      <Badge severity="info" className="ml-auto">
                         TSX
                       </Badge>
                     )}
                     {node.name.endsWith('.ts') && !node.name.endsWith('.tsx') && (
-                      <Badge variant="warning" className="ml-auto">
+                      <Badge severity="warning" className="ml-auto">
                         TS
                       </Badge>
                     )}
@@ -458,21 +458,21 @@ export const Controlled: Story = {
             <div className="flex flex-col gap-50">
               <Button
                 size="sm"
-                variant="secondary"
+                severity="secondary"
                 onClick={() => setExpanded(['src', 'components', 'atoms'])}
               >
                 Expand Some
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
+                severity="secondary"
                 onClick={() => setExpanded([])}
               >
                 Collapse All
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
+                severity="secondary"
                 onClick={() => setSelected([])}
               >
                 Clear Selection

@@ -78,7 +78,7 @@ export default {
         ${
           showFooter
             ? figma.code`<Drawer.Footer>
-          <Drawer.CloseTrigger theme="outlined" variant="secondary">${figma.helpers.react.renderChildren(
+          <Drawer.CloseTrigger appearance="outline" severity="secondary">${figma.helpers.react.renderChildren(
             closeLabel
           )}</Drawer.CloseTrigger>
         </Drawer.Footer>`

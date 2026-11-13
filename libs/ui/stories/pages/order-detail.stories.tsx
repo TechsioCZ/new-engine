@@ -198,8 +198,8 @@ function OrderDetailPage() {
                 <Button
                   icon="icon-[mdi--dots-horizontal]"
                   size="sm"
-                  theme="outlined"
-                  variant="secondary"
+                  appearance="outline"
+                  severity="secondary"
                 >
                   More
                 </Button>
@@ -226,7 +226,7 @@ function OrderDetailPage() {
                 disabled
                 icon="icon-[mdi--check-circle-outline]"
                 size="sm"
-                variant="primary"
+                severity="primary"
               >
                 Delivered
               </Button>
@@ -253,7 +253,7 @@ function OrderDetailPage() {
                   })
                 }}
                 size="sm"
-                variant="primary"
+                severity="primary"
               >
                 {step >= 2 ? "Mark delivered" : "Fulfil order"}
               </Button>
@@ -270,7 +270,7 @@ function OrderDetailPage() {
         meta={
           <>
             <StatusBadge status={refunded ? "refunded" : order.status} />
-            <Badge size="sm" variant="outline">
+            <Badge size="sm" appearance="outline" severity="neutral">
               Prepaid
             </Badge>
           </>
@@ -283,7 +283,7 @@ function OrderDetailPage() {
           count={fulfilmentSteps.length}
           size="sm"
           step={step}
-          variant="solid"
+          appearance="solid"
         >
           <Steps.List>
             {fulfilmentSteps.map((entry, index) => (
@@ -306,7 +306,7 @@ function OrderDetailPage() {
         <div className="flex flex-col gap-250 xl:col-span-2">
           <SectionCard flush title="Items">
             <div className="px-250 pb-250">
-              <Table size="sm" variant="line">
+              <Table size="sm" appearance="line">
                 <Table.Header>
                   <Table.Row>
                     <Table.ColumnHeader>Product</Table.ColumnHeader>
@@ -350,7 +350,7 @@ function OrderDetailPage() {
           </SectionCard>
 
           <SectionCard flush>
-            <Tabs defaultValue="timeline" variant="line">
+            <Tabs defaultValue="timeline" appearance="line">
               <Tabs.List className="px-250 pt-250">
                 <Tabs.Trigger value="timeline">Timeline</Tabs.Trigger>
                 <Tabs.Trigger value="notes">Internal notes</Tabs.Trigger>
@@ -442,8 +442,8 @@ function OrderDetailPage() {
               disabled={refunded}
               onClick={() => setRefunding(true)}
               size="sm"
-              theme="outlined"
-              variant="danger"
+              appearance="outline"
+              severity="danger"
             >
               {refunded ? "Refunded" : "Refund"}
             </Button>
@@ -482,8 +482,8 @@ function OrderDetailPage() {
           <>
             <Button
               onClick={() => setRefunding(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
@@ -498,7 +498,7 @@ function OrderDetailPage() {
                     "This local demo order is now refunded. No payment provider was contacted.",
                 })
               }}
-              variant="danger"
+              severity="danger"
             >
               {`Refund ${currency.format(total)}`}
             </Button>

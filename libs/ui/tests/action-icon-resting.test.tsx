@@ -88,7 +88,7 @@ describe("ActionIcon resting affordance", () => {
           aria-label="Close details"
           disabled
           icon="token-icon-close"
-          tone={tone}
+          severity={tone}
         />
       )
       expect(html).toContain('disabled=""')

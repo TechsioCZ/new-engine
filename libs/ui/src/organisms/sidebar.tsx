@@ -2,7 +2,7 @@
  * Sidebar - @techsio/ui-kit organism.
  *
  * @component Sidebar
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill sidebar-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -342,8 +342,7 @@ Sidebar.CloseTrigger = function SidebarCloseTrigger({
   className,
   icon = "token-icon-sidebar-close",
   onClick,
-  size = "md",
-  tone = "neutral",
+  severity = "neutral",
   ...props
 }: SidebarCloseTriggerProps) {
   const context = useSidebarContext()
@@ -370,8 +369,7 @@ Sidebar.CloseTrigger = function SidebarCloseTrigger({
           onMachineClick?.(event)
         }
       }}
-      size={size}
-      tone={tone}
+      severity={severity}
     />
   )
 }
@@ -639,26 +637,27 @@ Sidebar.PaneGroup = function SidebarPaneGroup({
 
 export type SidebarPaneProps = HTMLAttributes<HTMLDivElement> & {
   ref?: Ref<HTMLDivElement>
-  size?: "rail" | "content" | "auto"
+  /** Pane width mode; not part of the shared size scale. */
+  paneSize?: "rail" | "content" | "auto"
   visibility?: "always" | "expanded"
 }
 
 Sidebar.Pane = function SidebarPane({
   className,
   ref,
-  size = "auto",
+  paneSize = "auto",
   visibility = "always",
   ...props
 }: SidebarPaneProps) {
   const panel = useSidebarPanelContext()
-  const { pane } = sidebarVariants({ paneSize: size })
+  const { pane } = sidebarVariants({ paneSize })
   return (
     <div
       {...props}
       className={pane({ className })}
       data-part="pane"
       data-scope="sidebar"
-      data-size={size}
+      data-size={paneSize}
       data-visibility={visibility}
       hidden={visibility === "expanded" && !panel.expanded}
       ref={ref}

@@ -2,7 +2,7 @@
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.2.3
+ * @componentVersion v1.3.0
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -21,6 +21,7 @@ import {
   subscribeOwnerFormReset,
   syncReactFormControl,
 } from "../internal/form-control-lifecycle"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const checkboxVariants = tv({
@@ -78,7 +79,7 @@ export type CheckboxProps = Omit<
 
 export function Checkbox({
   className,
-  size = "md",
+  size: sizeProp,
   indeterminate,
   invalid,
   ref,
@@ -88,6 +89,11 @@ export function Checkbox({
   onKeyDown,
   ...props
 }: CheckboxProps) {
+  const { size = "md" } = useUIDefaults(
+    "Checkbox",
+    { size: sizeProp },
+    checkboxVariants
+  )
   const inputRef = useRef<HTMLInputElement | null>(null)
   const currentValue = useRef({ checked: props.checked, indeterminate })
   useLayoutEffect(() => {

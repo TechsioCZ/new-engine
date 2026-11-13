@@ -41,7 +41,7 @@ It tells three things apart: the page shown now (`current`), its ancestors
 | Branch `state=currentPath` | `containsCurrent` on `VerticalNavigation.Branch` | An ancestor of the current page. Opening a branch doesn't make it one. |
 | Branch `open=true` / `false` | `open` / `defaultOpen` + `onOpenChange` | Disclosure only; it never changes the page. |
 | `state=disabled` | `disabled` on Link; `disabled` on Branch | A disabled link can't navigate. Branch `disabled` blocks only the disclosure, not the parent link. |
-| `tone=plain` / `subtle` / `accent`, `variant=primary` / `secondary` | same props on `Group` and `BranchContent` | Surface emphasis only; never marks the current page, a selection or an error. |
+| `tone=plain` / `subtle` / `accent`, `variant=primary` / `secondary` | `appearance="plain" | "subtle" | "solid"` (Figma `accent` → `solid`) and `severity` on `Group` and `BranchContent` | Surface emphasis only; never marks the current page, a selection or an error. |
 | `indent`, `showGuide` | same props on `BranchContent`; `maxIndentDepth` on the root | Help read the hierarchy; not a way to mark the current page. |
 
 ## Behaviour

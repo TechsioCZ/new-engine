@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit template.
  *
  * @component ProductCard
- * @componentVersion v1.4.0
+ * @componentVersion v2.0.0
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -162,7 +162,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
         <ProductCard.Actions>
           {onAddToCart && (
             <ProductCard.Button
-              buttonVariant="cart"
+              action="cart"
               icon="token-icon-cart-button"
               onClick={onAddToCart}
             >
@@ -171,7 +171,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
           )}
           {onViewDetails && (
             <ProductCard.Button
-              buttonVariant="detail"
+              action="detail"
               icon="token-icon-detail-button"
               onClick={onViewDetails}
             >
@@ -180,7 +180,7 @@ export function ProductCardTemplate<T extends ElementType = "a">({
           )}
           {onAddToWishlist && (
             <ProductCard.Button
-              buttonVariant="wishlist"
+              action="wishlist"
               icon="token-icon-wishlist-button"
               onClick={onAddToWishlist}
             >

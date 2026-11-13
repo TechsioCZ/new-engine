@@ -8,7 +8,7 @@ metadata:
   type: "core"
   library: "@techsio/ui-kit"
   component: "ActionIcon"
-  component_version: "1.1.5"
+  component_version: "2.0.0"
   requires: "ux-guidelines"
   resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   audience: "consumer"
@@ -71,7 +71,7 @@ where actions and feedback live). This section applies them to `ActionIcon`.
 | Figma | Code |
 | --- | --- |
 | fixed ✕ glyph | `icon` (any `token-icon-*` / `icon-[…]`) |
-| `size=sm…lg`, `tone=neutral\|danger` | same prop names and values |
+| `size=sm…lg`, `tone=neutral\|danger` | `size`, `severity` (same values as Figma `tone`) |
 | — | `disabled` (removed from tab order) |
 | `state=hover` | not a prop (browser state) |
 | `Table.IconButton` | `ActionIcon` |
@@ -106,13 +106,13 @@ have `aria-label` or `aria-labelledby`; a glyph alone is not a name.
 
 ## Supported tone
 
-`tone="neutral" | "danger"`, default `neutral`. Use `danger` for a destructive
+`severity="neutral" | "danger"`, default `neutral`. Use `danger` for a destructive
 supporting action, not a nonexistent `variant` prop. Sizes are `sm | md | lg`.
 
 ```tsx
 import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"
 
-<ActionIcon icon="token-icon-trash" tone="danger" aria-label="Delete product" />
+<ActionIcon icon="token-icon-trash" severity="danger" aria-label="Delete product" />
 ```
 
 The pressed danger foreground/background are an explicit paired set of

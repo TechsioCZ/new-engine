@@ -59,7 +59,7 @@ function DemoProductButton(props: ComponentProps<typeof ProductCard.Button>) {
   const announce = useContext(ActionContext)
   const [selected, setSelected] = useState(false)
   const [count, setCount] = useState(0)
-  const wishlist = props.buttonVariant === "wishlist"
+  const wishlist = props.action === "wishlist"
   return (
     <ProductCard.Button
       {...props}
@@ -68,13 +68,13 @@ function DemoProductButton(props: ComponentProps<typeof ProductCard.Button>) {
         props.onClick?.(event)
         const next = !selected
         setSelected(next)
-        if (!wishlist && props.buttonVariant !== "detail") setCount(count + 1)
+        if (!wishlist && props.action !== "detail") setCount(count + 1)
         announce(
           wishlist
             ? next
               ? "Added to the local wishlist."
               : "Removed from the local wishlist."
-            : props.buttonVariant === "detail"
+            : props.action === "detail"
               ? "Product details are shown in this card. This demo does not open a shop page."
               : `Added one item to the local demo cart. Quantity: ${count + 1}.`
         )
@@ -132,7 +132,7 @@ type PlaygroundArgs = {
   rating: number
   stockStatus: "in-stock" | "limited-stock" | "out-of-stock"
   stockText: string
-  buttonVariant: "cart" | "detail" | "wishlist"
+  action: "cart" | "detail" | "wishlist"
   buttonText: string
 }
 
@@ -206,7 +206,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       description: "Stock status text",
       table: { category: "Stock" },
     },
-    buttonVariant: {
+    action: {
       control: "select",
       options: ["cart", "detail", "wishlist"],
       description: "Primary button variant",
@@ -229,7 +229,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     rating: 4,
     stockStatus: "in-stock",
     stockText: "In Stock",
-    buttonVariant: "cart",
+    action: "cart",
     buttonText: "Add to Cart",
   },
   render: (args) => {
@@ -251,8 +251,8 @@ export const Playground: StoryObj<PlaygroundArgs> = {
         />
         {args.showBadges && (
           <ProductCard.Badges>
-            <Badge variant="success">New</Badge>
-            <Badge variant="danger">Sale</Badge>
+            <Badge severity="success">New</Badge>
+            <Badge severity="danger">Sale</Badge>
           </ProductCard.Badges>
         )}
         <ProductCard.Name>{args.productName}</ProductCard.Name>
@@ -269,9 +269,9 @@ export const Playground: StoryObj<PlaygroundArgs> = {
         <ProductCard.Price>{args.price}</ProductCard.Price>
         <ProductCard.Actions>
           <DemoProductButton
-            buttonVariant={args.buttonVariant}
+            action={args.action}
             onClick={fn()}
-            icon={buttonIcons[args.buttonVariant]}
+            icon={buttonIcons[args.action]}
           >
             {args.buttonText}
           </DemoProductButton>
@@ -314,14 +314,14 @@ export const Badges: Story = {
         <ProductCard.Name>Premium Cotton T-Shirt</ProductCard.Name>
         <ProductCard.Badges>
           {badges.map((badge, idx) => (
-            <Badge key={idx} variant={badge.variant}>
+            <Badge key={idx} severity={badge.variant}>
               {badge.label}
             </Badge>
           ))}
         </ProductCard.Badges>
         <ProductCard.Price>$29.99</ProductCard.Price>
         <ProductCard.Actions>
-          <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
+          <DemoProductButton action="cart" icon="token-icon-cart-button">
             Add to Cart
           </DemoProductButton>
         </ProductCard.Actions>
@@ -347,9 +347,9 @@ export const BadgesWithCustomColors: Story = {
         <ProductCard.Image src={productImages.shoes} alt="Running Shoes" />
         <ProductCard.Name>Limited Edition Running Shoes</ProductCard.Name>
         <ProductCard.Badges>
-          <Badge variant="success">New Arrival</Badge>
+          <Badge severity="success">New Arrival</Badge>
           <Badge
-            variant="dynamic"
+            severity="custom"
             bgColor="#fff"
             fgColor="#000"
             borderColor="#eee"
@@ -358,7 +358,7 @@ export const BadgesWithCustomColors: Story = {
           </Badge>
 
           <Badge
-            variant="dynamic"
+            severity="custom"
             bgColor="#7f22fe"
             fgColor="#fff"
             borderColor="#9810fa"
@@ -367,7 +367,7 @@ export const BadgesWithCustomColors: Story = {
           </Badge>
 
           <Badge
-            variant="dynamic"
+            severity="custom"
             bgColor="#f5f3ff"
             fgColor="#7f22fe"
             borderColor="#7f22fe"
@@ -380,7 +380,7 @@ export const BadgesWithCustomColors: Story = {
           Only 3 left!
         </ProductCard.Stock>
         <ProductCard.Actions>
-          <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
+          <DemoProductButton action="cart" icon="token-icon-cart-button">
             Add to Cart
           </DemoProductButton>
         </ProductCard.Actions>
@@ -410,7 +410,7 @@ export const StockStates: Story = {
           <ProductCard.Stock status="in-stock">In Stock</ProductCard.Stock>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="cart"
+              action="cart"
               icon="token-icon-cart-button"
             >
               Add to Cart
@@ -429,7 +429,7 @@ export const StockStates: Story = {
           </ProductCard.Stock>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="cart"
+              action="cart"
               icon="token-icon-cart-button"
             >
               Add to Cart
@@ -448,7 +448,7 @@ export const StockStates: Story = {
           </ProductCard.Stock>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="detail"
+              action="detail"
               icon="token-icon-detail-button"
             >
               Notify Me
@@ -480,7 +480,7 @@ export const AllButtonVariants: Story = {
           <ProductCard.Price>$89.99</ProductCard.Price>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="cart"
+              action="cart"
               icon="token-icon-cart-button"
               onClick={fn()}
             >
@@ -497,7 +497,7 @@ export const AllButtonVariants: Story = {
           <ProductCard.Price>$499.99</ProductCard.Price>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="detail"
+              action="detail"
               icon="token-icon-detail-button"
               onClick={fn()}
             >
@@ -514,7 +514,7 @@ export const AllButtonVariants: Story = {
           <ProductCard.Price>$199.99</ProductCard.Price>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="wishlist"
+              action="wishlist"
               icon="token-icon-wishlist-button"
               onClick={fn()}
             >
@@ -531,7 +531,7 @@ export const AllButtonVariants: Story = {
           <ProductCard.Price>$1,299.99</ProductCard.Price>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="custom"
+              action="custom"
               icon="token-icon-share"
               onClick={fn()}
               className="bg-accent text-accent-fg hover:bg-accent-hover"
@@ -567,7 +567,7 @@ export const LayoutVariants: Story = {
           <ProductCard.Price>$24.99</ProductCard.Price>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="cart"
+              action="cart"
               icon="token-icon-cart-button"
             >
               Add to Cart
@@ -592,7 +592,7 @@ export const LayoutVariants: Story = {
             <ProductCard.Price>$89.99</ProductCard.Price>
             <ProductCard.Actions>
               <DemoProductButton
-                buttonVariant="cart"
+                action="cart"
                 icon="token-icon-cart-button"
               >
                 Add to Cart
@@ -631,8 +631,8 @@ export const CustomComposition: Story = {
       <ProductCard.Image src={productImages.camera} alt="DSLR Camera" />
 
       <div className="mb-100 flex gap-100">
-        <Badge variant="info">-30%</Badge>
-        <Badge variant="success">Free Shipping</Badge>
+        <Badge severity="info">-30%</Badge>
+        <Badge severity="success">Free Shipping</Badge>
       </div>
 
       <ProductCard.Name>Professional DSLR Camera</ProductCard.Name>
@@ -658,14 +658,14 @@ export const CustomComposition: Story = {
       <ProductCard.Actions>
         <div className="flex w-full gap-200">
           <DemoProductButton
-            buttonVariant="cart"
+            action="cart"
             icon="token-icon-cart-button"
             className="flex-1"
           >
             Buy Now
           </DemoProductButton>
           <DemoProductButton
-            buttonVariant="detail"
+            action="detail"
             icon="token-icon-detail-button"
           >
             Details
@@ -711,7 +711,7 @@ export const WithQuantityInput: Story = {
           </NumericInput.Control>
         </NumericInput>
         <DemoProductButton
-          buttonVariant="cart"
+          action="cart"
           icon="token-icon-cart-button"
           onClick={fn()}
           className="flex-1"
@@ -719,7 +719,7 @@ export const WithQuantityInput: Story = {
           Add to Cart
         </DemoProductButton>
         <DemoProductButton
-          buttonVariant="wishlist"
+          action="wishlist"
           icon="token-icon-wishlist-button"
           onClick={fn()}
           className="w-full"
@@ -781,15 +781,15 @@ export const ComplexCard: Story = {
           alt="Camera Kit"
           className="w-full"
         />
-        <Badge variant="danger" className="absolute top-100 right-100">
+        <Badge severity="danger" className="absolute top-100 right-100">
           HOT DEAL
         </Badge>
       </div>
 
       <ProductCard.Badges>
-        <Badge variant="info">New Arrival</Badge>
-        <Badge variant="success">Eco-Friendly</Badge>
-        <Badge variant="warning">Limited Stock</Badge>
+        <Badge severity="info">New Arrival</Badge>
+        <Badge severity="success">Eco-Friendly</Badge>
+        <Badge severity="warning">Limited Stock</Badge>
       </ProductCard.Badges>
 
       <ProductCard.Name>
@@ -809,7 +809,7 @@ export const ComplexCard: Story = {
           <ProductCard.Price>
             <span className="sr-only">Current price </span>$2,449
           </ProductCard.Price>
-          <Badge variant="danger">Save $1,050</Badge>
+          <Badge severity="danger">Save $1,050</Badge>
         </div>
         <span className="text-50 text-success-fg">Free shipping included</span>
       </div>
@@ -836,7 +836,7 @@ export const ComplexCard: Story = {
             </NumericInput.Control>
           </NumericInput>
           <DemoProductButton
-            buttonVariant="cart"
+            action="cart"
             icon="token-icon-cart-button"
             onClick={fn()}
             className="flex-1"
@@ -847,14 +847,14 @@ export const ComplexCard: Story = {
 
         <div className="grid grid-cols-2 gap-100">
           <DemoProductButton
-            buttonVariant="detail"
+            action="detail"
             icon="token-icon-detail-button"
             onClick={fn()}
           >
             Quick View
           </DemoProductButton>
           <DemoProductButton
-            buttonVariant="wishlist"
+            action="wishlist"
             icon="token-icon-wishlist-button"
             onClick={fn()}
           >
@@ -893,19 +893,19 @@ export const ActionLayouts: Story = {
           <ProductCard.Actions>
             <div className="flex gap-100">
               <DemoProductButton
-                buttonVariant="cart"
+                action="cart"
                 icon="token-icon-cart-button"
               >
                 Cart
               </DemoProductButton>
               <DemoProductButton
-                buttonVariant="detail"
+                action="detail"
                 icon="token-icon-detail-button"
               >
                 View
               </DemoProductButton>
               <DemoProductButton
-                buttonVariant="wishlist"
+                action="wishlist"
                 icon="token-icon-wishlist-button"
               >
                 Save
@@ -923,14 +923,14 @@ export const ActionLayouts: Story = {
           <ProductCard.Actions>
             <div className="flex flex-col gap-100">
               <DemoProductButton
-                buttonVariant="cart"
+                action="cart"
                 icon="token-icon-cart-button"
                 className="w-full"
               >
                 Add to Cart
               </DemoProductButton>
               <DemoProductButton
-                buttonVariant="detail"
+                action="detail"
                 icon="token-icon-detail-button"
                 className="w-full"
               >
@@ -948,7 +948,7 @@ export const ActionLayouts: Story = {
           <ProductCard.Price>$999.99</ProductCard.Price>
           <ProductCard.Actions>
             <DemoProductButton
-              buttonVariant="cart"
+              action="cart"
               icon="token-icon-cart-button"
               className="mb-100 w-full"
             >
@@ -956,14 +956,14 @@ export const ActionLayouts: Story = {
             </DemoProductButton>
             <div className="flex gap-100">
               <DemoProductButton
-                buttonVariant="detail"
+                action="detail"
                 icon="token-icon-detail-button"
                 className="flex-1"
               >
                 Details
               </DemoProductButton>
               <DemoProductButton
-                buttonVariant="wishlist"
+                action="wishlist"
                 icon="token-icon-wishlist-button"
                 className="flex-1"
               >
@@ -995,7 +995,7 @@ export const CustomRowSpan: Story = {
           <ProductCard.Price>$1,299.99</ProductCard.Price>
           <ProductCard.Rating rating={{ defaultValue: 4.5, displayOnly: true }} />
           <ProductCard.Actions>
-            <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
+            <DemoProductButton action="cart" icon="token-icon-cart-button">
               Add to Cart
             </DemoProductButton>
           </ProductCard.Actions>
@@ -1030,8 +1030,8 @@ export const CustomGridLayout: Story = {
       </div>
       <div className="flex flex-col gap-200">
         <ProductCard.Badges className="flex flex-row flex-nowrap w-max">
-          <Badge variant="success">New Arrival</Badge>
-          <Badge variant="info">Noise Cancelling</Badge>
+          <Badge severity="success">New Arrival</Badge>
+          <Badge severity="info">Noise Cancelling</Badge>
         </ProductCard.Badges>
         <ProductCard.Price>$349.99</ProductCard.Price>
         <ProductCard.Rating rating={{ defaultValue: 4.9, displayOnly: true }} />
@@ -1039,11 +1039,11 @@ export const CustomGridLayout: Story = {
           Only 5 left in stock!
         </ProductCard.Stock>
         <ProductCard.Actions>
-          <DemoProductButton buttonVariant="cart" icon="token-icon-cart-button">
+          <DemoProductButton action="cart" icon="token-icon-cart-button">
             Add to Cart
           </DemoProductButton>
           <DemoProductButton
-            buttonVariant="wishlist"
+            action="wishlist"
             icon="token-icon-wishlist-button"
           >
             Wishlist

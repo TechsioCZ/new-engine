@@ -21,14 +21,15 @@ const meta = {
     composition: { table: { disable: true } },
     children: { control: "text" },
     size: { control: "select", options: ["sm", "md", "lg"] },
-    variant: {
+    severity: {
       control: "select",
       options: ["primary", "secondary", "tertiary", "warning", "danger"],
     },
-    theme: {
+    appearance: {
       control: "select",
-      options: ["solid", "light", "outlined", "borderless", "unstyled"],
+      options: ["solid", "subtle", "outline", "ghost"],
     },
+    unstyled: { control: "boolean" },
     disabled: { control: "boolean" },
     href: { control: false },
     as: { control: false },
@@ -37,9 +38,7 @@ const meta = {
   args: {
     children: "View project",
     href: "#project",
-    size: "md",
-    variant: "primary",
-    theme: "solid",
+    severity: "primary",
     onClick: fn((event) => event.preventDefault()),
   },
 } satisfies Meta<typeof LinkButton>
@@ -67,9 +66,9 @@ export const Variants: Story = {
   },
   render: (args) => (
     <VariantContainer>
-      {(["solid", "light", "outlined", "borderless"] as const).map((theme) => (
+      {(["solid", "subtle", "outline", "ghost"] as const).map((theme) => (
         <VariantGroup key={theme} title={theme}>
-          <LinkButton {...args} theme={theme} />
+          <LinkButton {...args} appearance={theme} />
         </VariantGroup>
       ))}
     </VariantContainer>

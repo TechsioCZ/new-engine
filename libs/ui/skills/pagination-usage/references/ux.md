@@ -34,7 +34,7 @@ the total and the page size.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=filled` / `outlined` / `minimal` | `variant="filled" \| "outlined" \| "minimal"` | Visual only; the data logic is the same. |
+| `variant=filled` / `outlined` / `minimal` | `appearance="solid" \| "outline" \| "ghost"` | Visual only; the data logic is the same. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Same control heights as Button and Tabs. |
 | — | `page` / `defaultPage`, `count`, `pageSize` | The current page and the bounds, from the app's real result. |
 | — | `siblingCount`, `boundaryCount` | How many numbers show around the current page and at the ends. |

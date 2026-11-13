@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.1.0
+ * @componentVersion v2.0.0
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,6 +17,7 @@ import {
   useContext,
 } from "react"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const skeletonVariants = tv({
@@ -29,7 +30,7 @@ const skeletonVariants = tv({
     textLine: ["h-skeleton-text-line", "rounded-skeleton-text", "w-full"],
   },
   variants: {
-    variant: {
+    severity: {
       primary: {
         root: "",
         circle: "bg-skeleton-bg-primary",
@@ -74,7 +75,7 @@ const skeletonVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "primary",
+    severity: "primary",
     size: "md",
     speed: "normal",
   },
@@ -82,7 +83,7 @@ const skeletonVariants = tv({
 
 type SkeletonContextValue = {
   isLoaded: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
 }
 
@@ -96,13 +97,13 @@ const useSkeletonContext = () => useContext(SkeletonContext)
  */
 function useResolvedSkeletonProps(props: {
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
 }) {
   const context = useSkeletonContext()
   return {
     isLoaded: props.isLoaded ?? context?.isLoaded ?? false,
-    variant: props.variant ?? context?.variant,
+    severity: props.severity ?? context?.severity,
     speed: props.speed ?? context?.speed,
   }
 }
@@ -133,7 +134,7 @@ function useSkeletonA11yProps(ariaHidden?: boolean | "true" | "false") {
 
 type SkeletonRootProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
   children?: ReactNode
   ref?: Ref<HTMLDivElement>
@@ -141,18 +142,18 @@ type SkeletonRootProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
 
 export function Skeleton({
   isLoaded = false,
-  variant,
+  severity,
   children,
   speed,
   className,
   ref,
   ...props
 }: SkeletonRootProps) {
-  const styles = skeletonVariants({ variant, speed })
+  const styles = skeletonVariants({ severity, speed })
   const messages = useUiMessages()
 
   return (
-    <SkeletonContext.Provider value={{ isLoaded, variant, speed }}>
+    <SkeletonContext.Provider value={{ isLoaded, severity, speed }}>
       {isLoaded ? (
         children
       ) : (
@@ -176,27 +177,32 @@ type SkeletonCircleProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   size?: "sm" | "md" | "lg" | "xl"
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   children?: ReactNode
   ref?: Ref<HTMLDivElement>
 }
 
 Skeleton.Circle = function SkeletonCircle({
-  size = "md",
+  size: sizeProp,
   speed,
   isLoaded,
-  variant,
+  severity,
   children,
   className,
   ref,
   ...props
 }: SkeletonCircleProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const { size = "md" } = useUIDefaults(
+    "Skeleton",
+    { size: sizeProp },
+    skeletonVariants
+  )
+  const resolved = useResolvedSkeletonProps({ isLoaded, severity, speed })
   const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
     size,
-    variant: resolved.variant,
+    severity: resolved.severity,
     speed: resolved.speed,
   })
 
@@ -222,7 +228,7 @@ type SkeletonTextProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   speed?: "slow" | "normal" | "fast"
   lastLineWidth?: string
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   children?: ReactNode
   containerClassName?: string
   ref?: Ref<HTMLDivElement>
@@ -230,23 +236,28 @@ type SkeletonTextProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
 
 Skeleton.Text = function SkeletonText({
   noOfLines = 3,
-  size = "md",
+  size: sizeProp,
   speed,
   lastLineWidth = "80%",
   isLoaded,
-  variant,
+  severity,
   children,
   containerClassName,
   className,
   ref,
   ...props
 }: SkeletonTextProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const { size = "md" } = useUIDefaults(
+    "Skeleton",
+    { size: sizeProp },
+    skeletonVariants
+  )
+  const resolved = useResolvedSkeletonProps({ isLoaded, severity, speed })
   const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
     size,
-    variant: resolved.variant,
+    severity: resolved.severity,
     speed: resolved.speed,
   })
 
@@ -291,7 +302,7 @@ type SkeletonRectangleProps = Omit<
 > & {
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   children?: ReactNode
   ref?: Ref<HTMLDivElement>
 }
@@ -299,17 +310,17 @@ type SkeletonRectangleProps = Omit<
 Skeleton.Rectangle = function SkeletonRectangle({
   speed,
   isLoaded,
-  variant,
+  severity,
   children,
   className,
   ref,
   ...props
 }: SkeletonRectangleProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const resolved = useResolvedSkeletonProps({ isLoaded, severity, speed })
   const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
-    variant: resolved.variant,
+    severity: resolved.severity,
     speed: resolved.speed,
   })
 

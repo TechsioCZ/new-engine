@@ -1,6 +1,6 @@
 /*
  * Icon — sizes and component color aliases come from Figma tokens.
- * `color="current"` inherits text; explicit colors consume --color-icon-fg-*.
+ * `severity="current"` inherits text; explicit colors consume --color-icon-fg-*.
  * Semantic glyph aliases below use the MDI and MDI Light families.
  */
 

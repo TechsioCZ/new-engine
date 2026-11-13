@@ -44,7 +44,7 @@ cases:
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` |
 | `state=loading` | `isLoading` (Button), `loading` (DataTable) |
-| `state=error`, `success`, `warning` | `validateStatus` on form fields, `variant` on bare inputs |
+| `state=error`, `success`, `warning` | `validateStatus` on form fields and bare inputs |
 
 ## How a component page is organised
 

@@ -4,8 +4,9 @@
 
 import figma from "figma"
 
-const variant = figma.selectedInstance.getEnum("variant", {
-  default: "default",
+// Figma still names the property variant; code reads appearance.
+const appearance = figma.selectedInstance.getEnum("variant", {
+  default: "underline",
   line: "line",
   solid: "solid",
   outline: "outline",
@@ -21,7 +22,7 @@ export default {
   example: figma.code`<Tabs defaultValue="tab-1"${figma.helpers.react.renderProp(
     "orientation",
     orientation
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("appearance", appearance)}>
         <Tabs.List>
           <Tabs.Trigger value="tab-1">Tab 1</Tabs.Trigger>
           <Tabs.Trigger value="tab-2">Tab 2</Tabs.Trigger>

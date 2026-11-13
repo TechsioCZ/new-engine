@@ -2,7 +2,7 @@
  * Image — @techsio/ui-kit atom.
  *
  * @component Image
- * @componentVersion v1.2.2
+ * @componentVersion v1.3.0
  * @skill image-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,6 +17,7 @@ import {
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Icon } from "./icon"
 
@@ -82,11 +83,12 @@ export function Image<T extends ElementType = "img">({
   as,
   src,
   alt,
-  size,
+  size: sizeProp,
   objectFit,
   className,
   ...props
 }: ImageProps<T>) {
+  const { size } = useUIDefaults("Image", { size: sizeProp }, imageVariants)
   const Component = (as || "img") as ElementType
 
   return (

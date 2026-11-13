@@ -2,7 +2,7 @@
  * Badge — @techsio/ui-kit atom.
  *
  * @component Badge
- * @componentVersion v1.1.2
+ * @componentVersion v2.0.0
  * @skill badge-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,7 +11,36 @@
  */
 import type { ComponentPropsWithRef } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
+
+const SOLID_SEVERITY = {
+  primary:
+    "border-badge-border-primary bg-badge-bg-primary text-badge-fg-primary",
+  secondary:
+    "border-badge-border-secondary bg-badge-bg-secondary text-badge-fg-secondary",
+  tertiary:
+    "border-badge-border-tertiary bg-badge-bg-tertiary text-badge-fg-tertiary",
+  discount:
+    "border-badge-border-discount bg-badge-bg-discount text-badge-fg-discount",
+  info: "border-badge-border-info bg-badge-bg-info text-badge-fg-info",
+  success:
+    "border-badge-border-success bg-badge-bg-success text-badge-fg-success",
+  warning:
+    "border-badge-border-warning bg-badge-bg-warning text-badge-fg-warning",
+  danger: "border-badge-border-danger bg-badge-bg-danger text-badge-fg-danger",
+} as const
+
+const OUTLINE_BORDER = {
+  primary: "border-badge-border-outline-primary",
+  secondary: "border-badge-border-outline-secondary",
+  tertiary: "border-badge-border-outline-tertiary",
+  discount: "border-badge-border-outline-discount",
+  info: "border-badge-border-outline-info",
+  success: "border-badge-border-outline-success",
+  warning: "border-badge-border-outline-warning",
+  danger: "border-badge-border-outline-danger",
+} as const
 
 const badgeVariants = tv({
   base: [
@@ -20,33 +49,23 @@ const badgeVariants = tv({
     "border-(length:--border-width-badge)",
   ],
   variants: {
-    variant: {
-      primary: [
-        "border-badge-border-primary bg-badge-bg-primary text-badge-fg-primary",
-      ],
-      secondary: [
-        "border-badge-border-secondary bg-badge-bg-secondary text-badge-fg-secondary",
-      ],
-      tertiary: [
-        "border-badge-border-tertiary bg-badge-bg-tertiary text-badge-fg-tertiary",
-      ],
-      discount: [
-        "border-badge-border-discount bg-badge-bg-discount text-badge-fg-discount",
-      ],
-      info: ["border-badge-border-info bg-badge-bg-info text-badge-fg-info"],
-      success: [
-        "border-badge-border-success bg-badge-bg-success text-badge-fg-success",
-      ],
-      warning: [
-        "border-badge-border-warning bg-badge-bg-warning text-badge-fg-warning",
-      ],
-      danger: [
-        "border-badge-border-danger bg-badge-bg-danger text-badge-fg-danger",
-      ],
-      outline: [
+    severity: {
+      primary: "",
+      secondary: "",
+      tertiary: "",
+      discount: "",
+      info: "",
+      success: "",
+      warning: "",
+      danger: "",
+      // Neutral has no fill of its own: it always renders the outline look.
+      neutral:
         "border-badge-border-outline bg-badge-bg-outline text-badge-fg-outline",
-      ],
-      dynamic: [],
+      custom: "",
+    },
+    appearance: {
+      solid: "",
+      outline: "bg-badge-bg-outline text-badge-fg-outline",
     },
     size: {
       sm: ["font-badge-sm text-badge-sm", "p-badge-sm"],
@@ -55,13 +74,31 @@ const badgeVariants = tv({
       xl: ["font-badge-xl text-badge-xl", "p-badge-xl"],
     },
   },
+  compoundVariants: [
+    ...Object.entries(SOLID_SEVERITY).map(([severity, className]) => ({
+      severity: severity as keyof typeof SOLID_SEVERITY,
+      appearance: "solid" as const,
+      className,
+    })),
+    ...Object.entries(OUTLINE_BORDER).map(([severity, className]) => ({
+      severity: severity as keyof typeof OUTLINE_BORDER,
+      appearance: "outline" as const,
+      className,
+    })),
+  ],
   defaultVariants: {
-    variant: "info",
+    severity: "info",
+    appearance: "solid",
     size: "md",
   },
 })
 
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>
+export type BadgeSeverity = NonNullable<
+  VariantProps<typeof badgeVariants>["severity"]
+>
+export type BadgeAppearance = NonNullable<
+  VariantProps<typeof badgeVariants>["appearance"]
+>
 type BadgeSize = NonNullable<VariantProps<typeof badgeVariants>["size"]>
 
 type BaseBadgeProps = Omit<
@@ -70,33 +107,41 @@ type BaseBadgeProps = Omit<
 > & {
   children: string
   size?: BadgeSize
+  /** Fill style. Falls back to the nearest `UIProvider`, then `solid`. */
+  appearance?: BadgeAppearance
 }
 
 type DefaultBadgeProps = BaseBadgeProps & {
-  variant?: Exclude<BadgeVariant, "dynamic">
+  severity?: Exclude<BadgeSeverity, "custom">
 }
 
-type DynamicBadgeProps = BaseBadgeProps & {
-  variant: "dynamic"
+type CustomBadgeProps = BaseBadgeProps & {
+  severity: "custom"
   bgColor: string
   fgColor: string
   borderColor: string
 }
 
-export type BadgeProps = DefaultBadgeProps | DynamicBadgeProps
+export type BadgeProps = DefaultBadgeProps | CustomBadgeProps
 
 export function Badge({
-  variant,
-  size,
+  severity,
+  size: sizeProp,
+  appearance: appearanceProp,
   className,
   children,
   style,
   ...props
 }: BadgeProps) {
-  const isDynamic = variant === "dynamic"
+  const { size, appearance } = useUIDefaults(
+    "Badge",
+    { size: sizeProp, appearance: appearanceProp },
+    badgeVariants
+  )
+  const isDynamic = severity === "custom"
 
   const { bgColor, fgColor, borderColor, ...restProps } =
-    props as Partial<DynamicBadgeProps>
+    props as Partial<CustomBadgeProps>
 
   const dynamicStyles = isDynamic
     ? {
@@ -109,7 +154,7 @@ export function Badge({
 
   return (
     <span
-      className={badgeVariants({ variant, size, className })}
+      className={badgeVariants({ severity, appearance, size, className })}
       style={dynamicStyles}
       {...restProps}
     >

@@ -35,7 +35,7 @@ are complete and what remains. Visiting a stage is not completing it.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=subtle` / `solid` | `variant="subtle" \| "solid"` | Visual only; a variant is never an extra step. |
+| `variant=subtle` / `solid` | `appearance="subtle" \| "solid"` | Visual only; a variant is never an extra step. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Indicator and stage typography; Back/Continue follow the shared control heights. |
 | current | `step` / `defaultStep` (`aria-current="step"`) | The stage that is open now. |
 | complete | steps before the current one | Only reached after the stage's conditions passed (`isStepValid`). |

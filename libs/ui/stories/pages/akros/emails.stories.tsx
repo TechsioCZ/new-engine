@@ -231,8 +231,8 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                       "Sample recipient: nora.kessler@akros.cz. No email was sent from this demo.",
                   })
                 }
-                theme="outlined"
-                variant="secondary"
+                appearance="outline"
+                severity="secondary"
               >
                 Preview test delivery
               </Button>
@@ -277,7 +277,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                     title: `${editing.name} saved`,
                   })
                 }}
-                variant="primary"
+                severity="primary"
               >
                 Save template
               </Button>
@@ -295,7 +295,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
           size="lg"
           title={editing.name}
         >
-          <Tabs value={tab} onValueChange={setTab} variant="line">
+          <Tabs value={tab} onValueChange={setTab} appearance="line">
             <Tabs.List>
               <Tabs.Trigger value="edit">Edit</Tabs.Trigger>
               <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
@@ -328,7 +328,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                 className="min-w-0 max-w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-focus-ring"
               >
                 <span className="font-medium text-sm">Variables</span>
-                <Table className="min-w-xl" size="sm" variant="line">
+                <Table className="min-w-xl" size="sm" appearance="line">
                   <Table.Header>
                     <Table.Row>
                       <Table.ColumnHeader>Variable</Table.ColumnHeader>
@@ -367,7 +367,7 @@ function EmailsPage({ initialId }: { initialId?: string }) {
                 <p className="whitespace-pre-line text-sm">{render(body)}</p>
               </div>
               {editing.audience !== "all" && (
-                <Badge size="sm" variant="outline">
+                <Badge size="sm" appearance="outline" severity="neutral">
                   {`Only sent to ${audienceLabels[editing.audience]} customers`}
                 </Badge>
               )}

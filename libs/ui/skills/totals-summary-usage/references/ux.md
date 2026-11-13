@@ -22,7 +22,7 @@ what is still being recalculated. It never calculates anything itself.
 ## Anatomy
 
 - **Rows** (`rows`): each has a stable `id`, a `label` and a formatted `value`,
-  with optional `note` and `emphasis`.
+  with optional `note` and `severity`.
 - **Total** (`totalLabel`, `totalValue`): the sum and what it includes.
 - **Footer** (optional): a note such as how the final total is determined.
 - **Actions** (optional): the next step, for example `Continue to checkout`.
@@ -33,8 +33,8 @@ what is still being recalculated. It never calculates anything itself.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| Row `emphasis=default` | `emphasis: "default"` | An ordinary amount with a clear name and currency. |
-| Row `emphasis=discount` | `emphasis: "discount"` | Highlights a real discount row. It doesn't change the amount or its sign. |
+| Row `emphasis=default` | `severity: "neutral"` | An ordinary amount with a clear name and currency. |
+| Row `emphasis=discount` | `severity: "discount"` | Highlights a real discount row. It doesn't change the amount or its sign. |
 | Row `showNote` | `note` | Explains the condition of this amount; never replaces its name or value. |
 | `pending=false` | — | Amounts match their confirmed context. |
 | `pending=true` | `pending` + `pendingLabel` | Recalculating: last values stay visible, `aria-busy` is set, the actions are inert. |

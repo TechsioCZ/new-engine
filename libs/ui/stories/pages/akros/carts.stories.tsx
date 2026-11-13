@@ -69,19 +69,19 @@ type Story = StoryObj
 
 const cartStates: Record<
   CartState,
-  ["success" | "warning" | "info" | "secondary" | "outline", string]
+  ["success" | "warning" | "info" | "secondary" | "neutral", string]
 > = {
   active: ["info", "Active"],
   saved: ["secondary", "Saved"],
   shared: ["success", "Shared"],
   abandoned: ["warning", "Abandoned"],
-  ordered: ["outline", "Ordered"],
+  ordered: ["neutral", "Ordered"],
 }
 
 function CartStateBadge({ state }: { state: CartState }) {
   const [variant, label] = cartStates[state]
   return (
-    <Badge size="sm" variant={variant}>
+    <Badge size="sm" severity={variant}>
       {label}
     </Badge>
   )
@@ -233,8 +233,8 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                   setDialog("save")
                 }}
                 size="sm"
-                theme="outlined"
-                variant="secondary"
+                appearance="outline"
+                severity="secondary"
               >
                 Save
               </Button>
@@ -243,8 +243,8 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                 icon="icon-[mdi--cart-arrow-down]"
                 onClick={() => setDialog("load")}
                 size="sm"
-                theme="outlined"
-                variant="secondary"
+                appearance="outline"
+                severity="secondary"
               >
                 Load to customer
               </Button>
@@ -263,7 +263,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                   setDialog("share")
                 }}
                 size="sm"
-                variant="primary"
+                severity="primary"
               >
                 Share
               </Button>
@@ -303,7 +303,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
               aria-label="Cart contents"
               tabIndex={0}
             >
-              <Table size="sm" variant="line">
+              <Table size="sm" appearance="line">
                 <Table.Header>
                   <Table.Row>
                     <Table.ColumnHeader>Product</Table.ColumnHeader>
@@ -340,8 +340,8 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
           <>
             <Button
               onClick={() => setDialog(null)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
@@ -356,7 +356,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                   description: `“${name}” was saved to this local demo cart. No customer account was changed.`,
                 })
               }}
-              variant="primary"
+              severity="primary"
             >
               Save cart
             </Button>
@@ -384,8 +384,8 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
           <>
             <Button
               onClick={() => setDialog(null)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
@@ -410,7 +410,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                   description: `${akOrderLines.length} product lines loaded locally for ${cart.customer}. No customer account was changed.`,
                 })
               }}
-              variant="primary"
+              severity="primary"
             >
               Load cart
             </Button>
@@ -441,8 +441,8 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
           <>
             <Button
               onClick={() => setDialog(null)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Close
             </Button>
@@ -474,7 +474,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                     "The local cart is marked shared. No email was sent.",
                 })
               }}
-              variant="primary"
+              severity="primary"
             >
               Save share draft
             </Button>
@@ -510,8 +510,8 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
                 }
               }}
               size="sm"
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Copy
             </Button>

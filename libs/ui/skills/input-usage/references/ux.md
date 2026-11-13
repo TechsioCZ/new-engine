@@ -32,15 +32,15 @@ visual state; the label, help and message come from the composition around it.
 | Figma | Code | Meaning |
 | --- | --- | --- |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Match the surrounding controls (for example DataTable `size`). |
-| `state=default` | `variant="default"` | No known problem. Not proof that the value was validated or saved. |
-| `state=error` | `variant="error"` | A specific, fixable problem was found. The draft stays for correction. |
-| `state=success` | `variant="success"` | This value was actually checked. Not "the form was saved". |
-| `state=warning` | `variant="warning"` | Needs attention, but the user may continue. Blocking problems are errors. |
+| `state=default` | `validateStatus="default"` | No known problem. Not proof that the value was validated or saved. |
+| `state=error` | `validateStatus="error"` | A specific, fixable problem was found. The draft stays for correction. |
+| `state=success` | `validateStatus="success"` | This value was actually checked. Not "the form was saved". |
+| `state=warning` | `validateStatus="warning"` | Needs attention, but the user may continue. Blocking problems are errors. |
 | `state=disabled` | `disabled` | Not usable now, for a reason the user can find. |
 | — | `readOnly` | Visible, focusable and copyable, but not editable. Not the same as disabled. |
 | `state=hover`, `focus` | not props | Produced by the browser. |
 
-In forms, use `FormInput` with `validateStatus`; `variant` is for bare inputs.
+In forms, use `FormInput`; bare inputs take the same `validateStatus`.
 
 ## Behaviour
 

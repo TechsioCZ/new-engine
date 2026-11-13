@@ -20,7 +20,7 @@ export const verticalNavigationStyles = tv({
       "my-vertical-navigation-group h-vertical-navigation-separator border-0 bg-vertical-navigation-separator-bg",
   },
   variants: {
-    variant: { primary: {}, secondary: {} },
+    severity: { primary: {}, secondary: {} },
     size: {
       sm: {
         root: "text-vertical-navigation-sm",
@@ -47,7 +47,7 @@ export const verticalNavigationStyles = tv({
         groupLabel: "px-vertical-navigation-item-x-lg",
       },
     },
-    tone: {
+    appearance: {
       plain: {
         content:
           "bg-vertical-navigation-group-bg-plain text-vertical-navigation-group-fg-plain",
@@ -60,7 +60,7 @@ export const verticalNavigationStyles = tv({
         group:
           "bg-vertical-navigation-group-bg-subtle text-vertical-navigation-group-fg-subtle",
       },
-      accent: {
+      solid: {
         content:
           "bg-vertical-navigation-group-bg-accent text-vertical-navigation-group-fg-accent",
         group:
@@ -70,8 +70,8 @@ export const verticalNavigationStyles = tv({
   },
   compoundVariants: [
     {
-      tone: "accent",
-      variant: "secondary",
+      appearance: "solid",
+      severity: "secondary",
       class: {
         content:
           "bg-vertical-navigation-group-bg-secondary text-vertical-navigation-group-fg-secondary",
@@ -80,5 +80,5 @@ export const verticalNavigationStyles = tv({
       },
     },
   ],
-  defaultVariants: { size: "md", tone: "plain", variant: "primary" },
+  defaultVariants: { size: "md", appearance: "plain", severity: "primary" },
 })

@@ -8,7 +8,7 @@ description: >
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
 metadata:
-  component_version: "1.5.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -52,7 +52,7 @@ where actions and feedback live). This section applies them to `DataTable`.
 
 - Align numeric columns (money, counts, percentages) with `meta: { align: "end" }` and render them with `tabular-nums`; text and dates stay start-aligned (ux-guidelines/formatting#alignment-in-tables).
 - Format cells with the app's `Intl` formatters; render missing values as `—`.
-- Row click = read (detail drawer); edit and delete live in `rowActions`, delete last with `tone: "danger"`.
+- Row click = read (detail drawer); edit and delete live in `rowActions`, delete last with `severity: "danger"`.
 - Show bulk actions only while rows are selected; confirm destructive bulk actions with the count.
 - Design all three empty states (first use, no results, load error). `translations.emptyTitle` / `emptyDescription` hold one message, so pick it from the app's state on each render, or use `renderEmpty` to render a different state (with `Clear filters` / `Try again`) per case — never let a failed load read as `No records`.
 
@@ -159,8 +159,8 @@ stays on one line. The active condition is in the button's `aria-label`, and for
 `Is empty` / `Is not empty` the input is disabled and shows the condition as its
 placeholder.
 
-Row actions use the `Button` atom icon-only at `size="sm"`, `theme="borderless"`,
-with `variant` carrying the semantics (`danger` for destructive actions).
+Row actions use the `Button` atom icon-only at `size="sm"`, `appearance="ghost"`,
+with `severity` carrying the semantics (`danger` for destructive actions).
 
 Escape hatches, in precedence order: `meta.renderFilter` / `meta.renderEditor`
 per column → the table-wide `renderHeaderFilter` slot → `filterRenderers` /
@@ -244,7 +244,7 @@ custom actions sit at the trailing edge in a flex group.
   enableGlobalFilter
   toolbarActions={[
     { id: "refresh", "aria-label": "Refresh", icon: "icon-[mdi--refresh]", onClick: refetch },
-    { id: "export", label: "Export", icon: "icon-[mdi--tray-arrow-down]", variant: "warning", onClick: exportCsv },
+    { id: "export", label: "Export", icon: "icon-[mdi--tray-arrow-down]", severity: "warning", onClick: exportCsv },
     { id: "filters", label: "Filters", icon: "token-icon-chevron-down", iconPosition: "right", onClick: openFilters },
   ]}
 />
@@ -375,23 +375,23 @@ forwards it to `onCellEditCommit`.
 
 ## Presentation
 
-`variant` (`line | outline | striped`), `size` (`sm | md | lg`), `stickyHeader`,
+`appearance` (`line | outline | striped`), `size` (`sm | md | lg`), `stickyHeader`,
 `showColumnBorder`, `hideHeader`, `caption` — all forwarded to the underlying
 `Table`. Use `stickyHeader` with `maxHeight` for a scrolling body and
 `hideHeader` for headerless layouts.
 
 The whole grid is one rounded card: the wrapper carries `rounded-table` and
 clips its children, so the corners are correct with a toolbar, a pagination
-footer, both, or neither — including the empty state. `variant="outline"` draws
+footer, both, or neither — including the empty state. `appearance="outline"` draws
 its border on that wrapper rather than on the `<table>`, so the toolbar and
 footer sit inside the outline instead of beside it.
 
 The wrapper always draws a border in `--color-table-border`, the same colour as
-the row separators, so the grid reads as one bounded block. `variant="outline"`
+the row separators, so the grid reads as one bounded block. `appearance="outline"`
 adds the outline shadow on top of it.
 
 `striped` is a standalone boolean, so zebra rows compose with any variant —
-prefer it over `variant="striped"`, which cannot be combined with `outline`.
+prefer it over `appearance="striped"`, which cannot be combined with `outline`.
 A striped row drops its own bottom border (the alternating background is
 already a separator; drawing both looked doubled-up), so an unstriped table
 still has the row-divider border and a striped one doesn't.

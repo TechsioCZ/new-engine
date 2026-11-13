@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.3.1
+ * @componentVersion v2.0.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,6 +16,7 @@ import {
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const tableVariants = tv({
@@ -48,7 +49,7 @@ const tableVariants = tv({
     ],
   },
   variants: {
-    variant: {
+    appearance: {
       line: {
         root: "",
         row: "border-b-(length:--border-table-width) border-table-border",
@@ -123,7 +124,7 @@ const tableVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "line",
+    appearance: "line",
     size: "md",
     interactive: false,
     stickyHeader: false,
@@ -135,7 +136,7 @@ const tableVariants = tv({
 
 // Context for sharing state between sub-components
 type TableContextValue = {
-  variant?: "line" | "outline" | "striped"
+  appearance?: "line" | "outline" | "striped"
   size?: "sm" | "md" | "lg"
   interactive?: boolean
   stickyHeader?: boolean
@@ -163,8 +164,8 @@ interface TableProps
 }
 
 export function Table({
-  variant,
-  size,
+  appearance: appearanceProp,
+  size: sizeProp,
   interactive,
   stickyHeader,
   stickyFirstColumn,
@@ -175,8 +176,13 @@ export function Table({
   className,
   ...props
 }: TableProps) {
+  const { size, appearance } = useUIDefaults(
+    "Table",
+    { size: sizeProp, appearance: appearanceProp },
+    tableVariants
+  )
   const styles = tableVariants({
-    variant,
+    appearance,
     size,
     interactive,
     stickyHeader,
@@ -188,7 +194,7 @@ export function Table({
   return (
     <TableContext.Provider
       value={{
-        variant,
+        appearance,
         size,
         interactive,
         stickyHeader,

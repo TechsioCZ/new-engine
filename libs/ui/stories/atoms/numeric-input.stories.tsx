@@ -92,7 +92,6 @@ export const Playground: Story = {
     step: 0.1,
     disabled: false,
     invalid: false,
-    size: "md",
     locale: "en-US",
     allowMouseWheel: true,
     clampValueOnBlur: true,
@@ -766,8 +765,8 @@ export const CustomLayoutHorizontal: Story = {
               aria-label="Decrease quantity"
               className="size-icon-control-lg flex-none rounded-numeric-input-md border-(length:--border-width-form-control) border-numeric-input-border hover:border-numeric-input-border-hover"
               icon="icon-[mdi--minus]"
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             />
             <NumericInput.Control className="flex-1">
               <NumericInput.Input />
@@ -776,8 +775,8 @@ export const CustomLayoutHorizontal: Story = {
               aria-label="Increase quantity"
               className="size-icon-control-lg flex-none rounded-numeric-input-md border-(length:--border-width-form-control) border-numeric-input-border hover:border-numeric-input-border-hover"
               icon="icon-[mdi--plus]"
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             />
           </div>
         </NumericInput>
@@ -857,7 +856,7 @@ export const ControlledDraft: Story = {
           Draft: {value === "" ? "(empty)" : value}
         </p>
         <p data-testid="committed-value">Committed: {committedValue}</p>
-        <Button onClick={() => setValue("7")} variant="secondary">
+        <Button onClick={() => setValue("7")} severity="secondary">
           Set parent value to 7
         </Button>
       </div>
@@ -951,7 +950,7 @@ export const CallbackCompatibility: Story = {
             {JSON.stringify(counts, null, 2)}
           </pre>
         </div>
-        <Button onClick={() => setDraft("2")} theme="outlined">
+        <Button onClick={() => setDraft("2")} appearance="outline">
           Reset parent value
         </Button>
       </div>
@@ -1138,10 +1137,10 @@ export const ReadOnlyTransition: Story = {
             Enter a quantity between 0 and 100 when editing is available.
           </NumericInput.StatusText>
         </NumericInput>
-        <Button onClick={() => setReadOnly(true)} variant="secondary">
+        <Button onClick={() => setReadOnly(true)} severity="secondary">
           Lock quantity
         </Button>
-        <Button onClick={() => setValue(75)} variant="secondary">
+        <Button onClick={() => setValue(75)} severity="secondary">
           Update from parent
         </Button>
       </div>
@@ -1199,7 +1198,7 @@ export const FeedbackLifecycle: Story = {
             </NumericInput.StatusText>
           )}
         </NumericInput>
-        <Button onClick={() => setInvalid(false)} variant="secondary">
+        <Button onClick={() => setInvalid(false)} severity="secondary">
           Clear validation
         </Button>
       </div>
@@ -1417,9 +1416,9 @@ function NativeResetTrackerField({
       <StatusText>
         Value proposals: <output aria-label="Value proposals">{proposals}</output>
       </StatusText>
-      <Button type="reset" variant="secondary">Reset quantity</Button>
+      <Button type="reset" severity="secondary">Reset quantity</Button>
       {authority !== "uncontrolled" && (
-        <Button onClick={() => setValue(60)} variant="secondary">
+        <Button onClick={() => setValue(60)} severity="secondary">
           Update parent
         </Button>
       )}
@@ -1570,11 +1569,11 @@ function ControlledRefusalField({ wrapped }: { wrapped: boolean }) {
             setValue(earlierProposal.current)
           }
         }}
-        variant="secondary"
+        severity="secondary"
       >
         Acknowledge earlier quantity
       </Button>
-      <Button variant="secondary">Continue</Button>
+      <Button severity="secondary">Continue</Button>
     </form>
   )
 }
@@ -1706,24 +1705,24 @@ export const DeferredParentAcknowledgement: Story = {
         <Button
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setValue(nativeProposal.current)}
-          variant="secondary"
+          severity="secondary"
         >
           Acknowledge earlier native edit
         </Button>
         <Button
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => setValue(committed.current)}
-          variant="secondary"
+          severity="secondary"
         >
           Acknowledge earlier commit
         </Button>
-        <Button onClick={() => setValue("12")} variant="secondary">
+        <Button onClick={() => setValue("12")} severity="secondary">
           Replace with earlier quantity
         </Button>
-        <Button onClick={() => setValue("7")} variant="secondary">
+        <Button onClick={() => setValue("7")} severity="secondary">
           Replace from parent
         </Button>
-        <Button type="reset" variant="secondary">Reset quantity</Button>
+        <Button type="reset" severity="secondary">Reset quantity</Button>
       </form>
     )
   },

@@ -126,7 +126,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
             <span className="flex items-center gap-100 font-medium">
               {info.row.original.company ?? info.getValue<string>()}
               {info.row.original.duplicateGroup && (
-                <Badge size="sm" variant="warning">
+                <Badge size="sm" severity="warning">
                   Possible duplicate
                 </Badge>
               )}
@@ -144,7 +144,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
         cell: (info) => (
           <Badge
             size="sm"
-            variant={info.getValue<string>() === "B2B" ? "info" : "secondary"}
+            severity={info.getValue<string>() === "B2B" ? "info" : "secondary"}
           >
             {info.getValue<string>()}
           </Badge>
@@ -244,8 +244,8 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
                     setUpgrading(true)
                   }}
                   size="sm"
-                  theme="outlined"
-                  variant="secondary"
+                  appearance="outline"
+                  severity="secondary"
                 >
                   Move to B2B
                 </Button>
@@ -257,7 +257,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
                 {selected.company ?? selected.name}
                 <Badge
                   size="sm"
-                  variant={selected.type === "B2B" ? "info" : "secondary"}
+                  severity={selected.type === "B2B" ? "info" : "secondary"}
                 >
                   {selected.type}
                 </Badge>
@@ -291,18 +291,18 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
           </SectionCard>
 
           <SectionCard flush>
-            <Tabs defaultValue="account" variant="line">
+            <Tabs defaultValue="account" appearance="line">
               <Tabs.List className="px-250 pt-250">
                 <Tabs.Trigger value="account">Account</Tabs.Trigger>
                 <Tabs.Trigger value="orders">
                   Orders
-                  <Badge size="sm" variant="outline">
+                  <Badge size="sm" appearance="outline" severity="neutral">
                     {String(history.length)}
                   </Badge>
                 </Tabs.Trigger>
                 <Tabs.Trigger value="carts">
                   Carts
-                  <Badge size="sm" variant="outline">
+                  <Badge size="sm" appearance="outline" severity="neutral">
                     {String(carts.length)}
                   </Badge>
                 </Tabs.Trigger>
@@ -393,15 +393,15 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
           <>
             <Button
               onClick={() => setUpgrading(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
             <Button
               disabled={company.length === 0 || ico.length !== 8}
               onClick={upgrade}
-              variant="primary"
+              severity="primary"
             >
               Move to B2B
             </Button>
@@ -478,7 +478,7 @@ function DuplicatesPage() {
         ]}
         description="Accounts that share a phone number, an IČO or a name + address. Merging moves orders, carts and history to the account you keep."
         meta={
-          <Badge size="sm" variant="warning">
+          <Badge size="sm" severity="warning">
             {`${groups.length} groups`}
           </Badge>
         }
@@ -510,8 +510,8 @@ function DuplicatesPage() {
                     })
                   }}
                   size="sm"
-                  theme="borderless"
-                  variant="secondary"
+                  appearance="ghost"
+                  severity="secondary"
                 >
                   Not a duplicate
                 </Button>
@@ -528,7 +528,7 @@ function DuplicatesPage() {
                     })
                   }}
                   size="sm"
-                  variant="primary"
+                  severity="primary"
                 >
                   Merge
                 </Button>
@@ -546,7 +546,7 @@ function DuplicatesPage() {
                 }
               }}
               value={kept}
-              variant="outline"
+              appearance="outline"
             >
               <RadioCard.Label>Account to keep</RadioCard.Label>
               {members.map((member) => (

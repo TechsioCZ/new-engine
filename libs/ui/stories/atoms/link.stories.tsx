@@ -27,7 +27,6 @@ const meta = {
   args: {
     children: "Read delivery information",
     href: "#delivery",
-    size: "md",
     onClick: (event: MouseEvent<HTMLAnchorElement>) => event.preventDefault(),
   },
 } satisfies Meta<typeof Link>

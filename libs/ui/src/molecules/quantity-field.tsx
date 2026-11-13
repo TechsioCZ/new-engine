@@ -2,7 +2,7 @@
  * QuantityField — @techsio/ui-kit molecule.
  *
  * @component QuantityField
- * @componentVersion v1.1.0
+ * @componentVersion v1.2.0
  * @skill quantity-field-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -10,6 +10,7 @@ import { type ReactNode, type Ref, useId } from "react"
 import { Label } from "../atoms/label"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const descriptionSeparator = /\s+/
@@ -95,12 +96,17 @@ export function QuantityField({
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
   autoFocus,
-  size = "md",
+  size: sizeProp,
   formatOptions,
   ref,
   className,
   ...props
 }: QuantityFieldProps) {
+  const { size = "md" } = useUIDefaults(
+    "QuantityField",
+    { size: sizeProp },
+    quantityFieldVariants
+  )
   const generatedId = useId()
   const inputId = id ?? generatedId
   const unitId = `${inputId}-unit`

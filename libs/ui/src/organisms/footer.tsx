@@ -2,7 +2,7 @@
  * Footer — @techsio/ui-kit organism.
  *
  * @component Footer
- * @componentVersion v1.1.1
+ * @componentVersion v1.2.0
  * @skill footer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Link, type LinkProps } from "../atoms/link"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const footerVariants = tv({
@@ -175,13 +176,14 @@ interface FooterBottomProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Footer({
   children,
-  size,
+  size: sizeProp,
   sectionFlow,
   direction,
   layout,
   className,
   ...props
 }: FooterProps) {
+  const { size } = useUIDefaults("Footer", { size: sizeProp }, footerVariants)
   const { root } = footerVariants({ size, direction })
 
   return (

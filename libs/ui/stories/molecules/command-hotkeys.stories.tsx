@@ -145,13 +145,13 @@ function PaletteExample({
         <Button onClick={() => setOpen(true)} ref={trigger}>
           Open command palette <Hotkeys aria-hidden="true" hotkey="mod+K" />
         </Button>
-        <Button disabled={!canSave} onClick={saveDocument} theme="outlined">
+        <Button disabled={!canSave} onClick={saveDocument} appearance="outline">
           Save document <Hotkeys aria-hidden="true" hotkey="mod+S" />
         </Button>
         {showAvailability && (
           <Button
             onClick={() => setCanSave((enabled) => !enabled)}
-            theme="outlined"
+            appearance="outline"
           >
             {canSave ? "Disable saving" : "Enable saving"}
           </Button>

@@ -131,7 +131,9 @@ test("nested row hover stays local and does not change subgroup backgrounds", as
   const parent = page
     .locator('[data-part="row"]')
     .filter({ has: page.getByRole("link", { name: "Šrouby", exact: true }) })
-  const group = page.locator('[data-tone="accent"][data-variant="primary"]')
+  const group = page.locator(
+    '[data-appearance="solid"][data-severity="primary"]'
+  )
   await expect(link).toBeVisible()
   const parentBackground = await parent.evaluate(
     (element) => getComputedStyle(element).backgroundColor
@@ -206,7 +208,7 @@ test("States honors appearance controls on the root and nested content", async (
   page,
 }) => {
   await page.goto(
-    "/iframe.html?id=molecules-verticalnavigation--states&viewMode=story&embed=true&args=size:sm;dir:rtl;tone:accent;indent:!false;showGuide:!false"
+    "/iframe.html?id=molecules-verticalnavigation--states&viewMode=story&embed=true&args=size:sm;dir:rtl;appearance:solid;indent:!false;showGuide:!false"
   )
   const navigation = page.getByRole("navigation", { name: "Navigation states" })
   await expect(navigation).toHaveAttribute("dir", "rtl")
@@ -219,7 +221,7 @@ test("States honors appearance controls on the root and nested content", async (
     .evaluate((element) => getComputedStyle(element).fontSize)
   const content = navigation.locator('[data-part="branch-content"]').first()
   await page.getByRole("button", { name: "Collapsed category" }).click()
-  await expect(content).toHaveAttribute("data-tone", "accent")
+  await expect(content).toHaveAttribute("data-appearance", "solid")
   await expect(content).not.toHaveAttribute("data-indented")
   await expect(content).not.toHaveAttribute("data-guide")
   await openStory(page, "states")
@@ -345,14 +347,14 @@ test("applies subgroup tones independently of current-page state and uses logica
   })
   await expect(navigation).toHaveAttribute("dir", "rtl")
   const content = navigation.locator('[data-part="branch-content"]')
-  await expect(content).toHaveAttribute("data-tone", "subtle")
+  await expect(content).toHaveAttribute("data-appearance", "subtle")
   expect(
     await content.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).marginRight)
     )
   ).toBeGreaterThan(0)
   await navigation.getByRole("link", { name: "Nuts" }).click()
-  await expect(content).toHaveAttribute("data-tone", "subtle")
+  await expect(content).toHaveAttribute("data-appearance", "subtle")
   await expect(navigation.getByRole("link", { name: "Nuts" })).toHaveAttribute(
     "aria-current",
     "page"
@@ -424,10 +426,10 @@ test("Akros catalog keeps a 280px catalog readable and separates navigation from
   await expect(selected).toHaveAttribute("aria-current", "page")
   await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1)
   const primaryGroup = navigation.locator(
-    '[data-tone="accent"][data-variant="primary"]'
+    '[data-appearance="solid"][data-severity="primary"]'
   )
   const secondaryGroup = navigation.locator(
-    '[data-tone="accent"][data-variant="secondary"]'
+    '[data-appearance="solid"][data-severity="secondary"]'
   )
   await expect(primaryGroup).toBeVisible()
   await expect(secondaryGroup).toBeVisible()

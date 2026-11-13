@@ -2,7 +2,7 @@
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.4.3
+ * @componentVersion v1.5.0
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,6 +28,7 @@ import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { useUIDefaults } from "../theme/ui-provider"
 import { slugify, tv } from "../utils"
 
 // Zag dispatches native input events from a watcher that runs after React
@@ -447,7 +448,7 @@ export function Slider({
   readOnly = false,
   dir = "ltr",
   orientation = "horizontal",
-  size = "md",
+  size: sizeProp,
   showMarkers = false,
   markerCount = 5,
   showValueText = false,
@@ -459,6 +460,11 @@ export function Slider({
   onChange,
   onChangeEnd,
 }: SliderProps) {
+  const { size = "md" } = useUIDefaults(
+    "Slider",
+    { size: sizeProp },
+    sliderVariants
+  )
   const generatedId = useId()
   const disabledProbeRef = useRef<HTMLInputElement>(null)
   const resetting = useRef(false)

@@ -110,18 +110,16 @@ for (const [brand, mode] of themes) {
   }) => {
     await openStory(page, "atoms-linkbutton--variants", brand, mode)
     const enabledSurfaces = {
-      borderless: await paint(
-        page.locator(".button-disabled-borderless").first()
-      ),
-      outlined: await paint(page.locator(".button-disabled-outlined").first()),
+      ghost: await paint(page.locator(".button-disabled-borderless").first()),
+      outline: await paint(page.locator(".button-disabled-outlined").first()),
     }
-    for (const theme of ["solid", "light", "borderless", "outlined"] as const) {
+    for (const appearance of ["solid", "subtle", "ghost", "outline"] as const) {
       await openStory(
         page,
         "atoms-linkbutton--states",
         brand,
         mode,
-        `theme:${theme}`
+        `appearance:${appearance}`
       )
       const link = page.getByRole("link", { name: "View project", exact: true })
       await expect(link).toHaveAttribute("aria-disabled", "true")
@@ -129,14 +127,14 @@ for (const [brand, mode] of themes) {
       await expect(link).not.toHaveAttribute("href")
       expect(await link.evaluate((node) => node.tagName)).toBe("SPAN")
       const before = await paint(link)
-      if (theme === "borderless" || theme === "outlined") {
-        expect(before.rgba).toEqual(enabledSurfaces[theme].rgba)
+      if (appearance === "ghost" || appearance === "outline") {
+        expect(before.rgba).toEqual(enabledSurfaces[appearance].rgba)
       } else {
         expect(before.rgba[3]).toBeGreaterThan(0)
       }
-      if (theme === "outlined") {
-        expect(enabledSurfaces.outlined.borderWidth).toBeGreaterThan(0)
-        expect(before.borderWidth).toBe(enabledSurfaces.outlined.borderWidth)
+      if (appearance === "outline") {
+        expect(enabledSurfaces.outline.borderWidth).toBeGreaterThan(0)
+        expect(before.borderWidth).toBe(enabledSurfaces.outline.borderWidth)
       }
       await link.hover()
       expect(await paint(link)).toEqual(before)
@@ -154,7 +152,7 @@ for (const [brand, mode] of themes) {
         "atoms-actionicon--states",
         brand,
         mode,
-        `tone:${tone}`
+        `severity:${tone}`
       )
       const available = page.getByRole("button", {
         name: "Close preview",

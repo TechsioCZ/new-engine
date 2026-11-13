@@ -2,7 +2,7 @@
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.2.0
+ * @componentVersion v2.0.0
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -31,6 +31,7 @@ import { Icon } from "../atoms/icon"
 import { LinkButton, type LinkButtonProps } from "../atoms/link-button"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 export const paginationVariants = tv({
@@ -67,8 +68,8 @@ export const paginationVariants = tv({
     },
   ],
   variants: {
-    variant: {
-      filled: {
+    appearance: {
+      solid: {
         item: "bg-pagination-bg-base",
         link: [
           "data-selected:border-pagination-border-active data-selected:bg-pagination-bg-active data-selected:text-pagination-fg-filled-active",
@@ -76,14 +77,14 @@ export const paginationVariants = tv({
           "hover:text-pagination-fg-filled-active",
         ],
       },
-      outlined: {
+      outline: {
         item: "bg-pagination-bg-base",
         link: [
           "data-selected:border-pagination-border-active data-selected:text-pagination-fg-outlined-active",
           "hover:border-pagination-border-hover hover:text-pagination-fg-outlined-active",
         ],
       },
-      minimal: {
+      ghost: {
         link: [
           "border-transparent",
           "data-selected:decoration-(length:--text-decoration-thickness-pagination-marker) data-selected:underline-offset-(length:--text-underline-offset-pagination-marker) data-selected:text-pagination-fg-minimal-active data-selected:underline",
@@ -107,7 +108,7 @@ export const paginationVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "filled",
+    appearance: "solid",
     size: "md",
   },
 })
@@ -139,7 +140,8 @@ type PaginationLinkProps<T extends ElementType> = Omit<
   | "as"
   | "className"
   | "size"
-  | "theme"
+  | "appearance"
+  | "unstyled"
   | "disabled"
   | "icon"
   | "iconPosition"
@@ -301,13 +303,13 @@ export function Pagination<T extends ElementType = "a">({
   siblingCount = 1,
   boundaryCount = 1,
   showPrevNext = true,
-  variant,
+  appearance: appearanceProp,
   className,
   dir = "ltr",
   getPageUrl,
   linkAs,
   linkProps,
-  size,
+  size: sizeProp,
   compact = false,
   compactLabel,
   onChange,
@@ -317,6 +319,11 @@ export function Pagination<T extends ElementType = "a">({
 }: PaginationProps<T>) {
   const messages = useUiMessages()
   const uniqueId = useId()
+  const { size, appearance } = useUIDefaults(
+    "Pagination",
+    { size: sizeProp, appearance: appearanceProp },
+    paginationVariants
+  )
 
   const {
     safeCount,
@@ -360,7 +367,7 @@ export function Pagination<T extends ElementType = "a">({
 
   const api = connectPagination(service, normalizeProps)
   const { base, list, link, item, ellipsis, compactText } = paginationVariants({
-    variant,
+    appearance,
     size,
   })
   // Zag's root aria-label (translations.rootLabel) would overwrite the
@@ -422,7 +429,7 @@ export function Pagination<T extends ElementType = "a">({
         : undefined,
       className: link(),
       size: "current" as const,
-      theme: "unstyled" as const,
+      unstyled: true,
       ...overrides,
     })
 

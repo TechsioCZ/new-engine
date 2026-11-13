@@ -260,8 +260,8 @@ function FacetPanel({
                 key={size}
                 onClick={() => onToggleSize(size)}
                 size="sm"
-                theme={sizes.includes(size) ? "solid" : "outlined"}
-                variant="secondary"
+                appearance={sizes.includes(size) ? "solid" : "outline"}
+                severity="secondary"
               >
                 {size}
               </Button>
@@ -321,7 +321,7 @@ function ProductGrid({ products }: { products: StorefrontProduct[] }) {
             product.badge
               ? [
                   {
-                    variant: product.badge.variant,
+                    severity: product.badge.severity,
                     children: product.badge.label,
                   },
                 ]
@@ -515,8 +515,8 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                     setPrice([0, PRICE_MAX])
                   }}
                   size="sm"
-                  theme="borderless"
-                  variant="secondary"
+                  appearance="ghost"
+                  severity="secondary"
                 >
                   Reset
                 </Button>
@@ -534,8 +534,8 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                   icon="icon-[mdi--filter-variant]"
                   onClick={() => setDrawer(true)}
                   size="sm"
-                  theme="outlined"
-                  variant="secondary"
+                  appearance="outline"
+                  severity="secondary"
                 >
                   Filters
                 </Button>
@@ -569,8 +569,8 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                     key={chip.key}
                     onClick={chip.clear}
                     size="sm"
-                    theme="outlined"
-                    variant="secondary"
+                    appearance="outline"
+                    severity="secondary"
                   >
                     {chip.label}
                   </Button>
@@ -640,12 +640,12 @@ function CategoryPage({ filtersInDrawer }: { filtersInDrawer?: boolean }) {
                 setColors([])
                 setPrice([0, PRICE_MAX])
               }}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Reset
             </Button>
-            <Button block onClick={() => setDrawer(false)} variant="primary">
+            <Button block onClick={() => setDrawer(false)} severity="primary">
               Show results
             </Button>
           </div>

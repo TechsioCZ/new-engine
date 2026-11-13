@@ -2,7 +2,7 @@
  * DatePicker — @techsio/ui-kit molecule.
  *
  * @component DatePicker
- * @componentVersion v1.5.0
+ * @componentVersion v2.0.0
  * @skill date-picker-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -82,6 +82,7 @@ import {
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { definedEntries, enUiMessages } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 // Drops undefined entries so a prop left unset does not hide the catalog's translation.
@@ -760,7 +761,7 @@ export function DatePicker({
   sameWidth = false,
   selectionMode = "single",
   shouldForceLeadingZeros = false,
-  size = "md",
+  size: sizeProp,
   slide = true,
   startOfWeek,
   startName,
@@ -769,6 +770,11 @@ export function DatePicker({
   value,
   ...htmlProps
 }: DatePickerRootProps) {
+  const { size = "md" } = useUIDefaults(
+    "DatePicker",
+    { size: sizeProp },
+    datePickerVariants
+  )
   const messages = useUiMessages()
   const {
     emptySegment: explicitEmptySegment,
@@ -1808,7 +1814,7 @@ DatePicker.Trigger = function DatePickerTrigger({
   iconSize = "current",
   ref,
   size = "current",
-  theme = "unstyled",
+  unstyled = true,
   type = "button",
   ...props
 }: DatePickerTriggerProps) {
@@ -1833,8 +1839,8 @@ DatePicker.Trigger = function DatePickerTrigger({
       iconSize={iconSize}
       ref={composedRef}
       size={size}
-      theme={theme}
       type={type}
+      unstyled={unstyled}
     >
       {children}
     </Button>
@@ -1853,7 +1859,7 @@ DatePicker.ClearTrigger = function DatePickerClearTrigger({
   onClick,
   ref,
   size = "current",
-  theme = "unstyled",
+  unstyled = true,
   type = "button",
   ...props
 }: DatePickerClearTriggerProps) {
@@ -1886,8 +1892,8 @@ DatePicker.ClearTrigger = function DatePickerClearTrigger({
       onClick={handleClick}
       ref={ref}
       size={size}
-      theme={theme}
       type={type}
+      unstyled={unstyled}
     >
       {children}
     </Button>
@@ -2159,8 +2165,8 @@ DatePicker.Calendar = function DatePickerCalendar({
         id={`${machineProps.id}-${index}-${Math.abs(months)}`}
         onClick={() => movePanel(index, months)}
         size="current"
-        theme="unstyled"
         type="button"
+        unstyled
       />
     )
   }
@@ -2262,8 +2268,8 @@ DatePicker.Calendar = function DatePickerCalendar({
                       className={styles.dayTrigger()}
                       id={`${pickerApi.getDayTableCellTriggerProps({ value: day, visibleRange }).id}-panel-${index}`}
                       size="current"
-                      theme="unstyled"
                       type="button"
+                      unstyled
                     >
                       {formatCalendar(day, { day: "numeric" })}
                     </Button>
@@ -2321,8 +2327,8 @@ DatePicker.Calendar = function DatePickerCalendar({
                       data-disabled={disabled || undefined}
                       disabled={disabled}
                       size="current"
-                      theme="unstyled"
                       type="button"
+                      unstyled
                     >
                       {month.label}
                     </Button>
@@ -2367,8 +2373,8 @@ DatePicker.Calendar = function DatePickerCalendar({
                     })}
                     className={styles.periodTrigger()}
                     size="current"
-                    theme="unstyled"
                     type="button"
+                    unstyled
                   >
                     {year.label}
                   </Button>
@@ -2393,16 +2399,16 @@ DatePicker.Calendar = function DatePickerCalendar({
           icon="token-icon-date-picker-previous"
           iconSize="current"
           size="current"
-          theme="unstyled"
           type="button"
+          unstyled
         />
         {pickerApi.view === "month" ? (
           <Button
             {...pickerApi.getViewTriggerProps({ view: "month" })}
             className={styles.viewTrigger()}
             size="current"
-            theme="unstyled"
             type="button"
+            unstyled
           >
             {pickerApi.focusedValue.year}
           </Button>
@@ -2417,8 +2423,8 @@ DatePicker.Calendar = function DatePickerCalendar({
           icon="token-icon-date-picker-next"
           iconSize="current"
           size="current"
-          theme="unstyled"
           type="button"
+          unstyled
         />
       </div>
       {pickerApi.view === "month" ? renderMonthView(index) : null}
@@ -2465,9 +2471,9 @@ DatePicker.Calendar = function DatePickerCalendar({
                 id={`${viewTriggerProps.id}-${index}`}
                 onClick={() => openPeriodChooser(index)}
                 size="current"
-                theme="unstyled"
                 title={monthLabel}
                 type="button"
+                unstyled
               >
                 {monthText}
               </Button>
@@ -2771,9 +2777,9 @@ DatePicker.CancelTrigger = function DatePickerCancelTrigger({
   onClick,
   ref,
   size: sizeProp,
-  theme = "borderless",
+  appearance = "ghost",
   type = "button",
-  variant = "secondary",
+  severity = "secondary",
   ...props
 }: DatePickerCancelTriggerProps) {
   const messages = useUiMessages()
@@ -2790,15 +2796,15 @@ DatePicker.CancelTrigger = function DatePickerCancelTrigger({
   return (
     <Button
       {...props}
+      appearance={appearance}
       className={styles.cancelTrigger({ className })}
       data-part="cancel-trigger"
       data-scope="date-picker"
       onClick={handleClick}
       ref={ref}
+      severity={severity}
       size={actionSize}
-      theme={theme}
       type={type}
-      variant={variant}
     >
       {children}
     </Button>
@@ -2816,9 +2822,9 @@ DatePicker.ConfirmTrigger = function DatePickerConfirmTrigger({
   onClick,
   ref,
   size: sizeProp,
-  theme = "solid",
+  appearance = "solid",
   type = "button",
-  variant = "primary",
+  severity = "primary",
   ...props
 }: DatePickerConfirmTriggerProps) {
   const messages = useUiMessages()
@@ -2835,16 +2841,16 @@ DatePicker.ConfirmTrigger = function DatePickerConfirmTrigger({
   return (
     <Button
       {...props}
+      appearance={appearance}
       className={styles.confirmTrigger({ className })}
       data-part="confirm-trigger"
       data-scope="date-picker"
       disabled={disabled || !canConfirm}
       onClick={handleClick}
       ref={ref}
+      severity={severity}
       size={actionSize}
-      theme={theme}
       type={type}
-      variant={variant}
     >
       {children}
     </Button>
