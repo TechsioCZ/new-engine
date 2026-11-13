@@ -133,7 +133,7 @@ describe("UIProvider resolution", () => {
         <Badge severity="danger">Sold out</Badge>
       </UIProvider>
     )
-    expect(badge).toContain("border-badge-border-danger")
+    expect(badge).toContain("border-badge-border-outline-danger")
     expect(badge).toContain("bg-badge-bg-outline")
     expect(badge).not.toContain("bg-badge-bg-danger")
     expect(badge).toContain("p-badge-lg")
