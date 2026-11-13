@@ -17,7 +17,7 @@ const CHANGELOG = `
 - New: \`@techsio/ui-kit/theme/ui-provider\` (\`UIProvider\`, \`useUIDefaults\`). Set one \`size\` and one \`appearance\` (\`solid\` · \`subtle\` · \`outline\` · \`ghost\` · \`plain\`) for every component, refine per component with \`components={{ Button: { appearance: "ghost" } }}\`, and nest providers for local sections. Resolution: prop → nearest provider's component map → its global value → parent providers → the component's own default; a value a component does not support is skipped. \`AppThemeProvider\` places a root provider with the \`size="md" appearance="solid"\` baseline merged with the active brand's optional \`defaults\`. Prop names are now one meaning each: \`appearance\` = fill style, \`severity\` = color, \`validateStatus\` = validation, \`size\` = size scale. Migrate with \`node libs/ui/codemods/unified-style-props/index.mjs <paths>\`.
 
 ### Accordion v2.0.0
-- **Breaking:** \`variant\` → \`appearance\`: \`default\` → \`outline\`, \`borderless\` → \`plain\`; \`variant="child"\` → \`appearance="plain" nested\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+- **Breaking:** \`variant\` → \`appearance\`: \`default\` → \`outline\`, \`borderless\` → \`ghost\`; \`variant="child"\` → \`appearance="ghost" nested\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
 
 ### ActionIcon v2.0.0
 - **Breaking:** \`tone\` → \`severity\` (same values). Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
@@ -65,7 +65,7 @@ const CHANGELOG = `
 - **Breaking:** \`Drawer.Trigger\` / \`Drawer.CloseTrigger\` take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`; \`CloseTrigger\` \`tone\` → \`severity\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
 
 ### FacetFilterPanel v1.4.0
-- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Its nested accordion uses \`appearance="plain" nested\`.
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Its nested accordion uses \`appearance="ghost" nested\`.
 
 ### FileUpload v1.3.0
 - Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
@@ -179,7 +179,7 @@ const CHANGELOG = `
 - **Breaking:** \`variant\` → \`appearance\`; \`default\` → \`underline\`, \`line\` / \`solid\` / \`outline\` unchanged. \`Tabs.Trigger\` takes Button's \`appearance\` / \`severity\` / \`unstyled\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
 
 ### Textarea v2.0.0
-- **Breaking:** the validation \`variant\` → \`validateStatus\`; \`variant="borderless"\` → \`appearance="plain"\` (default \`outline\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+- **Breaking:** the validation \`variant\` → \`validateStatus\`; \`variant="borderless"\` → \`appearance="ghost"\` (default \`outline\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
 
 ### Toast v1.2.1
 - Internal action button uses the renamed Button props.

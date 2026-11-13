@@ -138,7 +138,7 @@ Every component uses the same names for the same visual axis:
 
 | Prop | Meaning | Values |
 |---|---|---|
-| `appearance` | fill style | `solid` · `subtle` · `outline` · `ghost` · `plain` (+ component extras such as Tabs `line`) |
+| `appearance` | fill style | `solid` · `subtle` · `outline` · `ghost` (no frame — buttons, Pagination, Accordion, Textarea) · `plain` (Breadcrumb, VerticalNavigation) (+ component extras such as Tabs `line`) |
 | `severity` | color intent | `primary` · `secondary` · `tertiary` · `neutral` · `info` · `success` · `warning` · `danger` · `discount` |
 | `validateStatus` | validation state | `default` · `error` · `success` · `warning` |
 | `size` | size scale | the component's subset of `xs`…`2xl`, plus `full` / `current` |

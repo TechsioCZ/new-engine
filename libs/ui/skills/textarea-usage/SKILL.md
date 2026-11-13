@@ -67,7 +67,7 @@ where actions and feedback live). This section applies them to `Textarea`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=default…warning`, `variant=borderless` | `validateStatus` (same values); Figma `borderless` → `appearance="plain"` |
+| `variant=default…warning`, `variant=borderless` | `validateStatus` (same values); Figma `borderless` → `appearance="ghost"` |
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` (not the legacy `readonly`) |
 
@@ -85,7 +85,7 @@ Supported component props:
 
 ```text
 validateStatus: default | error | success | warning
-appearance: outline | plain
+appearance: outline | ghost
 size: sm | md | lg
 resize: none | y | x | both | auto
 readOnly: boolean

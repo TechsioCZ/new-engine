@@ -136,7 +136,7 @@ Every component uses the same prop name for the same visual axis:
 
 | Prop | Meaning | Values |
 |---|---|---|
-| `appearance` | fill style | `solid` · `subtle` · `outline` · `ghost` · `plain` (+ structural extras a component owns: `line`, `underline`, `striped`) |
+| `appearance` | fill style | `solid` · `subtle` · `outline` · `ghost` (no frame: actions get a hover surface, containers such as Accordion/Textarea drop their border) · `plain` (Breadcrumb, VerticalNavigation surfaces) (+ structural extras a component owns: `line`, `underline`, `striped`) |
 | `severity` | color intent | `primary` · `secondary` · `tertiary` · `neutral` · `info` · `success` · `warning` · `danger` · `discount` |
 | `validateStatus` | validation state | `default` · `error` · `success` · `warning` |
 | `size` | size scale only | the component's subset of `xs`…`2xl`, plus `full` / `current` |

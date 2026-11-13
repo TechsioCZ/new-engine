@@ -332,7 +332,7 @@ function FacetFilterPanelContent({
       />
 
       <Accordion
-        appearance="plain"
+        appearance="ghost"
         className={styles.groups()}
         disabled={disabled}
         multiple

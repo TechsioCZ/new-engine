@@ -16,7 +16,7 @@ const validateStatus = figma.selectedInstance.getEnum("variant", {
   warning: "warning",
 })
 const appearance = figma.selectedInstance.getEnum("variant", {
-  borderless: "plain",
+  borderless: "ghost",
 })
 const disabled = figma.selectedInstance.getEnum("state", {
   default: false,

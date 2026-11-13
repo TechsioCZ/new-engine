@@ -30,10 +30,10 @@ survive. Run your formatter and type checker afterwards.
 | Pagination | `variant="filled"` / `"outlined"` / `"minimal"` | `appearance="solid"` / `"outline"` / `"ghost"` |
 | Tabs (+ TabsTemplate) | `variant="default"` | `appearance="underline"` |
 | Tooltip | `variant="default"` | `appearance="solid"` |
-| Accordion (+ template) | `variant="default"` / `"borderless"` / `"child"` | `appearance="outline"` / `"plain"` / `appearance="plain" nested` |
+| Accordion (+ template) | `variant="default"` / `"borderless"` / `"child"` | `appearance="outline"` / `"ghost"` / `appearance="ghost" nested` |
 | RadioGroup, RadioCard, Steps, Table, DataTable, Breadcrumb | `variant` | `appearance` (same values) |
 | Input, FormInput | `variant="error"` | `validateStatus="error"` |
-| Textarea, FormTextarea | `variant="error"` / `"borderless"` | `validateStatus="error"` / `appearance="plain"` |
+| Textarea, FormTextarea | `variant="error"` / `"borderless"` | `validateStatus="error"` / `appearance="ghost"` |
 | Sidebar.Pane | `size="rail"` | `paneSize="rail"` |
 | ProductCard.Button | `buttonVariant` | `action` |
 | any object literal | `theme: "outlined"` (Button themes) | `appearance: "outline"` |

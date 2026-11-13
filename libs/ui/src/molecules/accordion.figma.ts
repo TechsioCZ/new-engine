@@ -12,8 +12,8 @@ const size = figma.selectedInstance.getEnum("size", {
 // Figma still names the property variant; code reads appearance (+ nested).
 const appearance = figma.selectedInstance.getEnum("variant", {
   default: "outline",
-  borderless: "plain",
-  child: "plain",
+  borderless: "ghost",
+  child: "ghost",
 })
 const nested = figma.selectedInstance.getEnum("variant", {
   child: true,

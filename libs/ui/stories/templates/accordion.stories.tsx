@@ -40,7 +40,7 @@ const meta: Meta<typeof AccordionTemplate> = {
     },
     appearance: {
       control: "select",
-      options: ["outline", "plain"],
+      options: ["outline", "ghost"],
       description: "Visual style appearance",
       table: {
         category: "Appearance",

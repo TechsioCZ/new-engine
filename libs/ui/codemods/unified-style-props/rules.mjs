@@ -73,10 +73,10 @@ export const RULES = {
   Accordion: {
     variant: {
       to: "appearance",
-      map: (v) => ({ default: "outline", borderless: "plain" })[v] ?? v,
+      map: (v) => ({ default: "outline", borderless: "ghost" })[v] ?? v,
       special: {
         child: [
-          ["appearance", "plain"],
+          ["appearance", "ghost"],
           ["nested", true],
         ],
       },
@@ -85,10 +85,10 @@ export const RULES = {
   AccordionTemplate: {
     variant: {
       to: "appearance",
-      map: (v) => ({ default: "outline", borderless: "plain" })[v] ?? v,
+      map: (v) => ({ default: "outline", borderless: "ghost" })[v] ?? v,
       special: {
         child: [
-          ["appearance", "plain"],
+          ["appearance", "ghost"],
           ["nested", true],
         ],
       },
@@ -100,14 +100,14 @@ export const RULES = {
     variant: {
       to: "validateStatus",
       map: same,
-      special: { borderless: [["appearance", "plain"]] },
+      special: { borderless: [["appearance", "ghost"]] },
     },
   },
   FormTextarea: {
     variant: {
       to: "validateStatus",
       map: same,
-      special: { borderless: [["appearance", "plain"]] },
+      special: { borderless: [["appearance", "ghost"]] },
     },
   },
   "Sidebar.Pane": { size: { to: "paneSize", map: same } },

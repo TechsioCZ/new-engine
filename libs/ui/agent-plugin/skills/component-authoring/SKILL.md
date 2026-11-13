@@ -91,7 +91,7 @@ One meaning per prop name, across every component:
 
 | Prop | Meaning | Values |
 |---|---|---|
-| `appearance` | fill style | `solid · subtle · outline · ghost · plain`, plus structural extras a component owns (`line`, `underline`, `striped`) |
+| `appearance` | fill style | `solid · subtle · outline · ghost · plain` (`ghost` = no frame for actions and containers alike; `plain` only where a surface, not a frame, is removed), plus structural extras a component owns (`line`, `underline`, `striped`) |
 | `severity` | color intent | `primary · secondary · tertiary · neutral · info · success · warning · danger · discount` |
 | `validateStatus` | validation state | `default · error · success · warning` |
 | `size` | size scale only | the component's subset of `xs · sm · md · lg · xl · 2xl`, plus `full` / `current` |

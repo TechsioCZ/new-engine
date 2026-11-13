@@ -35,7 +35,7 @@ the composition around it.
 | `variant=error` | `validateStatus="error"` | A specific, fixable problem; the text stays for correction. |
 | `variant=success` | `validateStatus="success"` | This value was actually checked. Not "saved". |
 | `variant=warning` | `validateStatus="warning"` | Needs attention; the user may continue. |
-| `variant=borderless` | `appearance="plain"` | No border, inside a surface that already frames it. Doesn't change meaning. |
+| `variant=borderless` | `appearance="ghost"` | No border, inside a surface that already frames it. Doesn't change meaning. |
 | `state=disabled` | `disabled` | Not usable now, for a reason the user can find. |
 | `state=readonly` | `readOnly` | Readable, focusable and copyable, but not editable. Not disabled. |
 | — | `resize="none" \| "y" \| "x" \| "both" \| "auto"` | `y` is the default; `auto` grows with the content. |

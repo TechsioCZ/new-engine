@@ -57,7 +57,7 @@ describe("unified-style-props codemod", () => {
     )
     expect(out).toContain('<Pagination appearance="ghost" />')
     expect(out).toContain('<Tabs appearance="underline" />')
-    expect(out).toContain('<Accordion appearance="plain" nested />')
+    expect(out).toContain('<Accordion appearance="ghost" nested />')
   })
 
   it("renames validation, pane size and navigation props", () => {

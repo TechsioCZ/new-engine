@@ -53,10 +53,10 @@ const textareaVariants = tv(
       "user-invalid:focus:border-textarea-border-danger-focus",
     ],
     variants: {
-      // Declared before validateStatus so a validation border wins over `plain`.
+      // Declared before validateStatus so a validation border wins over `ghost`.
       appearance: {
         outline: "",
-        plain: [
+        ghost: [
           "border-transparent",
           "bg-textarea-bg-borderless",
           "hover:bg-textarea-bg-borderless-hover",
@@ -103,7 +103,7 @@ const textareaVariants = tv(
     },
     compoundVariants: [
       {
-        // Validation and plain borders stay authoritative on read-only fields.
+        // Validation and ghost borders stay authoritative on read-only fields.
         validateStatus: "default",
         appearance: "outline",
         readOnly: true,

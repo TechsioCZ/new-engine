@@ -80,7 +80,7 @@ const meta: Meta<typeof Textarea> = {
     },
     appearance: {
       control: "select",
-      options: ["outline", "plain"],
+      options: ["outline", "ghost"],
     },
     disabled: { control: "boolean" },
     readOnly: { control: "boolean" },

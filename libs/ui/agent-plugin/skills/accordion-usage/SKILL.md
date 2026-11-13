@@ -72,7 +72,7 @@ where actions and feedback live). This section applies them to `Accordion`.
 
 | Figma | Code |
 | --- | --- |
-| `variant`, `shadow`, `size` | `appearance` (`default` → `outline`, `borderless` → `plain`, `child` → `appearance="plain" nested`), `shadow`, `size` |
+| `variant`, `shadow`, `size` | `appearance` (`default` → `outline`, `borderless` → `ghost`, `child` → `appearance="ghost" nested`), `shadow`, `size` |
 | `state=collapsed` / `expanded` | `value` / `defaultValue` (array of item values) |
 | `state=disabled` | `disabled` on the root or on `Accordion.Item` |
 | AccordionIndicator / indicator icon | `Accordion.Indicator` |
@@ -98,7 +98,7 @@ import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 Supported root props:
 
 ```text
-appearance: outline | plain
+appearance: outline | ghost
 nested: boolean
 shadow: sm | md | none
 size: sm | md | lg
@@ -123,7 +123,7 @@ directly under a page `h1`. Do not wrap it in another heading or `<header>`.
 single open section -> multiple=false
 FAQ-style independent sections -> multiple=true
 must keep one section open -> collapsible=false
-inherited surrounding surface -> appearance="plain" nested (avoid nested accordions)
+inherited surrounding surface -> appearance="ghost" nested (avoid nested accordions)
 ```
 
 ### Preserve content hierarchy

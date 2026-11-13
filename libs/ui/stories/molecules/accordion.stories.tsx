@@ -35,7 +35,7 @@ const meta: Meta<typeof Accordion> = {
       description:
         "Default uses a surface; borderless removes dividers; child inherits the surrounding surface.",
       control: "inline-radio",
-      options: ["outline", "plain"],
+      options: ["outline", "ghost"],
     },
     multiple: {
       description: "Allow several answers to stay open independently.",
@@ -261,14 +261,14 @@ export const AllVariants: Story = {
     docs: {
       description: {
         story:
-          "Compare the framed (outline) and plain appearances without nested disclosures so you can choose the right visual weight.",
+          "Compare the framed (outline) and frameless (ghost) appearances without nested disclosures so you can choose the right visual weight.",
       },
     },
   },
   render: () => (
     <div className="w-full max-w-lg">
       <VariantContainer>
-        {(["outline", "plain"] as const).map((appearance) => (
+        {(["outline", "ghost"] as const).map((appearance) => (
           <VariantGroup key={appearance} title={appearance} fullWidth>
             <Accordion appearance={appearance} defaultValue={["delivery"]}>
               <Questions panelNamePrefix={`FAQ ${appearance}`} />

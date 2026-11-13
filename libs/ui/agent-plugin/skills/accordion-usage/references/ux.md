@@ -42,7 +42,7 @@ navigates.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=default` / `borderless` / `child` | `appearance="outline" \| "plain"`, plus `nested` for `child` | Visual treatment only. `nested` inherits the surrounding surface; it is not a licence to nest accordions. |
+| `variant=default` / `borderless` / `child` | `appearance="outline" \| "ghost"`, plus `nested` for `child` | Visual treatment only. `nested` inherits the surrounding surface; it is not a licence to nest accordions. |
 | `shadow=none` / `sm` / `md` | `shadow="none" \| "sm" \| "md"` | Separation from the page; no change in meaning. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. `sm` never shrinks the trigger below a usable target. |
 | `state=collapsed` / `expanded` | `value` / `defaultValue` (array of item values) | The header, indicator and visible content always agree. |

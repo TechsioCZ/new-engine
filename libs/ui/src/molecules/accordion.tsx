@@ -61,7 +61,7 @@ const accordionVariants = tv({
         root: "border-(length:--border-width-accordion) border-accordion-border",
         item: "border-b-(length:--border-width-accordion) border-accordion-border last:border-b-0",
       },
-      plain: {},
+      ghost: {},
     },
     // A nested accordion inherits its parent's panel surface.
     nested: {
@@ -174,7 +174,7 @@ export type AccordionProps = Omit<
     nested?: boolean
   }
 
-export type AccordionAppearance = "outline" | "plain"
+export type AccordionAppearance = "outline" | "ghost"
 
 export function Accordion({
   id,
