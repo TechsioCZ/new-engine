@@ -2,7 +2,7 @@
  * FacetFilterPanel - @techsio/ui-kit template.
  *
  * @component FacetFilterPanel
- * @componentVersion v1.3.0
+ * @componentVersion v1.4.0
  * @skill facet-filter-panel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -15,6 +15,7 @@ import { Accordion } from "../molecules/accordion"
 import { Dialog } from "../molecules/dialog"
 import { FormCheckbox } from "../molecules/form-checkbox"
 import { Slider } from "../molecules/slider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const facetFilterPanelStyles = tv({
@@ -229,14 +230,14 @@ function FacetFilterOptions({
       </ul>
       {hasOverflow ? (
         <Button
+          appearance="ghost"
           aria-expanded={expanded}
           className={styles.overflowAction()}
           disabled={disabled}
           onClick={() => setExpanded((current) => !current)}
+          severity="primary"
           size="sm"
-          theme="borderless"
           type="button"
-          variant="primary"
         >
           {expanded
             ? showLessLabel
@@ -254,7 +255,7 @@ function FacetFilterPanelContent({
   activeFilters = [],
   disabled = false,
   readOnly = false,
-  size = "md",
+  size: sizeProp,
   pending = false,
   pendingLabel,
   activeFiltersLabel,
@@ -272,6 +273,11 @@ function FacetFilterPanelContent({
   showTitle,
   titleId,
 }: FacetFilterPanelProps & { showTitle: boolean; titleId?: string }) {
+  const { size = "md" } = useUIDefaults(
+    "FacetFilterPanel",
+    { size: sizeProp },
+    { size: ["sm", "md", "lg"] }
+  )
   const styles = facetFilterPanelStyles()
   const messages = useUiMessages()
   const showMoreText = showMoreLabel ?? messages.facetFilterPanel.showMore
@@ -326,9 +332,11 @@ function FacetFilterPanelContent({
       />
 
       <Accordion
+        appearance="plain"
         className={styles.groups()}
         disabled={disabled}
         multiple
+        nested
         onChange={(groupIds) => {
           if (expandedGroups === undefined) {
             setLocalExpandedGroups(groupIds)
@@ -336,7 +344,6 @@ function FacetFilterPanelContent({
           onExpandedGroupsChange?.(groupIds)
         }}
         value={expandedGroups ?? localExpandedGroups}
-        variant="child"
       >
         {groups.map((group) => {
           if (group.type === "range") {
@@ -449,8 +456,8 @@ export function FacetFilterPanel({
           icon="token-icon-facet-filter-panel-filter"
           onClick={() => setDrawerOpen(true)}
           ref={drawerTriggerRef}
+          severity="primary"
           type="button"
-          variant="primary"
         >
           {drawerTriggerLabel ?? props.title}
           {activeCount > 0 ? (
@@ -581,15 +588,15 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
             <h3 className={styles.activeTitle()}>{resolvedLabel}</h3>
             {!readOnly && (
               <Button
+                appearance="ghost"
                 disabled={disabled}
                 onClick={(event) => {
                   trackFocus(event.currentTarget, -1)
                   onReset?.()
                 }}
+                severity="primary"
                 size="sm"
-                theme="borderless"
                 type="button"
-                variant="primary"
               >
                 {resetLabel ?? messages.facetFilterPanel.reset}
               </Button>
@@ -603,6 +610,7 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
                 </span>
               ) : (
                 <Button
+                  appearance="outline"
                   aria-label={item.removeLabel}
                   data-filter-id={item.id}
                   disabled={disabled}
@@ -613,10 +621,9 @@ FacetFilterPanel.ActiveFilters = function FacetFilterActiveFilters({
                     trackFocus(event.currentTarget, items.indexOf(item))
                     onRemove?.(item.id)
                   }}
+                  severity="primary"
                   size="sm"
-                  theme="outlined"
                   type="button"
-                  variant="primary"
                 >
                   {item.label}
                 </Button>

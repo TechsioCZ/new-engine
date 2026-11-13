@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.3.0
+ * @componentVersion v2.0.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,6 +27,7 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const tabsVariants = tv({
@@ -73,8 +74,8 @@ const tabsVariants = tv({
     ],
   },
   variants: {
-    variant: {
-      default: {
+    appearance: {
+      underline: {
         trigger: "tabs-trigger-selected",
         indicator: "hidden",
       },
@@ -129,7 +130,7 @@ const tabsVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "default",
+    appearance: "underline",
     size: "md",
     fitted: false,
     justify: "start",
@@ -139,7 +140,7 @@ const tabsVariants = tv({
 // Context for sharing state between sub-components
 type TabsContextValue = {
   api: ReturnType<typeof tabs.connect>
-  variant?: "default" | "line" | "solid" | "outline"
+  appearance?: "underline" | "line" | "solid" | "outline"
   size?: "sm" | "md" | "lg"
   fitted?: boolean
   justify?: "start" | "center" | "end"
@@ -300,8 +301,8 @@ export function Tabs({
   activationMode = "automatic",
   loopFocus = true,
   onValueChange,
-  variant,
-  size,
+  appearance: appearanceProp,
+  size: sizeProp,
   fitted,
   justify,
   children,
@@ -309,6 +310,11 @@ export function Tabs({
   className,
   ...props
 }: TabsProps) {
+  const { size, appearance } = useUIDefaults(
+    "Tabs",
+    { size: sizeProp, appearance: appearanceProp },
+    tabsVariants
+  )
   const generatedId = useId()
   const uniqueId = id || generatedId
 
@@ -335,7 +341,7 @@ export function Tabs({
   })
 
   const api = tabs.connect(service, normalizeProps)
-  const styles = tabsVariants({ variant, size, fitted, justify })
+  const styles = tabsVariants({ appearance, size, fitted, justify })
   const [contentValues, setContentValues] = useState<ReadonlySet<string>>(
     () => new Set()
   )
@@ -406,7 +412,7 @@ export function Tabs({
     <TabsContext.Provider
       value={{
         api,
-        variant,
+        appearance,
         size,
         fitted,
         justify,
@@ -485,7 +491,7 @@ Tabs.Trigger = function TabsTrigger({
   ref,
   className,
   size = "current",
-  theme = "unstyled",
+  unstyled = true,
   type = "button",
   ...props
 }: TabsTriggerProps) {
@@ -539,8 +545,8 @@ Tabs.Trigger = function TabsTrigger({
         }
       }}
       size={size}
-      theme={theme}
       type={type}
+      unstyled={unstyled}
     >
       {children}
     </Button>

@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.2.0
+ * @componentVersion v2.0.0
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -41,6 +41,7 @@ import {
 } from "../internal/overlay-portal"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const popoverVariants = tv({
@@ -160,10 +161,11 @@ export function Popover({
   portalled = true,
   sameWidth = false,
   shadow,
-  size,
+  size: sizeProp,
   slide = true,
   ...props
 }: PopoverRootProps) {
+  const { size } = useUIDefaults("Popover", { size: sizeProp }, popoverVariants)
   const messages = useUiMessages()
   const generatedId = useId()
   const uniqueId = id || generatedId
@@ -246,7 +248,7 @@ Popover.Trigger = function PopoverTrigger({
   onClick,
   ref,
   size = "current",
-  theme = "borderless",
+  appearance = "ghost",
   type = "button",
   ...props
 }: PopoverTriggerProps) {
@@ -262,6 +264,7 @@ Popover.Trigger = function PopoverTrigger({
   return (
     <Button
       {...buttonProps}
+      appearance={appearance}
       className={styles.trigger({ className })}
       data-state={api.open ? "open" : "closed"}
       disabled={isDisabled}
@@ -274,7 +277,6 @@ Popover.Trigger = function PopoverTrigger({
       }}
       ref={ref}
       size={size}
-      theme={theme}
       type={type}
     >
       {children}
@@ -510,7 +512,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   onClick,
   ref,
   size = "current",
-  theme = "unstyled",
+  unstyled = true,
   type = "button",
   ...props
 }: PopoverCloseTriggerProps) {
@@ -536,8 +538,8 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
       onClick={handleClick}
       ref={ref}
       size={size}
-      theme={theme}
       type={type}
+      unstyled={unstyled}
     >
       {children}
     </Button>
@@ -549,8 +551,8 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
       icon={icon ?? "token-icon-close"}
       onClick={handleClick}
       ref={ref}
+      severity="neutral"
       size={size === "current" ? "md" : size}
-      tone="neutral"
       type={type}
     />
   )

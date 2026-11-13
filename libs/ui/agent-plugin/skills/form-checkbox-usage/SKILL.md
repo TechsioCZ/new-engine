@@ -5,7 +5,7 @@ description: >
   for labeled checkbox fields with Zag.js checked/indeterminate state, help
   text, validation status, required, disabled, and read-only props.
 metadata:
-  component_version: "1.3.2"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

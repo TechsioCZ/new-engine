@@ -9,7 +9,7 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("state", {
+const validateStatus = figma.selectedInstance.getEnum("state", {
   default: "default",
   error: "error",
   success: "success",
@@ -33,6 +33,6 @@ export default {
   )}${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}/>`,
+  )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}/>`,
   metadata: { nestable: true },
 }

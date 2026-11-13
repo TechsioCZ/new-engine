@@ -48,7 +48,6 @@ const meta: Meta<typeof Switch> = {
     children: "Email notifications",
     helpText: "Receive account activity updates by email.",
     checked: false,
-    size: "md",
     disabled: false,
     readOnly: false,
     validateStatus: "default",

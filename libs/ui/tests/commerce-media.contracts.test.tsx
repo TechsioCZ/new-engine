@@ -77,10 +77,23 @@ describe("commerce integration contracts", () => {
     }
   )
   it("keeps explicit disabled authoritative for native and adapter activation", () => {
+    // LinkButton reads UIProvider context, so call it during a render.
+    const callLinkButton = (props: Parameters<typeof LinkButton>[0]) => {
+      let element: ReturnType<typeof LinkButton> | undefined
+      function Probe() {
+        element = LinkButton(props)
+        return null
+      }
+      renderToStaticMarkup(<Probe />)
+      if (!element) {
+        throw new Error("LinkButton did not render")
+      }
+      return element
+    }
     for (const as of ["a", LinkAdapter] as const) {
       const onClick = vi.fn()
       const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() }
-      const disabled = LinkButton({
+      const disabled = callLinkButton({
         as,
         disabled: true,
         "aria-disabled": false,
@@ -91,7 +104,7 @@ describe("commerce integration contracts", () => {
       expect(onClick).not.toHaveBeenCalled()
       expect(event.preventDefault).toHaveBeenCalledOnce()
       expect(event.stopPropagation).toHaveBeenCalledOnce()
-      const enabled = LinkButton({
+      const enabled = callLinkButton({
         as,
         disabled: false,
         "aria-disabled": true,

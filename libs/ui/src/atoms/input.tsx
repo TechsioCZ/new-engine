@@ -2,7 +2,7 @@
  * Input — @techsio/ui-kit atom.
  *
  * @component Input
- * @componentVersion v1.1.7
+ * @componentVersion v2.0.0
  * @skill input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,6 +22,7 @@ import {
   subscribeOwnerFormReset,
   syncReactFormControl,
 } from "../internal/form-control-lifecycle"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const inputVariants = tv({
@@ -54,7 +55,7 @@ const inputVariants = tv({
       md: "h-form-control-md rounded-input-md p-input-md px-input-inline-md text-input-md",
       lg: "h-form-control-lg rounded-input-lg p-input-lg px-input-inline-lg text-input-lg",
     },
-    variant: {
+    validateStatus: {
       default: "",
       error: [
         "border-(length:--border-width-validation)",
@@ -97,7 +98,7 @@ const inputVariants = tv({
   compoundVariants: [
     {
       // Validation borders stay authoritative on read-only fields.
-      variant: "default",
+      validateStatus: "default",
       readOnly: true,
       class: [
         "hover:border-input-border-readonly-hover",
@@ -107,7 +108,7 @@ const inputVariants = tv({
   ],
   defaultVariants: {
     size: "md",
-    variant: "default",
+    validateStatus: "default",
     hideSearchClear: true,
   },
 })
@@ -118,8 +119,8 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> &
   }
 
 export function Input({
-  size,
-  variant,
+  size: sizeProp,
+  validateStatus,
   disabled,
   readOnly,
   hideSearchClear,
@@ -130,6 +131,7 @@ export function Input({
   ...props
 }: InputProps) {
   const generatedId = useId()
+  const { size } = useUIDefaults("Input", { size: sizeProp }, inputVariants)
   const currentValue = useRef({ value: props.value, checked: props.checked })
   useLayoutEffect(() => {
     currentValue.current = { value: props.value, checked: props.checked }
@@ -170,7 +172,7 @@ export function Input({
     <input
       className={inputVariants({
         size,
-        variant,
+        validateStatus,
         disabled,
         hideSearchClear: readOnly || hideSearchClear,
         readOnly: Boolean(readOnly),
@@ -183,7 +185,7 @@ export function Input({
       readOnly={readOnly}
       ref={inputRef}
       {...props}
-      aria-invalid={variant === "error" ? true : props["aria-invalid"]}
+      aria-invalid={validateStatus === "error" ? true : props["aria-invalid"]}
     />
   )
 }

@@ -104,7 +104,7 @@ function FeedsPage() {
           aria-label="Product feed URLs"
           tabIndex={0}
         >
-          <Table size="sm" variant="line">
+          <Table size="sm" appearance="line">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader>Feed</Table.ColumnHeader>
@@ -139,11 +139,11 @@ function FeedsPage() {
                   </Table.Cell>
                   <Table.Cell>
                     {feed.healthy ? (
-                      <Badge size="sm" variant="success">
+                      <Badge size="sm" severity="success">
                         OK
                       </Badge>
                     ) : (
-                      <Badge size="sm" variant="warning">
+                      <Badge size="sm" severity="warning">
                         {`${feed.errors} excluded`}
                       </Badge>
                     )}
@@ -171,8 +171,8 @@ function FeedsPage() {
                           }
                         }}
                         size="sm"
-                        theme="borderless"
-                        variant="secondary"
+                        appearance="ghost"
+                        severity="secondary"
                       />
                       <Button
                         aria-label={`About regenerating ${feed.name}`}
@@ -186,8 +186,8 @@ function FeedsPage() {
                           })
                         }
                         size="sm"
-                        theme="borderless"
-                        variant="secondary"
+                        appearance="ghost"
+                        severity="secondary"
                       />
                     </span>
                   </Table.Cell>
@@ -215,7 +215,7 @@ function FeedsPage() {
           aria-label="Products excluded from feeds"
           tabIndex={0}
         >
-          <Table size="sm" variant="line">
+          <Table size="sm" appearance="line">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader>Product</Table.ColumnHeader>
@@ -274,8 +274,8 @@ function FeedsPage() {
                 })
               }}
               size="sm"
-              theme="outlined"
-              variant="warning"
+              appearance="outline"
+              severity="warning"
             >
               Rotate token
             </Button>

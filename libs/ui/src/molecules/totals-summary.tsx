@@ -1,7 +1,7 @@
 /**
  * TotalsSummary — @techsio/ui-kit molecule.
  * @component TotalsSummary
- * @componentVersion v1.0.1
+ * @componentVersion v2.0.0
  * @skill totals-summary-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -23,19 +23,19 @@ const totalsSummaryVariants = tv({
     pending: "text-totals-summary-note-fg text-totals-summary-note-size",
   },
   variants: {
-    emphasis: {
-      default: { row: "" },
+    severity: {
+      neutral: { row: "" },
       discount: { row: "text-totals-summary-discount-fg" },
     },
   },
-  defaultVariants: { emphasis: "default" },
+  defaultVariants: { severity: "neutral" },
 })
 
 export type TotalsSummaryRow = {
   id: string
   label: string
   value: string
-  emphasis?: "default" | "discount"
+  severity?: "neutral" | "discount"
   note?: string
 }
 
@@ -82,8 +82,8 @@ export function TotalsSummary({
       data-state={pending ? "pending" : "ready"}
     >
       <dl className={styles.list()}>
-        {rows.map(({ id, label, value, emphasis, note }) => (
-          <div className={totalsSummaryVariants({ emphasis }).row()} key={id}>
+        {rows.map(({ id, label, value, severity, note }) => (
+          <div className={totalsSummaryVariants({ severity }).row()} key={id}>
             <dt className={styles.label()}>{label}</dt>
             <dd className={styles.value()}>
               {value}

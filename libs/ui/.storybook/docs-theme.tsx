@@ -2,6 +2,9 @@ import type { ComponentProps } from "react"
 import { useEffect } from "react"
 import { ThemedDocsContainer } from "./docs-container"
 import { bindDocsTheme } from "./theme.mjs"
+import { UIDefaultsPanel } from "./ui-defaults-panel"
+
+const COMPONENT_PAGE = /^(Atoms|Molecules|Organisms|Templates)\//
 
 type DocsThemeProps = ComponentProps<typeof ThemedDocsContainer>
 
@@ -20,5 +23,16 @@ export function DocsTheme({ children, ...props }: DocsThemeProps) {
       ),
     [context, brandLock]
   )
-  return <ThemedDocsContainer {...props}>{children}</ThemedDocsContainer>
+  const componentPage = COMPONENT_PAGE.test(story?.title ?? "")
+  return (
+    <ThemedDocsContainer {...props}>
+      {componentPage ? (
+        <UIDefaultsPanel
+          channel={context.channel}
+          initialGlobals={context.projectAnnotations.initialGlobals}
+        />
+      ) : null}
+      {children}
+    </ThemedDocsContainer>
+  )
 }

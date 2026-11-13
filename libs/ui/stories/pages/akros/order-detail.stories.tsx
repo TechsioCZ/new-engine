@@ -194,8 +194,8 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                 <Button
                   icon="icon-[mdi--dots-horizontal]"
                   size="sm"
-                  theme="outlined"
-                  variant="secondary"
+                  appearance="outline"
+                  severity="secondary"
                 >
                   More
                 </Button>
@@ -210,7 +210,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
               icon="icon-[mdi--database-arrow-right-outline]"
               onClick={sendToAbra}
               size="sm"
-              variant="primary"
+              severity="primary"
             >
               Send to ABRA
             </Button>
@@ -246,15 +246,15 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                   })
                 }
                 size="sm"
-                variant="primary"
+                severity="primary"
               >
                 Preview payment-link delivery
               </Button>
               <Button
                 onClick={() => setSwitching(true)}
                 size="sm"
-                theme="outlined"
-                variant="secondary"
+                appearance="outline"
+                severity="secondary"
               >
                 Change payment method
               </Button>
@@ -280,7 +280,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
               icon="icon-[mdi--database-refresh-outline]"
               onClick={sendToAbra}
               size="sm"
-              variant="primary"
+              severity="primary"
             >
               Fix and resend
             </Button>
@@ -311,7 +311,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
               aria-label="Scrollable records"
               tabIndex={0}
             >
-              <Table size="sm" variant="line">
+              <Table size="sm" appearance="line">
                 <Table.Header>
                   <Table.Row>
                     <Table.ColumnHeader>Product</Table.ColumnHeader>
@@ -407,8 +407,8 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                 icon="icon-[mdi--cash-check]"
                 onClick={() => setMarkingPaid(true)}
                 size="sm"
-                theme="outlined"
-                variant="secondary"
+                appearance="outline"
+                severity="secondary"
               >
                 Mark as paid
               </Button>
@@ -476,8 +476,8 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
           <>
             <Button
               onClick={() => setSwitching(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
@@ -501,7 +501,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                   description: `${paymentMethodLabels[newMethod]} — the local order was updated. No customer notification was sent.`,
                 })
               }}
-              variant="primary"
+              severity="primary"
             >
               Change method
             </Button>
@@ -547,8 +547,8 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
           <>
             <Button
               onClick={() => setMarkingPaid(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
@@ -562,7 +562,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                   description: "Recorded in the order history with your name.",
                 })
               }}
-              variant="warning"
+              severity="warning"
             >
               Mark {czk.format(order.total)} as paid
             </Button>

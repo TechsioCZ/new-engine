@@ -93,8 +93,9 @@ function NavigationLink({
             icon={item.icon}
             onClick={preventNavigation}
             size="sm"
-            theme={active ? "light" : "unstyled"}
-            variant="secondary"
+            appearance="subtle"
+            unstyled={!active}
+            severity="secondary"
           >
             <Sidebar.Label>{item.label}</Sidebar.Label>
           </LinkButton>
@@ -139,8 +140,8 @@ function StandardPanel({
             icon="icon-[mdi--storefront-outline]"
             onClick={preventNavigation}
             size="sm"
-            theme="unstyled"
-            variant="secondary"
+            unstyled
+            severity="secondary"
           >
             <Sidebar.Label>Commerce</Sidebar.Label>
           </LinkButton>
@@ -179,8 +180,8 @@ function StandardPanel({
           icon="icon-[mdi--cog-outline]"
           onClick={preventNavigation}
           size="sm"
-          theme="unstyled"
-          variant="secondary"
+          unstyled
+          severity="secondary"
         >
           <Sidebar.Label>Settings</Sidebar.Label>
         </LinkButton>
@@ -381,8 +382,8 @@ function FocusTransferExample() {
               icon="icon-[mdi--target]"
               onClick={preventNavigation}
               size="sm"
-              theme="unstyled"
-              variant="secondary"
+              unstyled
+              severity="secondary"
             >
               <Sidebar.Label>Focus workspace</Sidebar.Label>
             </LinkButton>
@@ -398,7 +399,7 @@ function FocusTransferExample() {
               data-testid="arm-replacement-autofocus"
               onClick={() => setAutoFocusDesktop(true)}
               size="sm"
-              theme="outlined"
+              appearance="outline"
             >
               Set fallback focus
             </Button>
@@ -408,7 +409,7 @@ function FocusTransferExample() {
                   autoFocus={autoFocusDesktop && api.isDesktop}
                   data-testid="replacement-autofocus"
                   size="sm"
-                  theme="light"
+                  appearance="subtle"
                 >
                   Fallback focus target
                 </Button>
@@ -502,8 +503,9 @@ function PaneSwitcher({
               api.setExpanded("start", true)
             }}
             size="sm"
-            theme={active ? "light" : "unstyled"}
-            variant="secondary"
+            appearance="subtle"
+            unstyled={!active}
+            severity="secondary"
           />
         </Tooltip>
       )}
@@ -521,7 +523,7 @@ function TwoPanePanel() {
         <Sidebar.Pane
           aria-label="Workspace switcher"
           role="navigation"
-          size="rail"
+          paneSize="rail"
         >
           <Sidebar.Header className="min-h-700 justify-center">
             <LinkButton
@@ -530,8 +532,8 @@ function TwoPanePanel() {
               icon="icon-[mdi--storefront-outline]"
               onClick={preventNavigation}
               size="sm"
-              theme="unstyled"
-              variant="secondary"
+              unstyled
+              severity="secondary"
             />
           </Sidebar.Header>
           <Sidebar.Content>
@@ -554,8 +556,8 @@ function TwoPanePanel() {
               icon="icon-[mdi--cog-outline]"
               onClick={preventNavigation}
               size="sm"
-              theme="unstyled"
-              variant="secondary"
+              unstyled
+              severity="secondary"
             />
           </Sidebar.Footer>
         </Sidebar.Pane>
@@ -564,7 +566,7 @@ function TwoPanePanel() {
           aria-label={`${activeItem.label} navigation`}
           data-testid="detail-pane"
           role="navigation"
-          size="content"
+          paneSize="content"
           visibility="expanded"
         >
           <Sidebar.Header className="min-h-700 justify-center">
@@ -581,8 +583,9 @@ function TwoPanePanel() {
                       href={`#${activeItem.label.toLowerCase()}-${index}`}
                       onClick={preventNavigation}
                       size="sm"
-                      theme={index === 0 ? "light" : "unstyled"}
-                      variant="secondary"
+                      appearance="subtle"
+            unstyled={index !== 0}
+                      severity="secondary"
                     >
                       {label}
                     </LinkButton>

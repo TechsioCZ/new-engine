@@ -78,7 +78,6 @@ const meta = {
     shadow: true,
     showArrow: true,
     showCloseButton: false,
-    size: "md",
     title: "Popover title",
     trigger: "Open popover",
   },
@@ -169,7 +168,7 @@ export const WithCloseButton: Story = {
             <div className="flex justify-end gap-100">
               <Button
                 size="sm"
-                variant="secondary"
+                severity="secondary"
                 onClick={() => setOpen(false)}
               >
                 Cancel

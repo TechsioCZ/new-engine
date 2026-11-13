@@ -6,7 +6,7 @@ description: >
   markers, value text, orientation, min/max/step, validation status, and token
   styling.
 metadata:
-  component_version: "1.4.3"
+  component_version: "1.5.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -157,8 +157,8 @@ function Budget() {
     <Slider label="Budget" name="budget" value={values} onChange={setValues}
       aria-label={["Minimum budget", "Maximum budget"]}
       getThumbProps={(index) => ({ ref: index === 0 ? minimum : maximum })} />
-    <Button variant="secondary" onClick={() => minimum.current?.focus()}>Focus minimum</Button>
-    <Button variant="secondary" onClick={() => maximum.current?.focus()}>Focus maximum</Button>
+    <Button severity="secondary" onClick={() => minimum.current?.focus()}>Focus minimum</Button>
+    <Button severity="secondary" onClick={() => maximum.current?.focus()}>Focus maximum</Button>
   </>
 }
 ```

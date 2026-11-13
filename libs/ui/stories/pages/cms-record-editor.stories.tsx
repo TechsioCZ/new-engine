@@ -157,7 +157,7 @@ function RecordEditorPage({
           icon="icon-[mdi--content-save-outline]"
           onClick={save}
           size="sm"
-          variant="primary"
+          severity="primary"
         >
           Save
         </Button>
@@ -175,8 +175,8 @@ function RecordEditorPage({
                 toaster.create({ type: "info", title: "Back to Pages" })
               }}
               size="sm"
-              theme="borderless"
-              variant="secondary"
+              appearance="ghost"
+              severity="secondary"
             >
               Back to list
             </Button>
@@ -192,7 +192,7 @@ function RecordEditorPage({
           <>
             <StatusBadge status={status} />
             {dirty && (
-              <Badge size="sm" variant="warning">
+              <Badge size="sm" severity="warning">
                 Unsaved changes
               </Badge>
             )}
@@ -204,7 +204,7 @@ function RecordEditorPage({
       <div className="grid grid-cols-1 items-start gap-250 xl:grid-cols-3">
         <div className="flex flex-col gap-250 xl:col-span-2">
           <SectionCard flush>
-            <Tabs defaultValue="content" variant="line">
+            <Tabs defaultValue="content" appearance="line">
               <Tabs.List className="px-250">
                 <Tabs.Trigger value="content">Content</Tabs.Trigger>
                 <Tabs.Trigger value="seo">SEO</Tabs.Trigger>
@@ -442,8 +442,8 @@ function RecordEditorPage({
           <>
             <Button
               onClick={() => setLeaving(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Keep editing
             </Button>
@@ -468,7 +468,7 @@ function RecordEditorPage({
                   description: "Back to Pages.",
                 })
               }}
-              variant="danger"
+              severity="danger"
             >
               Discard changes
             </Button>

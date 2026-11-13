@@ -6,7 +6,7 @@ description: >
   item parts, selection behavior, icons, indentation, expansion, selection, and
   keyboard/typeahead support.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

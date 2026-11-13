@@ -137,7 +137,6 @@ export function CountryExample() {
   },
   args: {
     items: countries,
-    size: "md",
     disabled: false,
     readOnly: false,
     multiple: false,
@@ -441,13 +440,13 @@ export const WithinForm: Story = {
         />
         <div className="flex justify-end gap-150">
           <Button
-            variant="secondary"
+            severity="secondary"
             type="button"
             onClick={() => setSaved(false)}
           >
             Cancel
           </Button>
-          <Button variant="primary" type="submit">
+          <Button severity="primary" type="submit">
             Save delivery country
           </Button>
         </div>
@@ -529,7 +528,7 @@ export const AccessibleDescriptions: Story = {
           )}
         </Select>
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => setInvalid((value) => !value)}
         >
           Toggle validation
@@ -596,7 +595,7 @@ function ChangingCountries() {
       value={value} onValueChange={({ value: next }) => setValue(next)} />
     <SelectTemplate label="Multiple countries" items={items} name="multiple" multiple
       defaultValue={["a", "b"]} />
-    <Button variant="secondary" onClick={() => setRemoved(true)}>Replace countries</Button>
+    <Button severity="secondary" onClick={() => setRemoved(true)}>Replace countries</Button>
     <output aria-label="Collection changes">{changes}</output>
   </form>
 }
@@ -643,7 +642,7 @@ function ObservedCountry() {
         {countries.map((item) => <Select.Item key={item.value} item={item}><Select.ItemText /><Select.ItemIndicator /></Select.Item>)}
       </Select.Content></Select.Positioner>
     </Select>
-    <Button variant="secondary" onClick={() => setCancel((next) => !next)}>Toggle cancellation</Button>
+    <Button severity="secondary" onClick={() => setCancel((next) => !next)}>Toggle cancellation</Button>
     <output aria-label="Observed events">{clicks} clicks, {keys} keys</output>
   </div>
 }

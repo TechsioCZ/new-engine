@@ -36,8 +36,8 @@ swapping a token never changes how the host behaves.
 | `size=current` | `size="current"` (default) | 1em of the surrounding text in code; a fixed 16 px preview in Figma. Compare it with the text around it, not with the Figma number. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | The canonical steps for standalone glyphs. |
 | `size=xs` / `xl` / `2xl` | `size="xs" \| "xl" \| "2xl"` | Compact or decorative composition only, not control sizes. |
-| `color=current` | `color="current"` (default) | Inherit the host's foreground. Use this inside controls. |
-| `color=primary` … `warning` | `color="primary" \| "secondary" \| "danger" \| "success" \| "warning"` | Readable semantic foregrounds. Only when the text says the same thing. |
+| `color=current` | `severity="current"` (default) | Inherit the host's foreground. Use this inside controls. |
+| `color=primary` … `warning` | `severity="primary" \| "secondary" \| "danger" \| "success" \| "warning"` | Readable semantic foregrounds. Only when the text says the same thing. |
 
 ## Behaviour
 

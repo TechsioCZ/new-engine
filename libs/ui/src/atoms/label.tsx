@@ -2,7 +2,7 @@
  * Label — @techsio/ui-kit atom.
  *
  * @component Label
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill label-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,6 +12,7 @@
 import type { ComponentPropsWithRef, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { RequiredLabelText } from "../internal/required-label-text"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const labelVariants = tv({
@@ -43,7 +44,7 @@ export type LabelProps = ComponentPropsWithRef<"label"> &
   }
 
 export function Label({
-  size,
+  size: sizeProp,
   disabled,
   required,
   requiredLabel,
@@ -51,6 +52,7 @@ export function Label({
   className,
   ...props
 }: LabelProps) {
+  const { size } = useUIDefaults("Label", { size: sizeProp }, labelVariants)
   return (
     <label
       className={labelVariants({

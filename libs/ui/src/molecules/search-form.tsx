@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.2.0
+ * @componentVersion v2.0.0
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -39,6 +39,7 @@ import {
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const searchFormVariants = tv({
@@ -157,7 +158,7 @@ export type SearchFormProps = VariantProps<typeof searchFormVariants> &
   }
 
 export function SearchForm({
-  size = "md",
+  size: sizeProp,
   gapped = false,
   readOnly = false,
   disabled: explicitDisabled = false,
@@ -171,6 +172,11 @@ export function SearchForm({
   onSubmit,
   ...props
 }: SearchFormProps) {
+  const { size = "md" } = useUIDefaults(
+    "SearchForm",
+    { size: sizeProp },
+    searchFormVariants
+  )
   const generatedId = useId()
   const inputId = `search-input-${generatedId}`
   const [formElement, setFormElement] = useState<HTMLFormElement | null>(null)
@@ -404,7 +410,7 @@ SearchForm.Input = function SearchFormInput({
         data-readonly={readOnly ? "" : undefined}
         disabled={disabled || props.disabled}
         readOnly={readOnly || props.readOnly}
-        variant={validateStatus === "default" ? props.variant : validateStatus}
+        validateStatus={validateStatus}
       />
     </div>
   )
@@ -461,7 +467,7 @@ type SearchFormClearButtonProps = Omit<
 SearchForm.ClearButton = function SearchFormClearButton({
   className,
   icon = "token-icon-close",
-  tone = "neutral",
+  severity = "neutral",
   ...props
 }: SearchFormClearButtonProps) {
   const messages = useUiMessages()
@@ -497,8 +503,8 @@ SearchForm.ClearButton = function SearchFormClearButton({
       className={styles.clearButton({ className })}
       icon={icon}
       onClick={clearInput}
+      severity={severity}
       size={size}
-      tone={tone}
       {...props}
     />,
     clearSlot

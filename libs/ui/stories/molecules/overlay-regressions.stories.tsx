@@ -36,7 +36,7 @@ export const Playground: Story = {
         content="An older hint must not intercept the focused menu's Escape."
         defaultOpen
       >
-        <Button variant="secondary">Hint trigger</Button>
+        <Button severity="secondary">Hint trigger</Button>
       </Tooltip>
       <Menu
         items={[{ type: "action", value: "duplicate", label: "Duplicate catalog" }]}
@@ -146,7 +146,7 @@ export const DetentNotifications: Story = {
               <Drawer.Header><Drawer.Title>Catalog updates</Drawer.Title></Drawer.Header>
               <Drawer.Body><Notify /></Drawer.Body>
               <Drawer.Footer>
-                <Drawer.Context>{(api) => <>{([0.25, 0.5, 1] as const).map((point) => <Button key={point} onClick={() => api.setSnapPoint(point)} variant="secondary">{point * 100}%</Button>)}</>}</Drawer.Context>
+                <Drawer.Context>{(api) => <>{([0.25, 0.5, 1] as const).map((point) => <Button key={point} onClick={() => api.setSnapPoint(point)} severity="secondary">{point * 100}%</Button>)}</>}</Drawer.Context>
                 <Drawer.CloseTrigger>Close drawer</Drawer.CloseTrigger>
               </Drawer.Footer>
             </Drawer.Content>

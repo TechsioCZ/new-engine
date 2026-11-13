@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -46,6 +46,7 @@ import {
 } from "../internal/described-by"
 import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Select } from "./select"
 
@@ -269,13 +270,18 @@ export function PhoneInput({
   validateStatus = "default",
   onValueChange,
   onCountryChange,
-  size = "md",
+  size: sizeProp,
   id: providedId,
   className,
   children,
   ref,
   ...props
 }: PhoneInputProps) {
+  const { size = "md" } = useUIDefaults(
+    "PhoneInput",
+    { size: sizeProp },
+    phoneInputVariants
+  )
   const messages = useUiMessages()
   const generatedId = useId()
   const id = providedId || generatedId

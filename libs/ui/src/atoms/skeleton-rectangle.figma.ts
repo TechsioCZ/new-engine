@@ -4,7 +4,8 @@
 
 import figma from "figma"
 
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names the property variant; code reads severity.
+const severity = figma.selectedInstance.getEnum("variant", {
   primary: "primary",
   secondary: "secondary",
 })
@@ -24,7 +25,7 @@ export default {
   example: figma.code`<Skeleton.Rectangle${figma.helpers.react.renderProp(
     "speed",
     speed
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("severity", severity)}>
           <div className="h-20 w-xs rounded-md ${placeholderBgClass}"/>
         </Skeleton.Rectangle>`,
   metadata: { nestable: false },

@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit LinkButton, including framework link adapters, href, disabled
   state, icons, and Button-compatible variants/themes/sizes.
 metadata:
-  component_version: "1.2.3"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -70,7 +70,7 @@ where actions and feedback live). This section applies them to `LinkButton`.
 
 | Figma | Code |
 | --- | --- |
-| `variant`, `theme`, `size` | same prop names and values (no `ghost`) |
+| `variant`, `theme`, `size` | `severity`, `appearance` (Figma `light` / `outlined` / `borderless` → `subtle` / `outline` / `ghost`), `size` |
 | `state=disabled` | `disabled` |
 | `state=hover` | not a prop (browser state) |
 
@@ -82,7 +82,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 import NextLink from "next/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 
-<LinkButton as={NextLink} href="/products" variant="primary" theme="solid">
+<LinkButton as={NextLink} href="/products" severity="primary" appearance="solid">
   Products
 </LinkButton>
 ```
@@ -102,7 +102,7 @@ icon/iconPosition/iconSize: Button icon props
 ### Use for navigational CTA
 
 ```tsx
-<LinkButton as={NextLink} href="/checkout" variant="primary">
+<LinkButton as={NextLink} href="/checkout" severity="primary">
   Checkout
 </LinkButton>
 ```
@@ -113,7 +113,7 @@ Button instead.
 ### Use framework adapters directly
 
 ```tsx
-<LinkButton as={NextLink} href="/account/orders" theme="outlined">
+<LinkButton as={NextLink} href="/account/orders" appearance="outline">
   Orders
 </LinkButton>
 ```
@@ -124,9 +124,9 @@ component cannot accept the framework prop shape.
 ### Reuse Button visual semantics
 
 ```text
-danger -> destructive navigation such as leave/cancel flow
-borderless -> low-emphasis navigation action
-current -> inherit size from parent surface
+severity="danger" -> destructive navigation such as leave/cancel flow
+appearance="ghost" -> low-emphasis navigation action
+size="current" -> inherit size from parent surface
 ```
 
 The visual props come from Button variants and tokens.
@@ -162,7 +162,7 @@ Wrong:
 Correct:
 
 ```tsx
-<LinkButton as={NextLink} href="/checkout" variant="primary">
+<LinkButton as={NextLink} href="/checkout" severity="primary">
   Checkout
 </LinkButton>
 ```
@@ -174,13 +174,13 @@ Source: libs/ui/src/tokens/components/atoms/_button.css
 Wrong:
 
 ```tsx
-<LinkButton href="/help" variant="ghost">Help</LinkButton>
+<LinkButton href="/help" severity="ghost">Help</LinkButton>
 ```
 
 Correct:
 
 ```tsx
-<LinkButton href="/help" variant="secondary" theme="borderless">
+<LinkButton href="/help" severity="secondary" appearance="ghost">
   Help
 </LinkButton>
 ```
@@ -207,7 +207,7 @@ Correct:
 
 ```sh
 rg -n "<Button[^>]*onClick=.*router\\.push|<a[^>]*className=.*(bg-|px-|py-)" apps
-rg -n "<LinkButton[^>]*variant=\"ghost\"" apps
+rg -n "<LinkButton[^>]*(variant=|theme=)" apps
 rg -n "<LinkButton[^>]*className=.*(bg-|text-|px-|py-|rounded-|border-)" apps
 rg -n "function .*LinkButton|const .*LinkButton" apps
 ```

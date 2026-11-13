@@ -6,7 +6,7 @@ description: >
   nav, nav items, actions, hamburger, active state, size, direction, and token
   styling.
 metadata:
-  component_version: "1.3.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

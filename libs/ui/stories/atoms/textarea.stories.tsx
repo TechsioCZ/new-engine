@@ -8,7 +8,7 @@ import { Textarea, type TextareaProps } from "../../src/atoms/textarea"
 function Field({
   label = "Delivery instructions",
   helpText,
-  variant = "default",
+  validateStatus = "default",
   size = "md",
   ...props
 }: TextareaProps & { label?: string; helpText?: string }) {
@@ -16,7 +16,7 @@ function Field({
   const messageId = `${id}-message`
   // Only Business dims neutral disabled help; other brands and validation
   // messages retain their existing StatusText foreground.
-  const helperStatus = variant === "borderless" ? "default" : variant
+  const helperStatus = validateStatus
   const helperClassName =
     props.disabled && helperStatus === "default"
       ? "in-data-[theme=business]:text-fg-disabled"
@@ -30,12 +30,12 @@ function Field({
         {...props}
         aria-describedby={helpText ? messageId : undefined}
         aria-errormessage={
-          variant === "error" && helpText ? messageId : undefined
+          validateStatus === "error" && helpText ? messageId : undefined
         }
-        aria-invalid={variant === "error" || undefined}
+        aria-invalid={validateStatus === "error" || undefined}
         id={id}
         size={size}
-        variant={variant}
+        validateStatus={validateStatus}
       />
       {helpText && (
         <StatusText
@@ -74,9 +74,13 @@ const meta: Meta<typeof Textarea> = {
   ],
   argTypes: {
     size: { control: "select", options: ["sm", "md", "lg"] },
-    variant: {
+    validateStatus: {
       control: "select",
-      options: ["default", "error", "warning", "success", "borderless"],
+      options: ["default", "error", "warning", "success"],
+    },
+    appearance: {
+      control: "select",
+      options: ["outline", "plain"],
     },
     disabled: { control: "boolean" },
     readOnly: { control: "boolean" },
@@ -101,8 +105,7 @@ export const Playground: Story = {
   },
   args: {
     placeholder: "Add instructions for the courier…",
-    size: "md",
-    variant: "default",
+    validateStatus: "default",
     readOnly: false,
     disabled: false,
     rows: 3,
@@ -142,7 +145,7 @@ export const Variants: Story = {
           }
           key={state}
           label={`Delivery instructions — ${state}`}
-          variant={state}
+          validateStatus={state}
         />
       ))}
     </div>

@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.4.0
+ * @componentVersion v1.5.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -31,6 +31,7 @@ import { Image, ImageWithFallback } from "../atoms/image"
 import { usePrefersReducedMotion } from "../internal/reduced-motion"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 /** Local integration fixes for Zag 1.45: observe current nodes and leave widget keys alone. */
@@ -258,7 +259,7 @@ const carouselVariants = tv({
     /*
      * Prev / next are ActionIcons, but keep the carousel trigger colour tokens
      * on top so apps that restyle them (e.g. white circles over banners) still
-     * can. The defaults match ActionIcon's neutral tone.
+     * can. The defaults match ActionIcon's neutral severity.
      */
     prevTrigger: [
       "border border-carousel-trigger-border bg-carousel-navigation-bg text-carousel-trigger-fg-base shadow-carousel-navigation",
@@ -475,7 +476,7 @@ type CarouselControlProps = {
 export function Carousel<T extends ElementType = typeof Image>({
   id,
   /* Tailwind variants */
-  size,
+  size: sizeProp,
   objectFit,
   aspectRatio,
   /* Zag.js carousel config */
@@ -500,6 +501,11 @@ export function Carousel<T extends ElementType = typeof Image>({
   "aria-label": ariaLabel,
   ...props
 }: CarouselRootProps<T>) {
+  const { size } = useUIDefaults(
+    "Carousel",
+    { size: sizeProp },
+    carouselVariants
+  )
   const fallbackId = useId()
   // Autoplay is JS-driven, so motion-reduce: classes cannot stop it. Users who
   // prefer reduced motion get a still carousel; the play control still works.

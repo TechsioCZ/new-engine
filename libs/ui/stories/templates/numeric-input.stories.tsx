@@ -204,7 +204,6 @@ export const Playground: Story = {
     showControls: true,
     showScrubber: false,
     controlsPosition: "right",
-    size: "md",
     allowMouseWheel: true,
     clampValueOnBlur: true,
     spinOnPress: true,
@@ -419,7 +418,6 @@ export const Default: Story = {
     max: 100,
     step: 1,
     showControls: true,
-    size: "md",
   },
 }
 

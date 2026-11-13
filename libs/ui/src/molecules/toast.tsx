@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -134,8 +134,8 @@ export function Toast({
           <ActionIcon
             className={closeButton()}
             icon="token-icon-toast-close"
+            severity="neutral"
             size="sm"
-            tone="neutral"
             {...api.getCloseTriggerProps()}
             aria-label={closeLabel ?? messages.toast.close}
           />
@@ -152,10 +152,10 @@ export function Toast({
       )}
       {actor.action && (
         <Button
+          appearance="outline"
           className="mt-toast-description self-start"
+          severity="secondary"
           size="sm"
-          theme="outlined"
-          variant="secondary"
           {...api.getActionTriggerProps()}
         >
           {actor.action.label}

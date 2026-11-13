@@ -167,8 +167,8 @@ export const Playground: Story = {
       alt: "Premium Cotton T-Shirt",
     },
     badges: [
-      { variant: "success", children: "New" },
-      { variant: "danger", children: "Sale" },
+      { severity: "success", children: "New" },
+      { severity: "danger", children: "Sale" },
     ],
     rating: {
       value: 4.5,
@@ -228,8 +228,8 @@ export const OnSale: Story = {
       alt: "Running Shoes Pro",
     },
     badges: [
-      { variant: "danger", children: "40% OFF" },
-      { variant: "info", children: "Limited Time" },
+      { severity: "danger", children: "40% OFF" },
+      { severity: "info", children: "Limited Time" },
     ],
     rating: {
       value: 4.8,
@@ -256,7 +256,7 @@ export const OutOfStock: Story = {
       src: productImages.camera,
       alt: "Vintage Camera",
     },
-    badges: [{ variant: "secondary", children: "Collector Edition" }],
+    badges: [{ severity: "secondary", children: "Collector Edition" }],
     rating: {
       value: 5,
       reviewCount: 23,
@@ -284,7 +284,7 @@ export const LinkedSaleCard: Story = {
     badges: [
       {
         key: "stock",
-        variant: "info",
+        severity: "info",
         children: "Skladem",
         size: "lg",
         title: "Stock status",
@@ -295,7 +295,7 @@ export const LinkedSaleCard: Story = {
       },
       {
         key: "offer",
-        variant: "dynamic",
+        severity: "custom",
         children: "Akce",
         size: "lg",
         bgColor: "var(--color-badge-bg-primary)",

@@ -213,8 +213,8 @@ function FormErrorSummaryExample() {
       <div className="flex justify-end gap-150">
         <Button
           type="button"
-          theme="outlined"
-          variant="secondary"
+          appearance="outline"
+          severity="secondary"
           onClick={() => {
             setEmail("")
             setErrors([])

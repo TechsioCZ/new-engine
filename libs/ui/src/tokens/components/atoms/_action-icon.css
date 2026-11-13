@@ -1,6 +1,6 @@
 /* Code-owned pressed pair; hand off the aliases to Figma before export.
  * Opposite danger endpoints stay distinct in every brand and color scheme.
- * Use explicit foreground paint so simultaneous hover cannot leak its tone. */
+ * Use explicit foreground paint so simultaneous hover cannot leak its severity. */
 @theme static {
   /* Default to the shared scale; theme refinements stay local to ActionIcon. */
   --text-action-icon-glyph-sm: var(--text-icon-control-sm);

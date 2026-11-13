@@ -934,8 +934,8 @@ export const CustomPreview: Story = {
           <Button
             onClick={() => api.setFiles([createImageFile("replacement.png")])}
             size="md"
-            theme="outlined"
-            variant="primary"
+            appearance="outline"
+            severity="primary"
           >
             Use replacement image
           </Button>
@@ -1081,8 +1081,8 @@ export const ProgrammaticOpen: Story = {
           <Button
             onClick={api.openFilePicker}
             size="md"
-            theme="outlined"
-            variant="primary"
+            appearance="outline"
+            severity="primary"
           >
             Browse documents
           </Button>
@@ -1364,10 +1364,10 @@ export const PendingTransformation: Story = {
             )}
           </FileUpload.Context>
         </FileUpload>
-        <Button theme="outlined" onClick={() => setReadOnly((value) => !value)}>
+        <Button appearance="outline" onClick={() => setReadOnly((value) => !value)}>
           Toggle read-only
         </Button>
-        <Button theme="outlined" onClick={() => setDisabled((value) => !value)}>
+        <Button appearance="outline" onClick={() => setDisabled((value) => !value)}>
           Toggle disabled
         </Button>
         <Button onClick={() => complete.current?.()}>Finish processing</Button>
@@ -1550,7 +1550,7 @@ function BatchRegressionExample({ maxFiles = 3 }: { maxFiles?: number } = {}) {
           </FileUpload>
         </fieldset>
         <Button type="submit">Submit attachments</Button>
-        <Button type="reset" theme="outlined">Reset attachments</Button>
+        <Button type="reset" appearance="outline">Reset attachments</Button>
       </form>
       <Button
         type="button"
@@ -1655,10 +1655,10 @@ function BlockedResetFiles() {
         </FileUpload>
       </fieldset>
       <output aria-label="File changes">{changes}</output>
-      <Button theme="outlined" onClick={() => setAncestorDisabled((current) => !current)}>Toggle ancestor disabled</Button>
-      <Button theme="outlined" onClick={() => setDisabled((current) => !current)}>Toggle upload disabled</Button>
-      <Button theme="outlined" onClick={() => setReadOnly((current) => !current)}>Toggle upload read-only</Button>
-      <Button theme="outlined" type="reset">Restore attachments</Button>
+      <Button appearance="outline" onClick={() => setAncestorDisabled((current) => !current)}>Toggle ancestor disabled</Button>
+      <Button appearance="outline" onClick={() => setDisabled((current) => !current)}>Toggle upload disabled</Button>
+      <Button appearance="outline" onClick={() => setReadOnly((current) => !current)}>Toggle upload read-only</Button>
+      <Button appearance="outline" type="reset">Restore attachments</Button>
     </form>
   )
 }

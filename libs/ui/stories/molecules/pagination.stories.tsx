@@ -71,7 +71,7 @@ export function ProductPages() {
       getPageUrl={({ page, pageSize }) =>
         \`#products?page=\${page}&pageSize=\${pageSize}\`
       }
-      variant="filled"
+      appearance="solid"
       size="md"
       onClick={(event) => event.preventDefault()}
     />
@@ -142,11 +142,11 @@ const meta: Meta<typeof Pagination> = {
       description:
         "Optional props forwarded to the custom link component. `href` remains owned by Pagination.",
     },
-    variant: {
+    appearance: {
       control: "select",
-      options: ["filled", "outlined", "minimal"],
-      description: "Visual style variant",
-      defaultValue: "filled",
+      options: ["solid", "outline", "ghost"],
+      description: "Visual style appearance",
+      defaultValue: "solid",
     },
     size: { control: "select", options: ["sm", "md", "lg"] },
     compact: { control: "boolean" },
@@ -161,7 +161,6 @@ const meta: Meta<typeof Pagination> = {
     count: 100,
     pageSize: 10,
     siblingCount: 1,
-    variant: "filled",
     showPrevNext: true,
     getPageUrl: getStoryPageUrl,
   },
@@ -219,7 +218,7 @@ export const StyleVariants: Story = {
           count={100}
           defaultPage={5}
           pageSize={10}
-          variant="outlined"
+          appearance="outline"
         />
       </VariantGroup>
 
@@ -229,7 +228,7 @@ export const StyleVariants: Story = {
           count={100}
           defaultPage={5}
           pageSize={10}
-          variant="minimal"
+          appearance="ghost"
         />
       </VariantGroup>
     </VariantContainer>
@@ -348,14 +347,14 @@ export const EdgeCases: Story = {
             count={20}
             defaultPage={1}
             pageSize={10}
-            variant="outlined"
+            appearance="outline"
           />
           <StoryPagination
             aria-label="Pagination, Very few pages 3"
             count={30}
             defaultPage={2}
             pageSize={10}
-            variant="minimal"
+            appearance="ghost"
           />
         </div>
       </VariantGroup>
@@ -373,7 +372,7 @@ export const EdgeCases: Story = {
             count={5000}
             defaultPage={125}
             pageSize={20}
-            variant="outlined"
+            appearance="outline"
           />
         </div>
       </VariantGroup>
@@ -445,7 +444,7 @@ export const CustomLinkComponent: Story = {
             linkAs={StoryLink}
             linkProps={{ replace: true }}
             getPageUrl={getStoryPageUrl}
-            variant="outlined"
+            appearance="outline"
           />
         </div>
       </VariantGroup>
@@ -501,7 +500,7 @@ export const RealWorldScenarios: Story = {
             defaultPage={5}
             pageSize={10}
             showPrevNext={false}
-            variant="outlined"
+            appearance="outline"
           />
           <StoryPagination
             aria-label="Pagination, Without prev/next buttons 3"
@@ -509,7 +508,7 @@ export const RealWorldScenarios: Story = {
             defaultPage={5}
             pageSize={10}
             showPrevNext={false}
-            variant="minimal"
+            appearance="ghost"
           />
         </div>
       </VariantGroup>

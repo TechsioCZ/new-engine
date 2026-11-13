@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.4.0
+ * @componentVersion v1.5.0
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -45,6 +45,7 @@ import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 // Drops undefined entries so a prop left unset does not hide the catalog's translation.
@@ -261,7 +262,7 @@ export type SelectProps = VariantProps<typeof selectVariants> &
 export function Select({
   items,
   id: providedId,
-  size = "md",
+  size: sizeProp,
   // Zag.js props
   value,
   defaultValue,
@@ -284,6 +285,11 @@ export function Select({
   translations,
   ...machineProps
 }: SelectProps) {
+  const { size = "md" } = useUIDefaults(
+    "Select",
+    { size: sizeProp },
+    selectVariants
+  )
   const messages = useUiMessages()
   const generatedId = useId()
   const [disabledElement, setDisabledElement] =
@@ -588,7 +594,7 @@ Select.Trigger = function SelectTrigger({
       className={styles.trigger({ className })}
       ref={ref}
       size="current"
-      theme="unstyled"
+      unstyled
       {...mergeProps(api.getTriggerProps(), props)}
       aria-labelledby={
         props["aria-labelledby"] ??
@@ -709,8 +715,8 @@ Select.ClearTrigger = function SelectClearTrigger({
       className={styles.clearTrigger({ className })}
       icon="token-icon-select-clear"
       ref={ref}
+      severity="neutral"
       size={toControlSize(size)}
-      tone="neutral"
       {...mergeProps(api.getClearTriggerProps(), props)}
       aria-label={props["aria-label"] ?? messages.select.clear}
       disabled={disabled || props.disabled}

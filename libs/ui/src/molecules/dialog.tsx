@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.3.0
+ * @componentVersion v1.4.0
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,6 +30,7 @@ import {
   BodyPortal as Portal,
 } from "../internal/overlay-portal"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 
 const dialogVariants = tv({
   slots: {
@@ -250,7 +251,7 @@ export function Dialog({
   role = "dialog",
   placement = "center",
   position = "fixed",
-  size = "md",
+  size: sizeProp,
   behavior = "modal",
   closeOnEscape = true,
   closeOnInteractOutside = true,
@@ -270,6 +271,11 @@ export function Dialog({
   modal,
   portal = true,
 }: DialogProps) {
+  const { size = "md" } = useUIDefaults(
+    "Dialog",
+    { size: sizeProp },
+    dialogVariants
+  )
   const messages = useUiMessages()
   const generatedId = useId()
   const uniqueId = id || generatedId
@@ -328,8 +334,8 @@ export function Dialog({
               <ActionIcon
                 className={closeTrigger()}
                 icon="token-icon-dialog-close"
+                severity="neutral"
                 size="md"
-                tone="neutral"
                 {...api.getCloseTriggerProps()}
                 aria-label={closeLabel ?? messages.dialog.close}
               />
@@ -362,8 +368,8 @@ export function Dialog({
       {!customTrigger && (
         <Button
           className={triggerSlot()}
+          severity="primary"
           size="sm"
-          variant="primary"
           {...api.getTriggerProps()}
         >
           {triggerText ?? messages.dialog.open}

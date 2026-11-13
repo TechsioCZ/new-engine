@@ -29,7 +29,7 @@ function CollectionExample({
     content: (
       <div className="flex w-full min-w-0 flex-col gap-200 p-200">
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => setMessage(`Opened slide ${index + 1} locally.`)}
         >
           Open slide {index + 1}
@@ -72,16 +72,16 @@ function CollectionExample({
     >
       <div className="flex flex-wrap gap-200">
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => setGeneration(generation + 1)}
         >
           Replace all slide IDs
         </Button>
-        <Button variant="secondary" onClick={() => setPage(3)}>
+        <Button severity="secondary" onClick={() => setPage(3)}>
           Select last page
         </Button>
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             setGeneration(generation + 1)
             setCount(2)
@@ -89,7 +89,7 @@ function CollectionExample({
         >
           Replace with two slides
         </Button>
-        <Button variant="secondary" onClick={() => setPage(page === 0 ? 1 : 0)}>
+        <Button severity="secondary" onClick={() => setPage(page === 0 ? 1 : 0)}>
           Change page externally
         </Button>
       </div>

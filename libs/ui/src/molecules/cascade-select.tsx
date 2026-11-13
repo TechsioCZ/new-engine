@@ -2,7 +2,7 @@
  * CascadeSelect — @techsio/ui-kit molecule.
  *
  * @component CascadeSelect
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill cascade-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -54,6 +54,7 @@ import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 export type CascadeSelectSize = "xs" | "sm" | "md" | "lg"
@@ -332,10 +333,15 @@ export function CascadeSelect({
   items,
   ref,
   required = false,
-  size = "md",
+  size: sizeProp,
   validateStatus = "default",
   ...machineProps
 }: CascadeSelectProps) {
+  const { size = "md" } = useUIDefaults(
+    "CascadeSelect",
+    { size: sizeProp },
+    cascadeSelectVariants
+  )
   const generatedId = useId()
   const id = providedId || generatedId
   const descriptions = useDescribedBy()
@@ -634,7 +640,7 @@ CascadeSelect.Trigger = function CascadeSelectTrigger({
       }
       ref={ref}
       size="current"
-      theme="unstyled"
+      unstyled
     />
   )
 }
@@ -725,7 +731,7 @@ CascadeSelect.Indicator = function CascadeSelectIndicator({
 
 type CascadeSelectClearTriggerProps = Omit<
   ActionIconProps,
-  "icon" | "size" | "tone"
+  "icon" | "size" | "severity"
 > & {
   ref?: Ref<HTMLButtonElement>
 }
@@ -751,8 +757,8 @@ CascadeSelect.ClearTrigger = function CascadeSelectClearTrigger({
       className={styles.clearTrigger({ className })}
       icon="token-icon-cascade-select-clear"
       ref={ref}
+      severity="neutral"
       size={toControlSize(size)}
-      tone="neutral"
     />
   )
 }

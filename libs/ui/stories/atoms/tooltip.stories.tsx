@@ -16,7 +16,7 @@ const meta = {
   argTypes: {
     content: { control: "text" },
     size: { control: "select", options: ["sm", "md", "lg"] },
-    variant: { control: "select", options: ["default", "outline"] },
+    appearance: { control: "select", options: ["solid", "outline"] },
     placement: { control: "select", options: ["top", "right", "bottom", "left"] },
     disabled: { control: "boolean" },
     openDelay: { control: { type: "range", min: 0, max: 1500, step: 100 } },
@@ -24,33 +24,33 @@ const meta = {
     children: { control: false }, ref: { control: false }, id: { control: false },
     open: { control: false }, onOpenChange: { control: false },
   },
-  args: { content: "Download a copy of this order as a PDF.", size: "md", openDelay: 200, closeDelay: 200, children: <Button variant="secondary">Download order</Button> },
+  args: { content: "Download a copy of this order as a PDF.", size: "md", openDelay: 200, closeDelay: 200, children: <Button severity="secondary">Download order</Button> },
 } satisfies Meta<typeof Tooltip>
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-  parameters: { docs: { description: { story: "Hover or focus the action, then change the content, size, variant and delays using Controls." } } },
+  parameters: { docs: { description: { story: "Hover or focus the action, then change the content, size, appearance and delays using Controls." } } },
   render: (args) => <Tooltip {...args} />,
 }
 
 export const Variants: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Default and outline hints share an opaque surface; the outline adds separation against busy backgrounds." } } },
-  render: () => <div className="flex flex-wrap gap-300">{(["default", "outline"] as const).map((variant) => <Tooltip key={variant} content="Download a PDF copy." variant={variant}><Button variant="secondary">{variant === "default" ? "Default" : "Outline"}</Button></Tooltip>)}</div>,
+  render: () => <div className="flex flex-wrap gap-300">{(["solid", "outline"] as const).map((appearance) => <Tooltip key={appearance} content="Download a PDF copy." appearance={appearance}><Button severity="secondary">{appearance === "solid" ? "Default" : "Outline"}</Button></Tooltip>)}</div>,
 }
 
 export const Sizes: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Small (sm), Medium (md) and Large (lg) use identical hints so the type and spacing scale can be compared." } } },
-  render: () => <VariantContainer>{([["sm", "Small (sm)"], ["md", "Medium (md)"], ["lg", "Large (lg)"]] as const).map(([size, label]) => <VariantGroup key={size} title={label}><Tooltip content="Download a PDF copy." size={size}><Button size={size} variant="secondary">Download order</Button></Tooltip></VariantGroup>)}</VariantContainer>,
+  render: () => <VariantContainer>{([["sm", "Small (sm)"], ["md", "Medium (md)"], ["lg", "Large (lg)"]] as const).map(([size, label]) => <VariantGroup key={size} title={label}><Tooltip content="Download a PDF copy." size={size}><Button size={size} severity="secondary">Download order</Button></Tooltip></VariantGroup>)}</VariantContainer>,
 }
 
 export const States: Story = {
   parameters: { controls: { disable: true }, docs: { description: { story: "Available actions show optional hints; disabled actions remain visibly unavailable without relying on a tooltip for essential instructions." } } },
-  render: () => <div className="flex flex-wrap gap-300"><Tooltip content="Download a PDF copy."><Button variant="secondary">Download order</Button></Tooltip><Tooltip disabled content="Download a PDF copy."><Button variant="secondary" disabled>Download unavailable</Button></Tooltip></div>,
+  render: () => <div className="flex flex-wrap gap-300"><Tooltip content="Download a PDF copy."><Button severity="secondary">Download order</Button></Tooltip><Tooltip disabled content="Download a PDF copy."><Button severity="secondary" disabled>Download unavailable</Button></Tooltip></div>,
 }
 
 export const LongContent: Story = {
-  args: { content: "Order reference: AKROS-2026-" + "AB1234567890".repeat(9), children: <Button variant="secondary">Show order reference</Button>, openDelay: 0, closeDelay: 0 },
+  args: { content: "Order reference: AKROS-2026-" + "AB1234567890".repeat(9), children: <Button severity="secondary">Show order reference</Button>, openDelay: 0, closeDelay: 0 },
   parameters: { docs: { description: { story: "Even an unbroken order reference wraps inside a viewport-bounded surface instead of overflowing a phone screen." } } },
   play: async ({ canvasElement }) => {
     await userEvent.hover(within(canvasElement).getByRole("button"))
@@ -91,7 +91,7 @@ export const KeyboardDescription: Story = {
         closeOnPointerDown={false}
       >
         <>
-          <StatefulTooltipTrigger variant="secondary" aria-describedby="tooltip-caller-description" />
+          <StatefulTooltipTrigger severity="secondary" aria-describedby="tooltip-caller-description" />
         </>
       </Tooltip>
     </div>

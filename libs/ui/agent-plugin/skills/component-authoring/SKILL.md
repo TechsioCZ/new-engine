@@ -30,21 +30,30 @@ Minimum atom shape for new component code:
 ```tsx
 import type { ButtonHTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const actionVariants = tv({
   base: "inline-flex items-center justify-center rounded-action text-action-fg",
   variants: {
-    variant: {
-      primary: "bg-action-bg-primary",
-      danger: "bg-action-bg-danger",
+    severity: {
+      primary: "",
+      danger: "",
+    },
+    appearance: {
+      solid: "",
+      outline: "border-(length:--border-width-action) bg-transparent",
     },
     size: {
       sm: "h-action-sm p-action-sm text-action-sm",
       md: "h-action-md p-action-md text-action-md",
     },
   },
-  defaultVariants: { variant: "primary", size: "md" },
+  compoundVariants: [
+    { severity: "primary", appearance: "solid", className: "bg-action-bg-primary" },
+    { severity: "danger", appearance: "solid", className: "bg-action-bg-danger" },
+  ],
+  defaultVariants: { severity: "primary", appearance: "solid", size: "md" },
 })
 
 type ActionProps = ButtonHTMLAttributes<HTMLButtonElement> &
@@ -52,16 +61,45 @@ type ActionProps = ButtonHTMLAttributes<HTMLButtonElement> &
     ref?: Ref<HTMLButtonElement>
   }
 
-export function Action({ variant, size, className, ref, ...props }: ActionProps) {
+export function Action({
+  severity,
+  appearance: appearanceProp,
+  size: sizeProp,
+  className,
+  ref,
+  ...props
+}: ActionProps) {
+  // Prop → nearest UIProvider → the component's own default.
+  const { size, appearance } = useUIDefaults(
+    "Action",
+    { size: sizeProp, appearance: appearanceProp },
+    actionVariants
+  )
   return (
     <button
-      className={actionVariants({ variant, size, className })}
+      className={actionVariants({ severity, appearance, size, className })}
       ref={ref}
       {...props}
     />
   )
 }
 ```
+
+### Style prop names (locked)
+
+One meaning per prop name, across every component:
+
+| Prop | Meaning | Values |
+|---|---|---|
+| `appearance` | fill style | `solid · subtle · outline · ghost · plain`, plus structural extras a component owns (`line`, `underline`, `striped`) |
+| `severity` | color intent | `primary · secondary · tertiary · neutral · info · success · warning · danger · discount` |
+| `validateStatus` | validation state | `default · error · success · warning` |
+| `size` | size scale only | the component's subset of `xs · sm · md · lg · xl · 2xl`, plus `full` / `current` |
+
+- Never name a prop `variant`, `theme`, `tone` or `color` for these concepts; `theme` belongs to brand/mode theming.
+- Resolve `size` and `appearance` with `useUIDefaults` at the root (not in compound parts, which read the root's context), and add the component to `UIComponentName` in `src/theme/ui-provider.tsx`.
+- A non-scale size (Sidebar pane width) gets its own name, e.g. `paneSize`.
+- Pass `size="current"` explicitly when a component renders an `Icon` / `Label` inside itself, so a global size does not resize nested glyphs.
 
 Use `type` for new props. Existing `interface` declarations are legacy unless
 the task is a targeted cleanup.
@@ -182,7 +220,7 @@ Wrong:
 
 ```tsx
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: "success" | "danger"
+  severity?: "success" | "danger"
 }
 ```
 
@@ -190,7 +228,7 @@ Correct:
 
 ```tsx
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
-  variant?: "success" | "danger"
+  severity?: "success" | "danger"
 }
 ```
 

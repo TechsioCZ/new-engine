@@ -6,7 +6,7 @@ description: >
   hidden inputs, controls, text, descriptions, validation status, variants, and
   sizes.
 metadata:
-  component_version: "1.1.5"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -92,7 +92,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 Supported props:
 
 ```text
-variant: outline | subtle | solid
+appearance: outline | subtle | solid
 size: sm | md | lg
 orientation: horizontal | vertical
 validateStatus: default | error | success | warning
@@ -236,7 +236,7 @@ Wrong:
 Correct:
 
 ```tsx
-<RadioGroup variant="solid"><RadioGroup.Item value="a" /></RadioGroup>
+<RadioGroup appearance="solid"><RadioGroup.Item value="a" /></RadioGroup>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_radio-group.css
@@ -245,7 +245,7 @@ Source: libs/ui/src/tokens/components/molecules/_radio-group.css
 
 ```sh
 rg -U -P -n "<input[^>]*type=\"radio\"|<RadioGroup\\.Item(?![\\s\\S]{0,300}<RadioGroup\\.ItemHiddenInput)" apps
-rg -n "<RadioGroup[^>]*variant=\"(primary|outlined)\"|<RadioGroup[^>]*className=.*(border-|bg-|text-)" apps
+rg -n "<RadioGroup[^>]*(variant=|appearance=\"(primary|outlined)\")|<RadioGroup[^>]*className=.*(border-|bg-|text-)" apps
 rg -n "<RadioGroup[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 

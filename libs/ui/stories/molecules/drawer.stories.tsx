@@ -58,8 +58,8 @@ function DrawerPanel({
             {footer ?? (
               <Drawer.CloseTrigger
                 size="md"
-                theme="outlined"
-                variant="tertiary"
+                appearance="outline"
+                severity="tertiary"
               >
                 Close
               </Drawer.CloseTrigger>
@@ -190,7 +190,6 @@ const meta = {
     onOpenChange: fn(),
     placement: "end",
     preventScroll: true,
-    size: "md",
     trapFocus: true,
     triggerLabel: "Open drawer",
   },
@@ -231,7 +230,7 @@ export function WorkspaceDrawer() {
               Notifications, privacy, and workspace defaults are ready to review.
             </Drawer.Body>
             <Drawer.Footer>
-              <Drawer.CloseTrigger variant="tertiary" theme="outlined">
+              <Drawer.CloseTrigger severity="tertiary" appearance="outline">
                 Close
               </Drawer.CloseTrigger>
             </Drawer.Footer>
@@ -385,8 +384,8 @@ export const SnapPointsAndSwipe: Story = {
                     key={String(snapPoint)}
                     onClick={() => api.setSnapPoint(snapPoint)}
                     size="sm"
-                    theme="outlined"
-                    variant="tertiary"
+                    appearance="outline"
+                    severity="tertiary"
                   >
                     {Number(snapPoint) * 100}%
                   </Button>
@@ -506,7 +505,7 @@ function ProfileEditor({
       title="Edit profile"
       footer={
         <>
-          <Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">
+          <Drawer.CloseTrigger size="md" appearance="outline" severity="tertiary">
             Cancel
           </Drawer.CloseTrigger>
           <Button type="submit" form={formId}>
@@ -542,8 +541,8 @@ function MultipleTriggersExample() {
             <Drawer.Trigger
               key={profile.id}
               value={profile.id}
-              theme="outlined"
-              variant="tertiary"
+              appearance="outline"
+              severity="tertiary"
             >
               Edit {profile.name.split(" ")[0]}
             </Drawer.Trigger>

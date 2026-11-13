@@ -5,7 +5,7 @@ description: >
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
 metadata:
-  component_version: "1.2.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -120,7 +120,7 @@ If the field needs label, help, or validation text, start with FormInput.
 
 ### Use validateStatus instead of Input variant
 
-FormInput maps `validateStatus` to the underlying Input `variant` and
+FormInput forwards `validateStatus` to the underlying Input and
 StatusText status.
 
 ### Keep field spacing token-owned
@@ -150,7 +150,7 @@ Source: libs/ui/src/molecules/form-input.tsx
 Wrong:
 
 ```tsx
-<FormInput id="email" label="Email" variant="error" />
+<FormInput id="email" label="Email" validateStatus="error" />
 ```
 
 Correct:

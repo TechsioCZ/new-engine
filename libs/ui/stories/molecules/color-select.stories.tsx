@@ -89,7 +89,6 @@ const meta: Meta<typeof ColorSelect> = {
   args: {
     colors,
     label: "Fabric color",
-    size: "md",
     radius: "full",
     layout: "grid",
     selectionMode: "single",

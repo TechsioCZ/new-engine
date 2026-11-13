@@ -304,7 +304,7 @@ function ResilientImagesExample() {
       </div>
       <Button
         onClick={() => setSrc(src === brokenPhoto ? localPhoto : brokenPhoto)}
-        theme="outlined"
+        appearance="outline"
       >
         {src === brokenPhoto ? "Load working photo" : "Break photo"}
       </Button>
@@ -399,7 +399,7 @@ function DelayedImageExample() {
         className="aspect-video rounded-lg"
         key={request}
       />
-      <Button onClick={() => setRequest((value) => value + 1)} theme="outlined">
+      <Button onClick={() => setRequest((value) => value + 1)} appearance="outline">
         Reload photo
       </Button>
     </div>

@@ -242,7 +242,7 @@ function CustomerWorkspace() {
                     ])
                   }
                   size="sm"
-                  variant="primary"
+                  severity="primary"
                 >
                   Log activity
                 </Button>
@@ -282,7 +282,7 @@ function CustomerWorkspace() {
               orientation={compactPipeline ? "vertical" : "horizontal"}
               size="sm"
               step={2}
-              variant="solid"
+              appearance="solid"
             >
               <Steps.List>
                 {pipeline.map((stage, index) => (
@@ -304,12 +304,12 @@ function CustomerWorkspace() {
           </SectionCard>
 
           <SectionCard flush>
-            <Tabs defaultValue="activity" variant="line">
+            <Tabs defaultValue="activity" appearance="line">
               <Tabs.List className="px-250 pt-250">
                 <Tabs.Trigger value="activity">Activity</Tabs.Trigger>
                 <Tabs.Trigger value="orders">
                   Orders
-                  <Badge size="sm" variant="outline">
+                  <Badge size="sm" appearance="outline" severity="neutral">
                     {String(customerOrders.length)}
                   </Badge>
                 </Tabs.Trigger>

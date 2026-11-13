@@ -48,7 +48,6 @@ const meta: Meta<typeof FormCheckbox> = {
     label: "Send me delivery updates",
     helpText: "Receive a message when your order ships.",
     checked: false,
-    size: "md",
     disabled: false,
     readOnly: false,
     validateStatus: "default",
@@ -243,7 +242,7 @@ export const MixedStateUpdates: Story = {
           checked={!mixed}
           indeterminate={mixed}
         />
-        <Button variant="secondary" onClick={() => setMixed((value) => !value)}>
+        <Button severity="secondary" onClick={() => setMixed((value) => !value)}>
           Update channel selection
         </Button>
       </div>

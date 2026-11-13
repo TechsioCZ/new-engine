@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
 metadata:
-  component_version: "1.2.1"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -68,7 +68,7 @@ where actions and feedback live). This section applies them to `Icon`.
 | Figma | Code |
 | --- | --- |
 | `size=current` (16 px preview) | `size="current"` (1em) |
-| `size=xs…2xl`, `color=current…warning` | same prop names and values |
+| `size=xs…2xl`, `color=current…warning` | `size` (same values), `severity` (same values as Figma `color`) |
 | `token-icon-cog`, `-filter`, `-sort-unfold`, `-drag-horizontal`, `-drag-vertical`, `-row-edit`, `-table-empty` | no token; DataTable uses `icon-[mdi--…]` classes |
 | glyph doc "Vazba" (host) | ignore; the host is whichever component uses the token in code |
 
@@ -79,10 +79,10 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 ```tsx
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 
-<Icon icon="token-icon-status-text-success" size="md" color="success" />
+<Icon icon="token-icon-status-text-success" size="md" severity="success" />
 ```
 
-The component defaults to `size="current"` and `color="current"`, inheriting
+The component defaults to `size="current"` and `severity="current"`, inheriting
 surrounding text. Choose an explicit size for standalone glyphs; the Playground
 uses a recognizable Home icon at `lg` (the system's 24px step), not an error icon.
 The Sizes story compares Small (`sm`), Medium (`md`) and Large (`lg`) in that order with the same icon. The `current`, `xs`, `xl` and `2xl` API sizes remain available for inherited, compact or decorative contexts; they are not canonical control sizes.
@@ -108,7 +108,7 @@ color: current | primary | secondary | danger | success | warning
 ### Prefer token icons for UI-kit semantics
 
 ```tsx
-<Icon icon="token-icon-status-text-warning" color="warning" />
+<Icon icon="token-icon-status-text-warning" severity="warning" />
 ```
 
 Use `icon-[...]` for specific Iconify icons only when there is no token icon
@@ -156,7 +156,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Icon icon="token-icon-status-text-success" size="sm" color="success" />
+<Icon icon="token-icon-status-text-success" size="sm" severity="success" />
 ```
 
 Source: libs/ui/src/atoms/icon.tsx
@@ -190,7 +190,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Icon icon="token-icon-status-text-error" color="danger" />
+<Icon icon="token-icon-status-text-error" severity="danger" />
 ```
 
 Change component or semantic tokens when the app needs different color mapping.
@@ -225,7 +225,7 @@ rg -P -n "icon=\"(?!token-icon-|icon-\\[)" apps
 
 ## Meaningful primary colour
 
-`color="primary"` uses the contrast-safe semantic accent foreground, not the
+`severity="primary"` uses the contrast-safe semantic accent foreground, not the
 brand's decorative fill colour. For decoration that intentionally uses a tint,
 apply an application token class and keep the glyph hidden from assistive
 technology. Canonical comparison sizes are sm/md/lg. The existing xs/xl/2xl and

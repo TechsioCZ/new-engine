@@ -332,12 +332,12 @@ function ComponentComparison() {
           gridClassName="grid grid-cols-1 gap-300  lg:grid-cols-2 xl:grid-cols-3"
         >
           <ComponentCard title="Badge">
-            <Badge variant="primary">New</Badge>
-            <Badge variant="secondary">Beta</Badge>
+            <Badge severity="primary">New</Badge>
+            <Badge severity="secondary">Beta</Badge>
           </ComponentCard>
           <ComponentCard title="Button">
             <Button size="md">Primary</Button>
-            <Button size="md" variant="secondary">
+            <Button size="md" severity="secondary">
               Secondary
             </Button>
           </ComponentCard>
@@ -398,7 +398,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Tooltip">
             <Tooltip content="Tooltip content" size="md">
-              <Button size="md" theme="borderless">
+              <Button size="md" appearance="ghost">
                 Hover
               </Button>
             </Tooltip>
@@ -674,8 +674,8 @@ function ComponentComparison() {
               <ProductCard layout="column">
                 <ProductCard.Image alt="Sample product" src="https://images.unsplash.com/photo-1540206395-68808572332f?w=600&h=600&fit=crop" className="w-full"/>
                 <ProductCard.Badges>
-                  <Badge variant="secondary">Limited</Badge>
-                  <Badge variant="info">New</Badge>
+                  <Badge severity="secondary">Limited</Badge>
+                  <Badge severity="info">New</Badge>
                 </ProductCard.Badges>
                 <ProductCard.Name>Canvas Backpack</ProductCard.Name>
                 <ProductCard.Price>$79.00</ProductCard.Price>
@@ -685,7 +685,7 @@ function ComponentComparison() {
                 </ProductCard.Stock>
                 <ProductCard.Actions>
                   <ProductCard.Button
-                    buttonVariant="cart"
+                    action="cart"
                     icon="token-icon-cart-button"
                   >
                     Add to cart
@@ -748,7 +748,7 @@ function ComponentComparison() {
                 onStepChange={(details) => setCurrentStep(details.step)}
                 size="md"
                 step={currentStep}
-                variant="subtle"
+                appearance="subtle"
               >
                 <Steps.List>
                   {stepsItems.map((item, index) => (
@@ -785,7 +785,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Tabs" className="md:col-span-2" bodyClassName="w-full">
             <div className="w-full max-w-md">
-              <Tabs defaultValue="overview" size="md" variant="line" fitted>
+              <Tabs defaultValue="overview" size="md" appearance="line" fitted>
                 <Tabs.List>
                   {tabsItems.map((tab) => (
                     <Tabs.Trigger key={tab.value} value={tab.value}>
@@ -834,7 +834,7 @@ function ComponentComparison() {
                 </Header.Nav>
                 <Header.Actions>
                   <Header.ActionItem>
-                    <Button size="md" theme="unstyled">
+                    <Button size="md" unstyled>
                       Sign in
                     </Button>
                   </Header.ActionItem>
@@ -867,7 +867,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Table" bodyClassName="w-full">
             <div className="w-full overflow-x-auto">
-              <Table variant="line">
+              <Table appearance="line">
                 <Table.Caption>Product Inventory</Table.Caption>
                 <Table.Header>
                   <Table.Row>

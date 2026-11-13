@@ -337,8 +337,8 @@ function FilterConditionMenu({
           })}
           disabled={disabled}
           icon="icon-[mdi--filter-variant]"
+          severity="neutral"
           size={size}
-          tone="neutral"
         />
       }
       items={labelled.map((o) => ({

@@ -4,7 +4,7 @@ description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Label for
   form-control labels with valid size, disabled, required, and htmlFor usage.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

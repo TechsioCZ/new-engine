@@ -5,7 +5,7 @@ description: >
   collapsible sections using the Zag.js-backed compound anatomy, supported
   variant, shadow, size, value, multiple, and collapsible props.
 metadata:
-  component_version: "1.2.1"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -72,7 +72,7 @@ where actions and feedback live). This section applies them to `Accordion`.
 
 | Figma | Code |
 | --- | --- |
-| `variant`, `shadow`, `size` | same prop names and values |
+| `variant`, `shadow`, `size` | `appearance` (`default` → `outline`, `borderless` → `plain`, `child` → `appearance="plain" nested`), `shadow`, `size` |
 | `state=collapsed` / `expanded` | `value` / `defaultValue` (array of item values) |
 | `state=disabled` | `disabled` on the root or on `Accordion.Item` |
 | AccordionIndicator / indicator icon | `Accordion.Indicator` |
@@ -98,7 +98,8 @@ import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 Supported root props:
 
 ```text
-variant: default | borderless | child
+appearance: outline | plain
+nested: boolean
 shadow: sm | md | none
 size: sm | md | lg
 value/defaultValue: string[]
@@ -122,7 +123,7 @@ directly under a page `h1`. Do not wrap it in another heading or `<header>`.
 single open section -> multiple=false
 FAQ-style independent sections -> multiple=true
 must keep one section open -> collapsible=false
-inherited surrounding surface -> variant=child (avoid nested accordions)
+inherited surrounding surface -> appearance="plain" nested (avoid nested accordions)
 ```
 
 ### Preserve content hierarchy

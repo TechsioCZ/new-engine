@@ -49,7 +49,7 @@ const meta: Meta<typeof Breadcrumb> = {
         "Sets spacing, text size and icon size across the breadcrumb trail.",
       table: { category: "Appearance", defaultValue: { summary: "md" } },
     },
-    variant: {
+    appearance: {
       control: "select",
       options: ["plain", "underline"],
       description: "Uses plain or underlined breadcrumb labels.",
@@ -65,7 +65,7 @@ const meta: Meta<typeof Breadcrumb> = {
       },
     },
   },
-  args: { size: "md", variant: "plain", "aria-label": "breadcrumb" },
+  args: { size: "md", appearance: "plain", "aria-label": "breadcrumb" },
 }
 
 export default meta
@@ -133,10 +133,10 @@ export const Variants: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Link treatment" fullWidth>
-        <DemoBreadcrumb aria-label="Plain breadcrumb" variant="plain" />
+        <DemoBreadcrumb aria-label="Plain breadcrumb" appearance="plain" />
         <DemoBreadcrumb
           aria-label="Underlined breadcrumb"
-          variant="underline"
+          appearance="underline"
         />
       </VariantGroup>
     </VariantContainer>

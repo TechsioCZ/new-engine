@@ -69,7 +69,6 @@ const meta = {
     },
   },
   args: {
-    size: "md",
     "aria-label": "Select Alpine daypack",
     checked: false,
     indeterminate: false,
@@ -430,7 +429,7 @@ export const ReadOnly: Story = {
           <Checkbox checked readOnly />
           Confirmed selection (read-only)
         </Label>
-        <Button variant="secondary" onClick={() => setRefreshed(true)}>
+        <Button severity="secondary" onClick={() => setRefreshed(true)}>
           Refresh selection label
         </Button>
       </div>

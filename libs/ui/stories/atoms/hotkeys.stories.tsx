@@ -431,7 +431,7 @@ function CompoundExample() {
         change the sample text. The shortcut uses individual Root, Key and
         Separator parts with explicit labels.
       </p>
-      <Button aria-pressed={bold} onClick={toggleBold} theme="outlined">
+      <Button aria-pressed={bold} onClick={toggleBold} appearance="outline">
         Bold
         <Hotkeys.Root aria-hidden="true">
           <Hotkeys.Key>Ctrl</Hotkeys.Key>
@@ -777,7 +777,7 @@ function FocusedSequenceTechnicalExample() {
       <Button
         onClick={() => setCount((value) => value + 1)}
         ref={area}
-        theme="outlined"
+        appearance="outline"
       >
         Run action <Hotkeys aria-hidden="true" hotkey="g > h" />
       </Button>
@@ -847,12 +847,12 @@ function FocusedSequenceExample() {
             : "This is the starting section. Press G then H while this area is focused."}
         </p>
         {section === "help" && (
-          <Button onClick={() => setSection("overview")} theme="borderless">
+          <Button onClick={() => setSection("overview")} appearance="ghost">
             Back to overview
           </Button>
         )}
       </div>
-      <Button onClick={openHelp} theme="outlined">
+      <Button onClick={openHelp} appearance="outline">
         Open help
       </Button>
     </div>

@@ -5,12 +5,13 @@
 import figma from "figma"
 
 const instance = figma.selectedInstance
-const tone = instance.getEnum("tone", {
+// Figma still names these properties tone/variant; code reads appearance/severity.
+const appearance = instance.getEnum("tone", {
   plain: "plain",
   subtle: "subtle",
-  accent: "accent",
+  accent: "solid",
 })
-const variant = instance.getEnum("variant", {
+const severity = instance.getEnum("variant", {
   primary: "primary",
   secondary: "secondary",
 })
@@ -23,6 +24,6 @@ export default {
   imports: [
     'import { VerticalNavigation } from "@techsio/ui-kit/molecules/vertical-navigation"',
   ],
-  example: figma.code`<VerticalNavigation.BranchContent tone="${tone}" variant="${variant}"${figma.helpers.react.renderProp("indent", indent)}${figma.helpers.react.renderProp("showGuide", showGuide)}><VerticalNavigation.List>${items}</VerticalNavigation.List></VerticalNavigation.BranchContent>`,
+  example: figma.code`<VerticalNavigation.BranchContent appearance="${appearance}" severity="${severity}"${figma.helpers.react.renderProp("indent", indent)}${figma.helpers.react.renderProp("showGuide", showGuide)}><VerticalNavigation.List>${items}</VerticalNavigation.List></VerticalNavigation.BranchContent>`,
   metadata: { nestable: true },
 }

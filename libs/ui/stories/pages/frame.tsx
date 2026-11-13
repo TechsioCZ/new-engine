@@ -80,12 +80,12 @@ export function NavDrawer({
   return (
     <>
       <Button
+        appearance="ghost"
         className="lg:hidden"
         icon="icon-[mdi--menu]"
         onClick={() => setOpen(true)}
+        severity="secondary"
         size="sm"
-        theme="borderless"
-        variant="secondary"
       >
         Menu
       </Button>
@@ -356,13 +356,13 @@ export function GlobalSearch({
             {results.map((record) => (
               <li key={`${record.kind}-${record.id}`}>
                 <Button
+                  appearance="ghost"
                   onClick={() =>
                     setSelected(
                       `${record.kind}: ${record.label} · ${record.id}`
                     )
                   }
-                  theme="borderless"
-                  variant="secondary"
+                  severity="secondary"
                 >
                   {record.kind} · {record.label}
                 </Button>
@@ -434,13 +434,13 @@ export function TopNav({
   return (
     <>
       <Button
+        appearance="ghost"
         className="lg:hidden"
         icon="icon-[mdi--menu]"
         onClick={() => setOpen(true)}
         ref={trigger}
+        severity="secondary"
         size="sm"
-        theme="borderless"
-        variant="secondary"
       >
         Menu
       </Button>
@@ -456,14 +456,14 @@ export function TopNav({
         <nav aria-label="Mobile main" className="flex flex-col gap-100">
           {items.map((item) => (
             <Button
+              appearance="ghost"
               aria-current={item.id === selected ? "page" : undefined}
               key={item.id}
               onClick={() => {
                 onSelect(item.id)
                 setOpen(false)
               }}
-              theme="borderless"
-              variant={item.id === selected ? "primary" : "secondary"}
+              severity={item.id === selected ? "primary" : "secondary"}
             >
               {item.label}
             </Button>
@@ -473,13 +473,13 @@ export function TopNav({
       <nav aria-label="Main" className="hidden items-center gap-50 lg:flex">
         {items.map((item) => (
           <Button
+            appearance="ghost"
             aria-current={item.id === selected ? "page" : undefined}
             className={item.id === selected ? "text-fg-primary" : undefined}
             key={item.id}
             onClick={() => onSelect(item.id)}
+            severity={item.id === selected ? "primary" : "secondary"}
             size="sm"
-            theme="borderless"
-            variant={item.id === selected ? "primary" : "secondary"}
           >
             {item.label}
           </Button>

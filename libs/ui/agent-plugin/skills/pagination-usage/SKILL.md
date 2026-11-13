@@ -5,7 +5,7 @@ description: >
   link-based paginated navigation with Zag.js pagination, getPageUrl,
   LinkButton, NextLink adapters, compact mode, variants, and sizes.
 metadata:
-  component_version: "1.2.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -69,7 +69,7 @@ where actions and feedback live). This section applies them to `Pagination`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=filled\|outlined\|minimal`, `size=sm…lg` | same prop names and values |
+| `variant=filled\|outlined\|minimal`, `size=sm…lg` | `appearance="solid" | "outline" | "ghost"`, `size` |
 | — | `compact`, `siblingCount`, `boundaryCount`, `showPrevNext` (not in Figma) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Pagination → UX guidelines*.
@@ -94,7 +94,7 @@ Supported props:
 count: total items, pageSize, page/defaultPage
 getPageUrl: required link generator
 linkAs, linkProps for framework adapters
-variant: filled | outlined | minimal
+appearance: solid | outline | ghost
 size: sm | md | lg
 compact, compactLabel, showPrevNext, siblingCount, boundaryCount
 onChange/onPageChange, translations
@@ -160,7 +160,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Pagination variant="outlined" size="sm" />
+<Pagination appearance="outline" size="sm" />
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_pagination.css

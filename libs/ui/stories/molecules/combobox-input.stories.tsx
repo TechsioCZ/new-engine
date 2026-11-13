@@ -62,14 +62,14 @@ function DelayedControlledQuery({
       <Button
         onClick={() => setQuery(pending.current.shift() ?? query)}
         onPointerDown={(event) => event.preventDefault()}
-        variant="secondary"
+        severity="secondary"
       >
         Acknowledge oldest query
       </Button>
       <Button
         onClick={() => setQuery(pending.current.splice(1, 1)[0] ?? query)}
         onPointerDown={(event) => event.preventDefault()}
-        variant="secondary"
+        severity="secondary"
       >
         Acknowledge second query
       </Button>
@@ -79,21 +79,21 @@ function DelayedControlledQuery({
           pending.current = []
         }}
         onPointerDown={(event) => event.preventDefault()}
-        variant="secondary"
+        severity="secondary"
       >
         Acknowledge latest query
       </Button>
       <Button
         onClick={() => setQuery(firstQuery.current ?? query)}
         onPointerDown={(event) => event.preventDefault()}
-        variant="secondary"
+        severity="secondary"
       >
         Restore first query
       </Button>
       <Button
         onClick={() => setQuery("External query")}
         onPointerDown={(event) => event.preventDefault()}
-        variant="secondary"
+        severity="secondary"
       >
         Replace query externally
       </Button>

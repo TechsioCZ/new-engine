@@ -207,12 +207,12 @@ function TransactionHarness({
     }),
     h(
       Button,
-      { variant: "secondary", onClick: () => setReadOnly(true) },
+      { severity: "secondary", onClick: () => setReadOnly(true) },
       "Lock the score"
     ),
     h(
       Button,
-      { variant: "secondary", onClick: () => setValue(1) },
+      { severity: "secondary", onClick: () => setValue(1) },
       "Apply saved score"
     ),
     h("button", { type: "button" }, "Next field")
@@ -329,7 +329,7 @@ describe("Rating focus ownership across browser scheduling", () => {
         h(Rating, { ...rating(), defaultValue: 5, count, onChange }),
         h(
           Button,
-          { variant: "secondary", onClick: () => setCount(3) },
+          { severity: "secondary", onClick: () => setCount(3) },
           "Use three stars"
         )
       )
@@ -370,7 +370,7 @@ describe("Rating focus ownership across browser scheduling", () => {
         h(Rating, { ...rating(), onChange }),
         h(
           Button,
-          { variant: "secondary", type: "reset" },
+          { severity: "secondary", type: "reset" },
           "Restore original score"
         )
       )
@@ -404,7 +404,7 @@ describe("Rating focus ownership across browser scheduling", () => {
         h(Rating, { ...rating(), onChange }),
         h(
           Button,
-          { variant: "secondary", type: "reset" },
+          { severity: "secondary", type: "reset" },
           "Restore original score"
         )
       )
@@ -439,7 +439,7 @@ describe("Rating focus ownership across browser scheduling", () => {
         h(Rating, { ...rating(), value }),
         h(
           Button,
-          { variant: "secondary", onClick: () => setValue(1) },
+          { severity: "secondary", onClick: () => setValue(1) },
           "Apply saved score"
         )
       )

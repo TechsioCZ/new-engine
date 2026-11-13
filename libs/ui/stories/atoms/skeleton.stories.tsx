@@ -52,7 +52,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
 
   tags: ["ui-semantic-regression"],
   args: {
-    variant: "primary",
+    severity: "primary",
     speed: "normal",
     showRectangle: true,
     showText: true,
@@ -63,10 +63,10 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     textLastLineWidth: "80%",
   },
   argTypes: {
-    variant: {
+    severity: {
       control: "select",
       options: ["primary", "secondary"],
-      description: "Visual variant of the skeleton",
+      description: "Color severity of the skeleton",
     },
     speed: {
       control: "select",
@@ -178,7 +178,7 @@ export const Variants: Story = {
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Primary (default)</p>
         <Skeleton.Rectangle
-          variant="primary"
+          severity="primary"
           className="h-20 w-xs force-reduced-motion"
           data-testid="skeleton-primary"
         />
@@ -186,7 +186,7 @@ export const Variants: Story = {
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Secondary</p>
         <Skeleton.Rectangle
-          variant="secondary"
+          severity="secondary"
           className="h-20 w-xs force-reduced-motion"
           data-testid="skeleton-secondary"
         />
@@ -216,8 +216,8 @@ export const Variants: Story = {
     const context = swatch.getContext("2d")
     if (!context) throw new Error("Missing Skeleton color-check context")
 
-    for (const variant of ["primary", "secondary"]) {
-      const placeholder = canvas.getByTestId(`skeleton-${variant}`)
+    for (const severity of ["primary", "secondary"]) {
+      const placeholder = canvas.getByTestId(`skeleton-${severity}`)
       context.clearRect(0, 0, 1, 1)
       context.fillStyle = getComputedStyle(placeholder).backgroundColor
       context.fillRect(0, 0, 1, 1)
@@ -711,16 +711,16 @@ export const ReducedMotion: Story = {
           below.
         </p>
       </div>
-      {(["primary", "secondary"] as const).map((variant) => (
-        <div className="w-full max-w-xs space-y-150" key={variant}>
+      {(["primary", "secondary"] as const).map((severity) => (
+        <div className="w-full max-w-xs space-y-150" key={severity}>
           <p className="text-sm text-fg-secondary">
-            {variant === "primary" ? "Primary (default)" : "Secondary"}
+            {severity === "primary" ? "Primary (default)" : "Secondary"}
           </p>
           <Skeleton
-            variant={variant}
-            aria-label={`Loading ${variant} preview`}
+            severity={severity}
+            aria-label={`Loading ${severity} preview`}
             className="flex flex-col gap-150"
-            data-testid={`reduced-motion-${variant}`}
+            data-testid={`reduced-motion-${severity}`}
           >
             <Skeleton.Rectangle className="h-20 force-reduced-motion" />
             <div className="flex items-start gap-200">
@@ -738,8 +738,8 @@ export const ReducedMotion: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    for (const variant of ["primary", "secondary"]) {
-      const group = canvas.getByTestId(`reduced-motion-${variant}`)
+    for (const severity of ["primary", "secondary"]) {
+      const group = canvas.getByTestId(`reduced-motion-${severity}`)
       const shapes = group.querySelectorAll(
         '[class*="animate-skeleton-pulse-"]'
       )

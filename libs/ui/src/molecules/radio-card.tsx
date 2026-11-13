@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.1.5
+ * @componentVersion v2.0.0
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -41,6 +41,7 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { radioChoiceMachine } from "./radio-group"
 
@@ -131,7 +132,7 @@ const radioCardVariants = tv({
     hiddenInput: "sr-only",
   },
   variants: {
-    variant: {
+    appearance: {
       outline: {
         item: [
           "radio-card-outline-readable",
@@ -287,7 +288,7 @@ const radioCardVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "outline",
+    appearance: "outline",
     size: "md",
     itemOrientation: "horizontal",
     align: "start",
@@ -295,8 +296,8 @@ const radioCardVariants = tv({
   },
 })
 
-type RadioCardVariant = NonNullable<
-  VariantProps<typeof radioCardVariants>["variant"]
+type RadioCardAppearance = NonNullable<
+  VariantProps<typeof radioCardVariants>["appearance"]
 >
 type RadioCardSize = NonNullable<VariantProps<typeof radioCardVariants>["size"]>
 type RadioCardItemOrientation = NonNullable<
@@ -317,7 +318,7 @@ type RadioCardContextValue = {
   registerError: DescribedBy["registerDescription"]
   api: ReturnType<typeof connect>
   selectValue: (value: string) => void
-  variant: RadioCardVariant
+  appearance: RadioCardAppearance
   size: RadioCardSize
   itemOrientation: RadioCardItemOrientation
   align: RadioCardAlign
@@ -389,13 +390,18 @@ export function RadioCard({
   justify = "between",
   validateStatus = "default",
   onValueChange,
-  variant = "outline",
-  size = "md",
+  appearance: appearanceProp,
+  size: sizeProp,
   children,
   className,
   ref,
   ...machineProps
 }: RadioCardProps) {
+  const { size = "md", appearance = "outline" } = useUIDefaults(
+    "RadioCard",
+    { size: sizeProp, appearance: appearanceProp },
+    radioCardVariants
+  )
   const generatedId = useId()
   const id = providedId || generatedId
   const invalid = validateStatus === "error"
@@ -419,7 +425,7 @@ export function RadioCard({
   const focusRef = useChoiceFocusRecovery()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
     justify,
@@ -437,7 +443,7 @@ export function RadioCard({
         errorMessageId: errors.describedById,
         registerError: errors.registerDescription,
         ...describedBy,
-        variant,
+        appearance,
         size,
         itemOrientation,
         align,
@@ -532,8 +538,8 @@ RadioCard.Item = function RadioCardItem({
   ref,
   ...props
 }: RadioCardItemProps) {
-  const { api, size, variant } = useRadioCardContext()
-  const styles = radioCardVariants({ size, variant })
+  const { api, size, appearance } = useRadioCardContext()
+  const styles = radioCardVariants({ size, appearance })
   const itemProps = { value, disabled, invalid }
   const descriptions = useDescribedBy()
   const mergedItemProps = mergeProps(props, api.getItemProps(itemProps))
@@ -568,7 +574,7 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
     api,
     selectValue,
     size,
-    variant,
+    appearance,
     readOnly,
     callerDescribedBy,
     describedById,
@@ -577,7 +583,7 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   } = useRadioCardContext()
   const { itemProps, describedById: itemDescriptionId } =
     useRadioCardItemContext()
-  const styles = radioCardVariants({ size, variant })
+  const styles = radioCardVariants({ size, appearance })
   const hiddenInputProps = getControlledChoiceInputProps(
     mergeChoiceInputProps(
       props,
@@ -647,12 +653,12 @@ RadioCard.ItemControl = function RadioCardItemControl({
   ref,
   ...props
 }: RadioCardItemControlProps) {
-  const { api, size, variant, itemOrientation, align, justify } =
+  const { api, size, appearance, itemOrientation, align, justify } =
     useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
     justify,
@@ -681,10 +687,10 @@ RadioCard.ItemContent = function RadioCardItemContent({
   ref,
   ...props
 }: RadioCardItemContentProps) {
-  const { size, variant, itemOrientation, align } = useRadioCardContext()
+  const { size, appearance, itemOrientation, align } = useRadioCardContext()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
   })
@@ -706,11 +712,12 @@ RadioCard.ItemText = function RadioCardItemText({
   ref,
   ...props
 }: RadioCardItemTextProps) {
-  const { api, size, variant, itemOrientation, align } = useRadioCardContext()
+  const { api, size, appearance, itemOrientation, align } =
+    useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
   })
@@ -737,14 +744,14 @@ RadioCard.ItemDescription = function RadioCardItemDescription({
   ref,
   ...props
 }: RadioCardItemDescriptionProps) {
-  const { api, size, variant, align } = useRadioCardContext()
+  const { api, size, appearance, align } = useRadioCardContext()
   const { itemProps, registerDescription } = useRadioCardItemContext()
   const generatedId = useId()
   const id = props.id ?? generatedId
   useRegisterDescription(id, registerDescription)
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     align,
   })
   const itemState = api.getItemState(itemProps)
@@ -776,9 +783,9 @@ RadioCard.ItemIndicator = function RadioCardItemIndicator({
   ref,
   ...props
 }: RadioCardItemIndicatorProps) {
-  const { api, size, variant } = useRadioCardContext()
+  const { api, size, appearance } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
-  const styles = radioCardVariants({ size, variant })
+  const styles = radioCardVariants({ size, appearance })
   const itemState = api.getItemState(itemProps)
 
   return (
@@ -813,14 +820,14 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
   ref,
   ...props
 }: RadioCardItemAddonProps) {
-  const { api, size, variant, align } = useRadioCardContext()
+  const { api, size, appearance, align } = useRadioCardContext()
   const { itemProps, registerDescription } = useRadioCardItemContext()
   const generatedId = useId()
   const id = props.id ?? generatedId
   useRegisterDescription(id, registerDescription)
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     align,
   })
   const itemState = api.getItemState(itemProps)

@@ -35,7 +35,7 @@ group in code.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=outline` / `subtle` / `solid` | `variant="outline" \| "subtle" \| "solid"` | Visual style only; still exactly one answer. |
+| `variant=outline` / `subtle` / `solid` | `appearance="outline" \| "subtle" \| "solid"` | Visual style only; still exactly one answer. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. |
 | `state=default` | not selected | No answer yet; not an error. |
 | `state=checked` | the item matching `value` | The current answer, not proof it was saved. |

@@ -54,7 +54,7 @@ row actions, each with its own purpose and on the right records.
 mix up an empty database, a filter with no matches and a load error.
 
 - Row click = read (detail drawer). Edit and delete live in `rowActions`,
-  delete last with `tone: "danger"`. Expanding a row never selects it.
+  delete last with `severity: "danger"`. Expanding a row never selects it.
 - A filter change updates both the results and the pagination.
 - A failed sort, filter or page load reverts the indicator and keeps the
   previous rows recognisable, with a way to retry. Don't show the new sort

@@ -462,7 +462,7 @@ export function NativeFormFixture({
             </fieldset>
           )}
         </fieldset>
-        <Button theme="outlined" type="reset">
+        <Button appearance="outline" type="reset">
           Reset A
         </Button>
       </form>
@@ -471,57 +471,57 @@ export function NativeFormFixture({
         aria-label="Form B"
         onSubmit={(event) => event.preventDefault()}
       >
-        <Button theme="outlined" type="reset">
+        <Button appearance="outline" type="reset">
           Reset B
         </Button>
       </form>
       <div className="flex flex-wrap gap-100">
         {control === "combobox" && (
           <Button
-            theme="outlined"
+            appearance="outline"
             onClick={() => setUseRenamedChoices((current) => !current)}
           >
             Toggle choice labels
           </Button>
         )}
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => setValue(changedValues[control])}
         >
           Set parent value
         </Button>
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => setValue(initialValues[control])}
         >
           Restore parent default
         </Button>
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
         >
           Change form owner
         </Button>
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => setOuterDisabled((current) => !current)}
         >
           Toggle outer fieldset
         </Button>
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => setInnerDisabled((current) => !current)}
         >
           Toggle inner fieldset
         </Button>
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => setMounted((current) => !current)}
         >
           Toggle control
         </Button>
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => {
             setGeneration((current) => current + 1)
             setValue(initialValues[control])

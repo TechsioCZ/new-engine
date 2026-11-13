@@ -2,7 +2,7 @@
  * FileUpload — @techsio/ui-kit molecule.
  *
  * @component FileUpload
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill file-upload-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -49,6 +49,7 @@ import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const fileUploadStyles = tv({
@@ -203,12 +204,17 @@ export function FileUpload({
   readOnly,
   ref,
   required,
-  size = "md",
+  size: sizeProp,
   transformFiles,
   translations,
   validate,
   ...props
 }: FileUploadProps) {
+  const { size = "md" } = useUIDefaults(
+    "FileUpload",
+    { size: sizeProp },
+    fileUploadStyles
+  )
   const messages = useUiMessages()
   const generatedId = useId()
   const probeRef = useRef<HTMLInputElement>(null)
@@ -816,6 +822,7 @@ FileUpload.Trigger = function FileUploadTrigger({
   return (
     <Button
       {...triggerProps}
+      appearance="outline"
       aria-describedby={joinDescribedBy(
         props["aria-describedby"],
         descriptions.describedById
@@ -839,10 +846,9 @@ FileUpload.Trigger = function FileUploadTrigger({
         }
       }}
       ref={ref}
+      severity="primary"
       size={size}
-      theme="outlined"
       type="button"
-      variant="primary"
     >
       {children}
     </Button>
@@ -1091,8 +1097,8 @@ FileUpload.ItemDeleteTrigger = function FileUploadItemDeleteTrigger({
         }
       }}
       ref={ref}
+      severity="neutral"
       size={size}
-      tone="neutral"
       type="button"
       {...deleteProps}
       // zag always names the delete trigger; translate it with `translations.deleteFile`.
@@ -1139,8 +1145,8 @@ FileUpload.ClearTrigger = function FileUploadClearTrigger({
         }
       }}
       ref={ref}
+      severity="neutral"
       size={size}
-      tone="neutral"
       type="button"
       {...clearProps}
       hidden={Boolean(clearProps.hidden) && !api.transforming}

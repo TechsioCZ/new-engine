@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v1.1.0
+ * @componentVersion v2.0.0
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -46,6 +46,7 @@ import {
   restoreFocusAfterOverlayClose,
 } from "../internal/overlay-portal"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 
 export type {
   DrawerApi,
@@ -146,11 +147,12 @@ export function Drawer({
   onEnterComplete,
   onExitComplete,
   placement = "end",
-  size,
+  size: sizeProp,
   skipAnimationOnMount = false,
   unmountOnExit = true,
   ...machineProps
 }: DrawerRootProps) {
+  const { size } = useUIDefaults("Drawer", { size: sizeProp }, drawerVariants)
   const api = useDrawer({
     ...machineProps,
     swipeDirection: swipeDirectionByPlacement[placement],
@@ -470,7 +472,7 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
       onClick: onIconClick,
       ref: iconRef,
       size: iconSize = "md",
-      tone = "neutral",
+      severity = "neutral",
       type: iconType = "button",
       ...iconProps
     } = props
@@ -489,8 +491,8 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
           }
         }}
         ref={iconRef}
+        severity={severity}
         size={iconSize}
-        tone={tone}
         type={iconType}
       />
     )
@@ -503,7 +505,7 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
     onClick,
     ref,
     size = "current",
-    theme = "unstyled",
+    unstyled = true,
     type = "button",
     ...buttonProps
   } = props
@@ -522,8 +524,8 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
       }}
       ref={ref}
       size={size}
-      theme={theme}
       type={type}
+      unstyled={unstyled}
     >
       {children}
     </Button>

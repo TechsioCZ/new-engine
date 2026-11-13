@@ -9,12 +9,14 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("variant", {
-  default: "default",
+// Figma still names the property variant; code splits it into validateStatus + appearance.
+const validateStatus = figma.selectedInstance.getEnum("variant", {
   error: "error",
   success: "success",
   warning: "warning",
-  borderless: "borderless",
+})
+const appearance = figma.selectedInstance.getEnum("variant", {
+  borderless: "plain",
 })
 const disabled = figma.selectedInstance.getEnum("state", {
   default: false,
@@ -39,6 +41,9 @@ export default {
   )}${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}/>`,
+  )}${figma.helpers.react.renderProp(
+    "appearance",
+    appearance
+  )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}/>`,
   metadata: { nestable: true },
 }

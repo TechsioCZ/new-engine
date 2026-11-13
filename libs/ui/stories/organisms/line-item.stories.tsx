@@ -280,7 +280,7 @@ export const CustomComposition: Story = {
                 onClick={saved}
                 disabled={args.pending}
                 size="sm"
-                theme="outlined"
+                appearance="outline"
               >
                 Uložit na později
               </Button>
