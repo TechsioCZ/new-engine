@@ -31,8 +31,7 @@ jobs:
       list: ${{ steps.scope.outputs.list }}
       component_matrix: ${{ steps.scope.outputs.component_matrix }}
     steps:
-      - if: inputs.mode == 'changed'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.sha }}
           fetch-depth: 0
@@ -42,8 +41,7 @@ jobs:
             /libs/ui/scripts/
             /libs/ui/test/visual-completion.mjs
           persist-credentials: false
-      - if: inputs.mode == 'changed'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
       # Any doubt (no base, no merge-base) keeps the full scope; never "none".
@@ -123,13 +121,27 @@ jobs:
                 }
               }' > "$RUNNER_TEMP/expected.json"
           cat "$RUNNER_TEMP/expected.json"
-      - if: steps.scope.outputs.list == 'true'
+      - name: Reuse immutable scope metadata on retries
+        id: metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HAS_LIST: ${{ steps.scope.outputs.list }}
+        run: |
+          set -euo pipefail
+          expected="$(node libs/ui/scripts/ci-artifact.mjs exists "ui-ci-expected-${{ inputs.sha }}")"
+          echo "expected=$expected" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_LIST" = true ]; then
+            changed="$(node libs/ui/scripts/ci-artifact.mjs exists "ui-changed-files-${{ inputs.sha }}")"
+            echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.scope.outputs.list == 'true' && steps.metadata.outputs.changed != 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-changed-files-${{ inputs.sha }}
           path: ${{ runner.temp }}/changed-files.txt
           if-no-files-found: error
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - if: steps.metadata.outputs.expected != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-ci-expected-${{ inputs.sha }}
           path: ${{ runner.temp }}/expected.json
@@ -208,6 +220,7 @@ jobs:
         with:
           name: ui-component-report-${{ inputs.sha }}-bundle-${{ matrix.shard }}
           path: ${{ runner.temp }}/component-reports
+          overwrite: true
           if-no-files-found: error
       - name: Upload component failure details
         if: failure()
@@ -216,6 +229,7 @@ jobs:
           name: ui-component-results-${{ inputs.sha }}-bundle-${{ matrix.shard }}
           path: |
             ${{ runner.temp }}/component-results
+          overwrite: true
           if-no-files-found: error
       - name: Export the component browser image
         id: exported-image

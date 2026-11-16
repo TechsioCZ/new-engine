@@ -146,6 +146,7 @@ jobs:
         with:
           name: storybook-a11y-${{ github.sha }}-all-themes
           path: libs/ui/a11y-report
+          overwrite: true
           if-no-files-found: error
 
   # A pull request runs only what its diff can affect, measured against its

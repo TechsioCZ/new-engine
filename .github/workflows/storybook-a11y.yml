@@ -92,4 +92,5 @@ jobs:
         with:
           name: storybook-a11y-${{ inputs.sha || github.sha }}-all-themes
           path: libs/ui/a11y-report
+          overwrite: true
           if-no-files-found: error

@@ -482,7 +482,7 @@ test("Controls preserve authored callback and JSX docs and normalized disabled e
   }
 })
 
-test("the maintained CI gate covers Node regressions, TSX tests and portable references", () => {
+test("the package test command covers Node regressions, TSX tests and portable references", () => {
   const { scripts } = JSON.parse(read("../package.json"))
   assert.match(scripts.test, /pnpm test:node/)
   for (const file of [
@@ -493,10 +493,6 @@ test("the maintained CI gate covers Node regressions, TSX tests and portable ref
   ]) {
     assert.ok(scripts["test:node"].includes(file), `Missing Node gate: ${file}`)
   }
-  assert.match(
-    read("../../../.github/workflows/ci.yml"),
-    /pnpm --dir libs\/ui test\s/
-  )
   const { include } = JSON.parse(read("../tsconfig.tests.json"))
   for (const pattern of [
     "tests/**/*.ts",

@@ -20,7 +20,7 @@ function runChecks(t, overrides = {}) {
   fs.writeFileSync(path.join(root, "node_modules/.bin/nubx"), "#!/bin/sh\nexit 0\n", { mode: 0o755 })
   fs.writeFileSync(path.join(root, "bin/timeout"), '#!/bin/sh\nshift\nexec "$@"\n', { mode: 0o755 })
   fs.writeFileSync(path.join(root, "bin/pnpm"), `#!/bin/sh
-echo "$*" >> "$RUNNER_TEMP/commands"
+echo "$(basename "$(dirname "$(command -v node)")")|$*" >> "$RUNNER_TEMP/commands"
 if [ "$*" = "lint:nx" ] && [ "$FAIL_CHECKS" = 1 ]; then exit 7; fi
 if [ "$*" = "--dir libs/ui storybook:a11y" ]; then
   node -e 'setTimeout(()=>{},100)'
@@ -47,7 +47,12 @@ test("the installed runner completes both workspace and accessibility checks", (
   assert.equal(result.status, 0, result.stderr)
   assert.ok(fs.existsSync(path.join(root, "a11y-finished")))
   const commands = fs.readFileSync(path.join(root, "commands"), "utf8")
-  for (const command of ["lint:nx", "typecheck", "test", "validate:tokens", "test:visual-assets", "storybook:a11y"]) {
+  for (const command of [
+    "node24|lint:nx", "node24|--dir libs/ui check:package",
+    "node26|--dir libs/ui typecheck", "node26|--dir libs/ui test",
+    "node26|--dir libs/ui validate:tokens", "node26|--dir libs/ui check:package",
+    "node24|--dir libs/ui test:visual-assets", "node26|--dir libs/ui storybook:a11y",
+  ]) {
     assert.ok(commands.includes(command), command)
   }
 })
