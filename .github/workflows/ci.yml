@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   main:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       NX_NO_CLOUD: "true"
     steps:
@@ -117,7 +117,7 @@ jobs:
     needs:
       - main
       - ui-quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Require every blocking job to pass

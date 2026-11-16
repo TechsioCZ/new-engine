@@ -63,8 +63,7 @@ fi
 cp "${INDEX_JSON}" "${FULL_INDEX}"
 
 SERVER_LOG="${RUN_REPORT_ROOT}/server.log"
-python3 -m http.server "${PORT}" --bind 127.0.0.1 \
-  --directory "${ROOT_DIR}/storybook-static" > "${SERVER_LOG}" 2>&1 &
+VISUAL_STORYBOOK_PORT="${PORT}" node test/visual-static-server.mjs > "${SERVER_LOG}" 2>&1 &
 SERVER_PID=$!
 cleanup() {
   kill "${SERVER_PID}" >/dev/null 2>&1 || true
@@ -75,10 +74,10 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
 
-# The request log proves our server answered, not another process on the port.
+# A failed bind must not accidentally scan another process on this port.
 if ! curl -fs -o /dev/null --retry 30 --retry-connrefused --retry-delay 1 \
   "http://127.0.0.1:${PORT}/index.json" ||
-  ! grep -q "GET /index.json" "${SERVER_LOG}"; then
+  ! kill -0 "${SERVER_PID}" 2>/dev/null; then
   echo "The Storybook HTTP server did not become ready on port ${PORT}." >&2
   cat "${SERVER_LOG}" >&2
   exit 1

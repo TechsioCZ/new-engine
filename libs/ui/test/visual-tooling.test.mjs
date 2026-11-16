@@ -1403,8 +1403,7 @@ const COMPONENT_RUNNER = new URL(
   import.meta.url
 ).pathname
 
-/** The content-addressed component image reference this checkout must use,
- * from the same two inputs the publish workflow tags with.
+/** The content-addressed component image reference this checkout must use.
  * @returns {string}
  */
 function playwrightImageReference() {
@@ -1414,7 +1413,7 @@ function playwrightImageReference() {
     .update(dockerfile)
     .digest("hex")
     .slice(0, 12)
-  return `ghcr.io/techsiocz/new-engine-ui-playwright:${version}-${hash}`
+  return `new-engine-ui-playwright:${version}-${hash}`
 }
 
 /** Runs the component runner's --print-plan introspection in a clean
@@ -1534,7 +1533,7 @@ test("a group narrows the release run and the changed run through one code path"
   }
 })
 
-test("the component image is the content-addressed tag the publish workflow pushes", () => {
+test("the component image rejects a cache for a different Dockerfile", () => {
   const reference = playwrightImageReference()
   const resolved = componentPlan({ PLAYWRIGHT_DOCKER_PLATFORM: "linux/amd64" })
   assert.equal(resolved.status, 0, resolved.stderr)
@@ -1545,18 +1544,12 @@ test("the component image is the content-addressed tag the publish workflow push
     /^FROM node:26\.11\.1-bookworm$/m
   )
   // An image whose tag is not this Dockerfile's hash is a different artifact,
-  // so pulling it would not be equivalent to building it. Rejected before any
-  // Docker work, which is what makes pull-then-build one artifact.
+  // so restoring it would not be equivalent to building it.
   const stale = componentPlan({
     PLAYWRIGHT_DOCKER_IMAGE: `${reference.split(":")[0]}:0.0.0-000000000000`,
   })
   assert.notEqual(stale.status, 0)
   assert.match(stale.stderr, /is tagged "0\.0\.0-000000000000"/)
-  const workflow = read("../../../.github/workflows/playwright-image.yml")
-  assert.match(workflow, /packages: write/)
-  assert.match(workflow, /--print-plan \| jq -er \.image/)
-  assert.match(workflow, /paths:\s+- docker\/development\/playwright\/\*\*/)
-  assert.match(workflow, /docker push "\$REFERENCE"/)
 })
 
 test("mobile WebKit runs only the touch and device-viewport behavior specs", () => {

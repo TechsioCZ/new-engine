@@ -41,8 +41,8 @@ const dockerfileHash = crypto
   .slice(0, 12)
 const playwrightVersion = dockerfile.match(playwrightVersionPattern)?.[1]
 // Introspection flag: prints the resolved image, platform, group and shard as
-// JSON and exits without touching Storybook or Docker. The image publish
-// workflow and the tooling tests both read it, so the tag and the group filter
+// JSON and exits without touching Storybook or Docker. CI and the tooling
+// tests both read it, so the tag and the group filter
 // have exactly one definition.
 const printPlan = process.argv.slice(2).includes("--print-plan")
 const extraArgs = process.argv
@@ -74,13 +74,11 @@ if (!["linux/amd64", "linux/arm64"].includes(platform)) {
 }
 const platformTag =
   platform === "linux/amd64" ? "" : `-${platform.split("/").at(-1)}`
-// Content-addressed tag: Playwright version plus the hash of this checkout's
-// Dockerfile. .github/workflows/playwright-image.yml publishes exactly this tag
-// so a runner can pull the image instead of rebuilding it per shard.
+// CI caches this content-addressed image, with no registry or credentials.
 const imageTag = `${playwrightVersion ? `${playwrightVersion}-` : ""}${dockerfileHash}${platformTag}`
 const imageName =
   process.env.PLAYWRIGHT_DOCKER_IMAGE ??
-  `ghcr.io/techsiocz/new-engine-ui-playwright:${imageTag}`
+  `new-engine-ui-playwright:${imageTag}`
 const projects = createVisualMatrix(process.env.VISUAL_BRANDS).map(
   (project) => project.name
 )
@@ -242,7 +240,7 @@ function imageReferenceTag(reference) {
   return colon > reference.lastIndexOf("/") ? reference.slice(colon + 1) : ""
 }
 
-/** A pulled image is equivalent to a built one only while the tag is the
+/** A cached image is equivalent to a built one only while the tag is the
  * content hash of the Dockerfile in this checkout. Asserting that is what makes
  * the pull a second source of one artifact rather than an untested image. */
 function assertImageMatchesDockerfile() {
@@ -254,8 +252,7 @@ function assertImageMatchesDockerfile() {
   }
 }
 
-/** Local image, else the published tag, else build it from this checkout.
- * A Dockerfile-changing commit has no published tag yet and builds. */
+/** Use the local image (restored by CI when cached), otherwise build it. */
 function ensureDockerImage() {
   const started = Date.now()
   /** @param {string} source */
@@ -268,11 +265,6 @@ function ensureDockerImage() {
     report("already on this runner")
     return
   }
-  if (docker(["pull", `--platform=${platform}`, imageName]).status === 0) {
-    report("pulled")
-    return
-  }
-  console.log(`No published ${imageName}; building it from this checkout`)
   run("docker", [
     "build",
     `--platform=${platform}`,

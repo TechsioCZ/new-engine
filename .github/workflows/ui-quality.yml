@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -143,7 +143,7 @@ jobs:
           if-no-files-found: error
 
   package:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -164,7 +164,7 @@ jobs:
   components:
     needs: plan
     if: needs.plan.outputs.scope != 'none'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -182,6 +182,17 @@ jobs:
           node-version: 26.11.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+      # The image depends only on the Dockerfile, not this commit's stories.
+      # One shard saves it; all shards can restore it, including fork PRs.
+      - name: Restore the component browser image
+        id: browser-image
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ui-playwright.tar
+          key: ui-playwright-linux-amd64-${{ hashFiles('docker/development/playwright/Dockerfile') }}
+      - name: Load the cached browser image
+        if: steps.browser-image.outputs.cache-hit == 'true'
+        run: docker load --input "$RUNNER_TEMP/ui-playwright.tar"
       # Full Docker suite: behavior and the visual projects of this group, split
       # across the group's shards. Release mode rejects filters and baseline
       # updates; quality-gate asserts every identity over all shard reports.
@@ -224,6 +235,22 @@ jobs:
             libs/ui/test-results/visual-reports/index.json
             libs/ui/test-results/visual-reports/changed-none.json
           if-no-files-found: error
+      - name: Export the component browser image
+        id: exported-image
+        if: success() && matrix.group == 'mobile' && steps.browser-image.outputs.cache-hit != 'true'
+        run: |
+          image="$(node libs/ui/scripts/run-component-tests.mjs --print-plan | jq -er .image)"
+          # A changed run with no selected stories never needs a container.
+          if docker image inspect "$image" >/dev/null 2>&1; then
+            docker image save "$image" --output "$RUNNER_TEMP/ui-playwright.tar"
+            echo "saved=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Save the component browser image
+        if: steps.exported-image.outputs.saved == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ui-playwright.tar
+          key: ui-playwright-linux-amd64-${{ hashFiles('docker/development/playwright/Dockerfile') }}
 
   accessibility:
     uses: ./.github/workflows/storybook-a11y.yml

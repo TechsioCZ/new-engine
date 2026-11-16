@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 /**
- * The accessibility shard contract. Jest splits the APCA scan across shards, so
+ * The accessibility shard contract. The planner splits the scan across shards, so
  * no single job can prove coverage any more. Three modes do it together:
  *
  *   --plan    decide which story suites one job must scan and write the theme's
- *             expected story set to expected-stories.json (the whole index, or
- *             the suites the diff can reach plus calibration). Prints a Jest
- *             test path pattern for a narrowed scan, nothing for a full one.
+ *             expected story set to expected-stories.json and write only this
+ *             shard's entries to the served index.
  *   --record  write the story ids the job actually scanned to scanned.json, read
  *             from Jest's own result JSON, next to that shard's report.
  *   --expect  prove that every declared theme and shard reported, that the
@@ -389,11 +388,14 @@ function recordShard(argv) {
   const out = requireArg(argv, "--out")
   const theme = requireArg(argv, "--theme")
   const shard = requireArg(argv, "--shard")
-  parseShard(shard)
+  const parsedShard = parseShard(shard)
   const results = readJestResults(requireArg(argv, "--jest-output"))
   const expected = readJson(path.join(out, EXPECTED_NAME))
   if (expected.theme !== theme) {
     throw new Error(`Planned theme ${expected.theme}, recorded ${theme}`)
+  }
+  if (expected.shard !== shard) {
+    throw new Error(`Planned shard ${expected.shard}, recorded ${shard}`)
   }
   const ids = storyIdsByName(readJson(indexFile))
   const scanned = new Set()
@@ -430,6 +432,17 @@ function recordShard(argv) {
     )
   }
   const storyIds = [...scanned].sort()
+  // Also enforce the contract here: workflow_dispatch has no parent
+  // quality-gate to discover a missing story or calibration result.
+  assertShardsRanTheirPlan(
+    { ...expected, byShard: new Map([[parsedShard.index, planned]]) },
+    new Map([[parsedShard.index, { scanned: { storyIds } }]])
+  )
+  assertCalibrationCoverage(
+    expected,
+    [{ dir: out }],
+    planned.filter((id) => calibrationIds.includes(id))
+  )
   writeJson(path.join(out, SCANNED_NAME), {
     theme,
     shard,
@@ -642,9 +655,10 @@ function assertShardsRanTheirPlan(expected, byIndex) {
 /** The calibration contract, aggregated: the plan hands the calibration suite
  * to exactly one shard, so only the theme as a whole can assert it.
  * @param {any} expected
- * @param {{dir: string, scanned: any}[]} shards
+ * @param {{dir: string}[]} shards
+ * @param {string[]} [requiredIds]
  */
-function assertCalibrationCoverage(expected, shards) {
+function assertCalibrationCoverage(expected, shards, requiredIds = calibrationIds) {
   const passes = new Map()
   for (const { dir } of shards) {
     for (const entry of calibrationEntries(dir)) {
@@ -666,7 +680,7 @@ function assertCalibrationCoverage(expected, shards) {
       passes.set(entry.storyId, (passes.get(entry.storyId) ?? 0) + 1)
     }
   }
-  for (const id of calibrationIds) {
+  for (const id of requiredIds) {
     const count = passes.get(id) ?? 0
     if (count !== 1) {
       throw new Error(
