@@ -27,6 +27,9 @@ jobs:
       contents: read
     outputs:
       scope: ${{ steps.scope.outputs.scope }}
+      list: ${{ steps.scope.outputs.list }}
+      component_matrix: ${{ steps.scope.outputs.component_matrix }}
+      a11y_shards: ${{ steps.scope.outputs.a11y_shards }}
     steps:
       - if: inputs.mode == 'changed'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,6 +49,9 @@ jobs:
           MODE: ${{ inputs.mode }}
           BASE_SHA: ${{ inputs.base_sha }}
           HEAD_SHA: ${{ inputs.sha }}
+          # Must match storybook-a11y.yml's theme matrix; that scan fails on a
+          # count mismatch, so a drift here cannot pass silently.
+          A11Y_THEMES: '["business-light","akros-light","n1-light"]'
         run: |
           set -euo pipefail
           scope=full
@@ -55,13 +61,76 @@ jobs:
             scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
             list=true
           fi
-          echo "scope=${scope}" >> "$GITHUB_OUTPUT"
-          echo "list=${list}" >> "$GITHUB_OUTPUT"
+          # Job widths are a slot budget, not a preference: the free plan allows
+          # 20 concurrent jobs account-wide. Full run = 8 component + 9 a11y +
+          # main + package + the GitHub-managed CodeQL job = 20 exactly. Changed
+          # run = 4 + 3 heavy, so two concurrent pull requests still fit 20.
+          # Adding a job to either shape means taking one away.
+          case "$scope" in
+            full | all)
+              groups='{"visual":5,"desktop":2,"mobile":1}'
+              a11y_shards=3
+              ;;
+            ui | none)
+              # scope none keeps every heavy job skipped by its own `if`; the
+              # matrix expression still has to parse, so it carries this shape.
+              groups='{"visual":1,"desktop":2,"mobile":1}'
+              a11y_shards=1
+              ;;
+            *)
+              echo "::error::Unknown scope '${scope}' from the classifier"
+              exit 1
+              ;;
+          esac
+          # One declaration of each group's width; the matrix and expected.json
+          # are both derived from it, so a shard count cannot drift between them.
+          component_matrix="$(printf '%s' "$groups" | jq -c '{include: [to_entries[] | . as $group | range(1; $group.value + 1) | {group: $group.key, shard: ., total: $group.value}]}')"
+          {
+            echo "scope=${scope}"
+            echo "list=${list}"
+            echo "component_matrix=${component_matrix}"
+            echo "a11y_shards=${a11y_shards}"
+          } >> "$GITHUB_OUTPUT"
+          # quality-gate checks the reports it collected against this file, so a
+          # shard or theme that never reported fails loudly instead of passing.
+          # At scope none nothing runs, so the file declares nothing expected -
+          # the matrix output above keeps its shape only because the expression
+          # still has to parse for a job the `if` then skips.
+          jq -n \
+            --arg scope "$scope" \
+            --argjson matrix "$component_matrix" \
+            --argjson groups "$groups" \
+            --argjson themes "$A11Y_THEMES" \
+            --argjson shards "$a11y_shards" \
+            '($scope == "none") as $idle
+            | {
+                scope: $scope,
+                components: (
+                  if $idle then { include: [], groups: {}, total: 0 }
+                  else {
+                    include: $matrix.include,
+                    groups: $groups,
+                    total: ([$groups[]] | add)
+                  }
+                  end
+                ),
+                a11y: {
+                  themes: (if $idle then [] else $themes end),
+                  shards_per_theme: (if $idle then 0 else $shards end),
+                  total: (if $idle then 0 else (($themes | length) * $shards) end)
+                }
+              }' > "$RUNNER_TEMP/expected.json"
+          cat "$RUNNER_TEMP/expected.json"
       - if: steps.scope.outputs.list == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-changed-files-${{ inputs.sha }}
           path: ${{ runner.temp }}/changed-files.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-ci-expected-${{ inputs.sha }}
+          path: ${{ runner.temp }}/expected.json
           if-no-files-found: error
 
   package:
@@ -77,7 +146,7 @@ jobs:
         with:
           node-version: 26.11.1
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
+      - run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
       - run: pnpm --dir libs/ui typecheck
       - run: pnpm --dir libs/ui test
       - run: pnpm --dir libs/ui validate:tokens
@@ -90,8 +159,9 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+      # One entry per shard of each cost-homogeneous project group; plan decides
+      # the widths and declares them in expected.json.
+      matrix: ${{ fromJson(needs.plan.outputs.component_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -102,24 +172,15 @@ jobs:
         with:
           node-version: 26.11.1
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
-      - id: storybook-inputs
-        run: |
-          hash="$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)"
-          echo "hash=${hash}" >> "$GITHUB_OUTPUT"
-      # The runner checks the marker inside the build, so a restored build is used only when it matches these inputs.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: libs/ui/storybook-static
-          key: ui-storybook-v1-${{ steps.storybook-inputs.outputs.hash }}
-      # Full Docker suite: behavior on both devices and all 6 visual projects
-      # (3 brands, desktop and mobile), split across shards. Release mode rejects
-      # filters and baseline updates; components-complete asserts every identity
-      # over all shard reports.
+      - run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+      # Full Docker suite: behavior and the visual projects of this group, split
+      # across the group's shards. Release mode rejects filters and baseline
+      # updates; quality-gate asserts every identity over all shard reports.
       - name: Full release suite
         if: needs.plan.outputs.scope == 'full'
         env:
-          PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/8
+          PLAYWRIGHT_GROUP: ${{ matrix.group }}
+          PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/${{ matrix.total }}
         run: pnpm --dir libs/ui test:components:release
       - name: Download the changed-file list
         if: needs.plan.outputs.scope == 'ui'
@@ -130,48 +191,30 @@ jobs:
       - name: Affected screenshots and behavior specs
         if: needs.plan.outputs.scope == 'ui'
         env:
-          PLAYWRIGHT_SHARD: ${{ matrix.shard }}/8
+          PLAYWRIGHT_GROUP: ${{ matrix.group }}
+          PLAYWRIGHT_SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           VISUAL_CHANGED_BEHAVIOR: "1"
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
         run: pnpm --dir libs/ui test:components
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: ui-component-results-${{ inputs.sha }}-shard-${{ matrix.shard }}
+          name: ui-component-results-${{ inputs.sha }}-${{ matrix.group }}-shard-${{ matrix.shard }}
           path: |
             libs/ui/playwright-report
             libs/ui/test-results
           if-no-files-found: error
+      # Only on success: with if-no-files-found: error an unguarded upload fails a
+      # second time inside a job whose test step already reported the failure.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: success()
         with:
-          name: ui-component-report-${{ inputs.sha }}-shard-${{ matrix.shard }}
+          name: ui-component-report-${{ inputs.sha }}-${{ matrix.group }}-shard-${{ matrix.shard }}
           path: |
             libs/ui/test-results/visual-reports/all.json
             libs/ui/test-results/visual-reports/index.json
             libs/ui/test-results/visual-reports/changed-none.json
           if-no-files-found: error
-
-  components-complete:
-    needs: [plan, components]
-    if: needs.plan.outputs.scope != 'none'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.11.1
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: ui-component-report-${{ inputs.sha }}-shard-*
-          path: component-shards
-      - run: node libs/ui/scripts/verify-component-shards.mjs component-shards
-        env:
-          PLAYWRIGHT_RELEASE_SHARDS: "8"
-          VISUAL_SHARD_MODE: ${{ needs.plan.outputs.scope == 'ui' && 'changed' || 'full' }}
 
   accessibility:
     uses: ./.github/workflows/storybook-a11y.yml
@@ -179,3 +222,9 @@ jobs:
     if: needs.plan.outputs.scope != 'none'
     with:
       sha: ${{ inputs.sha }}
+      scope: ${{ needs.plan.outputs.scope }}
+      changed_files_artifact: ${{ needs.plan.outputs.list == 'true' && format('ui-changed-files-{0}', inputs.sha) || '' }}
+      # fromJson keeps these two as numbers: a job output is always a string and
+      # storybook-a11y.yml declares both inputs as type number.
+      shards: ${{ fromJson(needs.plan.outputs.a11y_shards) }}
+      workers: 4
