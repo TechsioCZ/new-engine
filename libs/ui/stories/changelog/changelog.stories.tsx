@@ -13,6 +13,15 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Player v1.1.0
+- Added text tracks with stable IDs, rendered captions and caption toggles, localized loading/error feedback with provider retry, surface gestures and translated media announcements.
+
+### AudioPlayer v1.1.0
+- Forwarded media engine props and added loading, error, controls and overlay slots while keeping preset children internal. Custom controls retain media context and error content can receive a retry callback.
+
+### VideoPlayer v1.1.0
+- Added captions and content slots, inline playback by default, surface playback gestures and provider retry feedback. Mobile controls keep timeline seeking while hiding skip buttons and the volume slider.
+
 ### Player v1.0.1
 - Updated for the current UI kit: accessible button names satisfy ActionIcon, control names and state changes read from the app message catalog, and usage documentation follows the current plugin format.
 

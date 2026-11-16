@@ -2,7 +2,7 @@
  * AudioPlayer — @techsio/ui-kit molecule.
  *
  * @component AudioPlayer
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill audio-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,7 +12,12 @@
 import type { CSSProperties } from "react"
 import { Image } from "../atoms/image"
 import { tv } from "../utils"
-import { Player, type PlayerProps } from "./player"
+import {
+  Player,
+  type PlayerPresetSlots,
+  type PlayerProps,
+  type PlayerTextTrack,
+} from "./player"
 
 const audioPlayerStyles = tv({
   slots: {
@@ -33,18 +38,12 @@ export type AudioInfo = {
   cover?: string
 }
 
-export type AudioPlayerProps = Pick<
+export type AudioPlayerProps = Omit<
   PlayerProps,
-  | "autoPlay"
-  | "loop"
-  | "muted"
-  | "volume"
-  | "onPlay"
-  | "onPause"
-  | "onEnded"
-  | "onError"
-  | "ref"
+  "children" | "src" | "onVolumeChange" | "viewType" | "className" | "style"
 > & {
+  tracks?: readonly PlayerTextTrack[]
+  slots?: PlayerPresetSlots
   audioUrl: string | AudioInfo
   skipDuration?: number
   className?: string
@@ -54,14 +53,21 @@ export type AudioPlayerProps = Pick<
 
 export function AudioPlayer({
   audioUrl,
+  title: playerTitle,
   skipDuration = 10,
   className,
   style,
   onVolumeChange,
+  tracks,
+  slots,
   ...props
 }: AudioPlayerProps) {
-  const { src, title, cover } =
-    typeof audioUrl === "string" ? { src: audioUrl } : audioUrl
+  const {
+    src,
+    title: audioTitle,
+    cover,
+  } = typeof audioUrl === "string" ? { src: audioUrl } : audioUrl
+  const title = playerTitle ?? audioTitle
   const styles = audioPlayerStyles()
 
   return (
@@ -82,34 +88,46 @@ export function AudioPlayer({
           title={title}
           viewType="audio"
         >
-          <Player.Provider />
-          <Player.Controls>
-            <Player.ControlGroup className={styles.controls()} padding="none">
-              <Player.Control className={styles.timeline()}>
-                <Player.TimeSlider />
-                <Player.Time type="current" />
-                <span aria-hidden="true">/</span>
-                <Player.Time type="duration" />
-              </Player.Control>
-              <Player.Control className={styles.toolbar()}>
-                <Player.Control>
-                  <Player.PlayButton />
-                  <Player.SeekButton
-                    direction="backward"
-                    seconds={skipDuration}
-                  />
-                  <Player.SeekButton
-                    direction="forward"
-                    seconds={skipDuration}
-                  />
+          <Player.Provider tracks={tracks} />
+          <Player.Announcer />
+          {slots?.loading === null ? null : (
+            <Player.Loading>{slots?.loading}</Player.Loading>
+          )}
+          {slots?.error === null ? null : (
+            <Player.Error>{slots?.error}</Player.Error>
+          )}
+          {slots?.overlay}
+          {slots?.controls === undefined ? (
+            <Player.Controls>
+              <Player.ControlGroup className={styles.controls()} padding="none">
+                <Player.Control className={styles.timeline()}>
+                  <Player.TimeSlider />
+                  <Player.Time type="current" />
+                  <span aria-hidden="true">/</span>
+                  <Player.Time type="duration" />
                 </Player.Control>
-                <Player.Control>
-                  <Player.MuteButton />
-                  <Player.VolumeSlider className={styles.volumeSlider()} />
+                <Player.Control className={styles.toolbar()}>
+                  <Player.Control>
+                    <Player.PlayButton />
+                    <Player.SeekButton
+                      direction="backward"
+                      seconds={skipDuration}
+                    />
+                    <Player.SeekButton
+                      direction="forward"
+                      seconds={skipDuration}
+                    />
+                  </Player.Control>
+                  <Player.Control>
+                    <Player.MuteButton />
+                    <Player.VolumeSlider className={styles.volumeSlider()} />
+                  </Player.Control>
                 </Player.Control>
-              </Player.Control>
-            </Player.ControlGroup>
-          </Player.Controls>
+              </Player.ControlGroup>
+            </Player.Controls>
+          ) : (
+            slots.controls
+          )}
         </Player>
       </div>
     </div>

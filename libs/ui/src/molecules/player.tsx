@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.0.1
+ * @componentVersion v1.1.0
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,7 +10,13 @@
  * the player-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
+  Gesture,
+  isTrackCaptionKind,
+  MediaAnnouncer,
+  CaptionButton as MediaCaptionButton,
+  Captions as MediaCaptions,
   Controls as MediaControls,
+  type MediaErrorDetail,
   FullscreenButton as MediaFullscreenButton,
   MuteButton as MediaMuteButton,
   PlayButton as MediaPlayButton,
@@ -18,14 +24,27 @@ import {
   MediaProvider,
   SeekButton as MediaSeekButton,
   Poster,
+  TextTrack,
   Time,
   TimeSlider,
+  Track,
+  useMediaPlayer,
   useMediaState,
   VolumeSlider,
 } from "@vidstack/react"
-import { type ComponentProps, createContext, useContext } from "react"
+import {
+  type ComponentProps,
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { ActionIcon } from "../atoms/action-icon"
-import type { IconType } from "../atoms/icon"
+import { Button } from "../atoms/button"
+import { Icon, type IconType } from "../atoms/icon"
+import { Tooltip } from "../atoms/tooltip"
 import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
@@ -33,7 +52,13 @@ const playerStyles = tv({
   slots: {
     root: "player-base player-focus-ring relative overflow-hidden rounded-player text-player-fg",
     poster: "vds-poster",
-    controls: "w-full",
+    feedback:
+      "player-feedback absolute inset-0 z-player-feedback flex flex-col items-center justify-center gap-player-feedback p-player-feedback text-center text-player-feedback",
+    loadingIcon: "text-player-loading-icon",
+    captions:
+      "vds-captions player-captions pointer-events-none absolute inset-0 z-player-captions",
+    gesture: "player-gesture absolute inset-0",
+    controls: "player-controls w-full",
     control: "flex min-w-0 items-center gap-player-control",
     controlGroup: "flex w-full min-w-0 items-center gap-player-control",
     iconButton:
@@ -57,14 +82,27 @@ const playerStyles = tv({
   },
 })
 
-const PlayerContext = createContext(false)
+const PlayerContext = createContext<{ retry: () => void } | null>(null)
 
 function usePlayerContext() {
-  if (!useContext(PlayerContext)) {
+  const context = useContext(PlayerContext)
+  if (!context) {
     throw new Error("Player components must be used within Player.Root")
   }
+  return context
 }
 
+export type PlayerTextTrack = ComponentProps<typeof Track> & { id: string }
+export type PlayerErrorContentProps = {
+  error: MediaErrorDetail
+  retry: () => void
+}
+export type PlayerPresetSlots = {
+  loading?: ReactNode
+  error?: ReactNode | ((props: PlayerErrorContentProps) => ReactNode)
+  controls?: ReactNode
+  overlay?: ReactNode
+}
 export type PlayerProps = ComponentProps<typeof MediaPlayer>
 export type PlayerControlsProps = ComponentProps<typeof MediaControls.Root>
 export type PlayerControlProps = ComponentProps<"div">
@@ -118,24 +156,109 @@ export function Player({
   ...props
 }: PlayerProps) {
   const messages = useUiMessages().player
+  const [attempt, setAttempt] = useState(0)
+  const context = useMemo(
+    () => ({ retry: () => setAttempt((value) => value + 1) }),
+    []
+  )
   const label = ariaLabel ?? mediaLabel ?? props.title ?? messages.label
   return (
-    <PlayerContext.Provider value={true}>
+    <PlayerContext.Provider value={context}>
       <MediaPlayer
         {...props}
         aria-label={label}
         ariaLabel={label}
         className={playerStyles().root({ className })}
+        key={attempt}
       />
     </PlayerContext.Provider>
   )
 }
 
-Player.Provider = function PlayerProvider(
-  props: ComponentProps<typeof MediaProvider>
-) {
+function InlineTextTrack({
+  id,
+  src,
+  content,
+  type,
+  kind,
+  label,
+  default: isDefault,
+  language,
+  lang,
+  encoding,
+}: PlayerTextTrack) {
+  const player = useMediaPlayer()
+  useEffect(() => {
+    if (!player) {
+      return
+    }
+    // Vidstack 1.15 marks an attached inline track ready before its async parse
+    // finishes. Register it after parsing so renderers receive populated cues.
+    const track = new TextTrack({
+      id,
+      src,
+      content,
+      type,
+      kind,
+      label,
+      default: isDefault,
+      language: language ?? lang,
+      encoding,
+    })
+    let attached = false
+    const attach = () => {
+      if (attached || track.readyState !== 2) {
+        return
+      }
+      attached = true
+      player.textTracks.add(track)
+    }
+    track.addEventListener("load", attach)
+    if (track.readyState === 2) {
+      attach()
+    }
+    return () => {
+      track.removeEventListener("load", attach)
+      if (attached) {
+        player.textTracks.remove(track)
+      }
+    }
+  }, [
+    player,
+    id,
+    src,
+    content,
+    type,
+    kind,
+    label,
+    isDefault,
+    language,
+    lang,
+    encoding,
+  ])
+  return null
+}
+
+Player.Provider = function PlayerProvider({
+  tracks,
+  children,
+  ...props
+}: ComponentProps<typeof MediaProvider> & {
+  tracks?: readonly PlayerTextTrack[]
+}) {
   usePlayerContext()
-  return <MediaProvider {...props} />
+  return (
+    <MediaProvider {...props}>
+      {tracks?.map((track) =>
+        track.content ? (
+          <InlineTextTrack {...track} key={track.id} />
+        ) : (
+          <Track {...track} key={track.id} />
+        )
+      )}
+      {children}
+    </MediaProvider>
+  )
 }
 
 Player.Controls = function PlayerControls({
@@ -180,19 +303,21 @@ Player.PlayButton = function PlayerPlayButton({
   const messages = useUiMessages().player
   const label = ariaLabel ?? (paused ? messages.play : messages.pause)
   return (
-    <MediaPlayButton
-      {...props}
-      aria-label={label}
-      asChild
-      className={playerStyles().iconButton({ className })}
-    >
-      <ActionIcon
+    <Tooltip content={label}>
+      <MediaPlayButton
+        {...props}
         aria-label={label}
-        icon={paused ? icon : pauseIcon}
-        size="lg"
-        type="button"
-      />
-    </MediaPlayButton>
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={paused ? icon : pauseIcon}
+          size="lg"
+          type="button"
+        />
+      </MediaPlayButton>
+    </Tooltip>
   )
 }
 
@@ -213,19 +338,21 @@ Player.MuteButton = function PlayerMuteButton({
   const volumeIcon = volume >= 0.5 ? icon : lowVolumeIcon
   const resolvedIcon = muted || volume === 0 ? mutedIcon : volumeIcon
   return (
-    <MediaMuteButton
-      {...props}
-      aria-label={label}
-      asChild
-      className={playerStyles().iconButton({ className })}
-    >
-      <ActionIcon
+    <Tooltip content={label}>
+      <MediaMuteButton
+        {...props}
         aria-label={label}
-        icon={resolvedIcon}
-        size="lg"
-        type="button"
-      />
-    </MediaMuteButton>
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={resolvedIcon}
+          size="lg"
+          type="button"
+        />
+      </MediaMuteButton>
+    </Tooltip>
   )
 }
 
@@ -296,19 +423,21 @@ Player.FullscreenButton = function PlayerFullscreenButton({
     ariaLabel ??
     (fullscreen ? messages.exitFullscreen : messages.enterFullscreen)
   return (
-    <MediaFullscreenButton
-      {...props}
-      aria-label={label}
-      asChild
-      className={playerStyles().iconButton({ className })}
-    >
-      <ActionIcon
+    <Tooltip content={label}>
+      <MediaFullscreenButton
+        {...props}
         aria-label={label}
-        icon={fullscreen ? exitIcon : icon}
-        size="lg"
-        type="button"
-      />
-    </MediaFullscreenButton>
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={fullscreen ? exitIcon : icon}
+          size="lg"
+          type="button"
+        />
+      </MediaFullscreenButton>
+    </Tooltip>
   )
 }
 
@@ -327,24 +456,26 @@ Player.SeekButton = function PlayerSeekButton({
       ? messages.seekForward(seconds)
       : messages.seekBackward(seconds))
   return (
-    <MediaSeekButton
-      {...props}
-      aria-label={label}
-      asChild
-      className={playerStyles().iconButton({ className })}
-      seconds={direction === "forward" ? seconds : -seconds}
-    >
-      <ActionIcon
+    <Tooltip content={label}>
+      <MediaSeekButton
+        {...props}
         aria-label={label}
-        icon={
-          direction === "forward"
-            ? "token-icon-player-seek-forward"
-            : "token-icon-player-seek-backward"
-        }
-        size="lg"
-        type="button"
-      />
-    </MediaSeekButton>
+        asChild
+        className={playerStyles().iconButton({ className })}
+        seconds={direction === "forward" ? seconds : -seconds}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={
+            direction === "forward"
+              ? "token-icon-player-seek-forward"
+              : "token-icon-player-seek-backward"
+          }
+          size="lg"
+          type="button"
+        />
+      </MediaSeekButton>
+    </Tooltip>
   )
 }
 
@@ -366,6 +497,171 @@ Player.ControlGroup = function PlayerControlGroup({
     <MediaControls.Group
       {...props}
       className={playerStyles({ padding }).controlGroup({ className })}
+    />
+  )
+}
+
+Player.Loading = function PlayerLoading({
+  children,
+  className,
+  ...props
+}: ComponentProps<"div">) {
+  usePlayerContext()
+  const canLoad = useMediaState("canLoad")
+  const canPlay = useMediaState("canPlay")
+  const waiting = useMediaState("waiting")
+  const preload = useMediaState("preload")
+  const error = useMediaState("error")
+  const messages = useUiMessages().player
+  if (!canLoad || (!waiting && (canPlay || preload === "none")) || error) {
+    return null
+  }
+  return (
+    <div
+      {...props}
+      className={playerStyles().feedback({ className })}
+      role="status"
+    >
+      {children ?? (
+        <>
+          <Icon
+            className={playerStyles().loadingIcon()}
+            icon="token-icon-loading"
+            size="current"
+          />
+          <span>{messages.loading}</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+Player.Error = function PlayerError({
+  children,
+  className,
+  ...props
+}: Omit<ComponentProps<"div">, "children"> & {
+  children?: PlayerPresetSlots["error"]
+}) {
+  const { retry } = usePlayerContext()
+  const error = useMediaState("error")
+  const messages = useUiMessages().player
+  const player = useMediaPlayer()
+  useEffect(() => {
+    // A failed source cannot reach can-play, where Vidstack normally clears busy.
+    if (error) {
+      player?.el?.setAttribute("aria-busy", "false")
+    }
+  }, [error, player])
+  if (!error) {
+    return null
+  }
+  return (
+    <div
+      {...props}
+      className={playerStyles().feedback({ className })}
+      role="alert"
+    >
+      {typeof children === "function"
+        ? children({ error, retry })
+        : (children ?? (
+            <>
+              <span>{messages.error}</span>
+              <Button onClick={retry} type="button">
+                {messages.retry}
+              </Button>
+            </>
+          ))}
+    </div>
+  )
+}
+
+Player.Captions = function PlayerCaptions({
+  className,
+  ...props
+}: ComponentProps<typeof MediaCaptions>) {
+  usePlayerContext()
+  return (
+    <MediaCaptions
+      {...props}
+      className={playerStyles().captions({ className })}
+    />
+  )
+}
+
+Player.CaptionButton = function PlayerCaptionButton({
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: Omit<ComponentProps<typeof MediaCaptionButton>, "asChild" | "children">) {
+  usePlayerContext()
+  const hasCaptions = useMediaState("hasCaptions")
+  const textTrack = useMediaState("textTrack")
+  const messages = useUiMessages().player
+  if (!hasCaptions) {
+    return null
+  }
+  const captionsOn = textTrack !== null && isTrackCaptionKind(textTrack)
+  const label =
+    ariaLabel ??
+    (captionsOn ? messages.disableCaptions : messages.enableCaptions)
+  return (
+    <Tooltip content={label}>
+      <MediaCaptionButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={
+            captionsOn
+              ? "token-icon-player-captions"
+              : "token-icon-player-captions-off"
+          }
+          size="lg"
+          type="button"
+        />
+      </MediaCaptionButton>
+    </Tooltip>
+  )
+}
+
+Player.Gestures = function PlayerGestures() {
+  usePlayerContext()
+  return (
+    <Gesture
+      action="toggle:paused"
+      className={playerStyles().gesture()}
+      event="pointerup"
+    />
+  )
+}
+
+Player.Announcer = function PlayerAnnouncer(
+  props: ComponentProps<typeof MediaAnnouncer>
+) {
+  usePlayerContext()
+  const messages = useUiMessages().player
+  return (
+    <MediaAnnouncer
+      {...props}
+      translations={{
+        Play: messages.play,
+        Pause: messages.pause,
+        Mute: messages.mute,
+        Volume: messages.volume,
+        "Enter Fullscreen": messages.enterFullscreen,
+        "Exit Fullscreen": messages.exitFullscreen,
+        "Seek Forward": messages.seekForwardAnnouncement,
+        "Seek Backward": messages.seekBackwardAnnouncement,
+        "Enter PiP": messages.enterPictureInPicture,
+        "Exit PiP": messages.exitPictureInPicture,
+        "Closed-Captions On": messages.enableCaptions,
+        "Closed-Captions Off": messages.disableCaptions,
+        ...props.translations,
+      }}
     />
   )
 }

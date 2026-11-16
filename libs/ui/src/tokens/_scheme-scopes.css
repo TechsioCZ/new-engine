@@ -1136,6 +1136,15 @@
       30%
     );
     --color-player-video-bg: var(--color-player-media-surface);
+    --color-player-feedback-bg: var(--color-player-surface);
+    --color-player-feedback-fg: var(--color-player-content);
+    --color-player-video-feedback-bg: --alpha(
+      var(--color-player-media-surface) /
+      90%
+    );
+    --color-player-video-feedback-fg: var(--color-player-media-content);
+    --color-player-caption-bg: --alpha(var(--color-player-media-surface) / 90%);
+    --color-player-caption-fg: var(--color-player-media-content);
     --color-player-scrim-bg: --alpha(var(--color-player-media-surface) / 90%);
     --color-player-track-bg: var(--color-fill-hover);
     --color-player-track-progress-bg: var(--color-fill-active);
@@ -1157,8 +1166,20 @@
     --padding-player-root: var(--spacing-150);
     --padding-player-control: var(--spacing-200);
     --padding-player-video-control: var(--spacing-100);
+    --padding-player-feedback: var(--spacing-150);
+    --padding-player-caption: var(--spacing-100);
+    --padding-player-caption-cue: var(--spacing-50);
+    --spacing-player-caption-controls: calc(
+      var(--size-player-slider) +
+      var(--size-icon-control-lg) +
+      var(--padding-player-video-control) *
+      2 +
+      var(--gap-player-video-control) +
+      var(--padding-player-caption)
+    );
     --gap-player-control: var(--spacing-150);
     --gap-player-video-control: var(--spacing-50);
+    --gap-player-feedback: var(--spacing-100);
     --size-player-slider: var(--spacing-400);
     --size-player-track: var(--spacing-100);
     --size-player-thumb: var(--spacing-200);
@@ -1167,9 +1188,16 @@
     --border-width-player: var(--border-width-sm);
     --text-player-time: var(--text-sm);
     --text-player-title: var(--text-md);
+    --text-player-feedback: var(--text-sm);
+    --text-player-loading-icon: var(--text-xl);
+    --text-player-caption: var(--text-sm);
+    --font-player-caption: var(--font-sans);
+    --radius-player-caption: var(--radius-sm);
     --font-weight-player-time: var(--font-weight-medium);
     --font-weight-player-title: var(--font-weight-semibold);
     --z-index-player-controls: calc(var(--z-index) + 1);
+    --z-index-player-captions: var(--z-index);
+    --z-index-player-feedback: calc(var(--z-index-player-controls) + 1);
     --arrow-size: var(--spacing-popover-arrow-size);
     --arrow-background: var(--color-popover-arrow);
     --padding-popover-trigger: var(--spacing-100) var(--spacing-150);

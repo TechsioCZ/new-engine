@@ -52,7 +52,7 @@ export default [
             "^data-\\[position=start\\]:justify-items-start-safe$",
             "^duration-header$",
             "^force-reduced-motion$",
-            "^vds-(poster|time-slider|volume-slider|slider(?:-track(?:-fill)?|-progress|-thumb)?)$",
+            "^vds-(captions|poster|time-slider|volume-slider|slider(?:-track(?:-fill)?|-progress|-thumb)?)$",
           ],
         },
       ],

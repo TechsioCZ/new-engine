@@ -6,11 +6,23 @@ import { Player } from "../../src/molecules/player"
 
 const AUDIO_SRC = "https://files.vidstack.io/sprite-fight/audio.mp3"
 
+// SDK events expose state proxies; record calls without serializing the event.
+const playSpy = fn().mockName("onPlay")
+const pauseSpy = fn().mockName("onPause")
+
 const meta: Meta<typeof Player> = {
   title: "Molecules/Player",
   component: Player,
   tags: ["autodocs"],
-  parameters: { layout: "padded" },
+  parameters: {
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "A compound media player with provider, captions, feedback, gestures and accessible controls. Choose AudioPlayer or VideoPlayer when their assembled layout fits the task.",
+      },
+    },
+  },
   argTypes: {
     muted: { control: "boolean" },
     volume: { control: { type: "range", min: 0, max: 1, step: 0.1 } },
@@ -19,8 +31,8 @@ const meta: Meta<typeof Player> = {
     src: AUDIO_SRC,
     title: "Sample audio",
     viewType: "audio",
-    onPlay: fn(),
-    onPause: fn(),
+    onPlay: () => playSpy(),
+    onPause: () => pauseSpy(),
   },
 }
 
@@ -28,6 +40,14 @@ export default meta
 type Story = StoryObj<typeof Player>
 
 export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Compose the provider and controls under one Player root so keyboard shortcuts, media state and localized control names stay connected.",
+      },
+    },
+  },
   render: (args) => (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-200">
       <p>
@@ -40,6 +60,7 @@ export const Playground: Story = {
         className="rounded-player border-(length:--border-width-player) border-player-border bg-player-bg"
       >
         <Player.Provider />
+        <Player.Announcer />
         <Player.Controls>
           <Player.ControlGroup>
             <Player.PlayButton />
@@ -60,6 +81,14 @@ export const Playground: Story = {
 
 export const Localized: Story = {
   ...Playground,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The app message catalog supplies control names that follow playback and mute state without changing the compound composition.",
+      },
+    },
+  },
   args: { title: undefined },
   decorators: [
     (Story) => (
@@ -115,15 +144,23 @@ function FormExample(args: ComponentProps<typeof Player>) {
 }
 
 export const InForm: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Media controls remain ordinary buttons inside a form, changing playback state without incrementing its submission count.",
+      },
+    },
+  },
   render: (args) => <FormExample {...args} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await waitFor(
       () =>
         expect(
-          canvasElement.querySelector("[data-media-player]")
+          canvasElement.querySelector("[data-media-player]"),
         ).toHaveAttribute("data-can-play", ""),
-      { timeout: 10_000 }
+      { timeout: 10_000 },
     )
     const mute = await canvas.findByRole("button", { name: "Mute" })
     await userEvent.click(mute)

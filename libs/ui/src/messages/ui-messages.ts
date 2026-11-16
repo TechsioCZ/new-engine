@@ -152,6 +152,15 @@ export type UiMessages = {
     unmute: string
     enterFullscreen: string
     exitFullscreen: string
+    seekForwardAnnouncement: string
+    seekBackwardAnnouncement: string
+    enterPictureInPicture: string
+    exitPictureInPicture: string
+    loading: string
+    error: string
+    retry: string
+    enableCaptions: string
+    disableCaptions: string
     seekForward: (seconds: number) => string
     seekBackward: (seconds: number) => string
     seek: string
@@ -331,6 +340,15 @@ export const enUiMessages: UiMessages = {
     unmute: "Unmute",
     enterFullscreen: "Enter Fullscreen",
     exitFullscreen: "Exit Fullscreen",
+    seekForwardAnnouncement: "Seek forward",
+    seekBackwardAnnouncement: "Seek backward",
+    enterPictureInPicture: "Enter picture-in-picture",
+    exitPictureInPicture: "Exit picture-in-picture",
+    loading: "Loading media...",
+    error: "This media could not be loaded.",
+    retry: "Try again",
+    enableCaptions: "Enable captions",
+    disableCaptions: "Disable captions",
     seekForward: (seconds) => `Seek forward ${seconds} seconds`,
     seekBackward: (seconds) => `Seek backward ${seconds} seconds`,
     seek: "Seek",

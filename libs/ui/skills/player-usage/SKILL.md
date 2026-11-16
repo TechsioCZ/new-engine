@@ -6,7 +6,7 @@ description: >
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
 metadata:
-  component_version: "1.0.1"
+  component_version: "1.1.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -36,6 +36,11 @@ import { Player } from "@techsio/ui-kit/molecules/player"
 <Player src="https://example.com/media.mp4" poster="https://example.com/poster.jpg">
   <Player.Provider />
   <Player.Poster />
+  <Player.Gestures />
+  <Player.Captions />
+  <Player.Loading />
+  <Player.Error />
+  <Player.Announcer />
   <Player.Controls className="player-overlay absolute inset-x-0 bottom-0 z-player-controls">
     <Player.ControlGroup>
       <Player.PlayButton />
@@ -44,6 +49,7 @@ import { Player } from "@techsio/ui-kit/molecules/player"
       <Player.Time type="duration" />
       <Player.MuteButton />
       <Player.VolumeSlider />
+      <Player.CaptionButton />
       <Player.FullscreenButton />
     </Player.ControlGroup>
   </Player.Controls>
@@ -58,6 +64,69 @@ Toggle buttons expose aria-pressed and accept aria-label for localization.
 pass a non-empty `alt` when the poster conveys information that is not already
 covered by the player title.
 The sliders are horizontal and own their track and thumb markup.
+
+## Media props and text tracks
+
+The root accepts Vidstack `MediaPlayer` props, including `preload`,
+`crossOrigin`, `playbackRate`, `currentTime`, playback events and `ref`. The ref
+targets the media player instance. Set a meaningful `title` or `aria-label`.
+
+`Player.Provider` accepts `tracks?: readonly PlayerTextTrack[]`. Every track
+requires a stable, unique `id` and `kind`; use `language` for its language tag
+(`lang` is also supported). Pass a track URL with `src`, or inline text with
+`content`. Only one track of a kind should be the default.
+
+```tsx
+import { Player } from "@techsio/ui-kit/molecules/player"
+
+<Player src="https://example.com/media.mp4" title="Product film">
+  <Player.Provider
+    tracks={[{
+      id: "english",
+      kind: "subtitles",
+      language: "en",
+      label: "English",
+      default: true,
+      content: "WEBVTT\n\n00:00.000 --> 00:30.000\nProduct film subtitles.\n",
+    }]}
+  />
+  <Player.Captions />
+  <Player.Controls>
+    <Player.ControlGroup>
+      <Player.PlayButton />
+      <Player.CaptionButton />
+    </Player.ControlGroup>
+  </Player.Controls>
+</Player>
+```
+
+`Player.Captions` renders the active subtitle/caption cues.
+`Player.CaptionButton` toggles captions and is available only when the media
+has caption/subtitle tracks. Keep it with the other controls so it remains
+keyboard accessible.
+
+## Compound reference
+
+All parts belong inside the same `Player` root. Provider and control props
+follow the corresponding Vidstack primitive; each control owns its localized
+accessible label, with explicit `aria-label` taking precedence.
+
+| Part | Responsibility |
+| --- | --- |
+| `Player.Provider` | Creates the native media/provider and registers the optional `tracks` array. |
+| `Player.Poster` | Decorative poster by default; a meaningful `alt` exposes informative content. |
+| `Player.Controls`, `Player.ControlGroup`, `Player.Control` | Own control visibility and group custom layouts. |
+| `Player.PlayButton`, `Player.MuteButton`, `Player.SeekButton`, `Player.FullscreenButton` | Keyboard-accessible actions; buttons never submit their enclosing form. |
+| `Player.TimeSlider`, `Player.VolumeSlider`, `Player.Time` | Horizontal seeking/volume controls and readable time. |
+| `Player.Captions`, `Player.CaptionButton` | Render active cues and toggle available captions. |
+| `Player.Loading` | Shows localized loading feedback while the provider waits; custom children replace its content. |
+| `Player.Error` | Shows a localized error alert with retry; custom children or `({ error, retry }) => ReactNode` replace its content. |
+| `Player.Gestures` | Adds pointer playback behavior on the media surface. |
+| `Player.Announcer` | Announces relevant media state changes using the app's player translations. |
+
+Default retry reloads the provider. A custom error action should call the
+provided `retry` callback rather than reloading the page. These parts react to
+real media state; do not fake loading or error state with CSS.
 
 ## Core Patterns
 

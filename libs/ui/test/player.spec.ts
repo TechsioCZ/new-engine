@@ -1,11 +1,19 @@
-import { expect, test } from "@playwright/test"
+import { expect, type Page, test } from "@playwright/test"
 import { installPlayerMediaFixture } from "./player-media-fixture"
 
 const PLAY_LABEL = /^(Play|Pause)$/
 const MUTE_LABEL = /^(Mute|Unmute)$/
+const pageErrors = new WeakMap<Page, string[]>()
 
 test.beforeEach(async ({ page }) => {
+  const errors: string[] = []
+  pageErrors.set(page, errors)
+  page.on("pageerror", (error) => errors.push(error.message))
   await installPlayerMediaFixture(page)
+})
+
+test.afterEach(({ page }) => {
+  expect(pageErrors.get(page), "unhandled browser errors").toEqual([])
 })
 
 test("audio cover leaves room for visible, usable sliders", async ({
@@ -223,14 +231,21 @@ test("video preset controls drive native playback and fullscreen", async ({
     )
     .toBeGreaterThan(0)
   await play.click()
-  await page
-    .getByRole("button", { name: "Seek forward 10 seconds", exact: true })
-    .click()
+  const forward = page.getByRole("button", {
+    name: "Seek forward 10 seconds",
+    exact: true,
+  })
+  if (await forward.isVisible()) {
+    await forward.click()
+  } else {
+    await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+    await page.keyboard.press("ArrowRight")
+  }
   await expect
     .poll(() =>
       page.evaluate(() => document.querySelector("video")?.currentTime)
     )
-    .toBeGreaterThan(9)
+    .toBeGreaterThan(4)
   const fullscreen = page.getByRole("button", {
     name: "Enter Fullscreen",
     exact: true,
@@ -243,4 +258,193 @@ test("video preset controls drive native playback and fullscreen", async ({
       .click()
     await expect(player).not.toHaveAttribute("data-fullscreen", "")
   }
+})
+
+test("video plays inline and surface gestures do not double-toggle controls", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect
+    .poll(() =>
+      page
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.playsInline)
+    )
+    .toBe(true)
+  if (isMobile) {
+    await player.tap({ position: { x: 30, y: 30 } })
+  } else {
+    await player.click({ position: { x: 30, y: 30 } })
+  }
+  await expect(player).toHaveAttribute("data-playing", "")
+  await expect(player).not.toHaveAttribute("data-fullscreen", "")
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await expect(player).toHaveAttribute("data-paused", "")
+})
+
+test("failed media offers retry and recovers when the source becomes available", async ({
+  page,
+}) => {
+  let requests = 0
+  await page.route("**/sprite-fight/480p.mp4", async (route) => {
+    requests += 1
+    if (requests === 1) {
+      await route.fulfill({ status: 404, body: "Missing media" })
+    } else {
+      await route.fallback()
+    }
+  })
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  await expect(page.getByRole("alert")).toContainText(
+    "This media could not be loaded."
+  )
+  await expect(page.locator("[data-media-player]")).toHaveAttribute(
+    "aria-busy",
+    "false"
+  )
+  await page.getByRole("button", { name: "Try again", exact: true }).click()
+  await expect(page.locator("[data-media-player]")).toHaveAttribute(
+    "data-can-play",
+    ""
+  )
+  await expect(page.getByRole("alert")).toHaveCount(0)
+  expect(requests).toBeGreaterThan(1)
+})
+
+test("pending media shows loading feedback and clears it when ready", async ({
+  page,
+}) => {
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route("**/sprite-fight/480p.mp4", async (route) => {
+    await pending
+    await route.fallback()
+  })
+  try {
+    await page.goto(
+      "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+    )
+    await expect(
+      page
+        .getByRole("status", { name: "", exact: true })
+        .filter({ hasText: "Loading media" })
+    ).toBeVisible()
+    release()
+    await expect(page.locator("[data-media-player]")).toHaveAttribute(
+      "data-can-play",
+      ""
+    )
+    await expect(
+      page.getByText("Loading media...", { exact: true })
+    ).toHaveCount(0)
+  } finally {
+    release()
+  }
+})
+
+test("caption tracks can be toggled and remain above the video toolbar", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 650 })
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--captioned&viewMode=story"
+  )
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  const seek = page.getByRole("slider", { name: "Seek", exact: true })
+  await seek.focus()
+  await page.keyboard.press("ArrowRight")
+  await expect
+    .poll(() =>
+      page
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.currentTime)
+    )
+    .toBeGreaterThan(4)
+  const caption = page.locator(".player-captions [data-part='cue']")
+  await expect(caption).toContainText("English subtitles")
+  const toolbar = page.locator(".player-video-controls")
+  await expect
+    .poll(async () => {
+      const cueBox = await caption.boundingBox()
+      const toolbarBox = await toolbar.boundingBox()
+      return (cueBox?.y ?? 0) + (cueBox?.height ?? 0) - (toolbarBox?.y ?? 0)
+    })
+    .toBeLessThanOrEqual(0)
+  await page
+    .getByRole("button", { name: "Disable captions", exact: true })
+    .click()
+  await expect(caption).toBeHidden()
+  await page
+    .getByRole("button", { name: "Enable captions", exact: true })
+    .click()
+  await expect(caption).toBeVisible()
+  await expect(caption).toContainText("English subtitles")
+})
+
+test("custom preset controls retain media context and forwarded playback props", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-audioplayer--custom-controls&viewMode=story"
+  )
+  await expect(page.getByText("Loading media...", { exact: true })).toHaveCount(
+    0
+  )
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await expect
+    .poll(() =>
+      page
+        .locator("audio")
+        .evaluate((audio: HTMLAudioElement) => audio.playbackRate)
+    )
+    .toBe(1.25)
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--custom-content&viewMode=story"
+  )
+  await page
+    .getByRole("button", { name: "Show transcript", exact: true })
+    .click()
+  await expect(
+    page.getByRole("region", { name: "Video transcript" })
+  ).toBeVisible()
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await expect(page.locator("[data-media-player]")).toHaveAttribute(
+    "data-playing",
+    ""
+  )
+})
+
+test("audio errors fit a narrow cover layout and keep retry usable", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 650 })
+  await page.route("**/sprite-fight/audio.mp3", (route) =>
+    route.fulfill({ status: 404, body: "Missing audio" })
+  )
+  await page.goto(
+    "/iframe.html?id=molecules-audioplayer--with-title-and-cover&viewMode=story"
+  )
+  const alert = page.getByRole("alert")
+  await expect(alert).toBeVisible()
+  const player = await page.locator("[data-media-player]").boundingBox()
+  const feedback = await alert.boundingBox()
+  expect(feedback?.y).toBeGreaterThanOrEqual(player?.y ?? 0)
+  expect((feedback?.y ?? 0) + (feedback?.height ?? 0)).toBeLessThanOrEqual(
+    (player?.y ?? 0) + (player?.height ?? 0)
+  )
+  await expect(
+    page.getByRole("button", { name: "Play", exact: true })
+  ).toBeHidden()
+  await expect(
+    page.getByRole("button", { name: "Try again", exact: true })
+  ).toBeVisible()
 })
