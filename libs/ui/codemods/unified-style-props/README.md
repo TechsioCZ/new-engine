@@ -4,14 +4,20 @@ Migrates `@techsio/ui-kit` consumers to the unified style props:
 `appearance` (fill style), `severity` (color), `validateStatus` (validation)
 and `size` (size scale only).
 
+The codemod is not published with the package. Run it from a new-engine
+checkout (it uses that checkout's `typescript`) against the consumer's sources:
+
 ```sh
-node libs/ui/codemods/unified-style-props/index.mjs <path> [more paths…] [--dry]
+node <new-engine>/libs/ui/codemods/unified-style-props/index.mjs <app>/src [more paths…] [--dry]
+# the kit's own stories and tests import the kit through relative paths:
+node libs/ui/codemods/unified-style-props/index.mjs libs/ui/stories libs/ui/tests --kit-src libs/ui/src
 ```
 
-It parses `.ts` / `.tsx` / `.jsx` files with the TypeScript compiler, touches
-only JSX elements imported from `@techsio/ui-kit/...` (or the library's own
-`src/` and relative paths), and edits text in place, so formatting and comments
-survive. Run your formatter and type checker afterwards.
+It parses `.ts` / `.tsx` / `.jsx` files with the TypeScript compiler and edits
+text in place, so formatting and comments survive. Only JSX elements imported
+from `@techsio/ui-kit/...` count as the kit — plus relative imports that
+resolve into a `--kit-src` directory. A project's own `./atoms/button` is never
+taken for the kit. Run your formatter and type checker afterwards.
 
 ## What it rewrites
 
@@ -36,8 +42,7 @@ survive. Run your formatter and type checker afterwards.
 | Textarea, FormTextarea | `variant="error"` / `"borderless"` | `validateStatus="error"` / `appearance="ghost"` |
 | Sidebar.Pane | `size="rail"` | `paneSize="rail"` |
 | ProductCard.Button | `buttonVariant` | `action` |
-| any object literal | `theme: "outlined"` (Button themes) | `appearance: "outline"` |
-| TotalsSummary rows | `emphasis: "default"` | `severity: "neutral"` |
+| TotalsSummary rows (`{ label, value, … }`, any import alias) | `emphasis: "default"` | `severity: "neutral"` |
 
 String literals an expression can evaluate to are mapped too — ternary
 branches, `||` / `??` operands and the right side of `&&`
@@ -54,6 +59,11 @@ Literals in conditions and comparisons are left alone
 - A computed TotalsSummary `emphasis` keeps its logic: the key becomes
   `severity`, its literals are mapped (`"default"` → `"neutral"`), and it is
   listed when a value is not a literal.
+- Object literals are data the codemod cannot type, so they are never
+  rewritten: a `theme: "outlined"` key is listed with its replacement
+  (`appearance: "outline"`) for you to apply where it feeds Button props,
+  such as DataTable toolbar actions. Stored settings stay untouched.
+- An `emphasis` key outside a TotalsSummary row shape is listed, not changed.
 - Wrapper components, spread props, Storybook `args` / `argTypes` and data
   objects with a `variant` key are not rewritten; the type checker lists them.
 

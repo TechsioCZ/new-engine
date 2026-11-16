@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest"
 import { Badge } from "../src/atoms/badge"
 import { Button } from "../src/atoms/button"
 import { Icon } from "../src/atoms/icon"
+import { ImageWithFallback } from "../src/atoms/image"
 import { Tooltip } from "../src/atoms/tooltip"
 import { SearchForm } from "../src/molecules/search-form"
+import { Select } from "../src/molecules/select"
 import { Tabs } from "../src/molecules/tabs"
 import { BASE_UI_DEFAULTS, brandUIDefaults } from "../src/theme/theme-config"
 import { UIProvider, useUIDefaults } from "../src/theme/ui-provider"
@@ -231,5 +233,38 @@ describe("migration regressions", () => {
         </Tabs.Trigger>
       )
     ).not.toContain("bg-button-bg-primary-base")
+  })
+
+  it("sizes ImageWithFallback from the Image provider entry", () => {
+    const markup = renderToStaticMarkup(
+      <UIProvider components={{ Image: { size: "sm" } }}>
+        <ImageWithFallback alt="Mug" src="/mug.png" />
+      </UIProvider>
+    )
+    expect(markup).toContain("size-image-sm")
+  })
+
+  it("keeps the Select item check on the text size under a global Icon size", () => {
+    const markup = renderToStaticMarkup(
+      <UIProvider components={{ Icon: { size: "2xl" } }}>
+        <Select
+          defaultOpen
+          defaultValue={["cz"]}
+          items={[{ label: "Czechia", value: "cz" }]}
+          size="sm"
+        >
+          <Select.Positioner>
+            <Select.Content>
+              <Select.Item item={{ label: "Czechia", value: "cz" }}>
+                <Select.ItemText />
+                <Select.ItemIndicator />
+              </Select.Item>
+            </Select.Content>
+          </Select.Positioner>
+        </Select>
+      </UIProvider>
+    )
+    expect(markup).toContain("token-icon-select-check")
+    expect(markup).not.toContain("text-icon-2xl")
   })
 })

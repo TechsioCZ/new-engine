@@ -71,14 +71,65 @@ describe("unified-style-props codemod", () => {
     )
   })
 
-  it("treats compound triggers as Button props and rewrites theme objects", () => {
+  it("treats compound triggers as Button props", () => {
     const out = run(
-      `${imports}<Tabs.Trigger theme="solid" variant="secondary" />; const action = { theme: "outlined", label: "Go" }`
+      `${imports}<Tabs.Trigger theme="solid" variant="secondary" />`
     )
     expect(out).toContain(
       '<Tabs.Trigger appearance="solid" severity="secondary" />'
     )
-    expect(out).toContain('{ appearance: "outline", label: "Go" }')
+  })
+
+  it("reports theme in object literals instead of rewriting data", () => {
+    const source = `${imports}const action = { theme: "outlined", label: "Go" }
+localStorage.setItem("prefs", JSON.stringify({ theme: "light" }))`
+    const result = transformSource("example.tsx", source) as {
+      text: string
+      notes: string[]
+    }
+    expect(result.text).toBe(source)
+    const notes = result.notes.join("\n")
+    expect(notes).toContain('theme: "outlined"')
+    expect(notes).toContain('appearance: "outline"')
+    expect(notes).toContain('theme: "light"')
+  })
+
+  it("never takes a project's own relative component for the kit", () => {
+    const source = `import { Button } from "./atoms/button"
+<Button variant="danger" theme="outlined" />`
+    expect(run(source)).toBe(source)
+  })
+
+  it("migrates relative imports that resolve into --kit-src", () => {
+    const source = `import { Button } from "../../src/atoms/button"
+<Button variant="danger" theme="outlined" />`
+    const result = transformSource(
+      "/repo/libs/ui/stories/atoms/x.tsx",
+      source,
+      {
+        kitSources: ["/repo/libs/ui/src"],
+      }
+    ) as { text: string }
+    expect(result.text).toContain(
+      '<Button severity="danger" appearance="outline" />'
+    )
+    const elsewhere = transformSource("/repo/app/stories/atoms/x.tsx", source, {
+      kitSources: ["/repo/libs/ui/src"],
+    }) as { text: string }
+    expect(elsewhere.text).toBe(source)
+  })
+
+  it("migrates TotalsSummary rows under an aliased import, and only rows", () => {
+    const source = `import { TotalsSummary as Summary } from "@techsio/ui-kit/molecules/totals-summary"
+const rows = [{ id: "a", label: "Sale", value: "1", emphasis: "discount" }]
+const unrelated = { emphasis: "default", mode: "x" }`
+    const result = transformSource("example.tsx", source) as {
+      text: string
+      notes: string[]
+    }
+    expect(result.text).toContain('value: "1", severity: "discount" }')
+    expect(result.text).toContain('{ emphasis: "default", mode: "x" }')
+    expect(result.notes.join("\n")).toContain("outside a TotalsSummary row")
   })
 
   it("never rewrites literals in conditions or comparisons", () => {

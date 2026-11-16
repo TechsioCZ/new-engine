@@ -363,7 +363,7 @@ Accordion.Indicator = function AccordionIndicator({
         className={styles.icon()}
         data-state={isExpanded ? "expanded" : "collapsed"}
         icon={icon}
-        size={iconSize}
+        size={iconSize ?? "current"}
       />
     </span>
   )

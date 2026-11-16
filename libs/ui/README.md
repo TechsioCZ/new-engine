@@ -177,14 +177,16 @@ component keeps its own default.
 ### Migrating from `variant` / `theme` / `tone`
 
 ```sh
-node libs/ui/codemods/unified-style-props/index.mjs src            # rewrite
-node libs/ui/codemods/unified-style-props/index.mjs src --dry      # preview
+# from a new-engine checkout, against the app's sources
+node <new-engine>/libs/ui/codemods/unified-style-props/index.mjs <app>/src           # rewrite
+node <new-engine>/libs/ui/codemods/unified-style-props/index.mjs <app>/src --dry     # preview
 ```
 
 The codemod rewrites JSX props and literal values (`theme="outlined"` →
 `appearance="outline"`, Button `variant` → `severity`, Badge
 `variant="outline"` → `appearance="outline" severity="neutral"`, Input
-`variant` → `validateStatus`, …) and lists the computed values it could not map.
+`variant` → `validateStatus`, …) and lists what it could not map: computed values, and object literals (it
+never rewrites data such as stored settings).
 Run your type checker afterwards; story `args`, wrapper components and
 data objects are reported there. The full table is in
 `codemods/unified-style-props/README.md`.

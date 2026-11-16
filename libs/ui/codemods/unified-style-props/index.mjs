@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-// Codemod for the @techsio/ui-kit unified style props.
+// Codemod for the @techsio/ui-kit unified style props. It is not published
+// with the package; run it from a new-engine checkout (it uses that checkout's
+// `typescript`) against the consumer's sources:
 //
-//   node node_modules/@techsio/ui-kit/codemods/unified-style-props/index.mjs src [more paths…] [--dry]
+//   node <new-engine>/libs/ui/codemods/unified-style-props/index.mjs <app>/src [more paths…] [--dry]
+//   node libs/ui/codemods/unified-style-props/index.mjs libs/ui/stories --kit-src libs/ui/src
 //
-// Rewrites JSX props on ui-kit components (and DataTable action / story args
-// object literals carrying a Button `theme`) to the new names:
+// Only imports from `@techsio/ui-kit/...` count as the kit, plus relative
+// imports that resolve into a `--kit-src` directory (the kit's own repo).
+// Rewrites JSX props on ui-kit components to the new names:
 //   Button family   theme → appearance (light→subtle, outlined→outline,
 //                   borderless→ghost, "unstyled"→ boolean unstyled),
 //                   variant → severity
@@ -18,19 +22,29 @@
 //   Sidebar.Pane    size → paneSize         ProductCard.Button buttonVariant → action
 //   TotalsSummary rows   emphasis → severity
 //
-// Only string literals (and string literals inside an expression) are mapped.
+// Only string literals (and the literals an expression can return) are mapped.
+// Object literals are reported, not rewritten, except TotalsSummary rows.
 // Run TypeScript afterwards: anything the codemod could not see (spread props,
-// values built at runtime) surfaces as a type error.
+// values built at runtime, Button-shaped data objects) surfaces as a type error.
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { transformSource } from "./transform.mjs"
 
 const args = process.argv.slice(2)
 const dry = args.includes("--dry")
-const roots = args.filter((arg) => !arg.startsWith("--"))
+const kitSources = []
+const roots = []
+for (let i = 0; i < args.length; i += 1) {
+  if (args[i] === "--kit-src") {
+    kitSources.push(path.resolve(args[i + 1] ?? ""))
+    i += 1
+  } else if (!args[i].startsWith("--")) {
+    roots.push(args[i])
+  }
+}
 if (roots.length === 0) {
   process.stderr.write(
-    "usage: unified-style-props/index.mjs <path> [more paths…] [--dry]\n"
+    "usage: unified-style-props/index.mjs <path> [more paths…] [--kit-src <dir>] [--dry]\n"
   )
   process.exit(1)
 }
@@ -64,7 +78,7 @@ const allNotes = []
 for (const root of roots) {
   for (const file of files(root)) {
     const before = readFileSync(file, "utf8")
-    const { text, notes } = transformSource(file, before)
+    const { text, notes } = transformSource(file, before, { kitSources })
     allNotes.push(...notes)
     if (text !== before) {
       changed += 1

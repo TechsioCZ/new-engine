@@ -142,12 +142,14 @@ function ImageFallbackContent<T extends ElementType = "img">({
   as,
   src,
   alt,
-  size,
+  size: sizeProp,
   objectFit,
   className,
   fallbackLabel,
   ...props
 }: ImageWithFallbackProps<T>) {
+  // The fallback box sizes like Image, so it follows the same provider entry.
+  const { size } = useUIDefaults("Image", { size: sizeProp }, imageVariants)
   const [failed, setFailed] = useState(!src)
   const [loaded, setLoaded] = useState(false)
   const pending = !(failed || loaded)

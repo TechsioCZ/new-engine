@@ -1,18 +1,43 @@
+import path from "node:path"
 import ts from "typescript"
 import { ruleFor, THEME_TO_APPEARANCE } from "./rules.mjs"
 
-const UI_MODULE =
-  /(?:^@techsio\/ui-kit\/|(?:^|\/)src\/|^\.\.?\/)(?:.*\/)?(atoms|molecules|organisms|templates)\/[a-z0-9-]+$/
+const PACKAGE_MODULE =
+  /^@techsio\/ui-kit\/(atoms|molecules|organisms|templates)\/[a-z0-9-]+$/
+const KIT_PATH = /(?:^|\/)(atoms|molecules|organisms|templates)\/[a-z0-9-]+$/
+
+/**
+ * A module is the ui-kit when imported from the package, or — only when the
+ * caller passes `kitSources` (the kit's own src directories) — when a relative
+ * import resolves into one of them. A project's own `./atoms/button` is never
+ * taken for the kit by its name alone.
+ */
+function isKitModule(specifier, fileName, kitSources) {
+  if (PACKAGE_MODULE.test(specifier)) {
+    return true
+  }
+  if (!(specifier.startsWith(".") && KIT_PATH.test(specifier))) {
+    return false
+  }
+  const resolved = path.resolve(path.dirname(fileName), specifier)
+  return kitSources.some(
+    (dir) => resolved === dir || resolved.startsWith(`${dir}${path.sep}`)
+  )
+}
 
 /** Local identifier → exported component name, for ui-kit imports only. */
-function uiImports(sourceFile) {
+function uiImports(sourceFile, kitSources) {
   const names = new Map()
   for (const statement of sourceFile.statements) {
     if (
       !(
         ts.isImportDeclaration(statement) &&
         ts.isStringLiteral(statement.moduleSpecifier) &&
-        UI_MODULE.test(statement.moduleSpecifier.text)
+        isKitModule(
+          statement.moduleSpecifier.text,
+          sourceFile.fileName,
+          kitSources
+        )
       )
     ) {
       continue
@@ -186,10 +211,60 @@ function transformJsx(node, imports, edits, notes, sourceFile) {
 
 const THEME_VALUES = new Set([...Object.keys(THEME_TO_APPEARANCE), "unstyled"])
 
-/** Object literals such as DataTable toolbar actions or story args. */
 const EMPHASIS_RULE = { map: (v) => (v === "default" ? "neutral" : v) }
 
-function transformObject(node, edits, notes, sourceFile, emphasisFile) {
+const lineOf = (node, sourceFile) =>
+  sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
+
+/** A TotalsSummary row: `{ id, label, value, emphasis?, note? }`. */
+function isSummaryRow(node) {
+  const keys = new Set(
+    node.properties
+      .filter((p) => p.name && ts.isIdentifier(p.name))
+      .map((p) => p.name.text)
+  )
+  return keys.has("label") && keys.has("value")
+}
+
+function migrateEmphasis(property, edits, notes, sourceFile) {
+  const where = `${sourceFile.fileName}:${lineOf(property, sourceFile)} TotalsSummary row`
+  if (ts.isStringLiteral(property.initializer)) {
+    edits.push({
+      start: property.getStart(sourceFile),
+      end: property.getEnd(),
+      text: `severity: "${EMPHASIS_RULE.map(property.initializer.text)}"`,
+    })
+    return
+  }
+  // Computed: rename the key, map its result literals, keep the logic.
+  edits.push({
+    start: property.name.getStart(sourceFile),
+    end: property.name.getEnd(),
+    text: "severity",
+  })
+  const outcome = mapValues(
+    property.initializer,
+    EMPHASIS_RULE,
+    edits,
+    sourceFile
+  )
+  reviewNote(
+    notes,
+    where,
+    "severity",
+    property.initializer,
+    sourceFile,
+    outcome
+  )
+}
+
+/**
+ * Object literals are data the codemod cannot type: a `theme` key may be a
+ * DataTable action or an app's stored setting. They are reported, never
+ * rewritten. TotalsSummary rows are the one exception — recognised by their
+ * `label` + `value` shape in a file that imports TotalsSummary.
+ */
+function transformObject(node, edits, notes, sourceFile, summaryFile) {
   for (const property of node.properties) {
     if (
       !(ts.isPropertyAssignment(property) && ts.isIdentifier(property.name))
@@ -197,49 +272,28 @@ function transformObject(node, edits, notes, sourceFile, emphasisFile) {
       continue
     }
     const key = property.name.text
-    const value = ts.isStringLiteral(property.initializer)
-      ? property.initializer.text
-      : null
-    const replace = (text) =>
-      edits.push({
-        start: property.getStart(sourceFile),
-        end: property.getEnd(),
-        text,
-      })
-    if (key === "theme" && value && THEME_VALUES.has(value)) {
-      replace(
+    const where = `${sourceFile.fileName}:${lineOf(property, sourceFile)}`
+    if (
+      key === "theme" &&
+      ts.isStringLiteral(property.initializer) &&
+      THEME_VALUES.has(property.initializer.text)
+    ) {
+      const value = property.initializer.text
+      const next =
         value === "unstyled"
           ? "unstyled: true"
           : `appearance: "${THEME_TO_APPEARANCE[value]}"`
+      notes.push(
+        `${where}: object property \`theme: "${value}"\` left as is — if it feeds Button props (e.g. a DataTable toolbar action), change it to \`${next}\``
       )
-    } else if (key === "emphasis" && emphasisFile) {
-      if (value !== null) {
-        replace(`severity: "${EMPHASIS_RULE.map(value)}"`)
-        continue
+    } else if (key === "emphasis" && summaryFile) {
+      if (isSummaryRow(node)) {
+        migrateEmphasis(property, edits, notes, sourceFile)
+      } else {
+        notes.push(
+          `${where}: \`emphasis\` outside a TotalsSummary row shape left as is — rename to \`severity\` ("default" → "neutral") if it is a row`
+        )
       }
-      // Computed: rename the key, map its result literals, keep the logic.
-      edits.push({
-        start: property.name.getStart(sourceFile),
-        end: property.name.getEnd(),
-        text: "severity",
-      })
-      const outcome = mapValues(
-        property.initializer,
-        EMPHASIS_RULE,
-        edits,
-        sourceFile
-      )
-      const { line } = sourceFile.getLineAndCharacterOfPosition(
-        property.getStart(sourceFile)
-      )
-      reviewNote(
-        notes,
-        `${sourceFile.fileName}:${line + 1} TotalsSummary row`,
-        "severity",
-        property.initializer,
-        sourceFile,
-        outcome
-      )
     }
   }
 }
@@ -254,7 +308,14 @@ function scriptKind(fileName) {
   return ts.ScriptKind.TS
 }
 
-export function transformSource(fileName, text) {
+/**
+ * @param {string} fileName
+ * @param {string} text
+ * @param {{ kitSources?: string[] }} [options] absolute paths of the kit's own
+ *   source directories; relative imports into them count as ui-kit imports.
+ */
+export function transformSource(fileName, text, options = {}) {
+  const kitSources = (options.kitSources ?? []).map((dir) => path.resolve(dir))
   const kind = scriptKind(fileName)
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -263,18 +324,19 @@ export function transformSource(fileName, text) {
     true,
     kind
   )
-  const imports = uiImports(sourceFile)
+  const imports = uiImports(sourceFile, kitSources)
   if (imports.size === 0) {
     return { text, notes: [] }
   }
-  const emphasisFile = imports.has("TotalsSummary")
+  // Exported names, so `import { TotalsSummary as Summary }` counts too.
+  const summaryFile = [...imports.values()].includes("TotalsSummary")
   const edits = []
   const notes = []
   const visit = (node) => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       transformJsx(node, imports, edits, notes, sourceFile)
     } else if (ts.isObjectLiteralExpression(node)) {
-      transformObject(node, edits, notes, sourceFile, emphasisFile)
+      transformObject(node, edits, notes, sourceFile, summaryFile)
     }
     ts.forEachChild(node, visit)
   }

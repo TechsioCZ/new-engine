@@ -914,7 +914,7 @@ Select.ItemIndicator = function SelectItemIndicator({
       ref={ref}
       {...mergeProps(api.getItemIndicatorProps({ item }), props)}
     >
-      <Icon icon="token-icon-select-check" size={iconSize} />
+      <Icon icon="token-icon-select-check" size={iconSize ?? "current"} />
     </span>
   )
 }
