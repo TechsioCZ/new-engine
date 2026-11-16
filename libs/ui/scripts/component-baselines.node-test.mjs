@@ -25,6 +25,14 @@ test("a shard checks out every capture variant but no retired project", () => {
     projects: [{ name: "business-desktop-light" }, { name: "business-mobile-light" }],
     shard: { index: 1, total: 2 },
   }), chosen.map((name) => prefix + name))
+  // Checkbox belonged to shard 2 in the full list, but is shard 1 when it is
+  // the only changed story. Its actual pixels must still be downloaded.
+  assert.deepEqual(baselinePathsForShard({
+    files,
+    stories: [{ id: "atoms-checkbox--default" }],
+    projects: [{ name: "business-desktop-light" }],
+    shard: { index: 1, total: 2 },
+  }), [prefix + "atoms-checkbox--default-business-desktop-light-linux.png"])
 })
 
 test("the reviewed inventory survives sparse checkout and selected blobs remain real", (t) => {

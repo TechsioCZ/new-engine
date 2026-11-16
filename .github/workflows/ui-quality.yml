@@ -234,6 +234,8 @@ jobs:
       - name: Check out only this bundle's reviewed baselines
         env:
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
+          SCOPE: ${{ needs.plan.outputs.scope }}
+          VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
         run: node libs/ui/scripts/component-baselines.mjs
       - name: Run the bundle's component suites
         env:

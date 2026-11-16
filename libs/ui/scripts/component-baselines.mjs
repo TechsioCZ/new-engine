@@ -4,6 +4,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { parseReleaseShard, visualStories } from "../test/visual-completion.mjs"
 import { createVisualMatrix, shardVisualStories } from "../test/visual-projects.mjs"
+import { affectedStoriesFromDisk, readPathList } from "./visual-affected-stories.mjs"
 
 const directory = "libs/ui/test/visual.spec.ts-snapshots/"
 
@@ -43,13 +44,31 @@ function main() {
   const index = JSON.parse(fs.readFileSync(
     path.join(repoRoot, "libs/ui/storybook-static/index.json"), "utf8"
   ))
+  let stories = visualStories(index.entries)
+  // The visual spec filters changed stories BEFORE sharding. A changed subset
+  // can therefore assign a story to a different runner than the full matrix.
+  if (process.env.SCOPE !== "full") {
+    const selection = affectedStoriesFromDisk({
+      repoRoot,
+      storybookDir: path.join(repoRoot, "libs/ui/storybook-static"),
+      changedFiles: readPathList(process.env.VISUAL_CHANGED_FILES_FROM),
+    })
+    if (selection.mode !== "all") {
+      const selected = new Set(selection.storyIds)
+      stories = stories.filter((story) => selected.has(story.id))
+    }
+  }
   const files = baselinePathsForShard({
     files: trackedBaselines(repoRoot),
-    stories: visualStories(index.entries),
+    stories,
     projects: createVisualMatrix(),
     shard,
   })
-  if (!files.length) throw new Error("No tracked baselines for this component shard")
+  if (!files.length) {
+    if (process.env.SCOPE === "full") throw new Error("No tracked baselines for this component shard")
+    console.log("This changed shard has no screenshot baselines to fetch")
+    return
+  }
   execFileSync("git", ["sparse-checkout", "add", "--stdin"], {
     cwd: repoRoot,
     input: files.map((file) => `/${file}`).join("\n") + "\n",
