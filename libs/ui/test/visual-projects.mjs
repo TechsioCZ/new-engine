@@ -80,6 +80,11 @@ export const MOBILE_VIEWPORT_SPECS = [
 ]
 
 /**
+ * Desktop covers every brand's token/style differences; mobile covers every
+ * story's responsive/WebKit layout once, in business. Brand-locked stories
+ * still render their own brand on that phone. Accessibility scans all brands.
+ * An explicitly selected single brand keeps both devices for local diagnosis.
+ * This avoids multiplying the full phone sweep by token-only brand changes.
  * Brand × device × color-scheme projects. Device settings come from
  * Playwright's "Desktop Chrome" and "iPhone 15" descriptors in the config.
  * @param {string} [brandsString]
@@ -105,7 +110,7 @@ export function createVisualMatrix(
       )
     }
     const typedBrand = /** @type {VisualBrand} */ (brand)
-    return [false, true].flatMap((isMobile) =>
+    return (brands.length === 1 || brand === "business" ? [false, true] : [false]).flatMap((isMobile) =>
       THEMES[typedBrand].modes.map((colorScheme) => ({
         brand: typedBrand,
         name: `${brand}-${isMobile ? "mobile" : "desktop"}-${colorScheme}`,

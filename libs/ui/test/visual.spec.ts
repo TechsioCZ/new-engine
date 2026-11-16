@@ -106,20 +106,23 @@ function comparePng(actual: Buffer, expected: Buffer) {
   if (a.data.equals(e.data)) {
     return { equal: true }
   }
-  const diff = new PNG({ width: a.width, height: a.height })
   let changedPixels = 0
   for (let offset = 0; offset < a.data.length; offset += 4) {
+    changedPixels += Number(pixelChanged(a.data, e.data, offset))
+  }
+  if (changedPixels <= edgePixelAllowance(a.width, a.height)) {
+    return { equal: true }
+  }
+  // The normal passing path needs no diff bitmap or per-pixel red/fade work.
+  // Keep exactly the same tolerance, allowance and failure diagnostic.
+  const diff = new PNG({ width: a.width, height: a.height })
+  for (let offset = 0; offset < a.data.length; offset += 4) {
     const changed = pixelChanged(a.data, e.data, offset)
-    changedPixels += Number(changed)
-    // Changed pixels are red; unchanged pixels are a faded copy of the baseline.
     const faded = 255 - Math.round((255 - e.data.readUInt8(offset)) / 4)
     diff.data[offset] = changed ? 255 : faded
     diff.data[offset + 1] = changed ? 0 : faded
     diff.data[offset + 2] = changed ? 0 : faded
     diff.data[offset + 3] = 255
-  }
-  if (changedPixels <= edgePixelAllowance(a.width, a.height)) {
-    return { equal: true }
   }
   return {
     equal: false,

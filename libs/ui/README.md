@@ -319,8 +319,8 @@ Optional environment overrides:
 
 Example: `VISUAL_CHANGED_SINCE=origin/master pnpm -C libs/ui test:components`
 
-Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
-Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
+Extra arguments are passed to `playwright test`, e.g. `VISUAL_BRANDS=n1 pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
+Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. CI checks every story on all three desktop brands and on business mobile WebKit; brand-locked stories retain their own brand on mobile. Brand × phone cross-products are not gated. Set `VISUAL_BRANDS=akros` or `VISUAL_BRANDS=n1` to diagnose those phone projects locally. A full run must cover every story in every declared visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
 ### Known differences on `linux/arm64`
 

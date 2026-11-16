@@ -1,6 +1,14 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { measure } from "./ci-timing.mjs"
+import { measure, peakConcurrency } from "./ci-timing.mjs"
+
+test("peak concurrency counts overlapping workflows, not sequential runner handoffs", () => {
+  const at = (seconds) => new Date(seconds * 1000).toISOString()
+  const job = (start, end) => ({ started_at: at(start), completed_at: at(end) })
+  assert.equal(peakConcurrency([job(0, 4), job(2, 6), job(4, 8)]), 2)
+  assert.equal(peakConcurrency([job(0, 4), job(4, 8)]), 1)
+  assert.equal(peakConcurrency([{ conclusion: "skipped" }]), 0)
+})
 
 test("dependency execution is not counted as runner queue", () => {
   const at = (seconds) => new Date(seconds * 1000).toISOString()

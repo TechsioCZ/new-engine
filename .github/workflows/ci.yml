@@ -192,11 +192,17 @@ jobs:
           pattern: storybook-a11y-${{ github.sha }}*
           path: ${{ runner.temp }}/a11y-shards
 
+      - name: Flatten component bundle reports
+        run: |
+          mkdir -p "$RUNNER_TEMP/component-groups"
+          find "$RUNNER_TEMP/component-shards" -mindepth 2 -maxdepth 2 -type d \
+            -exec mv -t "$RUNNER_TEMP/component-groups" {} +
+
       - name: Verify every declared component shard reported
         run: |
           node libs/ui/scripts/verify-component-shards.mjs \
             --expect "$RUNNER_TEMP/ui-expected/expected.json" \
-            --reports "$RUNNER_TEMP/component-shards"
+            --reports "$RUNNER_TEMP/component-groups"
 
       - name: Verify every declared accessibility shard reported
         run: |

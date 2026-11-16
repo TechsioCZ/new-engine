@@ -10,10 +10,6 @@ on:
         description: full or all scans every story; anything else narrows the scan to the changed files
         type: string
         default: full
-      shards:
-        description: Jest shards per theme (1 to 6)
-        type: number
-        default: 1
       workers:
         description: Jest workers per shard
         type: number
@@ -28,10 +24,6 @@ on:
         description: full or all scans every story; anything else narrows the scan to the changed files
         type: string
         default: full
-      shards:
-        description: Jest shards per theme (1 to 6)
-        type: number
-        default: 1
       workers:
         description: Jest workers per shard
         type: number
@@ -43,16 +35,7 @@ permissions:
 jobs:
   storybook-a11y:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        # Must list every supported pair; the script fails on a count mismatch.
-        theme:
-          [business-light, akros-light, n1-light]
-        # One Jest shard per job. An unsupported shard count yields shard 0,
-        # which the script rejects, instead of a silently narrower matrix.
-        shard: ${{ fromJSON('{"1":[1],"2":[1,2],"3":[1,2,3],"4":[1,2,3,4],"5":[1,2,3,4,5],"6":[1,2,3,4,5,6]}')[format('{0}', inputs.shards)] || fromJSON('[0]') }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -73,7 +56,7 @@ jobs:
         with:
           name: ${{ inputs.changed_files_artifact }}
           path: ${{ runner.temp }}/a11y-changed-files
-      # One supported pair and one Jest shard per job. WCAG A/AA rules block;
+      # One install and Storybook build for all supported themes. WCAG A/AA rules block;
       # APCA gold and AAA contrast are reported only. Story coverage and the
       # calibration contract are asserted over the theme's shards together, by
       # scripts/verify-a11y-shards.mjs over these artifacts.
@@ -81,16 +64,24 @@ jobs:
         id: a11y
         env:
           A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
-          A11Y_THEME: ${{ matrix.theme }}
           A11Y_THEME_COUNT: "3"
-          A11Y_SHARD: ${{ matrix.shard }}/${{ inputs.shards }}
+          A11Y_SHARD: 1/1
           A11Y_TEST_WORKERS: ${{ inputs.workers }}
           A11Y_SCOPE: ${{ inputs.scope }}
           A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/a11y-changed-files/changed-files.txt
         run: pnpm --dir libs/ui storybook:a11y
+      - name: Verify all themes and calibration reported
+        run: |
+          node --input-type=module -e '
+            import { createThemeMatrix } from "./libs/ui/test/visual-projects.mjs";
+            const themes = createThemeMatrix().map(({brand,mode}) => brand + "-" + mode);
+            console.log(JSON.stringify({a11y:{themes,shards_per_theme:1,total:themes.length}}));
+          ' > "$RUNNER_TEMP/a11y-expected.json"
+          node libs/ui/scripts/verify-a11y-shards.mjs \
+            --expect "$RUNNER_TEMP/a11y-expected.json" --reports libs/ui/a11y-report
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: storybook-a11y-${{ inputs.sha || github.sha }}-${{ matrix.theme }}-shard-${{ matrix.shard }}
+          name: storybook-a11y-${{ inputs.sha || github.sha }}-all-themes
           path: libs/ui/a11y-report
           if-no-files-found: error

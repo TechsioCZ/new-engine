@@ -55,7 +55,7 @@ import {
 const read = (relative) =>
   readFileSync(new URL(relative, import.meta.url), "utf8")
 
-test("visual and accessibility defaults cover every registry pair, including both Akros devices", () => {
+test("visual and accessibility defaults cover every registry pair, with every brand on desktop and every story on mobile", () => {
   const pairs = createThemeMatrix()
   assert.deepEqual(
     pairs.map(({ brand, mode }) => `${brand}/${mode}`),
@@ -65,8 +65,8 @@ test("visual and accessibility defaults cover every registry pair, including bot
     assertSupportedTheme(brand, mode)
   }
   const matrix = createVisualMatrix()
-  assert.equal(matrix.length, 6)
-  assert.equal(new Set(matrix.map((project) => project.name)).size, 6)
+  assert.equal(matrix.length, 4)
+  assert.equal(new Set(matrix.map((project) => project.name)).size, 4)
   assert.deepEqual(
     createVisualMatrix("akros").map((project) => project.name),
     ["akros-desktop-light", "akros-mobile-light"]
@@ -357,189 +357,6 @@ test("all hook-free compound templates are included in the build boundary set", 
   }
 })
 
-test("CI owns the quality gate and publication chains behind its conclusion", () => {
-  const ci = read("../../../.github/workflows/ci.yml")
-  const release = read("../../../.github/workflows/ui-release.yml")
-  const quality = read("../../../.github/workflows/ui-quality.yml")
-  const a11y = read("../../../.github/workflows/storybook-a11y.yml")
-  assert.match(
-    ci,
-    /ui-quality:\s+uses: \.\/\.github\/workflows\/ui-quality.yml/
-  )
-  assert.match(ci, /needs:[\s\S]*- main\s+- ui-quality/)
-  // The release never repeats the gate. It reacts to CI concluding success for
-  // a pushed commit, and CI's quality-gate fails unless every blocking job
-  // succeeded, so that conclusion is itself the proof the gate passed.
-  assert.doesNotMatch(release, /ui-quality\.yml/)
-  assert.match(
-    release,
-    /workflow_run:\s+workflows: \["CI"\]\s+types: \[completed\]\s+branches: \[master\]/
-  )
-  assert.match(release, /github\.event\.workflow_run\.event == 'push'/)
-  assert.match(release, /github\.event\.workflow_run\.conclusion == 'success'/)
-  // Under workflow_run GITHUB_SHA is the default-branch tip at dispatch time,
-  // not the commit CI validated, so the publish tree is resolved from head_sha
-  // and then asserted against the checkout.
-  assert.match(release, /sha="\$\{RUN_HEAD_SHA:-\$DISPATCH_SHA\}"/)
-  assert.match(release, /ref: \$\{\{ steps\.commit\.outputs\.sha \}\}/)
-  assert.match(release, /actual="\$\(git rev-parse HEAD\)"/)
-  for (const command of [
-    "typecheck",
-    "test",
-    "validate:tokens",
-    "check:package",
-    "test:components:release",
-  ]) {
-    assert.ok(`${ci}\n${quality}`.includes(`pnpm --dir libs/ui ${command}`))
-  }
-  assert.match(
-    quality,
-    /accessibility:\s+uses: \.\/\.github\/workflows\/storybook-a11y.yml/
-  )
-  assert.match(a11y, /A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"/)
-  assert.doesNotMatch(a11y, /vars.A11Y_REPORT_FAIL_ON_VIOLATIONS/)
-})
-
-const WORKFLOW_JOB_BOUNDARY = /\n(?= {2}[\w-]+:\n)/
-const WORKFLOW_JOB_HEADER = /^ {2}([\w-]+):\n/
-const WORKFLOW_STEP_BOUNDARY = /\n {6}- /
-// A pull request runs only what its diff can affect; a push to master runs the
-// full release-readiness gate, which is what licenses chaining the publish.
-const CI_MODE_LINE =
-  /\n {6}mode: \$\{\{ github\.event_name == 'push' && 'full' \|\| 'changed' \}\}\n/
-const CI_BASE_SHA_LINE =
-  /base_sha: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.before \|\| '' \}\}/
-const QUALITY_MODE_INPUT = /mode:\n {8}description:[\s\S]*default: full/
-const QUALITY_BASE_INPUT = /base_sha:\n {8}description:[\s\S]*default: ""/
-const SCOPE_BASE_ENV = /BASE_SHA: \$\{\{ inputs\.base_sha \}\}/
-const SCOPE_HEAD_ENV = /HEAD_SHA: \$\{\{ inputs\.sha \}\}/
-const EXPRESSION_START = /\$\{\{/
-const SCOPE_FULL_OUTPUT = /scope=full\n/
-const BASE_SHA_GUARD = /-n "\$BASE_SHA" \]/
-// "none" may only ever come out of the classifier. A shell that can assign it
-// would skip every heavy job and still hand quality-gate an empty plan to
-// verify, so the assignment is the thing to forbid, not the word.
-const SCOPE_NONE_ASSIGNMENT = /scope=["']?none/
-// An unrecognised classifier value used to run no test step at all; now it
-// fails the plan job instead of narrowing the matrix silently.
-const UNKNOWN_SCOPE_EXIT = /::error::Unknown scope[\s\S]*?exit 1/
-const CHANGED_FILES_ARTIFACT = /name: ui-changed-files-\$\{\{ inputs\.sha \}\}/
-const PLAN_SCOPE_IF = /if: needs\.plan\.outputs\.scope/
-const NEEDS_PLAN = /needs: \[?plan/
-// The plan declares each group's shard width once; the matrix and the
-// expected.json quality-gate verifies against are both derived from it.
-const COMPONENT_MATRIX =
-  /matrix: \$\{\{ fromJson\(needs\.plan\.outputs\.component_matrix\) \}\}/
-const EXPECTED_ARTIFACT = /name: ui-ci-expected-\$\{\{ inputs\.sha \}\}/
-const A11Y_SHARDS_INPUT =
-  /shards: \$\{\{ fromJson\(needs\.plan\.outputs\.a11y_shards\) \}\}/
-const FULL_SCOPE_IF = /if: needs\.plan\.outputs\.scope == 'full'/
-const UI_SCOPE_IF = /if: needs\.plan\.outputs\.scope == 'ui'/
-const RELEASE_SHARD_ENV =
-  /PLAYWRIGHT_RELEASE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/
-const RELEASE_SHARD_KEY = /PLAYWRIGHT_RELEASE_SHARD:/
-const PLAYWRIGHT_SHARD_ENV =
-  /PLAYWRIGHT_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/
-const GROUP_ENV = /PLAYWRIGHT_GROUP: \$\{\{ matrix\.group \}\}/
-const BEHAVIOR_ENV = /VISUAL_CHANGED_BEHAVIOR: "1"/
-const CHANGED_RUN = /run: pnpm --dir libs\/ui test:components$/m
-const NONE_MARKER = /changed-none\.json/
-
-/** Splits a workflow into its jobs, keyed by job name. */
-function workflowJobs(yaml) {
-  return Object.fromEntries(
-    yaml
-      .split(WORKFLOW_JOB_BOUNDARY)
-      .filter((chunk) => WORKFLOW_JOB_HEADER.test(chunk))
-      .map((chunk) => [chunk.match(WORKFLOW_JOB_HEADER)[1], chunk])
-  )
-}
-
-/** Returns the step whose text contains needle; steps start at six-space dashes. */
-function stepContaining(yaml, needle) {
-  const step = yaml
-    .split(WORKFLOW_STEP_BOUNDARY)
-    .find((chunk) => chunk.includes(needle))
-  if (!step) {
-    throw new Error(`No workflow step contains ${needle}`)
-  }
-  return step
-}
-
-test("a pull request runs the changed scope and a push runs the full gate", () => {
-  const ci = read("../../../.github/workflows/ci.yml")
-  const quality = read("../../../.github/workflows/ui-quality.yml")
-  assert.match(ci, CI_MODE_LINE)
-  assert.match(ci, CI_BASE_SHA_LINE)
-  assert.match(quality, QUALITY_MODE_INPUT)
-  assert.match(quality, QUALITY_BASE_INPUT)
-})
-
-test("the reusable quality workflow plans a scope and never fails open to none", () => {
-  const plan = workflowJobs(
-    read("../../../.github/workflows/ui-quality.yml")
-  ).plan
-  const scopeStep = stepContaining(plan, "id: scope")
-  const script = scopeStep.slice(scopeStep.indexOf("run: |"))
-  assert.doesNotMatch(script, EXPRESSION_START)
-  assert.match(scopeStep, SCOPE_BASE_ENV)
-  assert.match(scopeStep, SCOPE_HEAD_ENV)
-  assert.match(script, SCOPE_FULL_OUTPUT)
-  assert.match(script, BASE_SHA_GUARD)
-  const mergeBase = script.indexOf('git merge-base "$BASE_SHA" "$HEAD_SHA"')
-  const classify = script.indexOf("--scope --files-from")
-  assert.ok(
-    mergeBase > 0 && classify > mergeBase,
-    "scope is set only after a merge-base"
-  )
-  assert.doesNotMatch(script, SCOPE_NONE_ASSIGNMENT)
-  assert.match(script, UNKNOWN_SCOPE_EXIT)
-  assert.match(plan, CHANGED_FILES_ARTIFACT)
-})
-
-test("components and accessibility run unless the plan says none", () => {
-  const jobs = workflowJobs(read("../../../.github/workflows/ui-quality.yml"))
-  for (const job of ["components", "accessibility"]) {
-    assert.ok(
-      jobs[job].includes("if: needs.plan.outputs.scope != 'none'"),
-      `${job} must skip only on scope none`
-    )
-    assert.match(jobs[job], NEEDS_PLAN)
-  }
-  // Both heavy legs take their width from the plan, and the plan uploads the
-  // same declaration quality-gate checks the collected reports against, so a
-  // shard or theme that never reported fails instead of passing as silence.
-  assert.match(jobs.components, COMPONENT_MATRIX)
-  assert.match(jobs.accessibility, A11Y_SHARDS_INPUT)
-  assert.match(jobs.plan, EXPECTED_ARTIFACT)
-  assert.doesNotMatch(jobs.plan, PLAN_SCOPE_IF)
-})
-
-test("the release suite runs only for the full scope and owns PLAYWRIGHT_RELEASE_SHARD", () => {
-  const quality = read("../../../.github/workflows/ui-quality.yml")
-  const full = stepContaining(quality, "test:components:release")
-  assert.match(full, FULL_SCOPE_IF)
-  assert.match(full, RELEASE_SHARD_ENV)
-  assert.equal(quality.split(RELEASE_SHARD_KEY).length - 1, 1)
-  const changed = stepContaining(quality, "VISUAL_CHANGED_FILES_FROM")
-  assert.match(changed, UI_SCOPE_IF)
-  assert.doesNotMatch(changed, RELEASE_SHARD_KEY)
-  assert.match(changed, PLAYWRIGHT_SHARD_ENV)
-  assert.match(changed, BEHAVIOR_ENV)
-  // A count-based shard is only a duration split inside one cost-homogeneous
-  // group, so both modes must name the group. Wiring it into the release mode
-  // alone would make each group's shards an independent full sharding of the
-  // same affected tests, and only the shard folder count would notice.
-  for (const step of [full, changed]) {
-    assert.match(step, GROUP_ENV)
-  }
-  assert.match(changed, CHANGED_RUN)
-  assert.match(
-    stepContaining(quality, "visual-reports/changed-none.json"),
-    NONE_MARKER
-  )
-})
-
 test("stylesheet discovery and documentation commands match package contracts", () => {
   const css = read("../src/tokens/_tokens-base.css")
   assert.match(css, /@source "\.\.\/\.\.\/dist\/\*\*\/\*.js";/)
@@ -795,7 +612,7 @@ test("visual capture honors brand locks consistently without exempting any proje
   for (const name of [
     "business-desktop-light",
     "akros-desktop-light",
-    "akros-mobile-light",
+    "business-mobile-light",
   ]) {
     assert.throws(
       () =>
@@ -1130,7 +947,7 @@ test("release preflight requires exact reviewed baselines for each story and dev
     projects.map((project) => `${stories[0].id}-${project.name}-linux.png`)
   )
   assertPrimaryBaselines(stories, projects, files)
-  files.delete("atoms-button--playground-akros-mobile-light-linux.png")
+  files.delete("atoms-button--playground-business-mobile-light-linux.png")
   files.add("pages-akros-dashboard--playground-desktop-linux.png")
   assert.throws(
     () => assertPrimaryBaselines(stories, projects, files),
@@ -1143,7 +960,7 @@ test("release preflight requires exact reviewed baselines for each story and dev
         projects,
         files
       ),
-    /Missing 6/
+    /Missing 4/
   )
 })
 

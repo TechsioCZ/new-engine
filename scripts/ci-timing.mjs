@@ -12,6 +12,21 @@ const milliseconds = (timestamp) => {
 }
 const minutes = (duration) => (duration / 60_000).toFixed(2)
 
+/** Running intervals are half open: a runner ending at T frees its slot at T. */
+export function peakConcurrency(jobs) {
+  const events = jobs.filter((job) => job.conclusion !== "skipped").flatMap((job) => [
+    [milliseconds(job.started_at), 1],
+    [milliseconds(job.completed_at), -1],
+  ]).sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  let running = 0
+  let peak = 0
+  for (const [, change] of events) {
+    running += change
+    peak = Math.max(peak, running)
+  }
+  return peak
+}
+
 /**
  * CI's plan releases its heavy matrices; quality-gate waits for all CI jobs.
  * Other workflows here have independent root jobs. Queue is created→started,
@@ -65,6 +80,7 @@ export function measure(run, jobs) {
     sum + milliseconds(job.completed_at) - milliseconds(job.started_at), 0)
   return {
     elapsed, execution, waiting: elapsed - execution,
+    peak: peakConcurrency(executed),
     critical: critical.map(({ name }) => name),
     jobs: executed.map((job) => ({
       name: job.name,
@@ -75,25 +91,30 @@ export function measure(run, jobs) {
   }
 }
 
-function main([repository, id]) {
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? "") || !/^\d+$/.test(id ?? "")) {
-    throw new Error("Usage: node scripts/ci-timing.mjs OWNER/REPO RUN_ID")
+function main([repository, ...ids]) {
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? "") || !ids.length || ids.some((id) => !/^\d+$/.test(id))) {
+    throw new Error("Usage: node scripts/ci-timing.mjs OWNER/REPO RUN_ID [RUN_ID...]")
   }
   const api = (endpoint, args = []) => JSON.parse(execFileSync(
     "gh", ["api", endpoint, ...args], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
   ))
-  const endpoint = `repos/${repository}/actions/runs/${id}`
-  const run = api(endpoint)
-  const jobs = api(`${endpoint}/jobs?per_page=100`, ["--paginate", "--slurp"])
-    .flatMap((page) => page.jobs)
-  const result = measure(run, jobs)
-  console.log(`${run.html_url} ${run.event} ${run.head_sha} ${run.conclusion}`)
-  console.log("job\tqueue minutes\trun minutes\tconclusion")
-  for (const job of result.jobs) {
-    console.log(`${job.name}\t${minutes(job.queue)}\t${minutes(job.execution)}\t${job.conclusion}`)
+  const allJobs = []
+  for (const id of ids) {
+    const endpoint = `repos/${repository}/actions/runs/${id}`
+    const run = api(endpoint)
+    const jobs = api(`${endpoint}/jobs?per_page=100`, ["--paginate", "--slurp"])
+      .flatMap((page) => page.jobs)
+    const result = measure(run, jobs)
+    allJobs.push(...jobs)
+    console.log(`${run.html_url} ${run.event} ${run.head_sha} ${run.conclusion}`)
+    console.log("job\tqueue minutes\trun minutes\tconclusion")
+    for (const job of result.jobs) {
+      console.log(`${job.name}\t${minutes(job.queue)}\t${minutes(job.execution)}\t${job.conclusion}`)
+    }
+    console.log(`Critical path: ${result.critical.join(" → ")}`)
+    console.log(`Trigger → last check: ${minutes(result.elapsed)}m = ${minutes(result.waiting)}m waiting + ${minutes(result.execution)}m executing; peak ${result.peak} runners`)
   }
-  console.log(`Critical path: ${result.critical.join(" → ")}`)
-  console.log(`Trigger → last check: ${minutes(result.elapsed)}m = ${minutes(result.waiting)}m waiting + ${minutes(result.execution)}m executing`)
+  if (ids.length > 1) console.log(`Combined peak: ${peakConcurrency(allJobs)} runners`)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

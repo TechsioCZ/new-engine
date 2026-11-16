@@ -29,7 +29,6 @@ jobs:
       scope: ${{ steps.scope.outputs.scope }}
       list: ${{ steps.scope.outputs.list }}
       component_matrix: ${{ steps.scope.outputs.component_matrix }}
-      a11y_shards: ${{ steps.scope.outputs.a11y_shards }}
     steps:
       - if: inputs.mode == 'changed'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,18 +64,12 @@ jobs:
             scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
             list=true
           fi
-          # The classifier can expand a changed run to every story (lockfile,
-          # tokens, shared providers, behavior specs or unresolved imports).
-          # It learns that only after Storybook is built. Size both modes for
-          # that full workload; one changed-mode visual shard would otherwise
-          # serialize all 5,466 screenshots. Story selection still narrows PRs.
-          # 8 component + 3 a11y jobs leave room for other repositories sharing
-          # the organisation's 20 hosted slots. Package checks share main's
-          # existing install. A11y appends results instead of rewriting all prior
-          # reports per story, so a theme no longer needs two runners.
+          # Four bundles share checkout, install, Storybook and browser restore
+          # across visual, behavior and accessibility work. No 11-job fan-out.
+          bundles=4
           case "$scope" in
             full | all | ui)
-              groups='{"visual":5,"desktop":2,"mobile":1}'
+              groups="$(jq -cn --argjson n "$bundles" '{visual:$n,desktop:$n,mobile:1}')"
               a11y_shards=1
               ;;
             none)
@@ -90,14 +83,14 @@ jobs:
               exit 1
               ;;
           esac
-          # One declaration of each group's width; the matrix and expected.json
-          # are both derived from it, so a shard count cannot drift between them.
-          component_matrix="$(printf '%s' "$groups" | jq -c '{include: [to_entries[] | . as $group | range(1; $group.value + 1) | {group: $group.key, shard: ., total: $group.value}]}')"
+          # The four bundles each own a visual and desktop quarter; the last
+          # also owns mobile behavior, the first three own one a11y theme.
+          component_matrix="$(jq -cn --argjson n "$bundles" --argjson themes "$A11Y_THEMES" \
+            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n,theme:($themes[.-1] // "")}]}')"
           {
             echo "scope=${scope}"
             echo "list=${list}"
             echo "component_matrix=${component_matrix}"
-            echo "a11y_shards=${a11y_shards}"
           } >> "$GITHUB_OUTPUT"
           # quality-gate checks the reports it collected against this file, so a
           # shard or theme that never reported fails loudly instead of passing.
@@ -145,11 +138,11 @@ jobs:
     needs: plan
     if: needs.plan.outputs.scope != 'none'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 20
     strategy:
       fail-fast: false
-      # One entry per shard of each cost-homogeneous project group; plan decides
-      # the widths and declares them in expected.json.
+      max-parallel: 4
+      # Four runners, not a separate runner for each suite.
       matrix: ${{ fromJson(needs.plan.outputs.component_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -173,53 +166,76 @@ jobs:
       - name: Load the cached browser image
         if: steps.browser-image.outputs.cache-hit == 'true'
         run: docker load --input "$RUNNER_TEMP/ui-playwright.tar"
-      # Full Docker suite: behavior and the visual projects of this group, split
-      # across the group's shards. Release mode rejects filters and baseline
-      # updates; quality-gate asserts every identity over all shard reports.
-      - name: Full release suite
-        if: needs.plan.outputs.scope == 'full'
-        env:
-          PLAYWRIGHT_GROUP: ${{ matrix.group }}
-          PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/${{ matrix.total }}
-          PLAYWRIGHT_WORKERS: ${{ matrix.group == 'visual' && '6' || '4' }}
-        run: pnpm --dir libs/ui test:components:release
       - name: Download the changed-file list
-        if: needs.plan.outputs.scope == 'ui'
+        if: needs.plan.outputs.list == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ui-changed-files-${{ inputs.sha }}
           path: ${{ runner.temp }}/ui-changed-files
-      - name: Affected screenshots and behavior specs
-        if: needs.plan.outputs.scope == 'ui'
+      - name: Run the bundle's component suites
         env:
-          PLAYWRIGHT_GROUP: ${{ matrix.group }}
-          PLAYWRIGHT_SHARD: ${{ matrix.shard }}/${{ matrix.total }}
-          PLAYWRIGHT_WORKERS: ${{ matrix.group == 'visual' && '6' || '4' }}
-          VISUAL_CHANGED_BEHAVIOR: "1"
+          SCOPE: ${{ needs.plan.outputs.scope }}
+          SHARD: ${{ matrix.shard }}/${{ matrix.total }}
+          BUNDLE: ${{ matrix.shard }}
+          BUNDLES: ${{ matrix.total }}
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
-        run: pnpm --dir libs/ui test:components
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
+        run: |
+          set -euo pipefail
+          for group in desktop visual mobile; do
+            if [ "$group" = mobile ] && [ "$BUNDLE" != "$BUNDLES" ]; then continue; fi
+            shard="$SHARD"
+            if [ "$group" = mobile ]; then shard=1/1; fi
+            export PLAYWRIGHT_GROUP="$group" PLAYWRIGHT_WORKERS=4
+            if [ "$SCOPE" = full ]; then
+              unset VISUAL_CHANGED_FILES_FROM
+              PLAYWRIGHT_RELEASE_SHARD="$shard" pnpm --dir libs/ui test:components:release
+            else
+              VISUAL_CHANGED_BEHAVIOR=1 PLAYWRIGHT_SHARD="$shard" pnpm --dir libs/ui test:components
+            fi
+            index="${shard%/*}"
+            out="$RUNNER_TEMP/component-reports/ui-$group-shard-$index"
+            mkdir -p "$out"
+            cp libs/ui/test-results/visual-reports/*.json "$out/"
+          done
+      - name: Upload component coverage
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ui-component-results-${{ inputs.sha }}-${{ matrix.group }}-shard-${{ matrix.shard }}
+          name: ui-component-report-${{ inputs.sha }}-bundle-${{ matrix.shard }}
+          path: ${{ runner.temp }}/component-reports
+          if-no-files-found: error
+      - name: Upload component failure details
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-component-results-${{ inputs.sha }}-bundle-${{ matrix.shard }}
           path: |
             libs/ui/playwright-report
             libs/ui/test-results
           if-no-files-found: error
-      # Only on success: with if-no-files-found: error an unguarded upload fails a
-      # second time inside a job whose test step already reported the failure.
+      - name: Install the accessibility browser
+        if: matrix.theme != ''
+        run: timeout 420 pnpm exec playwright install --only-shell chromium
+      - name: Enforce product accessibility and reporter calibration
+        if: matrix.theme != ''
+        env:
+          A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
+          A11Y_THEME: ${{ matrix.theme }}
+          A11Y_THEME_COUNT: "3"
+          A11Y_SHARD: 1/1
+          A11Y_TEST_WORKERS: "4"
+          A11Y_SCOPE: ${{ needs.plan.outputs.scope }}
+          A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
+        run: pnpm --dir libs/ui storybook:a11y
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: success()
+        if: always() && matrix.theme != ''
         with:
-          name: ui-component-report-${{ inputs.sha }}-${{ matrix.group }}-shard-${{ matrix.shard }}
-          path: |
-            libs/ui/test-results/visual-reports/all.json
-            libs/ui/test-results/visual-reports/index.json
-            libs/ui/test-results/visual-reports/changed-none.json
+          name: storybook-a11y-${{ inputs.sha }}-${{ matrix.theme }}-shard-1
+          path: libs/ui/a11y-report
           if-no-files-found: error
       - name: Export the component browser image
         id: exported-image
-        if: success() && matrix.group == 'mobile' && steps.browser-image.outputs.cache-hit != 'true'
+        if: success() && matrix.shard == 4 && steps.browser-image.outputs.cache-hit != 'true'
         run: |
           image="$(node libs/ui/scripts/run-component-tests.mjs --print-plan | jq -er .image)"
           # A changed run with no selected stories never needs a container.
@@ -233,16 +249,3 @@ jobs:
         with:
           path: ${{ runner.temp }}/ui-playwright.tar
           key: ui-playwright-linux-amd64-${{ hashFiles('docker/development/playwright/Dockerfile') }}
-
-  accessibility:
-    uses: ./.github/workflows/storybook-a11y.yml
-    needs: plan
-    if: needs.plan.outputs.scope != 'none'
-    with:
-      sha: ${{ inputs.sha }}
-      scope: ${{ needs.plan.outputs.scope }}
-      changed_files_artifact: ${{ needs.plan.outputs.list == 'true' && format('ui-changed-files-{0}', inputs.sha) || '' }}
-      # fromJson keeps these two as numbers: a job output is always a string and
-      # storybook-a11y.yml declares both inputs as type number.
-      shards: ${{ fromJson(needs.plan.outputs.a11y_shards) }}
-      workers: 4
