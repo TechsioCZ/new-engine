@@ -35,7 +35,7 @@ transport/payment selection, requests and order submission.
 | Figma | Code |
 | --- | --- |
 | `pending=true` | `pending` + `pendingLabel` |
-| Row instances (`label`, `value`, `emphasis`, `showNote`) | `rows: { id, label, value, severity?, note? }[]` (Figma `emphasis` → `severity`) (data, not JSX) |
+| Row instances (`label`, `value`, `emphasis`, `showNote`) | `rows: { id, label, value, severity?, note? }[]` (data, not JSX) |
 | `showFooter` / `showActions` | `footer` / `actions` |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/TotalsSummary → UX guidelines*.

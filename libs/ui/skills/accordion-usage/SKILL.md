@@ -78,7 +78,7 @@ where actions and feedback live). This section applies them to `Accordion`.
 
 | Figma | Code |
 | --- | --- |
-| `variant`, `shadow`, `size` | `appearance` (`default` → `outline`, `borderless` → `ghost`, `child` → `appearance="ghost" nested`), `shadow`, `size` |
+| `appearance`, `nested`, `shadow`, `size` | same prop names and values |
 | `state=collapsed` / `expanded` | `value` / `defaultValue` (array of item values) |
 | `state=disabled` | `disabled` on the root or on `Accordion.Item` |
 | AccordionIndicator / indicator icon | `Accordion.Indicator` |

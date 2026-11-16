@@ -4,12 +4,11 @@
 
 import figma from "figma"
 
-// Figma still names the property variant; code reads severity.
-const severity = figma.selectedInstance.getEnum("variant", {
+const severity = figma.selectedInstance.getEnum("severity", {
   primary: "primary",
   secondary: "secondary",
 })
-const placeholderBgClass = figma.selectedInstance.getEnum("variant", {
+const placeholderBgClass = figma.selectedInstance.getEnum("severity", {
   primary: "bg-skeleton-bg-primary",
   secondary: "bg-skeleton-bg-secondary",
 })

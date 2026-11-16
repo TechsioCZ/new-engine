@@ -63,7 +63,7 @@ where actions and feedback live). This section applies them to `Textarea`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=default…warning`, `variant=borderless` | `validateStatus` (same values); Figma `borderless` → `appearance="ghost"` |
+| `validateStatus=default…warning`, `appearance=ghost` | same prop names and values |
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` (not the legacy `readonly`) |
 

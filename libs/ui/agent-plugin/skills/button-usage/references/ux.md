@@ -36,15 +36,15 @@ Before activating it, the user must know what it affects and what will happen.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=primary` | `severity="primary"` | The main next step of the current task. One per surface. |
-| `variant=secondary` | `severity="secondary"` | A supporting action that must stay clearly available. |
-| `variant=tertiary` | `severity="tertiary"` | A quieter related action, such as a neutral Cancel. Keep its name readable. |
-| `variant=warning` | `severity="warning"` | Risky but not destructive; the label explains the consequence. |
-| `variant=danger` | `severity="danger"` | Destructive or otherwise serious; the label names the object and the result. |
-| `theme=solid` | `appearance="solid"` | Strongest emphasis. |
-| `theme=light` | `appearance="subtle"` | Softer filled surface; still clearly a control. |
-| `theme=outlined` | `appearance="outline"` | Boundary without a solid fill; the border is never the only sign it's interactive. |
-| `theme=borderless` | `appearance="ghost"` | Quiet, integrated action (formerly `theme="borderless"`). The context must still show it's a control. |
+| `severity=primary` | `severity="primary"` | The main next step of the current task. One per surface. |
+| `severity=secondary` | `severity="secondary"` | A supporting action that must stay clearly available. |
+| `severity=tertiary` | `severity="tertiary"` | A quieter related action, such as a neutral Cancel. Keep its name readable. |
+| `severity=warning` | `severity="warning"` | Risky but not destructive; the label explains the consequence. |
+| `severity=danger` | `severity="danger"` | Destructive or otherwise serious; the label names the object and the result. |
+| `appearance=solid` | `appearance="solid"` | Strongest emphasis. |
+| `appearance=subtle` | `appearance="subtle"` | Softer filled surface; still clearly a control. |
+| `appearance=outline` | `appearance="outline"` | Boundary without a solid fill; the border is never the only sign it's interactive. |
+| `appearance=ghost` | `appearance="ghost"` | Quiet, integrated action (formerly `theme="borderless"`). The context must still show it's a control. |
 | — | `unstyled` | Only inside another component's surface. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. A larger size doesn't change meaning, permission or state. `sm` never shrinks the target below what the task needs. |
 | `state=hover`, `focus`, `active` | not props | Produced by the browser. Hover never commits anything; focus is not a chosen value. |

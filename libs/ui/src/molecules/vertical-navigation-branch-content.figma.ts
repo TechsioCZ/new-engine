@@ -5,13 +5,12 @@
 import figma from "figma"
 
 const instance = figma.selectedInstance
-// Figma still names these properties tone/variant; code reads appearance/severity.
-const appearance = instance.getEnum("tone", {
+const appearance = instance.getEnum("appearance", {
   plain: "plain",
   subtle: "subtle",
-  accent: "solid",
+  solid: "solid",
 })
-const severity = instance.getEnum("variant", {
+const severity = instance.getEnum("severity", {
   primary: "primary",
   secondary: "secondary",
 })

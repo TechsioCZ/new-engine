@@ -75,7 +75,7 @@ where actions and feedback live). This section applies them to `Pagination`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=filled\|outlined\|minimal`, `size=sm…lg` | `appearance="solid" | "outline" | "ghost"`, `size` |
+| `appearance=solid\|outlined\|minimal`, `size=sm…lg` | `appearance="solid" | "outline" | "ghost"`, `size` |
 | — | `compact`, `siblingCount`, `boundaryCount`, `showPrevNext` (not in Figma) |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Pagination → UX guidelines*.

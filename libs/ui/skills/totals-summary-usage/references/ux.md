@@ -33,8 +33,8 @@ what is still being recalculated. It never calculates anything itself.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| Row `emphasis=default` | `severity: "neutral"` | An ordinary amount with a clear name and currency. |
-| Row `emphasis=discount` | `severity: "discount"` | Highlights a real discount row. It doesn't change the amount or its sign. |
+| Row `severity=neutral` | `severity: "neutral"` | An ordinary amount with a clear name and currency. |
+| Row `severity=discount` | `severity: "discount"` | Highlights a real discount row. It doesn't change the amount or its sign. |
 | Row `showNote` | `note` | Explains the condition of this amount; never replaces its name or value. |
 | `pending=false` | — | Amounts match their confirmed context. |
 | `pending=true` | `pending` + `pendingLabel` | Recalculating: last values stay visible, `aria-busy` is set, the actions are inert. |
