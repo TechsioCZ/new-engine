@@ -13,6 +13,7 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 import ts from "typescript"
 import {
   COLOR_PREFIXES,
+  CORNER_SHAPE_PREFIXES,
   GAP_PREFIXES,
   HEIGHT_PREFIXES,
   INSET_PREFIXES,
@@ -54,6 +55,7 @@ const NAMESPACE_MAPPINGS = {
   leading: ["leading"],
   shadow: ["shadow", "drop-shadow", "inset-shadow"],
   blur: ["blur"],
+  "corner-shape": CORNER_SHAPE_PREFIXES,
 }
 
 // Standard Tailwind utilities to ignore (not custom tokens)
@@ -87,6 +89,10 @@ const IGNORE_PATTERNS = [
   /^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/,
   /^font-(sans|serif|mono)$/,
   /^(leading|tracking)-(none|tight|snug|normal|relaxed|loose|wide|wider|widest)$/,
+
+  // border-shape (src/tokens/_shape.css) takes no theme tokens, so it is
+  // never a border color or width.
+  /^border-shape-(none|\[.+\])$/,
 
   // Standard borders & effects
   /^(border|rounded)-(none|sm|md|lg|xl|2xl|3xl|full)$/,

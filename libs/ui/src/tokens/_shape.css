@@ -1,0 +1,125 @@
+/*
+ * Shape utilities — `corner-shape` and `border-shape` (CSS Borders and Box
+ * Decorations Level 4). Tailwind and Figma do not ship these yet, so the kit
+ * owns them here.
+ *
+ * corner-shape (Chrome/Edge 139+, Safari 27.3+; Firefox in preview)
+ *   Reshapes the curve a `border-radius` draws: background, border, outline
+ *   and box-shadow follow it. It has no effect without a radius, so pair it
+ *   with `rounded-*`. Browsers without support ignore it and keep the plain
+ *   rounded corner — no fallback needed. For a different fallback use the
+ *   built-in variant: `supports-[corner-shape:squircle]:…`.
+ *
+ *   corner-{shape}            all corners           corner-squircle
+ *   corner-{side}-{shape}     t r b l / s e          corner-t-bevel
+ *   corner-{corner}-{shape}   tl tr br bl / ss se es ee   corner-ss-scoop
+ *   arbitrary values          corner-[superellipse(1.5)]  corner-(--my-shape)
+ *
+ *   Figma has no corner-shape. Its "corner smoothing" (iOS ≈ 60%) is the
+ *   nearest look: use `corner-squircle` for it.
+ *
+ * border-shape (EXPERIMENTAL — Chrome 147+ only)
+ *   Draws the border along a <basic-shape>: one shape strokes the border
+ *   along it, two shapes fill between an outer and an inner edge. While it is
+ *   set, border-radius and corner-shape are ignored, border-style renders
+ *   solid, and the shape becomes the hit-test area. Unsupported browsers show
+ *   the normal rectangular border. Arbitrary values only:
+ *   border-shape-[circle(50%)], border-shape-none.
+ */
+
+/* Reference layer: one token per corner-shape keyword. */
+@theme static {
+  --corner-shape-round: round;
+  --corner-shape-squircle: squircle;
+  --corner-shape-bevel: bevel;
+  --corner-shape-scoop: scoop;
+  --corner-shape-notch: notch;
+  --corner-shape-square: square;
+
+  /* Semantic layer: the brand's default corner. Override it per brand
+   * (e.g. var(--corner-shape-squircle)) to reshape everything using
+   * `corner-base`; `round` keeps today's look. */
+  --corner-shape-base: var(--corner-shape-round);
+}
+
+@utility corner-* {
+  corner-shape: --value(--corner-shape-*, [*]);
+}
+
+/* top corners */
+@utility corner-t-* {
+  corner-top-shape: --value(--corner-shape-*, [*]);
+}
+
+/* right corners */
+@utility corner-r-* {
+  corner-right-shape: --value(--corner-shape-*, [*]);
+}
+
+/* bottom corners */
+@utility corner-b-* {
+  corner-bottom-shape: --value(--corner-shape-*, [*]);
+}
+
+/* left corners */
+@utility corner-l-* {
+  corner-left-shape: --value(--corner-shape-*, [*]);
+}
+
+/* top-left corner */
+@utility corner-tl-* {
+  corner-top-left-shape: --value(--corner-shape-*, [*]);
+}
+
+/* top-right corner */
+@utility corner-tr-* {
+  corner-top-right-shape: --value(--corner-shape-*, [*]);
+}
+
+/* bottom-right corner */
+@utility corner-br-* {
+  corner-bottom-right-shape: --value(--corner-shape-*, [*]);
+}
+
+/* bottom-left corner */
+@utility corner-bl-* {
+  corner-bottom-left-shape: --value(--corner-shape-*, [*]);
+}
+
+/* inline-start corners (left in LTR, right in RTL) */
+@utility corner-s-* {
+  corner-inline-start-shape: --value(--corner-shape-*, [*]);
+}
+
+/* inline-end corners */
+@utility corner-e-* {
+  corner-inline-end-shape: --value(--corner-shape-*, [*]);
+}
+
+/* block-start / inline-start corner */
+@utility corner-ss-* {
+  corner-start-start-shape: --value(--corner-shape-*, [*]);
+}
+
+/* block-start / inline-end corner */
+@utility corner-se-* {
+  corner-start-end-shape: --value(--corner-shape-*, [*]);
+}
+
+/* block-end / inline-start corner */
+@utility corner-es-* {
+  corner-end-start-shape: --value(--corner-shape-*, [*]);
+}
+
+/* block-end / inline-end corner */
+@utility corner-ee-* {
+  corner-end-end-shape: --value(--corner-shape-*, [*]);
+}
+
+@utility border-shape-none {
+  border-shape: none;
+}
+
+@utility border-shape-* {
+  border-shape: --value([*]);
+}
