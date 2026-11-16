@@ -25,13 +25,14 @@ test("a changed subset smaller than the matrix leaves only explicitly empty shar
   const shards = Array.from({ length: 5 }, (_, index) =>
     shardVisualStories(["only-story"], { index: index + 1, total: 5 })
   )
-  assert.deepEqual(shards, [["only-story"], [], [], [], []])
+  assert.deepEqual(shards.flat(), ["only-story"])
+  assert.equal(shards.filter(shard => shard.length).length, 1)
 })
 
 
 test("measured heavy stories are spread without dropping any identity", () => {
   const stories = ["heavy-a", "heavy-b", "small-a", "small-b", "small-c", "small-d"]
-  const weights = { storyCount: 6, mobileCost: 0, stories: { "heavy-a": 8, "heavy-b": 8 } }
+  const weights = { storyCount: 6, medianCost: 1, desktopCosts: [], mobileCost: 0, stories: { "heavy-a": 8, "heavy-b": 8 } }
   const shards = [1, 2].map(index => shardVisualStories(stories, { index, total: 2 }, weights))
   for (const shard of shards) {
     assert.equal(shard.filter(id => id.startsWith("heavy")).length, 1)
@@ -43,7 +44,7 @@ test("measured heavy stories are spread without dropping any identity", () => {
 
 test("the last visual bundle leaves room for its mobile behavior suite", () => {
   const stories = ["a", "b", "c", "d", "e", "f"]
-  const weights = { storyCount: 6, mobileCost: 2, stories: {} }
+  const weights = { storyCount: 6, medianCost: 1, desktopCosts: [], mobileCost: 2, stories: {} }
   const shards = [1, 2].map(index => shardVisualStories(stories, { index, total: 2 }, weights))
   assert.equal(shards[0].length, 4)
   assert.equal(shards[1].length, 2)

@@ -51,19 +51,24 @@ export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
  * @template T
  * @param {T[]} stories
  * @param {{index: number, total: number} | undefined} shard
- * @param {{storyCount: number, mobileCost: number, stories: Record<string, number>}} [weights]
+ * @param {{storyCount: number, medianCost: number, desktopCosts: number[], mobileCost: number, stories: Record<string, number>}} [weights]
  * @returns {T[]}
  */
 export function shardVisualStories(stories, shard, weights = costs) {
   if (!shard) return stories
-  const loads = Array(shard.total).fill(0)
-  loads[shard.total - 1] = weights.mobileCost * stories.length / weights.storyCount
+  // For an unmeasured shard count the desktop estimate is uniform, which
+  // cancels out of the partition. The measured CI matrix includes its skew.
+  const scale = stories.length / weights.storyCount
+  const loads = Array.from({ length: shard.total }, (_, index) =>
+    weights.desktopCosts.length === shard.total ? weights.desktopCosts[index] * scale : 0
+  )
+  loads[shard.total - 1] += weights.mobileCost * scale
   const assigned = new Map()
   const ordered = stories.map((story, index) => {
     const id = typeof story === "string" ? story
       : typeof story === "object" && story !== null && "id" in story && typeof story.id === "string"
         ? story.id : ""
-    return { index, cost: weights.stories[id] ?? 1 }
+    return { index, cost: weights.stories[id] ?? weights.medianCost }
   }).sort((a, b) => b.cost - a.cost || a.index - b.index)
   for (const { index, cost } of ordered) {
     const bucket = loads.indexOf(Math.min(...loads))

@@ -43,11 +43,11 @@ jobs:
       # - run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
 
 
-      # Cache node_modules
+      # Restoring the 1.36 GB workspace store took 25s before a 32s install;
+      # a fresh install took 50s. Avoid that transfer on the build's critical path.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-          cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile --prefer-offline
       - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
