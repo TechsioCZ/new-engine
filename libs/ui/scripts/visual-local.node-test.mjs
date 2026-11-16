@@ -548,7 +548,6 @@ describe("childEnv", () => {
     VISUAL_CHANGED_SINCE: "main",
     VISUAL_CHANGED_FILES: "a.tsx",
     VISUAL_CHANGED_DRY_RUN: "1",
-    VISUAL_CANONICAL: "1",
     TEST_STORIES: "atoms-badge--playground",
     VISUAL_STORYBOOK_STATIC_DIR: "/somewhere/else",
     VISUAL_NATIVE: "0",
@@ -572,14 +571,6 @@ describe("childEnv", () => {
     assert.equal(env.VISUAL_CHANGED_FILES, undefined)
     assert.equal(env.VISUAL_CHANGED_DRY_RUN, undefined)
     assert.equal(env.PATH, "/bin")
-  })
-
-  it("keeps VISUAL_CANONICAL for a compare run only", () => {
-    assert.equal(childEnv({ ...common, kind: "compare" }).VISUAL_CANONICAL, "1")
-    assert.equal(
-      childEnv({ ...common, kind: "base", storybookDir }).VISUAL_CANONICAL,
-      undefined
-    )
   })
 
   it("points a compare run at the working-tree build it is given", () => {

@@ -268,6 +268,8 @@ Pick the smallest run that answers your question:
 | The change is intended and I need new baselines | let CI fail, then `pnpm -C libs/ui baselines:pull --pr <number>` | one CI run |
 
 CI renders the committed Linux baselines on `linux/amd64` and is the authority for them.
+Each screenshot story owns a fresh browser context and gets one capture attempt.
+Neither full nor changed CI accepts a successful fallback after a failed first render.
 
 To keep screenshots stable across machines, comparisons against the committed baselines run inside Docker.
 

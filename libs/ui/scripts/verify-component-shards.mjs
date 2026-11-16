@@ -87,6 +87,12 @@ function assertCleanReport(name, report) {
   )
   const flaky = report.stats?.flaky ?? 0
   assert(flaky === 0, `Shard ${name} has ${flaky} flaky tests`)
+  forEachTest(report.suites, (test) => {
+    assert(
+      !test.annotations?.some((item) => item.type === "visual-canonical-retry"),
+      `Shard ${name} recovered from a failed first render`
+    )
+  })
 }
 
 /**
