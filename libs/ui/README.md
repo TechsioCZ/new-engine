@@ -193,8 +193,11 @@ data objects are reported there. The full table is in
 ## Shape utilities (`corner-shape`, `border-shape`)
 
 The kit ships utilities for two CSS properties that Tailwind and Figma do not
-cover yet. They come with every token entry point (`tokens`,
-`tokens-with-tailwind`, `tokens/*`).
+cover yet. They are defined in `src/tokens/_shape.css` and included in the
+`tokens` and `tokens-with-tailwind` entry points (through `_tokens-base`). The
+`tokens/*` export maps to single files, so if you compose individual token
+files instead, import `@techsio/ui-kit/tokens/_shape` explicitly to get the
+`corner-*` and `border-shape-*` utilities.
 
 `corner-*` sets [`corner-shape`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/corner-shape)
 (Chrome/Edge 139+, Safari 27.3+). It reshapes the curve that `rounded-*`
