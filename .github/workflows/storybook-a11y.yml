@@ -13,7 +13,11 @@ on:
       workers:
         description: Jest workers per shard
         type: number
-        default: 4
+        default: 2
+      storybook_artifact:
+        description: Immutable Storybook build from the caller; empty builds it here
+        type: string
+        default: ""
       changed_files_artifact:
         description: Artifact holding the changed-file list a narrowed scan needs
         type: string
@@ -27,7 +31,7 @@ on:
       workers:
         description: Jest workers per shard
         type: number
-        default: 4
+        default: 2
 
 permissions:
   contents: read
@@ -49,7 +53,21 @@ jobs:
           cache: pnpm
       # Only the UI library and what it depends on takes part in this scan.
       - run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+      - name: Restore the accessibility browser
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ui-a11y-chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: timeout 420 pnpm exec playwright install --only-shell chromium
+      - name: Download the shared Storybook build
+        if: inputs.storybook_artifact != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ${{ inputs.storybook_artifact }}
+          path: libs/ui/storybook-static
+      - name: Build standalone Storybook once
+        if: inputs.storybook_artifact == ''
+        run: node libs/ui/scripts/visual-storybook-build.mjs --ensure
       - name: Download the changed-file list
         if: inputs.scope != 'full' && inputs.scope != 'all' && inputs.changed_files_artifact != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -69,7 +87,7 @@ jobs:
           A11Y_TEST_WORKERS: ${{ inputs.workers }}
           A11Y_SCOPE: ${{ inputs.scope }}
           A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/a11y-changed-files/changed-files.txt
-        run: pnpm --dir libs/ui storybook:a11y
+        run: bash libs/ui/scripts/a11y-ci-themes.sh
       - name: Verify all themes and calibration reported
         run: |
           node --input-type=module -e '

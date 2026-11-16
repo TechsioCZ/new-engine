@@ -65,7 +65,7 @@ jobs:
             list=true
           fi
           # Four bundles share checkout, install, Storybook and browser restore
-          # across visual, behavior and accessibility work. No 11-job fan-out.
+          # across visual and behavior work. Accessibility shares a fifth runner.
           bundles=4
           case "$scope" in
             full | all | ui)
@@ -84,9 +84,9 @@ jobs:
               ;;
           esac
           # The four bundles each own a visual and desktop quarter; the last
-          # also owns mobile behavior, the first three own one a11y theme.
-          component_matrix="$(jq -cn --argjson n "$bundles" --argjson themes "$A11Y_THEMES" \
-            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n,theme:($themes[.-1] // "")}]}')"
+          # also owns mobile behavior. Accessibility scans all themes together.
+          component_matrix="$(jq -cn --argjson n "$bundles" \
+            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n}]}')"
           {
             echo "scope=${scope}"
             echo "list=${list}"
@@ -134,11 +134,59 @@ jobs:
           path: ${{ runner.temp }}/expected.json
           if-no-files-found: error
 
+      - if: steps.scope.outputs.scope != 'none'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+      - if: steps.scope.outputs.scope != 'none'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.scope.outputs.scope != 'none'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+          cache: pnpm
+      - if: steps.scope.outputs.scope != 'none'
+        run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+      - name: Hash the Storybook inputs
+        if: steps.scope.outputs.scope != 'none'
+        id: storybook
+        run: echo "hash=$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)" >> "$GITHUB_OUTPUT"
+      - name: Restore Storybook for unchanged inputs
+        if: steps.scope.outputs.scope != 'none'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: libs/ui/storybook-static
+          key: ui-storybook-node26-${{ steps.storybook.outputs.hash }}
+      - name: Build Storybook once
+        if: steps.scope.outputs.scope != 'none'
+        run: node libs/ui/scripts/visual-storybook-build.mjs --ensure
+      - name: Share the immutable Storybook build
+        if: steps.scope.outputs.scope != 'none'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-storybook-${{ inputs.sha }}
+          path: libs/ui/storybook-static
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  accessibility:
+    needs: plan
+    if: needs.plan.outputs.scope != 'none'
+    uses: ./.github/workflows/storybook-a11y.yml
+    with:
+      sha: ${{ inputs.sha }}
+      scope: ${{ needs.plan.outputs.scope }}
+      workers: 2
+      storybook_artifact: ui-storybook-${{ inputs.sha }}
+      changed_files_artifact: ${{ needs.plan.outputs.list == 'true' && format('ui-changed-files-{0}', inputs.sha) || '' }}
+
   components:
     needs: plan
     if: needs.plan.outputs.scope != 'none'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -172,31 +220,20 @@ jobs:
         with:
           name: ui-changed-files-${{ inputs.sha }}
           path: ${{ runner.temp }}/ui-changed-files
+      - name: Download the shared Storybook build
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ui-storybook-${{ inputs.sha }}
+          path: libs/ui/storybook-static
       - name: Run the bundle's component suites
         env:
           SCOPE: ${{ needs.plan.outputs.scope }}
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           BUNDLE: ${{ matrix.shard }}
           BUNDLES: ${{ matrix.total }}
+          VISUAL_STORYBOOK_STATIC_DIR: ${{ github.workspace }}/libs/ui/storybook-static
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
-        run: |
-          set -euo pipefail
-          for group in desktop visual mobile; do
-            if [ "$group" = mobile ] && [ "$BUNDLE" != "$BUNDLES" ]; then continue; fi
-            shard="$SHARD"
-            if [ "$group" = mobile ]; then shard=1/1; fi
-            export PLAYWRIGHT_GROUP="$group" PLAYWRIGHT_WORKERS=4
-            if [ "$SCOPE" = full ]; then
-              unset VISUAL_CHANGED_FILES_FROM
-              PLAYWRIGHT_RELEASE_SHARD="$shard" pnpm --dir libs/ui test:components:release
-            else
-              VISUAL_CHANGED_BEHAVIOR=1 PLAYWRIGHT_SHARD="$shard" pnpm --dir libs/ui test:components
-            fi
-            index="${shard%/*}"
-            out="$RUNNER_TEMP/component-reports/ui-$group-shard-$index"
-            mkdir -p "$out"
-            cp libs/ui/test-results/visual-reports/*.json "$out/"
-          done
+        run: bash libs/ui/scripts/component-ci-bundle.sh
       - name: Upload component coverage
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -210,28 +247,7 @@ jobs:
         with:
           name: ui-component-results-${{ inputs.sha }}-bundle-${{ matrix.shard }}
           path: |
-            libs/ui/playwright-report
-            libs/ui/test-results
-          if-no-files-found: error
-      - name: Install the accessibility browser
-        if: matrix.theme != ''
-        run: timeout 420 pnpm exec playwright install --only-shell chromium
-      - name: Enforce product accessibility and reporter calibration
-        if: matrix.theme != ''
-        env:
-          A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
-          A11Y_THEME: ${{ matrix.theme }}
-          A11Y_THEME_COUNT: "3"
-          A11Y_SHARD: 1/1
-          A11Y_TEST_WORKERS: "4"
-          A11Y_SCOPE: ${{ needs.plan.outputs.scope }}
-          A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
-        run: pnpm --dir libs/ui storybook:a11y
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always() && matrix.theme != ''
-        with:
-          name: storybook-a11y-${{ inputs.sha }}-${{ matrix.theme }}-shard-1
-          path: libs/ui/a11y-report
+            ${{ runner.temp }}/component-results
           if-no-files-found: error
       - name: Export the component browser image
         id: exported-image
