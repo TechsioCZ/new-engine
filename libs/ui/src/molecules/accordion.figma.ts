@@ -13,7 +13,9 @@ const appearance = figma.selectedInstance.getEnum("appearance", {
   outline: "outline",
   ghost: "ghost",
 })
+// nested is a Figma variant ("false" | "true"), not a boolean property.
 const nested = figma.selectedInstance.getEnum("nested", {
+  false: undefined,
   true: true,
 })
 const shadow = figma.selectedInstance.getEnum("shadow", {

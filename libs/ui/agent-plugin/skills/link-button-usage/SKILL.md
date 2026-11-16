@@ -64,7 +64,7 @@ where actions and feedback live). This section applies them to `LinkButton`.
 
 | Figma | Code |
 | --- | --- |
-| `severity`, `theme`, `size` | `severity`, `appearance`, `size` |
+| `severity`, `appearance`, `size` | `severity`, `appearance`, `size` |
 | `state=disabled` | `disabled` |
 | `state=hover` | not a prop (browser state) |
 
