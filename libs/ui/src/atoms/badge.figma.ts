@@ -4,8 +4,7 @@
 
 import figma from "figma"
 
-// Figma still names the property variant; code splits it into severity + appearance.
-const severity = figma.selectedInstance.getEnum("variant", {
+const severity = figma.selectedInstance.getEnum("severity", {
   primary: "primary",
   secondary: "secondary",
   tertiary: "tertiary",
@@ -14,10 +13,7 @@ const severity = figma.selectedInstance.getEnum("variant", {
   success: "success",
   warning: "warning",
   danger: "danger",
-  outline: "neutral",
-})
-const appearance = figma.selectedInstance.getEnum("variant", {
-  outline: "outline",
+  neutral: "neutral",
 })
 const size = figma.selectedInstance.getEnum("size", {
   sm: "sm",
@@ -34,9 +30,6 @@ export default {
   id: "Badge",
   imports: ['import { Badge } from "@techsio/ui-kit/atoms/badge"'],
   example: figma.code`<Badge${figma.helpers.react.renderProp(
-    "appearance",
-    appearance
-  )}${figma.helpers.react.renderProp(
     "size",
     size
   )}${figma.helpers.react.renderProp("severity", severity)}>

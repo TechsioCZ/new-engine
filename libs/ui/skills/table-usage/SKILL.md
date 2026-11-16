@@ -70,7 +70,7 @@ where actions and feedback live). This section applies them to `Table`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=line\|outline\|striped`, `size=sm…lg` | `appearance` (same values), `size` |
+| `appearance=line\|outline\|striped`, `size=sm…lg` | `appearance` (same values), `size` |
 | — | `interactive`, `stickyHeader`, `stickyFirstColumn`, `showColumnBorder`, `captionPlacement`, `Row selected` (code only) |
 | Toolbar, FilterRow, PaginationBar in the Table doc | `DataTable`, not Table |
 

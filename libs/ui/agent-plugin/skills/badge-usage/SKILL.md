@@ -72,7 +72,7 @@ where actions and feedback live). This section applies them to `Badge`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=primary…outline`, `size=sm…xl` | `severity` (Figma `outline` → `appearance="outline" severity="neutral"`), `size` |
+| `severity=primary…neutral`, `size=sm…xl` | `severity`, `size`; code also has `appearance="outline"` (a severity-coloured border), which Figma does not draw yet |
 | — | `severity="custom"` + `bgColor` / `fgColor` / `borderColor` (code only) |
 | `Label` text layer | `children` (string) |
 

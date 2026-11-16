@@ -9,8 +9,7 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-// Figma still names the property tone; code reads severity.
-const severity = figma.selectedInstance.getEnum("tone", {
+const severity = figma.selectedInstance.getEnum("severity", {
   neutral: "neutral",
   danger: "danger",
 })

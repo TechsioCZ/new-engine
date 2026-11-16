@@ -9,14 +9,17 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-// Figma still names the property variant; code splits it into validateStatus + appearance.
-const validateStatus = figma.selectedInstance.getEnum("variant", {
+const validateStatus = figma.selectedInstance.getEnum("validateStatus", {
+  // default is the component default, so the example omits the prop.
+  default: undefined,
   error: "error",
   success: "success",
   warning: "warning",
 })
-const appearance = figma.selectedInstance.getEnum("variant", {
-  borderless: "ghost",
+const appearance = figma.selectedInstance.getEnum("appearance", {
+  // outline is the component default, so the example omits the prop.
+  outline: undefined,
+  ghost: "ghost",
 })
 const disabled = figma.selectedInstance.getEnum("state", {
   default: false,

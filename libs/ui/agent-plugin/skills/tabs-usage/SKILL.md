@@ -67,7 +67,7 @@ where actions and feedback live). This section applies them to `Tabs`.
 
 | Figma | Code |
 | --- | --- |
-| `variant`, `size`, `orientation` | `appearance` (Figma `default` → `underline`), `size`, `orientation` |
+| `appearance`, `size`, `orientation` | `appearance`, `size`, `orientation` |
 | `state=selected` | `value` / `defaultValue` |
 | `state=disabled` | `disabled` on `Tabs.Trigger` |
 | — | `activationMode`, `fitted`, `justify` (not in Figma) |
