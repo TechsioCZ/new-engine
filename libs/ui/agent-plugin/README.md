@@ -1,11 +1,18 @@
-# techsio-ui-kit-ai v0.4.0
+# techsio-ui-kit-ai v0.5.0
 
 Agent plugin for the **@techsio/ui-kit** design system, packaged to the
 **[Agent Plugins 1.0.0](https://agent-plugins.org)** standard
 ([spec](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md)) — one
-portable directory of [Agent Skills](https://agentskills.io) and MCP servers. Works in
-**OpenAI Codex** (reads the portable manifest natively), **Claude Code** (through a generated
-legacy manifest) and any other conformant client.
+portable directory of [Agent Skills](https://agentskills.io) and MCP servers. Works in three
+harnesses from the same folder:
+
+| Harness | Reads | Client-specific extras |
+| --- | --- | --- |
+| **OpenAI Codex** | root `plugin.json`, `mcp.json`, `skills/` (native Agent Plugins 1.0) | `com.openai/` — hooks (via `extensions["com.openai"]`), TOML subagents |
+| **GitHub Copilot** (CLI, VS Code, Copilot app) | root `plugin.json`, `mcp.json`, `skills/` (native Agent Plugins 1.0) | `com.github.copilot/` — hooks, `.agent.md` agents (generated) |
+| **Claude Code** | `.claude-plugin/plugin.json` (generated — Claude Code does not read the portable manifest yet) | `com.anthropic/` — hooks, agents (generated) |
+
+Any other conformant client loads the portable core and ignores the vendor directories.
 
 The plugin is **self-contained and published separately** from the `new-engine` monorepo.
 It currently lives at `libs/ui/agent-plugin` only as its authoring location — deep skills are
@@ -19,7 +26,8 @@ marketplace as-is.
 | Workflow skills | 8 | `$ui-*` entry points: scaffold, tokens, stories, theming, Figma sync, validation, release, usage routing |
 | Bundled deep skills | 79 | Synced from `libs/ui/skills/`: 64 per-component `*-usage` guides (each with a **UX/UI guidelines** section), `ux-guidelines`, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
 | MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) — `mcp.json` |
-| Codex extension (`com.openai/`) | 6 agents + 2 hooks | Subagents (design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate); real git `pre-push` gate installer + `--no-verify` guard |
+| Agents | 6 | Design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate — authored in `com.openai/agents/*.toml`, generated for Claude Code and Copilot |
+| Hooks | 2 | Real git `pre-push` gate installer (`SessionStart`) + `--no-verify` guard (`PreToolUse`) — authored in `com.openai/hooks.json`, generated for Claude Code and Copilot |
 
 ## UX/UI guidelines
 
@@ -70,10 +78,20 @@ behaviour, edge cases); the Icon page carries the glyph → meaning → host tab
 
 ## Subagents
 
-Codex subagents are TOML files in `com.openai/agents/` (Codex's extension directory — agents
-are not a portable Agent Plugins component type). Copy (or symlink) them into `~/.codex/agents/`
-(personal) or a repo's `.codex/agents/` (project-scoped — the project must be trusted in
-Codex). Hooks additionally require `features.hooks` enabled in Codex `config.toml`.
+Agents are not a portable Agent Plugins component type, so each harness gets them from its own
+extension directory. They are written once, as Codex TOML in `com.openai/agents/`, and
+`scripts/build-client-manifests.mjs` generates the rest (`developer_instructions` becomes the
+Markdown body; Codex-only keys such as `sandbox_mode` are dropped):
+
+- **Codex** — copy (or symlink) the TOML files into `~/.codex/agents/` (personal) or a repo's
+  `.codex/agents/` (project-scoped — the project must be trusted in Codex).
+- **Claude Code** — loaded automatically from `com.anthropic/agents/*.md` as
+  `techsio-ui-kit-ai:<agent>`.
+- **GitHub Copilot** — loaded automatically from `com.github.copilot/agents/*.agent.md`
+  (`/agent` in the CLI).
+
+Codex runs plugin hooks only after you trust them (`/hooks` in the interactive CLI); until then
+they are skipped silently, including in `codex exec`.
 
 | Agent | Role |
 | --- | --- |
@@ -93,7 +111,7 @@ marketplace):
 
 ```sh
 codex plugin marketplace add <marketplace-repo-or-path>
-codex plugin install techsio-ui-kit-ai
+codex plugin add techsio-ui-kit-ai@<marketplace>
 ```
 
 Marketplace entry for the repo that hosts the plugin (`.agents/plugins/marketplace.json`):
@@ -125,16 +143,33 @@ claude plugin install techsio-ui-kit-ai
 ```
 
 Claude Code does not read the portable root `plugin.json` yet, so the plugin ships a
-**generated** `.claude-plugin/plugin.json` (metadata from `plugin.json`, MCP servers inlined
-from `mcp.json` with `streamable-http` → `http`) and `.claude-plugin/hooks.json` (a copy of
-`com.openai/hooks.json`). Never edit them by hand — change the portable files and run
-`node scripts/build-client-manifests.mjs`. The TOML subagents are Codex-specific — Claude Code
-users get equivalent behavior through the skills.
+**generated** `.claude-plugin/plugin.json`: metadata from `plugin.json`, MCP servers inlined
+from `mcp.json` (`streamable-http` → `http`), and paths to `com.anthropic/hooks/hooks.json` and
+`com.anthropic/agents/*.md`. Never edit generated files by hand — change the sources and run
+`node scripts/build-client-manifests.mjs`.
+
+### GitHub Copilot (CLI, VS Code, Copilot app)
+
+```sh
+copilot plugin marketplace add <marketplace-repo-or-path>
+copilot plugin install techsio-ui-kit-ai@<marketplace>
+# or straight from the folder:
+copilot plugin install ./techsio-ui-kit-ai
+```
+
+Copilot reads the portable manifest natively (Agent Plugins 1.0) and its own components from
+`com.github.copilot/`. The generated `hooks/hooks.json` uses Copilot's `version: 1` format with
+PascalCase events (`SessionStart`, `PreToolUse`), so Copilot sends the same Claude-compatible
+payload (`tool_name`, `tool_input.command`, `cwd`) the hook scripts already read. Copilot runs
+plugin hooks from the plugin root, so the scripts take the project directory from the payload's
+`cwd`, never from the process cwd. Copilot CLI caches plugins at install time — reinstall after
+an update.
 
 ### Any other Agent Plugins client
 
 Point the client at the plugin directory. It discovers `plugin.json`, `skills/*/SKILL.md` and
-`mcp.json`, and ignores `com.openai/` and `.claude-plugin/`.
+`mcp.json`, and ignores the vendor directories (`com.openai/`, `com.anthropic/`,
+`com.github.copilot/`) and `.claude-plugin/`.
 
 ## Agent Plugins 1.0.0 conformance
 
@@ -143,7 +178,7 @@ Point the client at the plugin directory. It discovers `plugin.json`, `skills/*/
 | §5 manifest | root `plugin.json`, `$schema` `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`, closed field set, client data only under `extensions` |
 | §6–7.1 skills | fixed location `skills/<name>/SKILL.md`; frontmatter limited to Agent Skills keys — library metadata (`type`, `library_version`, `component_version`, `requires`, `sources`, …) lives under `metadata` as strings |
 | §7.2 MCP | root `mcp.json` with the matching `$schema`, explicit `type` per server (`streamable-http`, `stdio`) |
-| §8 extensions | Codex data in `extensions["com.openai"]` + the `com.openai/` directory (hooks, subagents) |
+| §8 extensions | Codex data in `extensions["com.openai"]` + `com.openai/`; Copilot in `com.github.copilot/`; Claude Code in `com.anthropic/` — each harness reads only its own namespace |
 | §4.1 containment | no path or symlink resolves outside the plugin root |
 
 Check it locally (also verifies the generated files are current):
@@ -229,8 +264,8 @@ lefthook), and **never destroys a pre-push hook it did not write** — a pre-exi
 moved aside to `pre-push.pre-ui-kit` and chained: it runs first, and its non-zero exit still
 rejects the push.
 
-**Collision resolution.** The plugin's agent-level hooks (`hooks.json`) are additive — Codex
-and Claude Code run every plugin's hooks side by side, so they cannot collide with default or
+**Collision resolution.** The plugin's agent-level hooks (`hooks.json`) are additive — Codex,
+Claude Code and Copilot run every plugin's hooks side by side, so they cannot collide with default or
 other plugins' hooks, and ours exit silently outside the ui-kit repo. For the git `pre-push`
 slot, collisions are resolved so existing hooks keep running — never won by force:
 
@@ -252,18 +287,22 @@ techsio-ui-kit-ai/
 ├── plugin.json                  # Agent Plugins 1.0.0 manifest (portable, canonical)
 ├── mcp.json                     # MCP servers: context7, figma, chrome-devtools (portable)
 ├── skills/                      # 8 authored workflow skills + 79 bundled deep skills (portable)
-├── com.openai/                  # Codex extension directory (extensions["com.openai"])
+├── com.openai/                  # Codex extension directory — SOURCE of hooks + agents
 │   ├── hooks.json               # SessionStart installer + --no-verify guard
-│   └── agents/*.toml            # 6 Codex subagents
-├── .claude-plugin/              # GENERATED Claude Code shim — do not edit
-│   ├── plugin.json              # metadata + inlined MCP servers
-│   └── hooks.json               # copy of com.openai/hooks.json
+│   └── agents/*.toml            # 6 subagents
+├── com.github.copilot/          # GENERATED GitHub Copilot extension — do not edit
+│   ├── hooks/hooks.json         # Copilot hooks format (version 1, PascalCase events)
+│   └── agents/*.agent.md        # 6 agents
+├── com.anthropic/               # GENERATED Claude Code extension — do not edit
+│   ├── hooks/hooks.json
+│   └── agents/*.md              # 6 agents
+├── .claude-plugin/plugin.json   # GENERATED Claude Code manifest (metadata, MCP, paths above)
 ├── scripts/
 │   ├── git-hooks/pre-push       # the real gate (git hands it the exact refs/SHAs)
 │   ├── install-git-hook.mjs     # SessionStart installer
 │   ├── pre-push-validate-gate.mjs
 │   ├── sync-skills.mjs          # libs/ui/skills → skills/ (portable frontmatter)
-│   ├── build-client-manifests.mjs  # plugin.json + mcp.json → .claude-plugin/
+│   ├── build-client-manifests.mjs  # com.openai/ + plugin.json + mcp.json → Claude Code + Copilot files
 │   ├── validate-plugin.mjs      # Agent Plugins 1.0.0 + Agent Skills conformance
 │   └── lib/                     # shared helpers
 ├── AGENTS.md                    # routing table

@@ -1,7 +1,7 @@
 {
   "name": "@techsio/ui-kit-ai",
-  "version": "0.4.0",
-  "description": "Techsio UI Kit AI — Agent Plugins 1.0.0 package (skills + MCP) for developing and consuming the @techsio/ui-kit design system.",
+  "version": "0.5.0",
+  "description": "Techsio UI Kit AI — Agent Plugins 1.0.0 package (skills + MCP) for developing and consuming the @techsio/ui-kit design system in Codex, Claude Code and GitHub Copilot.",
   "author": {
     "name": "Lukáš Chylík",
     "email": "lukaschylik93@gmail.com"
@@ -18,6 +18,7 @@
     "agent-plugins",
     "codex",
     "claude-code",
+    "github-copilot",
     "agent-skills",
     "plugin"
   ],
@@ -34,6 +35,8 @@
     "skills",
     "references",
     "com.openai",
+    "com.github.copilot",
+    "com.anthropic",
     ".claude-plugin",
     "scripts",
     "AGENTS.md",
