@@ -78,6 +78,7 @@ trap 'exit 129' HUP
 # A failed bind must not accidentally scan another process on this port.
 if ! curl -fs -o /dev/null --retry 30 --retry-connrefused --retry-delay 1 \
   "http://127.0.0.1:${PORT}/index.json" ||
+  ! grep -q "Serving Storybook on http://127.0.0.1:${PORT}" "${SERVER_LOG}" ||
   ! kill -0 "${SERVER_PID}" 2>/dev/null; then
   echo "The Storybook HTTP server did not become ready on port ${PORT}." >&2
   cat "${SERVER_LOG}" >&2

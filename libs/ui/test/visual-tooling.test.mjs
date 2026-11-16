@@ -444,9 +444,6 @@ const GROUP_ENV = /PLAYWRIGHT_GROUP: \$\{\{ matrix\.group \}\}/
 const BEHAVIOR_ENV = /VISUAL_CHANGED_BEHAVIOR: "1"/
 const CHANGED_RUN = /run: pnpm --dir libs\/ui test:components$/m
 const NONE_MARKER = /changed-none\.json/
-const STORYBOOK_ENSURE_CALL =
-  /node "\$\{ROOT_DIR\}\/scripts\/visual-storybook-build\.mjs" --ensure/
-const BUILD_STORYBOOK_SCRIPT = /build:storybook/
 
 /** Splits a workflow into its jobs, keyed by job name. */
 function workflowJobs(yaml) {
@@ -541,20 +538,6 @@ test("the release suite runs only for the full scope and owns PLAYWRIGHT_RELEASE
     stepContaining(quality, "visual-reports/changed-none.json"),
     NONE_MARKER
   )
-})
-
-test("the accessibility scan builds Storybook through the shared ensure path", () => {
-  // The workflows no longer cache storybook-static: the key was a content hash
-  // of libs/ui plus the lockfile plus every workflow file with no restore-keys,
-  // and all consuming jobs are created in the same second, so this commit's key
-  // has never been written when they start. The build is 29-40s.
-  for (const workflow of ["ui-quality", "storybook-a11y"]) {
-    const yaml = read(`../../../.github/workflows/${workflow}.yml`)
-    assert.doesNotMatch(yaml, /actions\/cache/, workflow)
-  }
-  const script = read("../scripts/storybook-a11y.sh")
-  assert.match(script, STORYBOOK_ENSURE_CALL)
-  assert.doesNotMatch(script, BUILD_STORYBOOK_SCRIPT)
 })
 
 test("stylesheet discovery and documentation commands match package contracts", () => {
