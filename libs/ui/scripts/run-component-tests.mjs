@@ -23,6 +23,7 @@ import {
   readPathList,
 } from "./visual-affected-stories.mjs"
 import { ensureStorybookBuild } from "./visual-storybook-build.mjs"
+import { trackedBaselines } from "./component-baselines.mjs"
 
 // Runs the Playwright visual tests inside Docker for reproducible snapshots.
 const uiRoot = path.resolve(import.meta.dirname, "..")
@@ -224,11 +225,10 @@ function verifyReviewedBaselines() {
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
   )
-  const directory = path.join(uiRoot, "test/visual.spec.ts-snapshots")
   assertPrimaryBaselines(
     entries,
     createVisualMatrix(),
-    new Set(fs.existsSync(directory) ? fs.readdirSync(directory) : [])
+    new Set(trackedBaselines(repoRoot).map((file) => path.posix.basename(file)))
   )
 }
 
