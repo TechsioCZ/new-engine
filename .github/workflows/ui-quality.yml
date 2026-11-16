@@ -62,14 +62,23 @@ jobs:
             list=true
           fi
           # Job widths are a slot budget, not a preference: the free plan allows
-          # 20 concurrent jobs account-wide. Full run = 8 component + 9 a11y +
+          # 20 concurrent jobs account-wide. Full run = 11 component + 6 a11y +
           # main + package + the GitHub-managed CodeQL job = 20 exactly. Changed
           # run = 4 + 3 heavy, so two concurrent pull requests still fit 20.
           # Adding a job to either shape means taking one away.
+          #
+          # The widths are measured, not estimated: run 43882857373 on this
+          # branch gave per-shard test times of 4.2 min for visual at 5 shards,
+          # 3.9 for desktop at 2 and 0.75 for mobile, against 2.3 min of Jest
+          # per a11y shard at 3 per theme. The a11y leg finished four minutes
+          # before the slowest component shard, so three of its nine slots buy
+          # more here: visual 5 -> 7 and desktop 2 -> 3 take the heaviest
+          # component job from 8.8 to ~7.4 min, and a11y at 2 shards per theme
+          # lands at ~5.5. The critical path is the heaviest job, not the sum.
           case "$scope" in
             full | all)
-              groups='{"visual":5,"desktop":2,"mobile":1}'
-              a11y_shards=3
+              groups='{"visual":7,"desktop":3,"mobile":1}'
+              a11y_shards=2
               ;;
             ui | none)
               # scope none keeps every heavy job skipped by its own `if`; the
