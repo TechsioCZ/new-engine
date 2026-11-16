@@ -52,7 +52,7 @@ if (process.argv.includes("--print-plan")) {
   return { directory, result }
 }
 
-test("concurrent component suites retain separate reports until all finish", (t) => {
+test("component suites retain separate reports", (t) => {
   const { directory, result } = runBundle(t)
   assert.equal(result.status, 0, result.stderr)
   for (const group of ["visual", "desktop", "mobile"]) {
@@ -64,10 +64,10 @@ test("concurrent component suites retain separate reports until all finish", (t)
   }
 })
 
-test("a failed suite fails the bundle but still waits for the other report", (t) => {
+test("a failed suite fails the bundle before launching more browser work", (t) => {
   const { directory, result } = runBundle(t, "desktop")
   assert.equal(result.status, 1)
-  assert.ok(fs.existsSync(path.join(
+  assert.ok(!fs.existsSync(path.join(
     directory, "component-reports/ui-visual-shard-4/all.json"
   )))
 })

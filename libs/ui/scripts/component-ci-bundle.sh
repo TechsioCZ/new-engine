@@ -2,8 +2,8 @@
 set -euo pipefail
 : "${SHARD:?}" "${SCOPE:?}" "${BUNDLE:?}" "${BUNDLES:?}" "${RUNNER_TEMP:?}"
 
-# Each suite has its own container, server, and output directory. Behavior is
-# mostly browser waits, so it can use the cores screenshot workers leave idle.
+# Each suite owns its container, server, and output. Running two browser pools
+# together slowed both on the hosted runner, so suites share four cores in turn.
 run_group() {
   local group="$1" workers="$2" shard="$SHARD"
   if [ "$group" = mobile ]; then shard=1/1; fi
@@ -28,14 +28,13 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
   time docker build -t "$image" -f docker/development/playwright/Dockerfile .
 fi
 
-run_group visual 4 &
-visual_pid=$!
-(
-  run_group desktop 2
-  if [ "$BUNDLE" = "$BUNDLES" ]; then run_group mobile 2; fi
-) &
-behavior_pid=$!
-status=0
-wait "$visual_pid" || status=1
-wait "$behavior_pid" || status=1
-exit "$status"
+if [ "${CI_BUNDLE_CPU:-}" = 1 ]; then
+  echo "Runner CPU quota: $(cat /sys/fs/cgroup/cpu.max)"
+  vmstat -w 10 &
+  monitor_pid=$!
+  trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
+fi
+
+run_group desktop 4
+run_group visual 4
+if [ "$BUNDLE" = "$BUNDLES" ]; then run_group mobile 4; fi

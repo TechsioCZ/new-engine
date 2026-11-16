@@ -64,9 +64,9 @@ jobs:
             scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
             list=true
           fi
-          # Four bundles share checkout, install, Storybook and browser restore
+          # Five bundles share checkout, install, Storybook and browser restore
           # across visual and behavior work. Accessibility shares a fifth runner.
-          bundles=4
+          bundles=5
           case "$scope" in
             full | all | ui)
               groups="$(jq -cn --argjson n "$bundles" '{visual:$n,desktop:$n,mobile:1}')"
@@ -83,7 +83,7 @@ jobs:
               exit 1
               ;;
           esac
-          # The four bundles each own a visual and desktop quarter; the last
+          # The five bundles each own a visual and desktop quarter; the last
           # also owns mobile behavior. Accessibility scans all themes together.
           component_matrix="$(jq -cn --argjson n "$bundles" \
             '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n}]}')"
@@ -150,7 +150,7 @@ jobs:
         with:
           node-version: 26.11.1
       - if: steps.scope.outputs.scope != 'none'
-        run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+        run: pnpm install --frozen-lockfile --prefer-offline --filter='@techsio/ui-kit...'
       - name: Hash the Storybook inputs
         if: steps.scope.outputs.scope != 'none'
         id: storybook
@@ -191,8 +191,8 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 4
-      # Four runners, not a separate runner for each suite.
+      max-parallel: 5
+      # Five runners, not a separate runner for each suite.
       matrix: ${{ fromJson(needs.plan.outputs.component_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -228,6 +228,7 @@ jobs:
           path: libs/ui/storybook-static
       - name: Run the bundle's component suites
         env:
+          CI_BUNDLE_CPU: "1"
           SCOPE: ${{ needs.plan.outputs.scope }}
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           BUNDLE: ${{ matrix.shard }}
@@ -251,7 +252,7 @@ jobs:
           if-no-files-found: error
       - name: Export the component browser image
         id: exported-image
-        if: success() && matrix.shard == 4 && steps.browser-image.outputs.cache-hit != 'true'
+        if: success() && matrix.shard == 5 && steps.browser-image.outputs.cache-hit != 'true'
         run: |
           image="$(node libs/ui/scripts/run-component-tests.mjs --print-plan | jq -er .image)"
           # A changed run with no selected stories never needs a container.

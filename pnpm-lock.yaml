@@ -542,6 +542,9 @@ importers:
       '@iconify-json/twemoji':
         specifier: ^1.2.5
         version: 1.2.5
+      '@playwright/test':
+        specifier: ^1.64.0
+        version: 1.64.0
       '@rsbuild/core':
         specifier: 2.2.12
         version: 2.2.12(core-js@3.46.0)

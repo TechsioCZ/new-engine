@@ -51,13 +51,13 @@ jobs:
         with:
           node-version: 26.11.1
       # Only the UI library and what it depends on takes part in this scan.
-      - run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+      - run: pnpm install --frozen-lockfile --prefer-offline --filter='@techsio/ui-kit...'
       - name: Restore the accessibility browser
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: ui-a11y-chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: timeout 420 pnpm exec playwright install --only-shell chromium
+      - run: timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
       - name: Download the shared Storybook build
         if: inputs.storybook_artifact != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
