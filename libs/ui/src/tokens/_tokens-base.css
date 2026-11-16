@@ -5,6 +5,7 @@
 @import "./_spacing.css";
 @import "./_typography.css";
 @import "./_layout.css";
+@import "./_shape.css";
 
 /* Semantic tokens (dependent on primitives) */
 @import "./_semantic.css";

@@ -59,6 +59,16 @@ export const INSET_PREFIXES = [
   "left",
 ]
 
+// corner-shape utilities (src/tokens/_shape.css): all corners, sides and
+// single corners, physical and logical — mirroring Tailwind's rounded-*.
+export const CORNER_SHAPE_PREFIXES = [
+  "corner",
+  ...["t", "r", "b", "l", "s", "e"].map((side) => `corner-${side}`),
+  ...["tl", "tr", "br", "bl", "ss", "se", "es", "ee"].map(
+    (corner) => `corner-${corner}`
+  ),
+]
+
 // Namespaces whose utilities have exactly one prefix in every checker.
 export const SINGLE_PREFIX_NAMESPACES = {
   text: ["text"],
