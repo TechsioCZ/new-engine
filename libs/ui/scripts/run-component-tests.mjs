@@ -82,9 +82,8 @@ const imageName =
 const projects = createVisualMatrix(process.env.VISUAL_BRANDS).map(
   (project) => project.name
 )
-// CI runs one shard set per cost-homogeneous project group: mobile, desktop or
-// visual. Playwright's --shard partitions by test count over the ordered
-// project list, so it only splits duration inside one group.
+// CI separates mobile/desktop behavior and visual projects. Behavior uses
+// Playwright's native shard; visuals split the story list in each project.
 const group = (process.env.PLAYWRIGHT_GROUP ?? "").trim() || undefined
 const sequentialProjects =
   (process.env.PLAYWRIGHT_DOCKER_SEQUENTIAL ?? "0") !== "0"
@@ -282,6 +281,10 @@ function startContainer() {
     CI: "true",
     PLAYWRIGHT_DOCKER: "1",
     PLAYWRIGHT_WORKERS: process.env.PLAYWRIGHT_WORKERS ?? "4",
+    PLAYWRIGHT_VISUAL_SHARD:
+      group === "visual" && activeShard
+        ? `${activeShard.index}/${activeShard.total}`
+        : undefined,
     TEST_BASE_URL: process.env.TEST_BASE_URL,
     TEST_STORIES: testStories,
     VISUAL_BRANDS: process.env.VISUAL_BRANDS,
@@ -394,8 +397,12 @@ function shardArgs() {
   if (!activeShard) {
     return []
   }
-  const flag = `--shard=${activeShard.index}/${activeShard.total}`
-  return playwrightShard ? [flag, "--pass-with-no-tests"] : [flag]
+  // Screenshot specs split stories inside each project. Native sharding would
+  // partition the already narrowed tests a second time and omit identities.
+  const flags = group === "visual"
+    ? []
+    : [`--shard=${activeShard.index}/${activeShard.total}`]
+  return playwrightShard ? [...flags, "--pass-with-no-tests"] : flags
 }
 
 /** @returns {{reportNames: string[], status: number}} */

@@ -14,7 +14,7 @@ import {
 import { PNG } from "pngjs"
 import { installVisualAssets } from "./visual-assets.mjs"
 import { visualCaptureTiles } from "./visual-capture.mjs"
-import { visualStories } from "./visual-completion.mjs"
+import { parseReleaseShard, visualStories } from "./visual-completion.mjs"
 import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
@@ -23,7 +23,7 @@ import {
   popupCheckpointStories,
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
-import { resolveVisualTheme } from "./visual-projects.mjs"
+import { resolveVisualTheme, shardVisualStories } from "./visual-projects.mjs"
 import { freezeVisualSvgImages } from "./visual-svg.mjs"
 
 type StorybookEntry = {
@@ -515,9 +515,13 @@ const storyFilter = (process.env.TEST_STORIES ?? "")
   .split(",")
   .map((id) => id.trim())
   .filter(Boolean)
-const selectedStories = storyFilter.length
+const matchingStories = storyFilter.length
   ? stories.filter((story) => storyFilter.includes(story.id))
   : stories
+const selectedStories = shardVisualStories(
+  matchingStories,
+  parseReleaseShard(process.env.PLAYWRIGHT_VISUAL_SHARD, "PLAYWRIGHT_VISUAL_SHARD")
+)
 const missingStories = storyFilter.filter(
   (id) => !stories.some((story) => story.id === id)
 )

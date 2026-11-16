@@ -37,11 +37,27 @@ export function createThemeMatrix() {
  * order. Screenshot projects come from createVisualMatrix below. */
 export const DEVICE_PROJECTS = ["desktop", "mobile"]
 
-/** CI splits the component suite by project group, never by test count across
- * the whole project list: Playwright's --shard is a contiguous partition by
- * test count, so it only splits duration inside a cost-homogeneous group.
+/** CI separates mobile/desktop behavior from screenshots. Behavior groups use
+ * Playwright's native shard; screenshot groups split stories inside each
+ * project so Chromium and WebKit costs are spread over every runner.
  * Shard counts per group are decided by the CI plan job. */
 export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
+
+/**
+ * Give every screenshot shard the same share of every brand/browser project.
+ * Playwright's contiguous --shard groups cheap Chromium tests on early runners
+ * and expensive WebKit tests on late ones. Splitting the sorted story list
+ * inside each project keeps all project identities while balancing that cost.
+ * @template T
+ * @param {T[]} stories
+ * @param {{index: number, total: number} | undefined} shard
+ * @returns {T[]}
+ */
+export function shardVisualStories(stories, shard) {
+  return shard
+    ? stories.filter((_, index) => index % shard.total === shard.index - 1)
+    : stories
+}
 
 /** Specs the `mobile` project runs. Every other behavior spec asserts DOM,
  * keyboard or engine semantics that do not change with device emulation, or

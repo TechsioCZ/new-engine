@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v2.0.1
+- Grouped-header layout placeholders are presentational cells, not unnamed column headers; the real leaf headers keep their labels and column scope.
+
 ### UIProvider v1.0.0
 - New: \`@techsio/ui-kit/theme/ui-provider\` (\`UIProvider\`, \`useUIDefaults\`). Set one \`size\` and one \`appearance\` (\`solid\` · \`subtle\` · \`outline\` · \`ghost\` · \`plain\`) for every component, refine per component with \`components={{ Button: { appearance: "ghost" } }}\`, and nest providers for local sections. Resolution: prop → nearest provider's component map → its global value → parent providers → the component's own default; a value a component does not support is skipped. \`AppThemeProvider\` places a root provider with the \`size="md" appearance="solid"\` baseline merged with the active brand's optional \`defaults\`. Prop names are now one meaning each: \`appearance\` = fill style, \`severity\` = color, \`validateStatus\` = validation, \`size\` = size scale. Migrate with \`node libs/ui/codemods/unified-style-props/index.mjs <paths>\`.
 

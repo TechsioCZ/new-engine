@@ -7,6 +7,19 @@ import path from "node:path"
 import test from "node:test"
 import { recordA11yResult } from "../.storybook/a11y-report.mjs"
 
+test("loading the runner does not disable enforcement in child workers", () => {
+  const runner = new URL("../.storybook/test-runner.mjs", import.meta.url).href
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+    import assert from "node:assert/strict"
+    await import(${JSON.stringify(runner)})
+    assert.equal(process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS, "true")
+  `], {
+    env: { ...process.env, A11Y_REPORT_FAIL_ON_VIOLATIONS: "true" },
+    encoding: "utf8",
+  })
+  assert.equal(result.status, 0, result.stderr)
+})
+
 test("parallel scan workers retain each result and summarize only after completion", async (t) => {
   const output = fs.mkdtempSync(path.join(os.tmpdir(), "a11y-append-"))
   t.after(() => fs.rmSync(output, { recursive: true, force: true }))

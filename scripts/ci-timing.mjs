@@ -25,7 +25,6 @@ export function measure(run, jobs) {
   if (!executed.length || executed.some((job) => job.status !== "completed")) {
     throw new Error("No completed job inventory")
   }
-  const plan = executed.find((job) => job.name === "ui-quality / plan")
   const gate = executed.find((job) => job.name === "quality-gate")
   const end = gate ?? executed.reduce((last, job) =>
     milliseconds(job.completed_at) > milliseconds(last.completed_at) ? job : last
@@ -34,11 +33,22 @@ export function measure(run, jobs) {
     if (job === gate) {
       return executed.filter((candidate) => candidate !== gate)
     }
-    if (plan && (
-      job.name.startsWith("ui-quality / components (") ||
-      job.name.startsWith("ui-quality / accessibility /")
-    )) {
-      return [plan]
+    // Include the pre-change fan-in when measuring the baseline too.
+    const complete = /^(ui-quality|validate) \/ components-complete$/.exec(job.name)
+    if (complete) {
+      return executed.filter((candidate) =>
+        candidate.name.startsWith(`${complete[1]} / components (`)
+      )
+    }
+    const heavy = /^(ui-quality|validate) \/ (components \(|accessibility \/)/.exec(job.name)
+    if (heavy) {
+      return executed.filter((candidate) => candidate.name === `${heavy[1]} / plan`)
+    }
+    if (job.name === "release") {
+      return executed.filter((candidate) => candidate !== job)
+    }
+    if (job.name.startsWith("validate /")) {
+      return executed.filter((candidate) => candidate.name === "check-affected")
     }
     return []
   }

@@ -13,7 +13,7 @@ on:
       shards:
         description: Jest shards per theme (1 to 6)
         type: number
-        default: 3
+        default: 1
       workers:
         description: Jest workers per shard
         type: number
@@ -31,7 +31,7 @@ on:
       shards:
         description: Jest shards per theme (1 to 6)
         type: number
-        default: 3
+        default: 1
       workers:
         description: Jest workers per shard
         type: number
