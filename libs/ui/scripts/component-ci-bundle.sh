@@ -29,7 +29,6 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
 fi
 
 if [ "${CI_BUNDLE_CPU:-}" = 1 ]; then
-  echo "Runner CPU quota: $(cat /sys/fs/cgroup/cpu.max)"
   vmstat -w 10 &
   monitor_pid=$!
   trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
