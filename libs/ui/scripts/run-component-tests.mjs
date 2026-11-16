@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process"
 import crypto from "node:crypto"
 import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import {
   assertPrimaryBaselines,
@@ -412,6 +413,28 @@ function runPlaywrightProjects() {
   for (const project of projectRunList()) {
     const reportName = `${project ?? "all"}.json`
     reportNames.push(reportName)
+    const command = [
+      "npx",
+      "playwright",
+      "test",
+      "-c",
+      "playwright.config.mts",
+      "--reporter=list,html,json",
+      ...(project
+        ? [`--project=${project}`]
+        : selectedProjectNames().map((name) => `--project=${name}`)),
+      ...shardArgs(),
+      ...extraArgs,
+    ]
+    // Measure the actual container workload, including browser descendants,
+    // rather than the host docker client's negligible CPU time. Bash preserves
+    // the command's exit status and positional arguments without re-parsing.
+    const measured = process.env.GITHUB_ACTIONS === "true"
+    if (measured) {
+      console.log(
+        `Playwright resources: ${process.env.PLAYWRIGHT_WORKERS ?? "4"} workers, ${os.availableParallelism()} runner CPUs`
+      )
+    }
     const result = spawnSync(
       "docker",
       [
@@ -420,17 +443,13 @@ function runPlaywrightProjects() {
         "--env",
         `PLAYWRIGHT_JSON_OUTPUT_FILE=${reportRoot}/${reportName}`,
         containerName,
-        "npx",
-        "playwright",
-        "test",
-        "-c",
-        "playwright.config.mts",
-        "--reporter=list,html,json",
-        ...(project
-          ? [`--project=${project}`]
-          : selectedProjectNames().map((name) => `--project=${name}`)),
-        ...shardArgs(),
-        ...extraArgs,
+        ...(measured
+          ? [
+              "bash", "-c",
+              'TIMEFORMAT="Playwright workload: wall %3R s, user %3U s, system %3S s"; time "$@"',
+              "--", ...command,
+            ]
+          : command),
       ],
       { stdio: "inherit" }
     )

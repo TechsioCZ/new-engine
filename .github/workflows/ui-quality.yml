@@ -181,6 +181,7 @@ jobs:
         env:
           PLAYWRIGHT_GROUP: ${{ matrix.group }}
           PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/${{ matrix.total }}
+          PLAYWRIGHT_WORKERS: ${{ matrix.group == 'visual' && '6' || '4' }}
         run: pnpm --dir libs/ui test:components:release
       - name: Download the changed-file list
         if: needs.plan.outputs.scope == 'ui'
@@ -193,6 +194,7 @@ jobs:
         env:
           PLAYWRIGHT_GROUP: ${{ matrix.group }}
           PLAYWRIGHT_SHARD: ${{ matrix.shard }}/${{ matrix.total }}
+          PLAYWRIGHT_WORKERS: ${{ matrix.group == 'visual' && '6' || '4' }}
           VISUAL_CHANGED_BEHAVIOR: "1"
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
         run: pnpm --dir libs/ui test:components
