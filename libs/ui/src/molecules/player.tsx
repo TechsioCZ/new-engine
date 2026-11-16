@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,9 +27,12 @@ import {
   TextTrack,
   Time,
   TimeSlider,
-  Track,
+  type TimeSliderInstance,
+  type Track,
+  useMediaContext,
   useMediaPlayer,
   useMediaState,
+  useSliderState,
   VolumeSlider,
 } from "@vidstack/react"
 import {
@@ -39,12 +42,16 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
 import { Tooltip } from "../atoms/tooltip"
+import { useComposedRefs } from "../internal/molecules/drawer.context"
+import { OverlayContainerProvider } from "../internal/overlay-portal"
+import { formatPlayerTime } from "../internal/player-time"
 import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
@@ -104,7 +111,10 @@ export type PlayerPresetSlots = {
   overlay?: ReactNode
 }
 export type PlayerProps = ComponentProps<typeof MediaPlayer>
-export type PlayerControlsProps = ComponentProps<typeof MediaControls.Root>
+export type PlayerControlsProps = ComponentProps<typeof MediaControls.Root> & {
+  /** Reserve the toolbar's measured height above a bottom video overlay. */
+  reserveCaptionSpace?: boolean
+}
 export type PlayerControlProps = ComponentProps<"div">
 export type PlayerControlGroupProps = ComponentProps<
   typeof MediaControls.Group
@@ -150,6 +160,7 @@ export type PlayerVolumeSliderProps = Omit<
 >
 
 export function Player({
+  children,
   className,
   "aria-label": ariaLabel,
   ariaLabel: mediaLabel,
@@ -170,12 +181,108 @@ export function Player({
         ariaLabel={label}
         className={playerStyles().root({ className })}
         key={attempt}
-      />
+      >
+        <PlayerOverlays>{children}</PlayerOverlays>
+      </MediaPlayer>
     </PlayerContext.Provider>
   )
 }
 
-function InlineTextTrack({
+function PlayerOverlays({ children }: { children: ReactNode }) {
+  const player = useMediaPlayer()
+  const fullscreen = useMediaState("fullscreen")
+  return (
+    <OverlayContainerProvider
+      container={fullscreen ? (player?.el ?? null) : null}
+      modal={false}
+    >
+      {children}
+    </OverlayContainerProvider>
+  )
+}
+
+function createTrackSelection(
+  media: NonNullable<ReturnType<typeof useMediaContext>>
+) {
+  const registered = new Set<TextTrack>()
+  const selection = {
+    definitions: [] as readonly PlayerTextTrack[],
+    enabled: null as boolean | null,
+    language: null as string | null,
+    selected: null as TextTrack | null,
+    ready: false,
+    changing: false,
+    revision: 0,
+    select() {
+      if (!selection.ready || selection.enabled === false) {
+        return
+      }
+      const current = media.textTracks.selected
+      if (current && !registered.has(current)) {
+        return
+      }
+      const candidates = selection.definitions.filter(
+        (track) => track.kind === "captions" || track.kind === "subtitles"
+      )
+      const desired =
+        candidates.find(
+          (track) =>
+            selection.language &&
+            (track.language ?? track.lang) === selection.language
+        ) ??
+        candidates.find((track) => track.default) ??
+        (selection.enabled ? candidates[0] : undefined)
+      // Wait for the declared preferred/default track, regardless of parse order.
+      const nextTrack = [...registered].find((item) => item.id === desired?.id)
+      if (!nextTrack || nextTrack === current) {
+        return
+      }
+      selection.changing = true
+      nextTrack.mode = "showing"
+      selection.changing = false
+      selection.selected = nextTrack
+      selection.enabled = true
+      selection.language = nextTrack.language
+    },
+    add(track: TextTrack) {
+      registered.add(track)
+      media.textTracks.add(track)
+      selection.select()
+    },
+    remove(track: TextTrack) {
+      selection.changing = true
+      media.textTracks.remove(track)
+      selection.changing = false
+      registered.delete(track)
+      if (selection.selected === track) {
+        selection.selected = null
+      }
+    },
+    modeChanged(track: TextTrack) {
+      if (selection.changing || !isTrackCaptionKind(track)) {
+        return
+      }
+      if (track.mode === "showing") {
+        selection.enabled = true
+        selection.language = track.language
+        selection.selected = track
+      } else if (selection.selected === track) {
+        selection.enabled = false
+        selection.selected = null
+      } else {
+        return
+      }
+      selection.revision += 1
+    },
+  }
+  return selection
+}
+
+const TrackSelectionContext = createContext<ReturnType<
+  typeof createTrackSelection
+> | null>(null)
+
+function PlayerTrack({
   id,
   src,
   content,
@@ -188,8 +295,19 @@ function InlineTextTrack({
   encoding,
 }: PlayerTextTrack) {
   const player = useMediaPlayer()
+  const selection = useContext(TrackSelectionContext)
+  const attachedTrack = useRef<TextTrack | null>(null)
+  useEffect(
+    () => () => {
+      if (attachedTrack.current && selection) {
+        selection.remove(attachedTrack.current)
+        attachedTrack.current = null
+      }
+    },
+    [selection]
+  )
   useEffect(() => {
-    if (!player) {
+    if (!(player && selection)) {
       return
     }
     // Vidstack 1.15 marks an attached inline track ready before its async parse
@@ -201,30 +319,35 @@ function InlineTextTrack({
       type,
       kind,
       label,
-      default: isDefault,
+      // Caption defaults are selected by the provider. Vidstack 1.15 cannot
+      // remove subtitle defaults reliably from its internal default registry.
+      default: kind === "captions" || kind === "subtitles" ? false : isDefault,
       language: language ?? lang,
       encoding,
     })
     let attached = false
     const attach = () => {
-      if (attached || track.readyState !== 2) {
+      if (attached || (content && track.readyState !== 2)) {
         return
       }
       attached = true
-      player.textTracks.add(track)
+      const previousTrack = attachedTrack.current
+      if (previousTrack) {
+        selection.remove(previousTrack)
+      }
+      selection.add(track)
+      attachedTrack.current = track
     }
     track.addEventListener("load", attach)
-    if (track.readyState === 2) {
+    if (!content || track.readyState === 2) {
       attach()
     }
     return () => {
       track.removeEventListener("load", attach)
-      if (attached) {
-        player.textTracks.remove(track)
-      }
     }
   }, [
     player,
+    selection,
     id,
     src,
     content,
@@ -247,15 +370,66 @@ Player.Provider = function PlayerProvider({
   tracks?: readonly PlayerTextTrack[]
 }) {
   usePlayerContext()
+  const media = useMediaContext()
+  const canLoad = useMediaState("canLoad")
+  const selection = useMemo(
+    () => (media ? createTrackSelection(media) : null),
+    [media]
+  )
+  useEffect(() => {
+    if (!(media && selection)) {
+      return
+    }
+    const onModeChange = (event: { detail: TextTrack }) => {
+      selection.modeChanged(event.detail)
+    }
+    media.textTracks.addEventListener("mode-change", onModeChange)
+    return () => {
+      media.textTracks.removeEventListener("mode-change", onModeChange)
+    }
+  }, [media, selection])
+  useEffect(() => {
+    if (!selection) {
+      return
+    }
+    selection.definitions = tracks ?? []
+    selection.select()
+  }, [selection, tracks])
+  useEffect(() => {
+    if (!(media && selection && canLoad)) {
+      return
+    }
+    let cancelled = false
+    const revision = selection.revision
+    Promise.allSettled([
+      media.storage?.getCaptions(),
+      media.storage?.getLang(),
+    ]).then(([enabled, language]) => {
+      if (cancelled) {
+        return
+      }
+      if (selection.revision === revision) {
+        selection.enabled =
+          (enabled.status === "fulfilled" ? enabled.value : null) ??
+          selection.enabled
+        selection.language =
+          (language.status === "fulfilled" ? language.value : null) ??
+          selection.language
+      }
+      selection.ready = true
+      selection.select()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [canLoad, media, selection])
   return (
     <MediaProvider {...props}>
-      {tracks?.map((track) =>
-        track.content ? (
-          <InlineTextTrack {...track} key={track.id} />
-        ) : (
-          <Track {...track} key={track.id} />
-        )
-      )}
+      <TrackSelectionContext.Provider value={selection}>
+        {tracks?.map((track) => (
+          <PlayerTrack {...track} key={track.id} />
+        ))}
+      </TrackSelectionContext.Provider>
       {children}
     </MediaProvider>
   )
@@ -263,13 +437,38 @@ Player.Provider = function PlayerProvider({
 
 Player.Controls = function PlayerControls({
   className,
+  ref,
+  reserveCaptionSpace = false,
   ...props
 }: PlayerControlsProps) {
   usePlayerContext()
+  const player = useMediaPlayer()
+  const [element, setElement] = useState<HTMLElement | null>(null)
+  const controlsRef = useComposedRefs(ref, setElement)
+  useEffect(() => {
+    const root = player?.el
+    if (!(reserveCaptionSpace && element && root)) {
+      return
+    }
+    const update = () => {
+      root.style.setProperty(
+        "--player-controls-height",
+        `${element.offsetHeight}px`
+      )
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty("--player-controls-height")
+    }
+  }, [element, player, reserveCaptionSpace])
   return (
     <MediaControls.Root
       {...props}
       className={playerStyles().controls({ className })}
+      ref={controlsRef}
     />
   )
 }
@@ -358,17 +557,37 @@ Player.MuteButton = function PlayerMuteButton({
 
 Player.TimeSlider = function PlayerTimeSlider({
   className,
+  ref,
   "aria-label": ariaLabel,
+  "aria-valuetext": ariaValueText,
   ...props
 }: PlayerTimeSliderProps) {
   usePlayerContext()
   const styles = playerStyles()
-  const messages = useUiMessages().player
+  const { player: messages, locale } = useUiMessages()
+  const duration = useMediaState("duration")
+  const [slider, setSlider] = useState<TimeSliderInstance | null>(null)
+  const sliderRef = useMemo(() => ({ current: slider }), [slider])
+  const composedRef = useComposedRefs(ref, setSlider)
+  const value = useSliderState("value", sliderRef)
+  const time = (value / 100) * duration
+  const valueText = Number.isFinite(time)
+    ? messages.timeValueText({
+        currentTime: formatPlayerTime(time, locale),
+        duration: formatPlayerTime(duration, locale),
+      })
+    : messages.live
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Reapply after every SDK value write, even when formatted whole seconds stay equal.
+  useEffect(() => {
+    slider?.el?.setAttribute("aria-valuetext", ariaValueText ?? valueText)
+  }, [slider, value, valueText, ariaValueText])
   return (
     <TimeSlider.Root
       {...props}
       aria-label={ariaLabel ?? messages.seek}
+      aria-valuetext={ariaValueText ?? valueText}
       className={styles.timeSlider({ className })}
+      ref={composedRef}
     >
       <TimeSlider.Track className={styles.track()}>
         <TimeSlider.TrackFill className={styles.trackFill()} />
@@ -581,10 +800,12 @@ Player.Captions = function PlayerCaptions({
   ...props
 }: ComponentProps<typeof MediaCaptions>) {
   usePlayerContext()
+  const hasCaptions = useMediaState("hasCaptions")
   return (
     <MediaCaptions
       {...props}
       className={playerStyles().captions({ className })}
+      data-available={hasCaptions ? "" : undefined}
     />
   )
 }
@@ -639,14 +860,42 @@ Player.Gestures = function PlayerGestures() {
   )
 }
 
-Player.Announcer = function PlayerAnnouncer(
-  props: ComponentProps<typeof MediaAnnouncer>
-) {
+Player.Announcer = function PlayerAnnouncer({
+  ref,
+  onChange,
+  translations,
+  ...props
+}: ComponentProps<typeof MediaAnnouncer>) {
   usePlayerContext()
-  const messages = useUiMessages().player
+  const { player: messages, locale } = useUiMessages()
+  const player = useMediaPlayer()
+  const [element, setElement] = useState<HTMLElement | null>(null)
+  const composedRef = useComposedRefs(ref, setElement)
+  const forward =
+    translations?.["Seek Forward"] ?? messages.seekForwardAnnouncement
+  const backward =
+    translations?.["Seek Backward"] ?? messages.seekBackwardAnnouncement
   return (
     <MediaAnnouncer
       {...props}
+      onChange={(detail, event) => {
+        // The SDK's seek announcement appends fixed English duration units.
+        const direction = [forward, backward].find(
+          (prefix) => prefix && detail.startsWith(`${prefix} `)
+        )
+        if (direction && element && player) {
+          const { currentTime, duration } = player.state
+          const position = Number.isFinite(duration)
+            ? messages.timeValueText({
+                currentTime: formatPlayerTime(currentTime, locale),
+                duration: formatPlayerTime(duration, locale),
+              })
+            : messages.live
+          element.setAttribute("aria-label", `${direction}: ${position}`)
+        }
+        onChange?.(detail, event)
+      }}
+      ref={composedRef}
       translations={{
         Play: messages.play,
         Pause: messages.pause,
@@ -660,7 +909,7 @@ Player.Announcer = function PlayerAnnouncer(
         "Exit PiP": messages.exitPictureInPicture,
         "Closed-Captions On": messages.enableCaptions,
         "Closed-Captions Off": messages.disableCaptions,
-        ...props.translations,
+        ...translations,
       }}
     />
   )

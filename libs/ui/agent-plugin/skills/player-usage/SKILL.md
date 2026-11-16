@@ -6,7 +6,7 @@ description: >
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -137,6 +137,9 @@ be rendered inside `Player.Root` (`<Player>…</Player>`).
 `Player.ControlGroup` is a single flex row with token-based padding and gaps.
 Nest it in `Player.Controls` so Vidstack owns control visibility. For video,
 overlay `Player.Controls` with `player-overlay`; for audio, leave it inline.
+For a bottom video toolbar, set `reserveCaptionSpace` on `Player.Controls`.
+Its measured height reserves space above the toolbar for captions, including
+when controls wrap or the viewport changes. Top overlays should omit it.
 Padding defaults to the component token; pass `padding="none"` when the surrounding
 layout already provides the spacing (as `AudioPlayer` does).
 
@@ -145,6 +148,11 @@ layout already provides the spacing (as `AudioPlayer` does).
 Visual overrides belong in `--color-player-*` / `--*-player-*` tokens, not in
 inline styles. The slider internals are bridged to Vidstack's `--media-*`
 variables in `_player.css`.
+
+Spoken timeline values use `UiMessagesProvider.locale` for duration units and
+`player.timeValueText({ currentTime, duration })` for their surrounding words.
+The arguments are already formatted strings. Translate `player.live` for
+unbounded live streams. Explicit control `aria-valuetext` still takes precedence.
 
 ## Common Mistakes
 

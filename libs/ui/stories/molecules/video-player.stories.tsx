@@ -270,7 +270,7 @@ function TranscriptVideo(args: ComponentProps<typeof VideoPlayer>) {
         {...args}
         slots={{
           controls: (
-            <Player.Controls className="player-overlay absolute inset-x-0 bottom-0 z-player-controls">
+            <Player.Controls className="player-overlay absolute inset-x-0 bottom-0 z-player-controls" reserveCaptionSpace>
               <Player.ControlGroup className="flex-col items-stretch">
                 <Player.TimeSlider className="player-video-timeline w-full flex-none self-stretch" />
                 <Player.Control className="justify-between">
@@ -330,7 +330,7 @@ export function TranscriptVideo() {
         title="Product film"
         slots={{
           controls: (
-            <Player.Controls className="player-overlay absolute inset-x-0 bottom-0 z-player-controls">
+            <Player.Controls className="player-overlay absolute inset-x-0 bottom-0 z-player-controls" reserveCaptionSpace>
               <Player.ControlGroup className="flex-col items-stretch">
                 <Player.TimeSlider className="player-video-timeline w-full flex-none self-stretch" />
                 <Player.Control className="justify-between">

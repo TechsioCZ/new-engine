@@ -1169,14 +1169,6 @@
     --padding-player-feedback: var(--spacing-150);
     --padding-player-caption: var(--spacing-100);
     --padding-player-caption-cue: var(--spacing-50);
-    --spacing-player-caption-controls: calc(
-      var(--size-player-slider) +
-      var(--size-icon-control-lg) +
-      var(--padding-player-video-control) *
-      2 +
-      var(--gap-player-video-control) +
-      var(--padding-player-caption)
-    );
     --gap-player-control: var(--spacing-150);
     --gap-player-video-control: var(--spacing-50);
     --gap-player-feedback: var(--spacing-100);
@@ -1184,6 +1176,13 @@
     --size-player-track: var(--spacing-100);
     --size-player-thumb: var(--spacing-200);
     --size-player-cover: var(--spacing-600);
+    --size-player-caption-area: calc(
+      var(--text-player-caption) *
+      var(--leading-normal) *
+      3 +
+      var(--padding-player-caption) *
+      2
+    );
     --spacing-player-volume: var(--spacing-750);
     --border-width-player: var(--border-width-sm);
     --text-player-time: var(--text-sm);

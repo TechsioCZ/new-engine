@@ -164,6 +164,8 @@ export type UiMessages = {
     seekForward: (seconds: number) => string
     seekBackward: (seconds: number) => string
     seek: string
+    timeValueText: (info: { currentTime: string; duration: string }) => string
+    live: string
     volume: string
   }
   cascadeSelect: {
@@ -352,6 +354,9 @@ export const enUiMessages: UiMessages = {
     seekForward: (seconds) => `Seek forward ${seconds} seconds`,
     seekBackward: (seconds) => `Seek backward ${seconds} seconds`,
     seek: "Seek",
+    timeValueText: ({ currentTime, duration }) =>
+      `${currentTime} out of ${duration}`,
+    live: "Live",
     volume: "Volume",
   },
   cascadeSelect: {

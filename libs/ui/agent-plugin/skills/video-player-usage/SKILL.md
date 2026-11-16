@@ -5,7 +5,7 @@ description: >
   VideoPlayer is an opinionated preset over Player with a Semi Design-shaped
   src/poster/controlsList API; controls overlay the video on a dark scrim.
 metadata:
-  component_version: "1.1.0"
+  component_version: "1.1.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -93,7 +93,9 @@ which reloads the provider.
 For custom retry UI, `slots.error` accepts
 `({ error, retry }) => ReactNode`; call `retry()` from a UI-kit Button.
 `slots.controls` replaces the entire toolbar node: compose `Player.Controls`
-and its children inside the slot. `slots.overlay` adds content inside the media
+and its children inside the slot. For a bottom overlay toolbar, pass
+`reserveCaptionSpace` to `Player.Controls` so captions stay above its measured
+height. The default toolbar already does this. `slots.overlay` adds content inside the media
 root. Both retain media context for `Player.*` parts.
 
 Clicking or tapping the media surface toggles playback. Keyboard playback and

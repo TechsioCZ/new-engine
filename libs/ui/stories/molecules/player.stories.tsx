@@ -164,9 +164,12 @@ import { Player } from "@techsio/ui-kit/molecules/player"
 
 export function LocalizedAudio() {
   return (
-    <UiMessagesProvider messages={{ player: {
+    <UiMessagesProvider locale="cs" messages={{ player: {
       label: "Prehravac", play: "Spustit", pause: "Pozastavit",
       mute: "Ztlumit", unmute: "Zapnout zvuk", seek: "Pozice", volume: "Hlasitost",
+      seekForwardAnnouncement: "Posun vpřed", seekBackwardAnnouncement: "Posun vzad",
+      timeValueText: ({ currentTime, duration }) => currentTime + " z " + duration,
+      live: "Živě",
     } }}>
       <Player src="https://files.vidstack.io/sprite-fight/audio.mp3" viewType="audio">
         <Player.Provider />
@@ -191,7 +194,7 @@ export function LocalizedAudio() {
       },
       description: {
         story:
-          "The app message catalog supplies control names that follow playback and mute state without changing the compound composition.",
+          "The Czech locale and app message catalog supply control names, spoken timeline values and seek announcements without changing the compound composition.",
       },
     },
   },
@@ -199,6 +202,7 @@ export function LocalizedAudio() {
   decorators: [
     (Story) => (
       <UiMessagesProvider
+        locale="cs"
         messages={{
           player: {
             label: "Prehravac",
@@ -208,6 +212,11 @@ export function LocalizedAudio() {
             unmute: "Zapnout zvuk",
             seek: "Pozice",
             volume: "Hlasitost",
+            seekForwardAnnouncement: "Posun vpřed",
+            seekBackwardAnnouncement: "Posun vzad",
+            timeValueText: ({ currentTime, duration }) =>
+              `${currentTime} z ${duration}`,
+            live: "Živě",
           },
         }}
       >

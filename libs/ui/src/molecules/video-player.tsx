@@ -2,7 +2,7 @@
  * VideoPlayer — @techsio/ui-kit molecule.
  *
  * @component VideoPlayer
- * @componentVersion v1.1.0
+ * @componentVersion v1.1.1
  * @skill video-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -115,7 +115,7 @@ function DefaultControls({
     return null
   }
   return (
-    <Player.Controls className={styles.controls()}>
+    <Player.Controls className={styles.controls()} reserveCaptionSpace>
       <Player.ControlGroup className={styles.layout()} padding="none">
         {hasTimeControl ? (
           <Player.TimeSlider className={styles.timeline()} />

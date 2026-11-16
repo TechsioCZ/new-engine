@@ -3,7 +3,47 @@ import { installPlayerMediaFixture } from "./player-media-fixture"
 
 const PLAY_LABEL = /^(Play|Pause)$/
 const MUTE_LABEL = /^(Mute|Unmute)$/
+const LOCALIZED_TIME_VALUE = /^\d+ sekund z 30 sekund$/
 const pageErrors = new WeakMap<Page, string[]>()
+
+async function updateStoryArgs(
+  page: Page,
+  storyId: string,
+  updatedArgs: Record<string, unknown>
+) {
+  await page.evaluate(
+    ({ id, args }) => {
+      const storybookWindow = window as Window & {
+        __STORYBOOK_ADDONS_CHANNEL__?: {
+          on: (name: string, listener: (value: unknown) => void) => void
+          off: (name: string, listener: (value: unknown) => void) => void
+          emit: (name: string, value: unknown) => void
+        }
+      }
+      const channel = storybookWindow.__STORYBOOK_ADDONS_CHANNEL__
+      if (!channel) {
+        throw new Error("Storybook preview channel did not initialize")
+      }
+      return new Promise<void>((resolve, reject) => {
+        const onUpdate = (value: unknown) => {
+          if ((value as { storyId: string }).storyId !== id) {
+            return
+          }
+          clearTimeout(timeout)
+          channel.off("storyArgsUpdated", onUpdate)
+          resolve()
+        }
+        const timeout = setTimeout(() => {
+          channel.off("storyArgsUpdated", onUpdate)
+          reject(new Error(`Story ${id} args update timed out`))
+        }, 10_000)
+        channel.on("storyArgsUpdated", onUpdate)
+        channel.emit("updateStoryArgs", { storyId: id, updatedArgs: args })
+      })
+    },
+    { id: storyId, args: updatedArgs }
+  )
+}
 
 test.beforeEach(async ({ page }) => {
   const errors: string[] = []
@@ -29,6 +69,10 @@ for (const component of ["player", "audioplayer", "videoplayer"]) {
       exact: true,
     })
     await expect(ready).toHaveAttribute("data-can-play", "")
+    if (component === "player") {
+      const timeline = ready.getByRole("slider", { name: "Seek", exact: true })
+      expect((await timeline.boundingBox())?.width).toBeGreaterThan(50)
+    }
     await expect(recovery.getByRole("alert")).toBeVisible()
     await expect(recovery).toHaveAttribute("aria-busy", "false")
     await recovery
@@ -478,4 +522,373 @@ test("audio errors fit a narrow cover layout and keep retry usable", async ({
   await expect(
     page.getByRole("button", { name: "Try again", exact: true })
   ).toBeVisible()
+})
+
+test("player styles preserve square media outside the player", async ({
+  page,
+}) => {
+  await page.goto("/iframe.html?id=molecules-player--playground&viewMode=story")
+  await expect(page.locator("[data-media-player]")).toBeVisible()
+  await page.evaluate(() => {
+    const container = document.createElement("div")
+    container.style.width = "200px"
+    for (const tag of ["iframe", "video"]) {
+      const media = document.createElement(tag)
+      media.className = "w-full aspect-square"
+      media.setAttribute("data-unrelated-media", tag)
+      container.append(media)
+    }
+    document.body.append(container)
+  })
+  for (const tag of ["iframe", "video"]) {
+    const media = page.locator(`[data-unrelated-media="${tag}"]`)
+    await expect(media).toHaveCSS("aspect-ratio", "1 / 1")
+    expect((await media.boundingBox())?.width).toBe(200)
+    expect((await media.boundingBox())?.height).toBe(200)
+  }
+})
+
+test("control tooltips remain inside the fullscreen player", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  // biome-ignore lint/suspicious/noSkippedTests: Hover tooltips require a mouse and native element fullscreen.
+  test.skip(
+    isMobile || !(await page.evaluate(() => document.fullscreenEnabled)),
+    "Hover requires desktop element fullscreen"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await page
+    .getByRole("button", { name: "Enter Fullscreen", exact: true })
+    .click()
+  await expect(player).toHaveAttribute("data-fullscreen", "")
+  await page.getByRole("button", { name: "Mute", exact: true }).hover()
+  const tooltip = page.getByRole("tooltip")
+  await expect(tooltip).toHaveText("Mute")
+  await expect(tooltip).toBeVisible()
+  await expect
+    .poll(() =>
+      tooltip.evaluate((element) =>
+        document.fullscreenElement?.contains(element)
+      )
+    )
+    .toBe(true)
+  await page
+    .getByRole("button", { name: "Exit Fullscreen", exact: true })
+    .click()
+  await expect(player).not.toHaveAttribute("data-fullscreen", "")
+})
+
+test("an early default subtitle replacement becomes active before playback", async ({
+  page,
+}) => {
+  const storyId = "molecules-videoplayer--captioned"
+  await page.goto(`/iframe.html?id=${storyId}&viewMode=story`, {
+    waitUntil: "domcontentloaded",
+  })
+  await expect(
+    page.getByRole("button", { name: "Play", exact: true })
+  ).toBeVisible()
+  await updateStoryArgs(page, storyId, {
+    tracks: [
+      {
+        id: "replacement-czech",
+        kind: "subtitles",
+        language: "cs",
+        label: "Czech",
+        default: true,
+        content:
+          "WEBVTT\n\n00:00.000 --> 00:30.000\nThe replacement default track is active.\n",
+      },
+    ],
+  })
+  await expect(
+    page.getByRole("button", { name: "Disable captions", exact: true })
+  ).toHaveAttribute("aria-pressed", "true")
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+  await page.keyboard.press("ArrowRight")
+  await expect(page.locator(".player-captions [data-part='cue']")).toHaveText(
+    "The replacement default track is active."
+  )
+})
+
+test("updating an inline subtitle track preserves the active captions", async ({
+  page,
+}) => {
+  const storyId = "molecules-videoplayer--captioned"
+  await page.goto(`/iframe.html?id=${storyId}&viewMode=story`)
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+  await page.keyboard.press("ArrowRight")
+  const caption = page.locator(".player-captions [data-part='cue']")
+  await expect(caption).toContainText("English subtitles")
+  const track = {
+    id: "sample-english",
+    kind: "subtitles",
+    language: "en",
+    label: "English",
+    default: true,
+    content:
+      "WEBVTT\n\n00:00.000 --> 00:30.000\nUpdated inline subtitle content.\n",
+  }
+  await updateStoryArgs(page, storyId, { tracks: [track] })
+  await expect(caption).toHaveText("Updated inline subtitle content.")
+  await expect(
+    page.getByRole("button", { name: "Disable captions", exact: true })
+  ).toHaveAttribute("aria-pressed", "true")
+  await updateStoryArgs(page, storyId, {
+    tracks: [
+      {
+        ...track,
+        language: "cs",
+        label: "Czech",
+        content:
+          "WEBVTT\n\n00:00.000 --> 00:30.000\nReplacement language subtitle content.\n",
+      },
+    ],
+  })
+  await expect(caption).toHaveText("Replacement language subtitle content.")
+  await expect(
+    page.getByRole("button", { name: "Disable captions", exact: true })
+  ).toHaveAttribute("aria-pressed", "true")
+  await page
+    .getByRole("button", { name: "Disable captions", exact: true })
+    .click()
+  await expect(caption).toBeHidden()
+  await updateStoryArgs(page, storyId, {
+    tracks: [
+      {
+        ...track,
+        content:
+          "WEBVTT\n\n00:00.000 --> 00:30.000\nCaptions stay off until explicitly enabled.\n",
+      },
+    ],
+  })
+  const enableCaptions = page.getByRole("button", {
+    name: "Enable captions",
+    exact: true,
+  })
+  await expect(enableCaptions).toHaveAttribute("aria-pressed", "false")
+  await expect(caption).toBeHidden()
+  await enableCaptions.click()
+  await expect(caption).toHaveText(
+    "Captions stay off until explicitly enabled."
+  )
+  await updateStoryArgs(page, storyId, {
+    tracks: [
+      {
+        ...track,
+        id: "new-default-active",
+        content:
+          "WEBVTT\n\n00:00.000 --> 00:30.000\nA new default track keeps captions active.\n",
+      },
+    ],
+  })
+  await expect(caption).toHaveText("A new default track keeps captions active.")
+  await page
+    .getByRole("button", { name: "Disable captions", exact: true })
+    .click()
+  await expect(caption).toBeHidden()
+  await updateStoryArgs(page, storyId, {
+    tracks: [
+      {
+        ...track,
+        id: "new-default-disabled",
+        content:
+          "WEBVTT\n\n00:00.000 --> 00:30.000\nA new default track respects disabled captions.\n",
+      },
+    ],
+  })
+  await expect(enableCaptions).toHaveAttribute("aria-pressed", "false")
+  await expect(caption).toBeHidden()
+  await enableCaptions.click()
+  await expect(caption).toHaveText(
+    "A new default track respects disabled captions."
+  )
+})
+
+test("URL subtitle replacements preserve active and disabled caption state", async ({
+  page,
+}) => {
+  const cueTexts = {
+    one: "The first URL subtitle track stays active.",
+    two: "The replacement URL subtitle track stays active.",
+    three: "The third URL subtitle track respects disabled captions.",
+  }
+  for (const [name, text] of Object.entries(cueTexts)) {
+    await page.route(`**/player-track-${name}.vtt`, (route) =>
+      route.fulfill({
+        contentType: "text/vtt",
+        body: `WEBVTT\n\n00:00.000 --> 00:30.000\n${text}\n`,
+      })
+    )
+  }
+  const storyId = "molecules-videoplayer--captioned"
+  await page.goto(`/iframe.html?id=${storyId}&viewMode=story`)
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+  await page.keyboard.press("ArrowRight")
+  const caption = page.locator(".player-captions [data-part='cue']")
+  await expect(caption).toContainText("English subtitles")
+  const track = {
+    kind: "subtitles",
+    language: "en",
+    label: "English",
+    default: true,
+  }
+  for (const name of ["one", "two"] as const) {
+    await updateStoryArgs(page, storyId, {
+      tracks: [
+        { ...track, id: `url-${name}`, src: `/player-track-${name}.vtt` },
+      ],
+    })
+    await expect(caption).toHaveText(cueTexts[name])
+    await expect(
+      page.getByRole("button", { name: "Disable captions", exact: true })
+    ).toHaveAttribute("aria-pressed", "true")
+  }
+  await page
+    .getByRole("button", { name: "Disable captions", exact: true })
+    .click()
+  await expect(caption).toBeHidden()
+  await updateStoryArgs(page, storyId, {
+    tracks: [{ ...track, id: "url-three", src: "/player-track-three.vtt" }],
+  })
+  const enableCaptions = page.getByRole("button", {
+    name: "Enable captions",
+    exact: true,
+  })
+  await expect(enableCaptions).toHaveAttribute("aria-pressed", "false")
+  await expect(caption).toBeHidden()
+  await enableCaptions.click()
+  await expect(caption).toHaveText(cueTexts.three)
+})
+
+test("custom video controls leave space for default captions", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 650 })
+  const storyId = "molecules-videoplayer--custom-content"
+  await page.goto(`/iframe.html?id=${storyId}&viewMode=story`)
+  await expect(
+    page.getByRole("button", { name: "Show transcript", exact: true })
+  ).toBeVisible()
+  await updateStoryArgs(page, storyId, {
+    tracks: [
+      {
+        id: "custom-english",
+        kind: "subtitles",
+        language: "en",
+        label: "English",
+        default: true,
+        content:
+          "WEBVTT\n\n00:00.000 --> 00:30.000\nCustom captions should stay above all playback controls.\n",
+      },
+    ],
+  })
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+  await page.keyboard.press("ArrowRight")
+  const caption = page.locator(".player-captions [data-part='cue']")
+  await expect(caption).toHaveText(
+    "Custom captions should stay above all playback controls."
+  )
+  const toolbar = page.locator(".player-controls")
+  await expect(toolbar).toBeVisible()
+  await expect
+    .poll(async () => {
+      const cueBox = await caption.boundingBox()
+      const toolbarBox = await toolbar.boundingBox()
+      if (!(cueBox && toolbarBox)) {
+        throw new Error("Caption or custom controls has no visible bounds")
+      }
+      return cueBox.y + cueBox.height - toolbarBox.y
+    })
+    .toBeLessThanOrEqual(0)
+  await expect(caption).toBeVisible()
+  await expect
+    .poll(async () => {
+      const cueBox = await caption.boundingBox()
+      const playerBox = await page.locator("[data-media-player]").boundingBox()
+      if (!(cueBox && playerBox)) {
+        throw new Error("Caption or player has no visible bounds")
+      }
+      return {
+        top: cueBox.y >= playerBox.y,
+        left: cueBox.x >= playerBox.x,
+        right: cueBox.x + cueBox.width <= playerBox.x + playerBox.width,
+        bottom: cueBox.y + cueBox.height <= playerBox.y + playerBox.height,
+      }
+    })
+    .toEqual({ top: true, left: true, right: true, bottom: true })
+})
+
+test("localized seeking exposes a translated time value to screen readers", async ({
+  page,
+}) => {
+  await page.goto("/iframe.html?id=molecules-player--localized&viewMode=story")
+  await expect(page.locator("[data-media-player]")).toHaveAttribute(
+    "data-can-play",
+    ""
+  )
+  const seek = page.getByRole("slider", { name: "Pozice", exact: true })
+  await seek.focus()
+  await page.keyboard.press("ArrowRight")
+  await expect(seek).toHaveAttribute("aria-valuetext", "5 sekund z 30 sekund")
+  await expect
+    .poll(() =>
+      page
+        .locator("audio")
+        .evaluate((audio: HTMLAudioElement) => Math.floor(audio.currentTime))
+    )
+    .toBe(5)
+  await page.keyboard.press("ArrowRight")
+  await expect(seek).toHaveAttribute("aria-valuetext", "10 sekund z 30 sekund")
+  const seekBox = await seek.boundingBox()
+  if (!seekBox) {
+    throw new Error("Seek slider has no visible bounds")
+  }
+  await page.mouse.move(
+    seekBox.x + seekBox.width * 0.5,
+    seekBox.y + seekBox.height / 2
+  )
+  await page.mouse.down()
+  await expect(seek).toHaveAttribute("data-dragging", "")
+  await expect(seek).toHaveAttribute("aria-valuetext", LOCALIZED_TIME_VALUE)
+  await page.mouse.move(
+    seekBox.x + seekBox.width * 0.7,
+    seekBox.y + seekBox.height / 2,
+    { steps: 5 }
+  )
+  await expect(seek).toHaveAttribute("aria-valuetext", LOCALIZED_TIME_VALUE)
+  await page.mouse.up()
+  await expect
+    .poll(async () => {
+      const time = await page
+        .locator("audio")
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime)
+      return time >= 18 && time <= 23
+    })
+    .toBe(true)
+  const currentTime = await page
+    .locator("audio")
+    .evaluate((audio: HTMLAudioElement) => Math.floor(audio.currentTime))
+  const spokenTime = await seek.getAttribute("aria-valuetext")
+  expect(spokenTime).toMatch(LOCALIZED_TIME_VALUE)
+  expect(
+    Math.abs(Number.parseInt(spokenTime ?? "", 10) - currentTime)
+  ).toBeLessThanOrEqual(1)
+  await expect(page.locator("[data-media-announcer]")).toHaveAttribute(
+    "aria-label",
+    `Posun vpřed: ${currentTime} sekund z 30 sekund`
+  )
 })

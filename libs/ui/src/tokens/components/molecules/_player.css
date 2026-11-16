@@ -1,4 +1,16 @@
-@import "@vidstack/react/player/styles/default/theme.css";
+/* Preserve the SDK's root/state selectors in a separate cascade layer. Roll
+ * back its generic media defaults outside Player without overriding app CSS. */
+@layer ui-player-sdk {
+  @import "@vidstack/react/player/styles/default/theme.css";
+
+  :where(
+    video:not([width]):not([height]),
+    iframe:not([width]):not([height])
+  ):not(:where(.player-base *)) {
+    width: revert-layer;
+    aspect-ratio: revert-layer;
+  }
+}
 
 @theme static {
   /* Reference layer */
@@ -60,14 +72,6 @@
   --padding-player-feedback: var(--spacing-150);
   --padding-player-caption: var(--spacing-100);
   --padding-player-caption-cue: var(--spacing-50);
-  --spacing-player-caption-controls: calc(
-    var(--size-player-slider) +
-    var(--size-icon-control-lg) +
-    var(--padding-player-video-control) *
-    2 +
-    var(--gap-player-video-control) +
-    var(--padding-player-caption)
-  );
   --gap-player-control: var(--spacing-150);
   --gap-player-video-control: var(--spacing-50);
   --gap-player-feedback: var(--spacing-100);
@@ -75,6 +79,13 @@
   --size-player-track: var(--spacing-100);
   --size-player-thumb: var(--spacing-200);
   --size-player-cover: var(--spacing-600);
+  --size-player-caption-area: calc(
+    var(--text-player-caption) *
+    var(--leading-normal) *
+    3 +
+    var(--padding-player-caption) *
+    2
+  );
   --spacing-player-volume: var(--spacing-750);
   --border-width-player: var(--border-width-sm);
   --text-player-time: var(--text-sm);
@@ -122,6 +133,15 @@
     outline: var(--default-ring-width) var(--default-ring-style)
       var(--color-player-focus-ring) !important;
     outline-offset: var(--default-ring-offset);
+  }
+}
+
+@utility player-video {
+  &:has(.player-captions[data-available]) {
+    min-height: calc(
+      var(--player-controls-height, 0px) +
+      var(--size-player-caption-area)
+    );
   }
 }
 
@@ -205,8 +225,8 @@
 
   /* Keep a stable viewport: the WebVTT renderer can cache cue positions while
    * paused, so changing the inset as controls appear can leave cues behind. */
-  [data-media-player][data-view-type="video"]:has(.player-video-controls) & {
-    margin-block-end: var(--spacing-player-caption-controls) !important;
+  [data-media-player][data-view-type="video"]:has(.player-controls) & {
+    margin-block-end: var(--player-controls-height, 0px) !important;
   }
 }
 

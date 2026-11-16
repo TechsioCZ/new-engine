@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Player v1.1.1
+- Scoped Vidstack CSS to the player, kept tooltip portals inside fullscreen, preserved inline caption selection on updates, and localized spoken timeline values. Bottom control compositions can reserve their measured height for captions.
+
+### VideoPlayer v1.1.1
+- Captions avoid the measured default toolbar and the documented custom toolbar, including responsive wrapping.
+
 ### Player v1.1.0
 - Added text tracks with stable IDs, rendered captions and caption toggles, localized loading/error feedback with provider retry, surface gestures and translated media announcements.
 
