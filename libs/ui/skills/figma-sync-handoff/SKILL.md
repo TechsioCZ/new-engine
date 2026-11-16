@@ -136,7 +136,7 @@ Source: libs/ui/AGENTS.md
 Wrong:
 
 ```tsx
-// Button adds theme="unstyled"; button.figma.ts still omits it.
+// Button adds unstyled; button.figma.ts still omits it.
 ```
 
 Correct:

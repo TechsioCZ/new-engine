@@ -8,14 +8,14 @@ import { StatusText } from "../../src/atoms/status-text"
 function Field({
   label = "Contact name",
   helpText,
-  variant = "default",
+  validateStatus = "default",
   size = "md",
   ...props
 }: InputProps & { label?: string; helpText?: string }) {
   const id = useId()
   const messageId = `${id}-message`
   const helperClassName =
-    props.disabled && variant === "default"
+    props.disabled && validateStatus === "default"
       ? "in-data-[theme=business]:text-fg-disabled"
       : undefined
   return (
@@ -27,19 +27,19 @@ function Field({
         {...props}
         aria-describedby={helpText ? messageId : undefined}
         aria-errormessage={
-          variant === "error" && helpText ? messageId : undefined
+          validateStatus === "error" && helpText ? messageId : undefined
         }
-        aria-invalid={variant === "error" || undefined}
+        aria-invalid={validateStatus === "error" || undefined}
         id={id}
         size={size}
-        variant={variant}
+        validateStatus={validateStatus}
       />
       {helpText && (
         <StatusText
           className={helperClassName}
           id={messageId}
           size={size}
-          status={variant}
+          status={validateStatus}
         >
           {helpText}
         </StatusText>
@@ -70,7 +70,7 @@ const meta: Meta<typeof Input> = {
   ],
   argTypes: {
     size: { control: "select", options: ["sm", "md", "lg"] },
-    variant: {
+    validateStatus: {
       control: "select",
       options: ["default", "error", "warning", "success"],
     },
@@ -100,8 +100,7 @@ export const Playground: Story = {
   },
   args: {
     placeholder: "e.g. Alex Morgan",
-    size: "md",
-    variant: "default",
+    validateStatus: "default",
     readOnly: false,
     disabled: false,
   },
@@ -139,7 +138,7 @@ export const Variants: Story = {
           helpText={message}
           key={state}
           label={`Contact name — ${state}`}
-          variant={state}
+          validateStatus={state}
         />
       ))}
     </div>

@@ -46,7 +46,7 @@ function TabsRecoveryExample() {
       </div>
       <StatusText role="status">Recovery requests: {requests}</StatusText>
       <TabsTemplate
-        variant="line"
+        appearance="line"
         showIndicator
         tablistProps={{ "aria-labelledby": "dynamic-tabs-heading", onKeyDown: () => {} }}
         activationMode={manual ? "manual" : "automatic"}
@@ -180,7 +180,7 @@ function PaginationRecoveryExample() {
   return <div className="flex min-w-0 flex-col gap-200">
     <div className="flex flex-wrap gap-100"><Button onClick={() => setCount(20)}>Reduce results</Button><Button onClick={() => setCount(0)}>Clear results</Button><Button onClick={() => setReject(!reject)}>Toggle invalid controlled page</Button></div>
     <StatusText role="status">Page changes: {changes}</StatusText>
-    <Pagination aria-label="Results pages" count={count} defaultPage={10} page={reject ? 10 : undefined} getPageUrl={({ page }) => `#page-${page}`} onPageChange={() => setChanges((value) => value + 1)} onClick={(event) => event.preventDefault()} variant="minimal" />
+    <Pagination aria-label="Results pages" count={count} defaultPage={10} page={reject ? 10 : undefined} getPageUrl={({ page }) => `#page-${page}`} onPageChange={() => setChanges((value) => value + 1)} onClick={(event) => event.preventDefault()} appearance="ghost" />
     <Pagination aria-label="Empty results pages" count={0} compact getPageUrl={({ page }) => `#empty-${page}`} />
     <Pagination aria-label="Right-to-left results pages" count={100} defaultPage={5} dir="rtl" compact getPageUrl={({ page }) => `#rtl-${page}`} onClick={(event) => event.preventDefault()} />
   </div>
@@ -356,7 +356,7 @@ export const DisabledSubtree: Story = {
 
 export const VerticalTabsLayout: Story = {
   parameters: { docs: { description: { story: "The vertical strip retains readable hit areas while long panel text wraps into the remaining width, including narrow viewports." } } },
-  render: () => <Tabs defaultValue="overview" orientation="vertical" variant="line">
+  render: () => <Tabs defaultValue="overview" orientation="vertical" appearance="line">
     <Tabs.List aria-label="Workspace settings">
       <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
       <Tabs.Trigger value="analytics">Analytics</Tabs.Trigger>

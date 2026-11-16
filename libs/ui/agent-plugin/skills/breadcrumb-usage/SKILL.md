@@ -5,7 +5,7 @@ description: >
   page hierarchy navigation with Link/NextLink adapters, current page state,
   separators, ellipsis, icons, size, and underline variant.
 metadata:
-  component_version: "1.0.4"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -70,7 +70,7 @@ where actions and feedback live). This section applies them to `Breadcrumb`.
 | Figma | Code |
 | --- | --- |
 | `size=sm…lg` | same prop |
-| — | `variant="plain" \| "underline"` (not in Figma) |
+| — | `appearance="plain" \| "underline"` (not in Figma) |
 | ellipsis glyph / hidden levels | `Breadcrumb.Ellipsis`, `maxItems` on `BreadcrumbTemplate` |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Breadcrumb → UX guidelines*.

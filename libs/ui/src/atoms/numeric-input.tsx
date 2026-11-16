@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.4.0
+ * @componentVersion v2.0.0
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -44,8 +44,9 @@ import {
 } from "../internal/numeric-input-editing"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
-import { Button } from "./button"
+import { Button, type ButtonAppearance, type ButtonSeverity } from "./button"
 import type { IconType } from "./icon"
 import { Input } from "./input"
 import { StatusText, type StatusTextProps } from "./status-text"
@@ -330,7 +331,7 @@ export type NumericInputProps = Omit<
 export function NumericInput({
   density,
   id,
-  size,
+  size: sizeProp,
   value,
   defaultValue,
   onChange,
@@ -347,6 +348,11 @@ export function NumericInput({
   locale,
   ...props
 }: NumericInputProps) {
+  const { size } = useUIDefaults(
+    "NumericInput",
+    { size: sizeProp },
+    numericInputVariants
+  )
   const messages = useUiMessages()
   const resolvedLocale = locale ?? messages.locale ?? "cs-CZ"
   const generatedId = useId()
@@ -812,8 +818,8 @@ type NumericInputIncrementTriggerProps = Omit<
   "children"
 > & {
   // === Button styling ===
-  variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
-  theme?: "solid" | "light" | "borderless" | "outlined"
+  severity?: ButtonSeverity
+  appearance?: ButtonAppearance
   uppercase?: boolean
   block?: boolean
 
@@ -833,8 +839,8 @@ type NumericInputIncrementTriggerProps = Omit<
 
 NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   // Button props with defaults
-  variant = "primary",
-  theme = "borderless",
+  severity = "primary",
+  appearance = "ghost",
   icon = "token-icon-numeric-input-increment",
   iconPosition = "left",
   iconSize,
@@ -856,6 +862,7 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
 
   return (
     <Button
+      appearance={appearance}
       block={block}
       className={styles.trigger({
         className: [iconSize === undefined && styles.triggerIcon(), className],
@@ -866,10 +873,9 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
+      severity={severity}
       size="current"
-      theme={theme}
       uppercase={uppercase}
-      variant={variant}
       {...api.getIncrementTriggerProps()}
       {...props}
       data-readonly-affordance=""
@@ -888,8 +894,8 @@ type NumericInputDecrementTriggerProps = Omit<
   "children"
 > & {
   // === Button styling ===
-  variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
-  theme?: "solid" | "light" | "borderless" | "outlined"
+  severity?: ButtonSeverity
+  appearance?: ButtonAppearance
   uppercase?: boolean
   block?: boolean
 
@@ -909,8 +915,8 @@ type NumericInputDecrementTriggerProps = Omit<
 
 NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   // Button props with defaults
-  variant = "primary",
-  theme = "borderless",
+  severity = "primary",
+  appearance = "ghost",
   icon = "token-icon-numeric-input-decrement",
   iconPosition = "left",
   iconSize,
@@ -932,6 +938,7 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
 
   return (
     <Button
+      appearance={appearance}
       block={block}
       className={styles.trigger({
         className: [iconSize === undefined && styles.triggerIcon(), className],
@@ -942,10 +949,9 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
+      severity={severity}
       size="current"
-      theme={theme}
       uppercase={uppercase}
-      variant={variant}
       {...api.getDecrementTriggerProps()}
       {...props}
       data-readonly-affordance=""

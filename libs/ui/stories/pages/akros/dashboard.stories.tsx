@@ -144,7 +144,7 @@ function HomePage({ loading }: { loading?: boolean }) {
         flush
         title="Main statistics"
       >
-        <Tabs defaultValue="revenue" variant="line">
+        <Tabs defaultValue="revenue" appearance="line">
           <Tabs.List className="px-250">
             <Tabs.Trigger value="revenue">Revenue</Tabs.Trigger>
             <Tabs.Trigger value="orders">Orders</Tabs.Trigger>
@@ -244,7 +244,7 @@ function HomePage({ loading }: { loading?: boolean }) {
           aria-label="Scrollable records"
           tabIndex={0}
         >
-          <Table size="sm" variant="line">
+          <Table size="sm" appearance="line">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeader>Order</Table.ColumnHeader>

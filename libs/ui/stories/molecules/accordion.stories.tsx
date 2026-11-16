@@ -31,11 +31,11 @@ const meta: Meta<typeof Accordion> = {
       control: "inline-radio",
       options: ["none", "sm", "md"],
     },
-    variant: {
+    appearance: {
       description:
         "Default uses a surface; borderless removes dividers; child inherits the surrounding surface.",
       control: "inline-radio",
-      options: ["default", "borderless", "child"],
+      options: ["outline", "ghost"],
     },
     multiple: {
       description: "Allow several answers to stay open independently.",
@@ -58,9 +58,7 @@ const meta: Meta<typeof Accordion> = {
     },
   },
   args: {
-    size: "md",
     shadow: "none",
-    variant: "default",
     multiple: false,
     collapsible: true,
     disabled: false,
@@ -167,7 +165,7 @@ export function DeliveryFAQ() {
       defaultValue={["delivery"]}
       size="md"
       shadow="none"
-      variant="default"
+      appearance="outline"
       multiple={false}
       collapsible
     >
@@ -263,17 +261,17 @@ export const AllVariants: Story = {
     docs: {
       description: {
         story:
-          "Compare framed, borderless, and inherited-surface variants without nested disclosures so you can choose the right visual weight.",
+          "Compare the framed (outline) and frameless (ghost) appearances without nested disclosures so you can choose the right visual weight.",
       },
     },
   },
   render: () => (
     <div className="w-full max-w-lg">
       <VariantContainer>
-        {(["default", "borderless", "child"] as const).map((variant) => (
-          <VariantGroup key={variant} title={variant} fullWidth>
-            <Accordion variant={variant} defaultValue={["delivery"]}>
-              <Questions panelNamePrefix={`FAQ ${variant}`} />
+        {(["outline", "ghost"] as const).map((appearance) => (
+          <VariantGroup key={appearance} title={appearance} fullWidth>
+            <Accordion appearance={appearance} defaultValue={["delivery"]}>
+              <Questions panelNamePrefix={`FAQ ${appearance}`} />
             </Accordion>
           </VariantGroup>
         ))}
@@ -381,7 +379,7 @@ export const CustomContent: Story = {
                 </Accordion.Subtitle>
               </Accordion.Title>
               <span className="inline-flex items-center gap-150">
-                <Badge variant="primary">Shipped</Badge>
+                <Badge severity="primary">Shipped</Badge>
                 <Accordion.Indicator />
               </span>
             </Accordion.Header>
@@ -393,7 +391,7 @@ export const CustomContent: Story = {
                 </p>
                 <Button
                   size="sm"
-                  variant="secondary"
+                  severity="secondary"
                   onClick={() => setTrackingVisible(!trackingVisible)}
                 >
                   {trackingVisible
@@ -444,12 +442,12 @@ export const ControlledAccordion: Story = {
         <div className="flex flex-wrap gap-100">
           <Button
             size="sm"
-            variant="secondary"
+            severity="secondary"
             onClick={() => setValue(["delivery", "returns"])}
           >
             Expand all answers
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setValue([])}>
+          <Button size="sm" severity="secondary" onClick={() => setValue([])}>
             Collapse all answers
           </Button>
         </div>
@@ -481,7 +479,7 @@ export const ConditionalRendering: Story = {
       <div className="flex w-full max-w-lg flex-col gap-200">
         <Button
           size="sm"
-          variant="secondary"
+          severity="secondary"
           onClick={() => setInternational(!international)}
         >
           {international
@@ -533,7 +531,7 @@ export const HeadingSemantics: Story = {
       <div className="w-md flex flex-col gap-200">
         <Button
           size="sm"
-          variant="secondary"
+          severity="secondary"
           onClick={() => setVisible(!visible)}
         >
           {visible ? "Hide accordion" : "Show accordion"}

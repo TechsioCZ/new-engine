@@ -164,7 +164,7 @@ function ControlledCascadeSelect() {
         >
           Set phones
         </Button>
-        <Button onClick={() => setValue([])} size="sm" variant="secondary">
+        <Button onClick={() => setValue([])} size="sm" severity="secondary">
           Clear
         </Button>
       </div>
@@ -356,7 +356,6 @@ const meta = {
   args: {
     children: null,
     items: productCategories,
-    size: "md",
     validateStatus: "default",
     disabled: false,
     readOnly: false,
@@ -750,8 +749,8 @@ function ChangingHierarchy() {
       value={value} onValueChange={({ value: next }) => setValue(next)} />
     <CascadeSelectField label="Multiple categories" name="multiple" multiple items={items}
       defaultValue={[["a", "leaf"], ["b", "leaf"]]} />
-    <Button variant="secondary" onClick={() => setPhase(1)}>Rename and reorder categories</Button>
-    <Button variant="secondary" onClick={() => setPhase(2)}>Remove Alpha</Button>
+    <Button severity="secondary" onClick={() => setPhase(1)}>Rename and reorder categories</Button>
+    <Button severity="secondary" onClick={() => setPhase(2)}>Remove Alpha</Button>
     <output aria-label="Hierarchy changes">{changes}</output>
   </form>
 }
@@ -801,10 +800,10 @@ function CascadeErrorRegistry() {
       {phase > 0 && <CascadeSelect.StatusText id={`${id}-first`} status={phase === 3 ? "default" : "error"}>Choose a category before saving.</CascadeSelect.StatusText>}
       {phase > 0 && phase < 3 && <CascadeSelect.StatusText id={`${id}-second`} status={phase === 1 ? "error" : "default"}>Choose a leaf category for this product.</CascadeSelect.StatusText>}
     </CascadeSelect>
-    <Button variant="secondary" onClick={() => setPhase(1)}>Show errors</Button>
-    <Button variant="secondary" onClick={() => setPhase(2)}>Convert error to helper</Button>
-    <Button variant="secondary" onClick={() => setPhase(3)}>Convert remaining error to helper</Button>
-    <Button variant="secondary" onClick={() => setPhase(0)}>Clear errors</Button>
+    <Button severity="secondary" onClick={() => setPhase(1)}>Show errors</Button>
+    <Button severity="secondary" onClick={() => setPhase(2)}>Convert error to helper</Button>
+    <Button severity="secondary" onClick={() => setPhase(3)}>Convert remaining error to helper</Button>
+    <Button severity="secondary" onClick={() => setPhase(0)}>Clear errors</Button>
   </div>
 }
 
@@ -849,7 +848,7 @@ function ResettableCategories() {
         defaultValue={[["home", "furniture"]]} />
       <CascadeSelectField items={productCategories} label="Controlled category" name="controlled"
         defaultValue={[["electronics", "phones"]]} value={[["home", "furniture"]]} />
-      <Button type="reset" variant="secondary">Reset categories</Button>
+      <Button type="reset" severity="secondary">Reset categories</Button>
     </form>
     <CascadeSelectField items={productCategories} label="Externally associated category" name="external"
       form={formId} defaultValue={[["home", "furniture"]]} />
@@ -857,7 +856,7 @@ function ResettableCategories() {
       onReset={(event) => event.preventDefault()} onSubmit={(event) => event.preventDefault()}>
       <CascadeSelectField items={productCategories} label="Category with cancelled reset" name="cancelled"
         defaultValue={[["home", "furniture"]]} />
-      <Button type="reset" variant="secondary">Cancel reset</Button>
+      <Button type="reset" severity="secondary">Cancel reset</Button>
     </form>
   </div>
 }

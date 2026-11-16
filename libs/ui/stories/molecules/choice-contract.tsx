@@ -106,13 +106,13 @@ export function ChoiceContract({ kind }: { kind: ChoiceKind }) {
         <div className="flex flex-wrap gap-150">
           <Button
             onClick={() => setRevision((value) => value + 1)}
-            variant="secondary"
+            severity="secondary"
           >
             Refresh without accepting
           </Button>
           <Button
             onClick={() => setAccepted((value) => !value)}
-            variant="secondary"
+            severity="secondary"
           >
             Update saved value
           </Button>
@@ -133,7 +133,7 @@ export function ChoiceContract({ kind }: { kind: ChoiceKind }) {
             </BooleanChoice>
           </>
         )}
-        <Button type="reset" variant="secondary">
+        <Button severity="secondary" type="reset">
           Restore defaults
         </Button>
       </form>
@@ -272,10 +272,10 @@ export function DynamicRadioChoices({
           items
         )}
       </C>
-      <Button onClick={() => setRemoveOnFocus(true)} variant="secondary">
+      <Button onClick={() => setRemoveOnFocus(true)} severity="secondary">
         Remove delivery B after focus moves
       </Button>
-      <Button variant="secondary">Continue</Button>
+      <Button severity="secondary">Continue</Button>
     </div>
   )
 }

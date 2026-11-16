@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "0.6.5"
+  component_version: "1.0.0"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
   resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
@@ -47,9 +47,9 @@ where actions and feedback live). This section applies them to `Button`.
 
 **Do**
 
-- One `variant="primary"` per surface; secondary actions use `secondary` / `outlined` / `borderless`.
+- One `severity="primary"` per surface; secondary actions use `secondary` / `outline` / `ghost`.
 - Order groups `[Cancel] [Primary]` — primary last, at the end of the container (ux-guidelines/feedback-and-actions).
-- Use `variant="danger"` only for destructive actions and keep them away from Save.
+- Use `severity="danger"` only for destructive actions and keep them away from Save.
 - Show progress with `isLoading` + `loadingText` (`Saving…`) on the button that started the action.
 - Add an `icon` only when it speeds recognition (`+` for New, trash for Delete); keep the text.
 
@@ -76,7 +76,7 @@ where actions and feedback live). This section applies them to `Button`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=primary…danger`, `theme=solid…borderless`, `size=sm…lg` | same prop names and values |
+| `variant=primary…danger`, `theme=solid…borderless`, `size=sm…lg` | `severity`, `appearance` (Figma `light` / `outlined` / `borderless` → `subtle` / `outline` / `ghost`), `size` |
 | `state=disabled` | `disabled` |
 | `state=loading` | `isLoading` + `loadingText` |
 | `state=hover` / `focus` / `active` | not props (browser states) |
@@ -88,7 +88,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 ```tsx
 import { Button } from "@techsio/ui-kit/atoms/button"
 
-<Button variant="primary" theme="solid" size="md">
+<Button severity="primary" appearance="solid" size="md">
   Save
 </Button>
 ```
@@ -96,8 +96,9 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 Supported visual props from `src/atoms/button.tsx`:
 
 ```text
-variant: primary | secondary | tertiary | danger | warning
-theme: solid | light | borderless | outlined | unstyled
+severity: primary | secondary | tertiary | danger | warning
+appearance: solid | subtle | outline | ghost
+unstyled: boolean
 size: sm | md | lg | current
 block: boolean
 uppercase: boolean
@@ -122,7 +123,7 @@ override of only `--font-weight-medium` no longer changes the default button
 weight there. Set `--font-weight-button` in that same scope instead. Global
 primitive overrides at the alias declaration scope still apply.
 
-### Choose variant from action semantics
+### Choose severity from action semantics
 
 ```text
 primary -> main positive action in the current scope
@@ -132,22 +133,22 @@ danger -> destructive action such as delete/remove/cancel order
 warning -> risky but not destructive action
 ```
 
-### Choose theme from emphasis
+### Choose appearance from emphasis
 
 ```text
 solid -> strongest emphasis
-light -> filled but softer emphasis
-outlined -> boundary/emphasis without solid fill
-borderless -> quiet action, similar to "ghost"
-unstyled -> only when composing inside another component surface
+subtle -> filled but softer emphasis
+outline -> boundary/emphasis without solid fill
+ghost -> quiet action without a resting surface
+unstyled (boolean) -> only when composing inside another component surface
 ```
 
-There is no `variant="ghost"`. Use `theme="borderless"` for that intent.
+There is no `variant="ghost"`. Use `appearance="ghost"` (formerly `theme="borderless"`).
 
 ### Let Button own its visual styling
 
 ```tsx
-<Button variant="danger" theme="solid" size="sm">
+<Button severity="danger" appearance="solid" size="sm">
   Delete
 </Button>
 ```
@@ -180,7 +181,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Button variant="primary" theme="solid">Save</Button>
+<Button severity="primary" appearance="solid">Save</Button>
 ```
 
 Source: libs/ui/src/atoms/button.tsx
@@ -190,13 +191,13 @@ Source: libs/ui/src/atoms/button.tsx
 Wrong:
 
 ```tsx
-<Button variant="ghost">Cancel</Button>
+<Button severity="ghost">Cancel</Button>
 ```
 
 Correct:
 
 ```tsx
-<Button variant="secondary" theme="borderless">Cancel</Button>
+<Button severity="secondary" appearance="ghost">Cancel</Button>
 ```
 
 Source: libs/ui/src/atoms/button.tsx
@@ -207,8 +208,8 @@ Wrong:
 
 ```tsx
 <Button
-  variant="danger"
-  theme="solid"
+  severity="danger"
+  appearance="solid"
   className="bg-danger text-fg-reverse px-200 py-100"
 >
   Delete
@@ -218,7 +219,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Button variant="danger" theme="solid">Delete</Button>
+<Button severity="danger" appearance="solid">Delete</Button>
 ```
 
 If Button danger should look different in the app, override
@@ -275,7 +276,7 @@ Text-bearing buttons use canonical minimum heights and grow when labels wrap.
 Keep enough inline space for localized text; icon-only actions use ActionIcon.
 Internal kit compositions may set `composition` to omit Button-only font weight
 and press scaling, while retaining focus/disabled behavior; the owning component
-must then supply its own typography. `theme="unstyled"` alone retains the
+must then supply its own typography. `unstyled` alone retains the
 existing Button typography/press contract for compatibility.
 
 Consumer refs remain attached across ordinary Button rerenders; callback-ref

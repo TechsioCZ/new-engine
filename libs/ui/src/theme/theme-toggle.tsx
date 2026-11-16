@@ -44,14 +44,14 @@ export function ThemeToggle({ className }: { className?: string }) {
         <div className={row()}>
           {brands.map((key) => (
             <Button
+              appearance={mounted && key === brand ? "solid" : "outline"}
               aria-pressed={mounted && key === brand}
               className={choice()}
               key={key}
               onClick={() => setBrand(key)}
+              severity="primary"
               size="sm"
-              theme={mounted && key === brand ? "solid" : "outlined"}
               type="button"
-              variant="primary"
             >
               {getBrand(key).label}
             </Button>
@@ -65,14 +65,14 @@ export function ThemeToggle({ className }: { className?: string }) {
           <div className={row()}>
             {availableModes.map((value) => (
               <Button
+                appearance={mounted && value === mode ? "solid" : "outline"}
                 aria-pressed={mounted && value === mode}
                 className={choice()}
                 key={value}
                 onClick={() => setMode(value)}
+                severity="secondary"
                 size="sm"
-                theme={mounted && value === mode ? "solid" : "outlined"}
                 type="button"
-                variant="secondary"
               >
                 {modeLabels[value]}
               </Button>

@@ -5,7 +5,7 @@ description: >
   @techsio/ui-kit Input atom, including valid size, variant, embedded button
   spacing, and token-first validation styling.
 metadata:
-  component_version: "1.1.7"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -57,7 +57,7 @@ where actions and feedback live). This section applies them to `Input`.
 
 **Behaviour (from the UX spec)**
 
-- `variant="error" | "success" | "warning"` is presentation only; the rule that checks the value lives in the form or app.
+- `validateStatus="error" | "success" | "warning"` is presentation only; the rule that checks the value lives in the form or app.
 - Never mark an untouched empty field as an error on load; validate on blur or submit, and keep rejected text for correction.
 - Use `readOnly`, not `disabled`, for values the user may see and copy but not change.
 
@@ -66,7 +66,7 @@ where actions and feedback live). This section applies them to `Input`.
 | Figma | Code |
 | --- | --- |
 | `size=sm…lg` | `size` |
-| `state=error` / `success` / `warning` | `variant` (bare Input); `validateStatus` on FormInput |
+| `state=error` / `success` / `warning` | `validateStatus` on Input and FormInput |
 | `state=disabled` | `disabled` |
 | — (not in Figma) | `readOnly`, `withButtonInside` |
 
@@ -77,13 +77,13 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 ```tsx
 import { Input } from "@techsio/ui-kit/atoms/input"
 
-<Input name="email" type="email" variant="default" size="md" />
+<Input name="email" type="email" validateStatus="default" size="md" />
 ```
 
 Supported component-specific props:
 
 ```text
-variant: default | error | success | warning
+validateStatus: default | error | success | warning
 size: sm | md | lg
 withButtonInside: false | right | left
 hideSearchClear: boolean
@@ -123,7 +123,7 @@ component.
 ### Use variant for validation state
 
 ```tsx
-<Input aria-describedby="email-error" variant="error" />
+<Input aria-describedby="email-error" validateStatus="error" />
 ```
 
 Do not style border or placeholder error colors in JSX.
@@ -160,13 +160,13 @@ Source: libs/ui/src/atoms/input.tsx
 Wrong:
 
 ```tsx
-<Input variant="danger" />
+<Input validateStatus="danger" />
 ```
 
 Correct:
 
 ```tsx
-<Input variant="error" />
+<Input validateStatus="error" />
 ```
 
 Source: libs/ui/src/atoms/input.tsx
@@ -182,7 +182,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Input variant="error" />
+<Input validateStatus="error" />
 ```
 
 If the error color is wrong for the app, change app token overrides.
@@ -210,7 +210,7 @@ Use the form molecule when it exists.
 ## Validation Commands
 
 ```sh
-rg -n "<input\\b|variant=\"(danger|invalid|primary)\"" apps
+rg -n "<input\\b|(<Input[^>]*variant=|validateStatus=\"(danger|invalid|primary)\")" apps
 rg -n "<Input[^>]*className=.*(border-|bg-|text-|placeholder:|px-|py-)" apps
 rg -U -n "<Label[\\s\\S]{0,240}<Input" apps
 rg -n "withButtonInside|hideSearchClear" apps

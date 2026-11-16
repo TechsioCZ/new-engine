@@ -14,6 +14,8 @@
  * shared token foundation every brand overrides. It is not a selectable brand.
  */
 
+import type { UIDefaults } from "./ui-provider"
+
 export type ColorMode = "light" | "dark"
 
 /** What the user can pick for the mode axis. `system` follows the OS. */
@@ -26,6 +28,9 @@ export type BrandConfig = {
   modes: ColorMode[]
   /** `data-theme` attribute value for this brand. */
   attr: string
+  /** Component style defaults (size, appearance, per-component) this brand
+   * applies through AppThemeProvider, on top of the md + solid baseline. */
+  defaults?: UIDefaults
 }
 
 export const THEMES = {
@@ -53,6 +58,18 @@ export function getBrand(key: BrandKey): BrandConfig {
 
 export function isBrandKey(value: string): value is BrandKey {
   return Object.hasOwn(THEMES, value)
+}
+
+/** Baseline every AppThemeProvider starts from before brand defaults. */
+export const BASE_UI_DEFAULTS = {
+  size: "md",
+  appearance: "solid",
+} as const satisfies UIDefaults
+
+/** Component style defaults for a brand, merged over BASE_UI_DEFAULTS. */
+export function brandUIDefaults(key: BrandKey): UIDefaults {
+  const defaults = getBrand(key).defaults
+  return { ...BASE_UI_DEFAULTS, ...defaults }
 }
 
 /** `data-theme` value for a brand. */

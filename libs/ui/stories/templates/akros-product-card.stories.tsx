@@ -84,7 +84,7 @@ function AkrosCardExample({
           </Link>
           {badgeLabel && (
             <ProductCard.Badges className="absolute top-0 left-0">
-              <Badge size="sm" variant="primary">
+              <Badge size="sm" severity="primary">
                 {badgeLabel}
               </Badge>
             </ProductCard.Badges>
@@ -119,7 +119,7 @@ function AkrosCardExample({
               onClick={previewDetail}
               size="sm"
               uppercase
-              variant="primary"
+              severity="primary"
             >
               {action === "variants" ? "Vybrat variantu" : "Zobrazit detail"}
             </LinkButton>

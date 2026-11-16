@@ -2,7 +2,7 @@
  * Combobox — @techsio/ui-kit molecule.
  *
  * @component Combobox
- * @componentVersion v1.8.0
+ * @componentVersion v1.9.0
  * @skill combobox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -55,6 +55,7 @@ import { OverlayPortal as Portal } from "../internal/overlay-portal"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 // Drops undefined entries so a prop left unset does not hide the catalog's translation.
@@ -473,8 +474,8 @@ function ComboboxClearTrigger<T>({
   return (
     <ActionIcon
       icon={clearIcon}
+      severity="neutral"
       size={size ?? "md"}
-      tone="neutral"
       {...api.getClearTriggerProps()}
       aria-label={
         api.getClearTriggerProps()["aria-label"] ?? messages.combobox.clear
@@ -537,8 +538,8 @@ function ComboboxStatus({
           <Button
             disabled={disabled || readOnly}
             onClick={onRetry}
+            severity="secondary"
             size="sm"
-            variant="secondary"
           >
             {retryLabel}
           </Button>
@@ -564,7 +565,7 @@ export function Combobox<T = unknown>({
   "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedBy,
   label,
-  size,
+  size: sizeProp,
   placeholder,
   disabled: explicitDisabled = false,
   readOnly = false,
@@ -614,6 +615,11 @@ export function Combobox<T = unknown>({
   className,
   ...rootProps
 }: ComboboxProps<T>) {
+  const { size } = useUIDefaults(
+    "Combobox",
+    { size: sizeProp },
+    comboboxVariants
+  )
   const messages = useUiMessages()
   const generatedId = useId()
   const uniqueId = id || generatedId
@@ -1203,7 +1209,7 @@ export function Combobox<T = unknown>({
             aria-haspopup="listbox"
             className={trigger()}
             size="current"
-            theme="unstyled"
+            unstyled
           >
             <Icon
               className={triggerIndicator()}

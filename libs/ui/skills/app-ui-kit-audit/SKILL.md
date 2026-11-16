@@ -43,7 +43,7 @@ Fix: replace with UI-kit component or record the missing API gap.
 Expected:
 
 ```tsx
-<Button variant="danger" theme="solid" size="md" />
+<Button severity="danger" appearance="solid" size="md" />
 ```
 
 Fail condition: `variant="ghost"` or other props not in component source.
@@ -54,7 +54,7 @@ Fix: load the per-component usage skill and inspect the source props.
 Expected:
 
 ```tsx
-<Button variant="primary" theme="solid" />
+<Button severity="primary" appearance="solid" />
 ```
 
 Fail condition: `className` duplicates background, text color, padding, radius,
@@ -98,13 +98,13 @@ Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 Wrong:
 
 ```tsx
-<Button variant="danger" className="bg-danger text-fg-reverse px-200" />
+<Button severity="danger" className="bg-danger text-fg-reverse px-200" />
 ```
 
 Correct:
 
 ```tsx
-<Button variant="danger" />
+<Button severity="danger" />
 ```
 
 Do not allow className to restate what component props and tokens already do.

@@ -1,7 +1,7 @@
 /**
  * VerticalNavigation — @techsio/ui-kit molecule.
  * @component VerticalNavigation
- * @componentVersion v1.1.1
+ * @componentVersion v2.0.0
  * @skill vertical-navigation-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -20,19 +20,20 @@ import { LinkButton, type LinkButtonProps } from "../atoms/link-button"
 import {
   useVerticalNavigationBranchContext,
   useVerticalNavigationContext,
+  type VerticalNavigationAppearance,
   VerticalNavigationBranchContext,
   VerticalNavigationContext,
   VerticalNavigationDepthContext,
+  type VerticalNavigationSeverity,
   type VerticalNavigationSize,
-  type VerticalNavigationTone,
-  type VerticalNavigationVariant,
 } from "../internal/molecules/vertical-navigation.context"
 import { verticalNavigationStyles } from "../internal/molecules/vertical-navigation.styles"
+import { useUIDefaults } from "../theme/ui-provider"
 
 export type {
+  VerticalNavigationAppearance,
+  VerticalNavigationSeverity,
   VerticalNavigationSize,
-  VerticalNavigationTone,
-  VerticalNavigationVariant,
 } from "../internal/molecules/vertical-navigation.context"
 
 export type VerticalNavigationProps = Omit<ComponentProps<"nav">, "dir"> & {
@@ -43,13 +44,18 @@ export type VerticalNavigationProps = Omit<ComponentProps<"nav">, "dir"> & {
 }
 
 export function VerticalNavigation({
-  size = "md",
+  size: sizeProp,
   maxIndentDepth = 3,
   dir,
   className,
   children,
   ...props
 }: VerticalNavigationProps) {
+  const { size = "md" } = useUIDefaults(
+    "VerticalNavigation",
+    { size: sizeProp },
+    verticalNavigationStyles
+  )
   return (
     <VerticalNavigationContext.Provider value={{ size, maxIndentDepth, dir }}>
       <VerticalNavigationDepthContext.Provider value={0}>
@@ -129,7 +135,7 @@ VerticalNavigation.Row = function VerticalNavigationRow({
 
 export type VerticalNavigationLinkProps<T extends ElementType = "a"> = Omit<
   LinkButtonProps<T>,
-  "size" | "theme" | "variant" | "block" | "uppercase"
+  "size" | "appearance" | "unstyled" | "severity" | "block" | "uppercase"
 > & { current?: boolean }
 
 VerticalNavigation.Link = function VerticalNavigationLink<
@@ -149,7 +155,7 @@ VerticalNavigation.Link = function VerticalNavigationLink<
       data-part="link"
       data-scope="vertical-navigation"
       size="current"
-      theme="unstyled"
+      unstyled
     />
   )
 }
@@ -204,7 +210,7 @@ VerticalNavigation.Branch = function VerticalNavigationBranch({
 
 export type VerticalNavigationBranchTriggerProps = Omit<
   ComponentProps<typeof Button>,
-  "size" | "theme" | "variant" | "block" | "uppercase"
+  "size" | "appearance" | "unstyled" | "severity" | "block" | "uppercase"
 >
 
 VerticalNavigation.BranchTrigger = function VerticalNavigationBranchTrigger({
@@ -224,7 +230,7 @@ VerticalNavigation.BranchTrigger = function VerticalNavigationBranchTrigger({
       data-scope="vertical-navigation"
       disabled={disabled || api.disabled}
       size="current"
-      theme="unstyled"
+      unstyled
     />
   )
 }
@@ -250,59 +256,71 @@ VerticalNavigation.BranchIndicator =
   }
 
 export type VerticalNavigationBranchContentProps = ComponentProps<"div"> & {
-  tone?: VerticalNavigationTone
-  variant?: VerticalNavigationVariant
+  /** Surface of the expanded content. Falls back to the nearest `UIProvider`, then `plain`. */
+  appearance?: VerticalNavigationAppearance
+  severity?: VerticalNavigationSeverity
   indent?: boolean
   showGuide?: boolean
 }
 
 VerticalNavigation.BranchContent = function VerticalNavigationBranchContent({
-  tone = "plain",
-  variant = "primary",
+  appearance: appearanceProp,
+  severity = "primary",
   indent = true,
   showGuide = false,
   className,
   ...props
 }: VerticalNavigationBranchContentProps) {
+  const { appearance = "plain" } = useUIDefaults(
+    "VerticalNavigation",
+    { appearance: appearanceProp },
+    verticalNavigationStyles
+  )
   const { maxIndentDepth } = useVerticalNavigationContext()
   const { api } = useVerticalNavigationBranchContext()
   const depth = useContext(VerticalNavigationDepthContext)
   return (
     <div
       {...mergeProps(props, api.getContentProps())}
-      className={verticalNavigationStyles({ tone, variant }).content({
+      className={verticalNavigationStyles({ appearance, severity }).content({
         className,
       })}
+      data-appearance={appearance}
       data-guide={showGuide || undefined}
       data-indented={(indent && depth <= maxIndentDepth) || undefined}
       data-part="branch-content"
       data-scope="vertical-navigation"
-      data-tone={tone}
-      data-variant={variant}
+      data-severity={severity}
     />
   )
 }
 
 VerticalNavigation.Group = function VerticalNavigationGroup({
-  tone = "plain",
-  variant = "primary",
+  appearance: appearanceProp,
+  severity = "primary",
   className,
   ...props
 }: ComponentProps<"div"> & {
-  tone?: VerticalNavigationTone
-  variant?: VerticalNavigationVariant
+  /** Group surface. Falls back to the nearest `UIProvider`, then `plain`. */
+  appearance?: VerticalNavigationAppearance
+  severity?: VerticalNavigationSeverity
 }) {
   useVerticalNavigationContext()
+  const { appearance = "plain" } = useUIDefaults(
+    "VerticalNavigation",
+    { appearance: appearanceProp },
+    verticalNavigationStyles
+  )
   return (
     <div
       {...props}
-      className={verticalNavigationStyles({ tone, variant }).group({
+      className={verticalNavigationStyles({ appearance, severity }).group({
         className,
       })}
+      data-appearance={appearance}
       data-part="group"
       data-scope="vertical-navigation"
-      data-tone={tone}
-      data-variant={variant}
+      data-severity={severity}
     />
   )
 }

@@ -2,7 +2,7 @@
  * ActionIcon — @techsio/ui-kit atom.
  *
  * @component ActionIcon
- * @componentVersion v1.1.5
+ * @componentVersion v2.0.0
  * @skill action-icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,7 @@
  */
 import type { ButtonHTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
@@ -39,7 +40,7 @@ const actionIconVariants = tv({
       md: "size-icon-control-md text-action-icon-md",
       lg: "size-action-icon-lg text-action-icon-lg",
     },
-    tone: {
+    severity: {
       neutral: [
         "not-disabled:hover:bg-icon-control-bg-hover",
         "not-disabled:active:bg-icon-control-bg-active",
@@ -53,7 +54,7 @@ const actionIconVariants = tv({
   },
   defaultVariants: {
     size: "md",
-    tone: "neutral",
+    severity: "neutral",
   },
 })
 
@@ -76,16 +77,21 @@ export type ActionIconProps = Omit<
 
 export function ActionIcon({
   icon,
-  size,
-  tone,
+  size: sizeProp,
+  severity,
   type = "button",
   className,
   ref,
   ...props
 }: ActionIconProps) {
+  const { size } = useUIDefaults(
+    "ActionIcon",
+    { size: sizeProp },
+    actionIconVariants
+  )
   return (
     <button
-      className={actionIconVariants({ size, tone, className })}
+      className={actionIconVariants({ size, severity, className })}
       ref={ref}
       type={type}
       {...props}

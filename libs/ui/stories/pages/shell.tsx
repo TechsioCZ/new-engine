@@ -22,13 +22,13 @@ import {
 import { DemoMenu } from "./demo-boundary"
 import { DemoUtilities, GlobalSearch } from "./frame"
 
-type BadgeVariant =
+type BadgeSeverity =
   | "success"
   | "warning"
   | "danger"
   | "info"
   | "secondary"
-  | "outline"
+  | "neutral"
 
 /* ----------------------------------------------------------------- shell -- */
 
@@ -133,11 +133,11 @@ export function AdminShell({
           aria-label="Account"
           customTrigger={
             <Button
+              appearance="ghost"
               block
               icon="icon-[mdi--account-circle-outline]"
+              severity="secondary"
               size="sm"
-              theme="borderless"
-              variant="secondary"
             >
               Nora Kessler
             </Button>
@@ -150,12 +150,12 @@ export function AdminShell({
         <header className="sticky top-0 z-10 flex items-center gap-200 border-border-primary border-b bg-base p-150">
           {/* The sidebar is hidden below lg, so navigation moves in here. */}
           <Button
+            appearance="ghost"
             className="lg:hidden"
             icon="icon-[mdi--menu]"
             onClick={() => setNavDrawer(true)}
+            severity="secondary"
             size="sm"
-            theme="borderless"
-            variant="secondary"
           >
             Menu
           </Button>
@@ -329,7 +329,7 @@ export function StatCard({
 }: StatCardProps) {
   const trendVariants: Record<
     NonNullable<StatCardProps["trend"]>,
-    BadgeVariant
+    BadgeSeverity
   > = { up: "success", down: "danger", flat: "secondary" }
   const trendVariant = trendVariants[trend]
 
@@ -350,7 +350,7 @@ export function StatCard({
           {value}
         </span>
         {delta && (
-          <Badge size="sm" variant={trendVariant}>
+          <Badge severity={trendVariant} size="sm">
             {delta}
           </Badge>
         )}
@@ -418,11 +418,11 @@ export function BulkActionBar({
       <span className="font-medium text-sm">{count} selected</span>
       <div className="flex flex-wrap items-center gap-100">{children}</div>
       <Button
+        appearance="ghost"
         className="ms-auto"
         onClick={onClear}
+        severity="secondary"
         size="sm"
-        theme="borderless"
-        variant="secondary"
       >
         Clear selection
       </Button>
@@ -453,19 +453,19 @@ export function DetailList({ items }: { items: DetailItem[] }) {
 
 /* --------------------------------------------------------------- badges --- */
 
-const statusVariants: Record<string, BadgeVariant> = {
+const statusVariants: Record<string, BadgeSeverity> = {
   published: "success",
   active: "success",
   paid: "success",
   fulfilled: "info",
   vip: "success",
   customer: "info",
-  draft: "outline",
+  draft: "neutral",
   lead: "warning",
   scheduled: "warning",
   pending: "warning",
-  archived: "outline",
-  discontinued: "outline",
+  archived: "neutral",
+  discontinued: "neutral",
   refunded: "warning",
   cancelled: "danger",
   churned: "danger",
@@ -495,7 +495,7 @@ const statusLabels: Record<string, string> = {
  */
 export function StatusBadge({ status }: { status: string }) {
   return (
-    <Badge size="sm" variant={statusVariants[status] ?? "outline"}>
+    <Badge severity={statusVariants[status] ?? "neutral"} size="sm">
       {statusLabels[status] ?? status}
     </Badge>
   )

@@ -449,7 +449,6 @@ const meta = {
     onValueChange: fn(),
     readOnly: false,
     required: false,
-    size: "md",
   },
 } satisfies Meta<typeof DatePickerDayRoot>
 
@@ -474,7 +473,6 @@ export const Playground: StoryObj<DatePickerPlaygroundArgs> = {
     required: false,
     selectionMode: "single",
     shouldForceLeadingZeros: false,
-    size: "md",
     slide: true,
     startOfWeek: 1,
     useDateBounds: false,
@@ -753,10 +751,10 @@ export const FeedbackAndReadOnly: Story = {
           readOnly={readOnly}
           invalid={invalid}
         />
-        <Button theme="outlined" onClick={() => setReadOnly((value) => !value)}>
+        <Button appearance="outline" onClick={() => setReadOnly((value) => !value)}>
           Toggle read-only
         </Button>
-        <Button theme="outlined" onClick={() => setInvalid((value) => !value)}>
+        <Button appearance="outline" onClick={() => setInvalid((value) => !value)}>
           Toggle validation
         </Button>
       </div>
@@ -1649,7 +1647,7 @@ function NativeResetDates() {
       />
       <output aria-label="Date reset proposals">{changes}</output>
       <Button
-        variant="secondary"
+        severity="secondary"
         onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
       >
         Move date owner

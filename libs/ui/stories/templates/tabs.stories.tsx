@@ -39,10 +39,10 @@ const meta: Meta<typeof TabsTemplate> = {
         category: "Content",
       },
     },
-    variant: {
+    appearance: {
       control: "select",
-      options: ["default", "line", "solid", "outline"],
-      description: "Visual style variant",
+      options: ["underline", "line", "solid", "outline"],
+      description: "Visual style appearance",
       table: {
         category: "Appearance",
       },
@@ -50,7 +50,7 @@ const meta: Meta<typeof TabsTemplate> = {
     size: {
       control: "select",
       options: ["sm", "md", "lg"],
-      description: "Size variant",
+      description: "Size appearance",
       table: {
         category: "Appearance",
       },
@@ -183,8 +183,7 @@ export const Playground: Story = {
       },
     ],
     defaultValue: "tab1",
-    variant: "line",
-    size: "md",
+    appearance: "line",
     fitted: false,
     justify: "start",
     orientation: "horizontal",
@@ -204,13 +203,13 @@ export const Variants: Story = {
   },
   render: () => (
     <VariantContainer>
-      {(["default", "line", "solid", "outline"] as const).map((variant) => (
-        <VariantGroup fullWidth key={variant} title={variant}>
+      {(["underline", "line", "solid", "outline"] as const).map((appearance) => (
+        <VariantGroup fullWidth key={appearance} title={appearance}>
           <TabsTemplate
             defaultValue="tab1"
             items={defaultItems}
-            variant={variant}
-            tablistProps={{ "aria-label": `${variant} product information` }}
+            appearance={appearance}
+            tablistProps={{ "aria-label": `${appearance} product information` }}
             showIndicator
           />
         </VariantGroup>
@@ -241,7 +240,7 @@ export const Sizes: Story = {
             items={defaultItems}
             size={size}
             tablistProps={{ "aria-labelledby": `tabs-size-${size}` }}
-            variant="line"
+            appearance="line"
             showIndicator
           />
         </section>
@@ -262,8 +261,6 @@ export const Default: Story = {
   args: {
     items: defaultItems,
     defaultValue: "tab1",
-    variant: "default",
-    size: "md",
     fitted: false,
     justify: "start",
     orientation: "horizontal",

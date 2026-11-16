@@ -189,7 +189,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
           <span className="flex flex-col gap-50">
             <span className="flex items-center gap-100">
               {info.row.original.company ?? info.getValue<string>()}
-              <Badge size="sm" variant="outline">
+              <Badge size="sm" appearance="outline" severity="neutral">
                 {info.row.original.customerType}
               </Badge>
             </span>
@@ -266,13 +266,13 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
           setSelection({})
         }}
         value={view}
-        variant="line"
+        appearance="line"
       >
         <Tabs.List>
           {views.map((entry) => (
             <Tabs.Trigger key={entry.value} value={entry.value}>
               {entry.label}
-              <Badge size="sm" variant="outline">
+              <Badge size="sm" appearance="outline" severity="neutral">
                 {String(data.filter(entry.match).length)}
               </Badge>
             </Tabs.Trigger>
@@ -296,7 +296,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                     icon="icon-[mdi--database-arrow-right-outline]"
                     onClick={() => setConfirming(true)}
                     size="sm"
-                    variant="primary"
+                    severity="primary"
                   >
                     {`Send ${toAbra.length} to ABRA`}
                   </Button>
@@ -311,8 +311,8 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                       })
                     }
                     size="sm"
-                    theme="outlined"
-                    variant="secondary"
+                    appearance="outline"
+                    severity="secondary"
                   >
                     {`Preview ${toRemind.length} payment reminders`}
                   </Button>
@@ -391,8 +391,8 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
           <>
             <Button
               onClick={() => setConfirming(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
@@ -401,7 +401,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
                 setConfirming(false)
                 sendToAbra(toAbra.map((order) => order.id))
               }}
-              variant="primary"
+              severity="primary"
             >
               {`Send ${toAbra.length} to ABRA`}
             </Button>

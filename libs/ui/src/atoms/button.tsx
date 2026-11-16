@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.6.5
+ * @componentVersion v1.0.0
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -18,6 +18,7 @@ import {
   useRef,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
@@ -34,7 +35,7 @@ export const buttonVariants = tv({
   ],
   variants: {
     // Internal composition escape hatch: navigation owns its typography/press treatment.
-    // Unlike theme="unstyled", this deliberately omits Button-only visuals.
+    // Unlike `unstyled`, this deliberately omits Button-only visuals.
     composition: {
       true: "",
       false: [
@@ -47,19 +48,20 @@ export const buttonVariants = tv({
       default: "",
       compact: "",
     },
-    variant: {
+    severity: {
       primary: "",
       secondary: "",
       tertiary: "",
       danger: "",
       warning: "",
     },
-    theme: {
+    // `unstyled` is internal: the public boolean `unstyled` prop selects it.
+    appearance: {
       solid: "disabled:bg-button-bg-disabled",
-      light: "disabled:bg-button-bg-disabled",
-      borderless:
+      subtle: "disabled:bg-button-bg-disabled",
+      ghost:
         "button-disabled-borderless bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting",
-      outlined: "button-disabled-outlined border bg-button-bg-outlined",
+      outline: "button-disabled-outlined border bg-button-bg-outlined",
       unstyled: "",
     },
     uppercase: {
@@ -97,8 +99,8 @@ export const buttonVariants = tv({
       className: "h-button-compact-lg p-button-compact-lg",
     },
     {
-      variant: "primary",
-      theme: "solid",
+      severity: "primary",
+      appearance: "solid",
       className: [
         "bg-button-bg-primary-base",
         "hover:bg-button-bg-primary-hover",
@@ -107,8 +109,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "secondary",
-      theme: "solid",
+      severity: "secondary",
+      appearance: "solid",
       className: [
         "bg-button-bg-secondary-base",
         "hover:bg-button-bg-secondary-hover",
@@ -117,8 +119,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "tertiary",
-      theme: "solid",
+      severity: "tertiary",
+      appearance: "solid",
       className: [
         "bg-button-bg-tertiary-base",
         "hover:bg-button-bg-tertiary-hover",
@@ -127,8 +129,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "warning",
-      theme: "solid",
+      severity: "warning",
+      appearance: "solid",
       className: [
         "bg-button-bg-warning-base",
         "hover:bg-button-bg-warning-hover",
@@ -137,8 +139,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "danger",
-      theme: "solid",
+      severity: "danger",
+      appearance: "solid",
       className: [
         "bg-button-bg-danger-base",
         "hover:bg-button-bg-danger-hover",
@@ -147,8 +149,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "primary",
-      theme: "light",
+      severity: "primary",
+      appearance: "subtle",
       className: [
         "bg-button-bg-primary-light-base",
         "hover:bg-button-bg-primary-light-hover",
@@ -157,8 +159,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "secondary",
-      theme: "light",
+      severity: "secondary",
+      appearance: "subtle",
       className: [
         "bg-button-bg-secondary-light-base",
         "hover:bg-button-bg-secondary-light-hover",
@@ -167,8 +169,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "tertiary",
-      theme: "light",
+      severity: "tertiary",
+      appearance: "subtle",
       className: [
         "bg-button-bg-tertiary-light-base",
         "hover:bg-button-bg-tertiary-light-hover",
@@ -177,8 +179,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "warning",
-      theme: "light",
+      severity: "warning",
+      appearance: "subtle",
       className: [
         "bg-button-bg-warning-light-base",
         "hover:bg-button-bg-warning-light-hover",
@@ -187,8 +189,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "danger",
-      theme: "light",
+      severity: "danger",
+      appearance: "subtle",
       className: [
         "bg-button-bg-danger-light-base",
         "hover:bg-button-bg-danger-light-hover",
@@ -197,8 +199,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "primary",
-      theme: "outlined",
+      severity: "primary",
+      appearance: "outline",
       className: [
         "border-button-border-primary",
         "hover:bg-button-bg-outlined-primary-hover",
@@ -207,8 +209,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "secondary",
-      theme: "outlined",
+      severity: "secondary",
+      appearance: "outline",
       className: [
         "border-button-border-secondary",
         "hover:bg-button-bg-outlined-secondary-hover",
@@ -217,8 +219,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "tertiary",
-      theme: "outlined",
+      severity: "tertiary",
+      appearance: "outline",
       className: [
         "border-button-border-tertiary",
         "hover:bg-button-bg-outlined-tertiary-hover",
@@ -227,8 +229,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "warning",
-      theme: "outlined",
+      severity: "warning",
+      appearance: "outline",
       className: [
         "border-button-border-warning",
         "hover:bg-button-bg-outlined-warning-hover",
@@ -237,8 +239,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "danger",
-      theme: "outlined",
+      severity: "danger",
+      appearance: "outline",
       className: [
         "border-button-border-danger",
         "hover:bg-button-bg-outlined-danger-hover",
@@ -247,42 +249,42 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "primary",
-      theme: "borderless",
+      severity: "primary",
+      appearance: "ghost",
       className: ["text-button-fg-primary-borderless"],
     },
     {
-      variant: "secondary",
-      theme: "borderless",
+      severity: "secondary",
+      appearance: "ghost",
       className: ["text-button-fg-secondary-borderless"],
     },
     {
-      variant: "tertiary",
-      theme: "borderless",
+      severity: "tertiary",
+      appearance: "ghost",
       className: ["text-button-fg-tertiary-borderless"],
     },
     {
-      variant: "warning",
-      theme: "borderless",
+      severity: "warning",
+      appearance: "ghost",
       className: ["text-button-fg-warning-readable"],
     },
     {
-      variant: "danger",
-      theme: "borderless",
+      severity: "danger",
+      appearance: "ghost",
       className: ["text-button-fg-danger-borderless"],
     },
     {
-      theme: "outlined",
+      appearance: "outline",
       size: "sm",
       className: "border-(length:--border-width-button-sm)",
     },
     {
-      theme: "outlined",
+      appearance: "outline",
       size: "md",
       className: "border-(length:--border-width-button-md)",
     },
     {
-      theme: "outlined",
+      appearance: "outline",
       size: "lg",
       className: "border-(length:--border-width-button-lg)",
     },
@@ -290,12 +292,18 @@ export const buttonVariants = tv({
   defaultVariants: {
     composition: false,
     density: "default",
-    variant: "primary",
-    theme: "solid",
+    severity: "primary",
+    appearance: "solid",
     size: "md",
     light: false,
   },
 })
+
+/** Values a `UIProvider` may set on Button-family components. */
+export const buttonStyleValues = {
+  size: ["sm", "md", "lg", "current"],
+  appearance: ["solid", "subtle", "outline", "ghost"],
+}
 
 // Glyphs follow the button size; `current` keeps inheriting the label.
 const buttonIconVariants = tv({
@@ -310,11 +318,20 @@ const buttonIconVariants = tv({
   defaultVariants: { size: "md" },
 })
 
+export type ButtonAppearance = "solid" | "subtle" | "outline" | "ghost"
+export type ButtonSeverity = NonNullable<
+  VariantProps<typeof buttonVariants>["severity"]
+>
+
 export type ButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "children"
 > &
-  VariantProps<typeof buttonVariants> & {
+  Omit<VariantProps<typeof buttonVariants>, "appearance"> & {
+    /** Fill style. Falls back to the nearest `UIProvider`, then `solid`. */
+    appearance?: ButtonAppearance
+    /** Drop every Button visual (fill, color, geometry stays with `size`). */
+    unstyled?: boolean
     icon?: IconType
     iconPosition?: "left" | "right"
     iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
@@ -327,9 +344,10 @@ export type ButtonProps = Omit<
 
 export function Button({
   density,
-  variant,
-  theme,
-  size,
+  severity,
+  appearance: appearanceProp,
+  unstyled = false,
+  size: sizeProp,
   block,
   isLoading,
   loadingText,
@@ -369,6 +387,11 @@ export function Button({
     return () => form.removeEventListener("submit", preventPendingSubmit, true)
   }, [isLoading, type, props.form])
 
+  const { size, appearance } = useUIDefaults(
+    "Button",
+    { size: sizeProp, appearance: appearanceProp },
+    buttonStyleValues
+  )
   const iconClassName = buttonIconVariants({ size })
 
   return (
@@ -380,8 +403,8 @@ export function Button({
       }
       className={buttonVariants({
         density,
-        variant,
-        theme,
+        severity,
+        appearance: unstyled ? "unstyled" : appearance,
         size,
         block,
         uppercase,

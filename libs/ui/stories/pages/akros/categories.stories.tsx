@@ -186,8 +186,8 @@ function CategoryImageEditor({
                   setError(undefined)
                 }}
                 size="sm"
-                theme="outlined"
-                variant="danger"
+                appearance="outline"
+                severity="danger"
               >
                 Remove current image
               </Button>
@@ -308,7 +308,7 @@ function CategoriesPage() {
                 {entry.category.name}
                 <Badge
                   size="sm"
-                  variant={entry.category.hasImage ? "success" : "warning"}
+                  severity={entry.category.hasImage ? "success" : "warning"}
                 >
                   {entry.category.hasImage ? "Has image" : "No image"}
                 </Badge>

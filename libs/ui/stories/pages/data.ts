@@ -848,7 +848,7 @@ export type StorefrontProduct = {
   /** Facet data, so the category page can filter on more than brand. */
   sizes: string[]
   colors: string[]
-  badge?: { label: string; variant: "success" | "danger" | "info" | "outline" }
+  badge?: { label: string; severity: "success" | "danger" | "info" | "neutral" }
 }
 
 const storefrontImages = {
@@ -877,7 +877,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     stockLabel: "In stock",
     sizes: ["XS", "S", "M", "L", "XL"],
     colors: ["Black", "Sand"],
-    badge: { label: "New", variant: "success" },
+    badge: { label: "New", severity: "success" },
   },
   {
     id: "sf-2",
@@ -892,7 +892,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     stockLabel: "Only 3 left",
     sizes: ["38", "39", "40", "41", "42", "43", "44"],
     colors: ["Black", "Rust"],
-    badge: { label: "−22%", variant: "danger" },
+    badge: { label: "−22%", severity: "danger" },
   },
   {
     id: "sf-3",
@@ -919,7 +919,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     stockLabel: "In stock",
     sizes: [],
     colors: ["Black"],
-    badge: { label: "Staff pick", variant: "info" },
+    badge: { label: "Staff pick", severity: "info" },
   },
   {
     id: "sf-5",
@@ -960,7 +960,7 @@ export const storefrontProducts: StorefrontProduct[] = [
     stockLabel: "Low stock",
     sizes: ["S", "M", "L", "XL", "XXL"],
     colors: ["Olive", "Black"],
-    badge: { label: "−15%", variant: "danger" },
+    badge: { label: "−15%", severity: "danger" },
   },
   {
     id: "sf-8",

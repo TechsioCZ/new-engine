@@ -101,11 +101,11 @@ function ContentListPage() {
         meta: { type: "boolean", width: 130 },
         cell: (info) =>
           info.getValue<boolean>() ? (
-            <Badge size="sm" variant="success">
+            <Badge size="sm" severity="success">
               Complete
             </Badge>
           ) : (
-            <Badge size="sm" variant="warning">
+            <Badge size="sm" severity="warning">
               Missing
             </Badge>
           ),
@@ -131,7 +131,7 @@ function ContentListPage() {
         ]}
         description="General pages (about us, contact, shipping) and blog articles."
         meta={
-          <Badge size="sm" variant="outline">
+          <Badge size="sm" appearance="outline" severity="neutral">
             After launch
           </Badge>
         }
@@ -222,7 +222,7 @@ function ArticleEditorPage() {
               })
             }}
             size="sm"
-            variant="primary"
+            severity="primary"
           >
             Save demo draft
           </Button>
@@ -238,13 +238,13 @@ function ArticleEditorPage() {
 
       <div className="grid grid-cols-1 items-start gap-250 xl:grid-cols-3">
         <SectionCard className="xl:col-span-2" flush>
-          <Tabs defaultValue="content" variant="line">
+          <Tabs defaultValue="content" appearance="line">
             <Tabs.List className="px-250 pt-250">
               <Tabs.Trigger value="content">Content</Tabs.Trigger>
               <Tabs.Trigger value="seo">
                 SEO
                 {!metaDescription && (
-                  <Badge size="sm" variant="warning">
+                  <Badge size="sm" severity="warning">
                     Missing
                   </Badge>
                 )}

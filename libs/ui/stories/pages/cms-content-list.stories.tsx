@@ -48,7 +48,7 @@ const meta: Meta = {
           "- Filtering belongs to the grid (`enableColumnFilters` + `meta.type`), not to a",
           "  hand-built filter bar — the controls then match the table size automatically.",
           "- Bulk actions appear only while a selection exists, so the toolbar never",
-          '  reflows; destructive bulk actions are `variant="danger"` and confirm in an',
+          '  reflows; destructive bulk actions are `severity="danger"` and confirm in an',
           "  `alertdialog`.",
           "- Row density (`size`) is a page-level decision: `sm` for scanning lists,",
           "  `md` for lists you also edit inline.",
@@ -205,8 +205,8 @@ function ContentListPage({
           icon="icon-[mdi--publish]"
           onClick={() => applyBulk("published", "Published")}
           size="sm"
-          theme="outlined"
-          variant="secondary"
+          appearance="outline"
+          severity="secondary"
         >
           Publish
         </Button>
@@ -214,8 +214,8 @@ function ContentListPage({
           icon="icon-[mdi--archive-outline]"
           onClick={() => applyBulk("archived", "Archived")}
           size="sm"
-          theme="outlined"
-          variant="secondary"
+          appearance="outline"
+          severity="secondary"
         >
           Archive
         </Button>
@@ -224,8 +224,8 @@ function ContentListPage({
           icon="icon-[mdi--delete-outline]"
           onClick={() => setBulkDeleting(true)}
           size="sm"
-          theme="outlined"
-          variant="danger"
+          appearance="outline"
+          severity="danger"
         >
           Delete
         </Button>
@@ -300,7 +300,7 @@ function ContentListPage({
               id: "delete",
               label: "Delete",
               icon: "icon-[mdi--delete-outline]",
-              tone: "danger",
+              severity: "danger",
               disabled: (row) => row.original.status === "published",
               onAction: (row) => setPendingDelete(row.original),
             },
@@ -322,12 +322,12 @@ function ContentListPage({
           <>
             <Button
               onClick={() => setBulkDeleting(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Keep pages
             </Button>
-            <Button onClick={confirmBulkDelete} variant="danger">
+            <Button onClick={confirmBulkDelete} severity="danger">
               {`Delete ${pageCount(deletableIds.length)}`}
             </Button>
           </>
@@ -350,12 +350,12 @@ function ContentListPage({
           <>
             <Button
               onClick={() => setPendingDelete(null)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Keep page
             </Button>
-            <Button onClick={confirmDelete} variant="danger">
+            <Button onClick={confirmDelete} severity="danger">
               Delete page
             </Button>
           </>

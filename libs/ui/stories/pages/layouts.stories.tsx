@@ -292,8 +292,8 @@ function NavPanel({
             block
             icon="icon-[mdi--account-circle-outline]"
             size="sm"
-            theme="borderless"
-            variant="secondary"
+            appearance="ghost"
+            severity="secondary"
           >
             Nora Kessler
           </Button>
@@ -439,8 +439,8 @@ export const SidebarRight: Story = {
                     aria-label="Account"
                     icon="icon-[mdi--account-circle-outline]"
                     size="sm"
-                    theme="borderless"
-                    variant="secondary"
+                    appearance="ghost"
+                    severity="secondary"
                   >
                     <span className="hidden sm:inline">Nora Kessler</span>
                   </Button>
@@ -530,8 +530,8 @@ export const IconRailNav: Story = {
                       aria-label="Account"
                       icon="icon-[mdi--account-circle-outline]"
                       size="sm"
-                      theme="borderless"
-                      variant="secondary"
+                      appearance="ghost"
+                      severity="secondary"
                     />
                   }
                   items={accountMenu}
@@ -550,8 +550,8 @@ export const IconRailNav: Story = {
                   icon="icon-[mdi--menu]"
                   onClick={() => setDrawer(true)}
                   size="sm"
-                  theme="borderless"
-                  variant="secondary"
+                  appearance="ghost"
+                  severity="secondary"
                 >
                   Menu
                 </Button>
@@ -652,7 +652,7 @@ export const TopNavWithSubnav: Story = {
               className="px-150"
               key={nav}
               defaultValue={(subNav[nav] ?? DASHBOARD_SUBNAV)[0]?.value}
-              variant="line"
+              appearance="line"
             >
               <Tabs.List>
                 {(subNav[nav] ?? DASHBOARD_SUBNAV).map((entry) => (
@@ -723,8 +723,8 @@ export const ThreePane: Story = {
                 key={order.id}
                 onClick={() => setActiveId(order.id)}
                 size="current"
-                theme="unstyled"
-                variant="secondary"
+                unstyled
+                severity="secondary"
               >
                 <span className="flex items-center justify-between gap-150">
                   <span className="font-medium text-sm">{order.number}</span>
@@ -802,7 +802,7 @@ export const FullBleedWorkspace: Story = {
             start={
               <div className="flex items-center gap-150">
                 <Brand environment="Workspace" />
-                <Badge size="sm" variant="outline">
+                <Badge size="sm" appearance="outline" severity="neutral">
                   {`${contentEntries.length} rows`}
                 </Badge>
               </div>
@@ -932,8 +932,8 @@ export const FocusedTask: Story = {
             end={
               <Button
                 size="sm"
-                variant="secondary"
-                theme="borderless"
+                severity="secondary"
+                appearance="ghost"
                 onClick={() => setSaved(true)}
               >
                 Save and exit
@@ -953,7 +953,7 @@ export const FocusedTask: Story = {
               <StatusText status="success">
                 Draft retained in this example. No import was submitted.
               </StatusText>
-              <Button variant="secondary" onClick={() => setSaved(false)}>
+              <Button severity="secondary" onClick={() => setSaved(false)}>
                 Resume draft
               </Button>
             </>
@@ -995,8 +995,8 @@ export const FocusedTask: Story = {
               </SectionCard>
               <div className="flex flex-wrap justify-end gap-150">
                 <Button
-                  variant="secondary"
-                  theme="outlined"
+                  severity="secondary"
+                  appearance="outline"
                   onClick={() => {
                     setStep(0)
                     setFile(null)
@@ -1006,8 +1006,8 @@ export const FocusedTask: Story = {
                 </Button>
                 {step > 0 && (
                   <Button
-                    variant="secondary"
-                    theme="outlined"
+                    severity="secondary"
+                    appearance="outline"
                     onClick={() => setStep((current) => current - 1)}
                   >
                     Back

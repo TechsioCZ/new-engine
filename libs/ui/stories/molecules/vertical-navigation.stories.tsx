@@ -11,8 +11,8 @@ import "./vertical-navigation.stories.css"
 
 type NavigationStoryProps = {
   size: "sm" | "md" | "lg"
-  tone: "plain" | "subtle" | "accent"
-  variant: "primary" | "secondary"
+  appearance: "plain" | "subtle" | "solid"
+  severity: "primary" | "secondary"
   indent: boolean
   showGuide: boolean
   dir: "ltr" | "rtl"
@@ -24,8 +24,8 @@ const onOpenChange = fn()
 function CategoryNavigation({
   label = "Product categories",
   size = "md",
-  tone = "subtle",
-  variant = "primary",
+  appearance = "subtle",
+  severity = "primary",
   indent = true,
   showGuide = false,
   dir = "ltr",
@@ -73,8 +73,8 @@ function CategoryNavigation({
               <VerticalNavigation.BranchContent
                 indent={indent}
                 showGuide={showGuide}
-                tone={tone}
-                variant={variant}
+                appearance={appearance}
+                severity={severity}
               >
                 <VerticalNavigation.List>
                   {["Bolts", "Nuts"].map((label) => (
@@ -146,7 +146,7 @@ export function ProductNavigation() {
                   <VerticalNavigation.BranchIndicator />
                 </VerticalNavigation.BranchTrigger>
               </VerticalNavigation.Row>
-              <VerticalNavigation.BranchContent indent showGuide={false} tone="subtle" variant="primary">
+              <VerticalNavigation.BranchContent indent showGuide={false} appearance="subtle" severity="primary">
                 <VerticalNavigation.List>
                   {["Bolts", "Nuts"].map((label) => (
                     <VerticalNavigation.Item key={label}>
@@ -190,21 +190,21 @@ const meta = {
     docs: {
       description: {
         component:
-          "Link-based navigation with independent disclosure branches. A branch's tone styles its descendants without changing the current page. Compose it standalone, inside a Drawer, or inside a Sidebar; keep routing and route-driven expansion in the application.",
+          "Link-based navigation with independent disclosure branches. A branch's appearance styles its descendants without changing the current page. Compose it standalone, inside a Drawer, or inside a Sidebar; keep routing and route-driven expansion in the application.",
       },
     },
   },
   argTypes: {
-    variant: {
+    severity: {
       control: "select",
       options: ["primary", "secondary"],
-      if: { arg: "tone", eq: "accent" },
+      if: { arg: "appearance", eq: "solid" },
       description: "Brand color for accent group backgrounds; does not change the current page",
     },
     size: { description: "Scales navigation row text and spacing for dense or touch-friendly layouts.", control: "select", options: ["sm", "md", "lg"] },
-    tone: {
+    appearance: {
       control: "select",
-      options: ["plain", "subtle", "accent"],
+      options: ["plain", "subtle", "solid"],
       description: "Appearance of nested groups, not their active state",
     },
     indent: { description: "Inset nested links to make the parent-child hierarchy visible.", control: "boolean" },
@@ -213,8 +213,8 @@ const meta = {
   },
   args: {
     size: "md",
-    tone: "subtle",
-    variant: "primary",
+    appearance: "subtle",
+    severity: "primary",
     indent: true,
     showGuide: false,
     dir: "ltr",
@@ -227,8 +227,8 @@ type Story = StoryObj<typeof meta>
 type Category = {
   id: string
   label: string
-  tone?: NavigationStoryProps["tone"]
-  variant?: NavigationStoryProps["variant"]
+  appearance?: NavigationStoryProps["appearance"]
+  severity?: NavigationStoryProps["severity"]
   defaultOpen?: boolean
   children?: Category[]
 }
@@ -249,7 +249,7 @@ const categories: Category[] = [
               {
                 id: "hexagonal",
                 label: "Hexagonal head",
-                tone: "accent",
+                appearance: "solid",
                 children: [
                   {
                     id: "fully-threaded",
@@ -325,8 +325,8 @@ function CategoryItems({
             </VerticalNavigation.Row>
             <VerticalNavigation.BranchContent
               showGuide={showGuide}
-              tone={category.tone}
-              variant={category.variant}
+              appearance={category.appearance}
+              severity={category.severity}
             >
               <CategoryItems
                 current={current}
@@ -376,12 +376,12 @@ function ControlledExample() {
       <Button
         aria-pressed={rejectChanges}
         onClick={() => { setRejectChanges(!rejectChanges); setMessage("") }}
-        theme="outlined"
+        appearance="outline"
         size="sm"
       >
         Reject changes: {rejectChanges ? "on" : "off"}
       </Button>
-      <Button onClick={() => setOpen(true)} size="sm" theme="outlined">
+      <Button onClick={() => setOpen(true)} size="sm" appearance="outline">
         Reveal current page
       </Button>
       <VerticalNavigation aria-label="Controlled categories">
@@ -404,7 +404,7 @@ function ControlledExample() {
               Controlled branch
               <VerticalNavigation.BranchIndicator />
             </VerticalNavigation.BranchTrigger>
-            <VerticalNavigation.BranchContent tone="subtle">
+            <VerticalNavigation.BranchContent appearance="subtle">
               <VerticalNavigation.List>
                 <VerticalNavigation.Item>
                   <VerticalNavigation.Link current href="#controlled-child">
@@ -439,8 +439,8 @@ const akrosCategories: Category[] = [
           {
             id: "metric",
             label: "Šrouby s metrickým závitem",
-            tone: "accent",
-            variant: "primary",
+            appearance: "solid",
+            severity: "primary",
             children: [
               {
                 id: "hexagonal",
@@ -467,8 +467,8 @@ const akrosCategories: Category[] = [
           {
             id: "sheet-metal",
             label: "Do plechu",
-            tone: "accent",
-            variant: "secondary",
+            appearance: "solid",
+            severity: "secondary",
             defaultOpen: true,
             children: [{ id: "bimetal", label: "Bimetalové" }],
           },
@@ -536,7 +536,7 @@ export const Playground: Story = {
       description: { story: "Control current-page selection and branch disclosure independently without leaving the preview; subgroup controls change the nested surface only." },
     },
   },
-  render: function NavigationPlayground({ size, dir, tone, variant, indent, showGuide }: NavigationStoryProps) {
+  render: function NavigationPlayground({ size, dir, appearance, severity, indent, showGuide }: NavigationStoryProps) {
   const [current, setCurrent] = useState("Bolts")
   const [open, setOpen] = useState(true)
   function navigate(event: MouseEvent<HTMLAnchorElement>, label: string) {
@@ -563,7 +563,7 @@ export const Playground: Story = {
                   <VerticalNavigation.BranchIndicator />
                 </VerticalNavigation.BranchTrigger>
               </VerticalNavigation.Row>
-              <VerticalNavigation.BranchContent indent={indent} showGuide={showGuide} tone={tone} variant={variant}>
+              <VerticalNavigation.BranchContent indent={indent} showGuide={showGuide} appearance={appearance} severity={severity}>
                 <VerticalNavigation.List>
                   {["Bolts", "Nuts"].map((label) => (
                     <VerticalNavigation.Item key={label}>
@@ -617,24 +617,24 @@ export const Playground: Story = {
 
 export const Variants: Story = {
   parameters: {
-    docs: { description: { story: "Compare neutral and branded subgroup surfaces without changing navigation behavior or current-page semantics." } }, controls: { exclude: ["tone", "variant"] } },
+    docs: { description: { story: "Compare neutral and branded subgroup surfaces without changing navigation behavior or current-page semantics." } }, controls: { exclude: ["appearance", "severity"] } },
   render: (args) => (
     <VariantContainer>
       {(
         [
-          { tone: "plain", variant: "primary", title: "Plain" },
-          { tone: "subtle", variant: "primary", title: "Subtle" },
-          { tone: "accent", variant: "primary", title: "Accent — primary" },
-          { tone: "accent", variant: "secondary", title: "Accent — secondary" },
+          { appearance: "plain", severity: "primary", title: "Plain" },
+          { appearance: "subtle", severity: "primary", title: "Subtle" },
+          { appearance: "solid", severity: "primary", title: "Accent — primary" },
+          { appearance: "solid", severity: "secondary", title: "Accent — secondary" },
         ] as const
-      ).map(({ tone, variant, title }) => (
+      ).map(({ appearance, severity, title }) => (
         <VariantGroup key={title} title={title}>
           <div data-navigation-story="">
             <CategoryNavigation
               {...args}
               label={`Product categories - ${title}`}
-              tone={tone}
-              variant={variant}
+              appearance={appearance}
+              severity={severity}
             />
           </div>
         </VariantGroup>
@@ -645,7 +645,7 @@ export const Variants: Story = {
 
 export const States: Story = {
   parameters: { docs: { description: { story: "Current, ancestor-path and disabled navigation states combine text cues with surface treatment so they do not depend on color alone." } } },
-  render: ({ size, dir, tone, variant, indent, showGuide }) => (
+  render: ({ size, dir, appearance, severity, indent, showGuide }) => (
     <VerticalNavigation
       aria-label="Navigation states"
       data-navigation-story=""
@@ -677,8 +677,8 @@ export const States: Story = {
               <VerticalNavigation.BranchIndicator />
             </VerticalNavigation.BranchTrigger>
             <VerticalNavigation.BranchContent
-              tone={tone}
-              variant={variant}
+              appearance={appearance}
+              severity={severity}
               indent={indent}
               showGuide={showGuide}
             >
@@ -697,8 +697,8 @@ export const States: Story = {
               <VerticalNavigation.BranchIndicator />
             </VerticalNavigation.BranchTrigger>
             <VerticalNavigation.BranchContent
-              tone={tone}
-              variant={variant}
+              appearance={appearance}
+              severity={severity}
               indent={indent}
               showGuide={showGuide}
             >

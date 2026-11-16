@@ -102,11 +102,11 @@ function RecoveryAction({
   return (
     <>
       <Button
-        variant={
+        severity={
           kind === "dashboard" || kind === "support" ? "secondary" : "primary"
         }
-        theme={
-          kind === "dashboard" || kind === "support" ? "outlined" : "solid"
+        appearance={
+          kind === "dashboard" || kind === "support" ? "outline" : "solid"
         }
         onClick={() => {
           setDone(false)
@@ -273,7 +273,7 @@ export const Forbidden: Story = {
         }
         description="Billing is limited to workspace owners. Your role is Editor, which can read and publish content but not see financial data."
         detail={
-          <Badge size="sm" variant="outline">
+          <Badge size="sm" appearance="outline" severity="neutral">
             Required role · Owner
           </Badge>
         }
@@ -336,7 +336,7 @@ export const Offline: Story = {
         actions={<RecoveryAction label={"Retry now"} kind="retry" />}
         description="Your changes are held locally and will be sent as soon as the connection returns. Do not close the tab."
         detail={
-          <Badge size="sm" variant="warning">
+          <Badge size="sm" severity="warning">
             3 changes queued
           </Badge>
         }
@@ -367,7 +367,7 @@ export const Maintenance: Story = {
         }
         description="We are migrating the order database. The admin is read-only until 03:00 CET; the storefront and checkout are unaffected."
         detail={
-          <Badge size="sm" variant="info">
+          <Badge size="sm" severity="info">
             Back at 03:00 CET
           </Badge>
         }

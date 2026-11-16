@@ -18,10 +18,10 @@ const meta = {
   tags: ['autodocs'],
   decorators: [(Story) => <div className="w-full min-w-0 overflow-x-auto" role="region" aria-label="Scrollable table preview" tabIndex={0}><Story /></div>],
   argTypes: {
-    variant: {
+    appearance: {
       control: 'select',
       options: ['line', 'outline', 'striped'],
-      description: 'Visual style variant of the table',
+      description: 'Visual style appearance of the table',
     },
     size: {
       control: 'select',
@@ -129,7 +129,7 @@ const manyProducts = productStock.map(([price, stock], i) => ({
 export const Playground: Story = {
   parameters: { docs: { description: { story: "A native inventory table keeps text labels and numeric values aligned for quick comparison." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => (
@@ -199,7 +199,7 @@ export const Sizes: Story = {
 export const Outline: Story = {
   parameters: { docs: { description: { story: "An outlined table defines a standalone comparison surface without adding heavy cell borders." } } },
   args: {
-    variant: 'outline',
+    appearance: 'outline',
     size: 'md',
   },
   render: (args) => (
@@ -230,7 +230,7 @@ export const Outline: Story = {
 export const Interactive: Story = {
   parameters: { docs: { description: { story: "Activate a product row with Enter, Space or a click; the selected row retains focus and exposes its selection to assistive technology." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
     interactive: true,
   },
@@ -275,7 +275,7 @@ export const Interactive: Story = {
 export const Striped: Story = {
   parameters: { docs: { description: { story: "Alternating inventory rows make it easier to track values across the table." } } },
   args: {
-    variant: 'striped',
+    appearance: 'striped',
     size: 'md',
   },
   render: (args) => (
@@ -308,7 +308,7 @@ export const Striped: Story = {
 export const WithFooter: Story = {
   parameters: { docs: { description: { story: "A totals footer summarizes numeric columns without disguising totals as another product." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => {
@@ -357,7 +357,7 @@ export const WithFooter: Story = {
 export const StickyHeader: Story = {
   parameters: { docs: { description: { story: "A sticky header preserves column context while records scroll within a bounded region." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
     stickyHeader: true,
   },
@@ -401,7 +401,7 @@ export const StickyHeader: Story = {
 export const ComplexTable: Story = {
   parameters: { docs: { description: { story: "A richer inventory combines supporting labels and quantities within the same native table structure." } } },
   args: {
-    variant: 'outline',
+    appearance: 'outline',
     size: 'md',
   },
   render: (args) => (
@@ -478,7 +478,7 @@ export const ComplexTable: Story = {
 export const MinimalTable: Story = {
   parameters: { docs: { description: { story: "A small comparison omits unnecessary decoration while retaining meaningful column headings." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => (
@@ -502,7 +502,7 @@ export const MinimalTable: Story = {
 export const WithColumnBorders: Story = {
   parameters: { docs: { description: { story: "Column boundaries help separate closely related values in a dense comparison." } } },
   args: {
-    variant: 'outline',
+    appearance: 'outline',
     size: 'md',
     showColumnBorder: true,
   },
@@ -534,7 +534,7 @@ export const WithColumnBorders: Story = {
 export const CaptionBottom: Story = {
   parameters: { docs: { description: { story: "A trailing caption provides context without pushing the column headings farther from the records." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
     captionPlacement: 'bottom',
   },
@@ -564,7 +564,7 @@ export const CaptionBottom: Story = {
 export const WithStickyColumn: Story = {
   parameters: { docs: { description: { story: "A sticky identity column keeps products recognizable while additional attributes scroll." } } },
   args: {
-    variant: 'striped',
+    appearance: 'striped',
     size: 'md',
     interactive: true,
   },
@@ -619,7 +619,7 @@ export const WithStickyColumn: Story = {
 export const WithSelection: Story = {
   parameters: { docs: { description: { story: "Checkbox selection models a temporary set of inventory records without changing their values." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => {
@@ -705,7 +705,7 @@ export const WithSelection: Story = {
 export const WithSelectionAndActions: Story = {
   parameters: { docs: { description: { story: "A local reversible delete demonstrates a safe action on selected inventory records." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => {
@@ -744,7 +744,7 @@ export const WithSelectionAndActions: Story = {
       <div>
         {undoProducts && <div className="mb-200 flex flex-wrap items-center justify-between gap-200 rounded-md bg-surface p-200">
           <StatusText status="success" size="sm">Selected products deleted from this demo.</StatusText>
-          <Button theme="outlined" variant="secondary" size="sm" onClick={() => {
+          <Button appearance="outline" severity="secondary" size="sm" onClick={() => {
             setProducts(undoProducts)
             setUndoProducts(null)
           }}>Undo delete</Button>
@@ -756,16 +756,16 @@ export const WithSelectionAndActions: Story = {
             </span>
             <div className="flex gap-200">
               <Button
-                variant="danger"
-                theme="solid"
+                severity="danger"
+                appearance="solid"
                 size="sm"
                 onClick={handleDelete}
               >
                 Delete selected products
               </Button>
               <Button
-                variant="secondary"
-                theme="outlined"
+                severity="secondary"
+                appearance="outline"
                 size="sm"
                 onClick={() => setSelection([])}
               >
@@ -836,7 +836,7 @@ export const WithSelectionAndActions: Story = {
 export const Alignment: Story = {
   parameters: { docs: { description: { story: "Start-aligned text and end-aligned quantities make mixed inventory columns easier to scan." } } },
   args: {
-    variant: 'outline',
+    appearance: 'outline',
     size: 'md',
   },
   render: (args) => (

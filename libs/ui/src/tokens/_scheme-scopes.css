@@ -269,6 +269,14 @@
       var(--color-white)
     );
     --color-popup-item-fg-checked: var(--color-popup-checked);
+    --color-badge-border-outline-primary: var(--color-badge-bg-primary);
+    --color-badge-border-outline-secondary: var(--color-badge-bg-secondary);
+    --color-badge-border-outline-tertiary: var(--color-badge-bg-tertiary);
+    --color-badge-border-outline-discount: var(--color-badge-bg-discount);
+    --color-badge-border-outline-info: var(--color-badge-bg-info);
+    --color-badge-border-outline-success: var(--color-badge-bg-success);
+    --color-badge-border-outline-warning: var(--color-badge-bg-warning);
+    --color-badge-border-outline-danger: var(--color-badge-bg-danger);
     --text-action-icon-glyph-sm: var(--text-icon-control-sm);
     --text-action-icon-glyph-md: var(--text-icon-control-md);
     --text-action-icon-glyph-lg: var(--text-icon-control-lg);

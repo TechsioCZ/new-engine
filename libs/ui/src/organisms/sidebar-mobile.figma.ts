@@ -29,7 +29,7 @@ export default {
   )}>
     <Sidebar.Header>
       <div className="flex items-center gap-100">
-        <LinkButton aria-label="Commerce workspace" block className="min-w-0 flex-1" href="#workspace" icon="icon-[mdi--storefront-outline]" size="sm" theme="unstyled" variant="secondary">
+        <LinkButton aria-label="Commerce workspace" block className="min-w-0 flex-1" href="#workspace" icon="icon-[mdi--storefront-outline]" size="sm" unstyled severity="secondary">
           <Sidebar.Label>Commerce</Sidebar.Label>
         </LinkButton>
           <Sidebar.CloseTrigger aria-label="Close primary navigation" />
@@ -43,7 +43,7 @@ export default {
         <Sidebar.GroupContent>
           <Sidebar.Menu>
             <Sidebar.Item>
-              <LinkButton aria-current="page" aria-label="Overview" block href="#overview" icon="icon-[mdi--view-dashboard-outline]" size="sm" theme="light" variant="secondary">
+              <LinkButton aria-current="page" aria-label="Overview" block href="#overview" icon="icon-[mdi--view-dashboard-outline]" size="sm" appearance="subtle" severity="secondary">
                 <Sidebar.Label>Overview</Sidebar.Label>
               </LinkButton>
             </Sidebar.Item>
@@ -52,7 +52,7 @@ export default {
       </Sidebar.Group>
     </Sidebar.Content>
     <Sidebar.Footer>
-      <LinkButton aria-label="Account settings" block href="#settings" icon="icon-[mdi--cog-outline]" size="sm" theme="unstyled" variant="secondary">
+      <LinkButton aria-label="Account settings" block href="#settings" icon="icon-[mdi--cog-outline]" size="sm" unstyled severity="secondary">
         <Sidebar.Label>Settings</Sidebar.Label>
       </LinkButton>
     </Sidebar.Footer>

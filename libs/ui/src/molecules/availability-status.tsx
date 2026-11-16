@@ -2,7 +2,7 @@
  * AvailabilityStatus — @techsio/ui-kit molecule.
  *
  * @component AvailabilityStatus
- * @componentVersion v1.0.1
+ * @componentVersion v1.0.2
  * @skill availability-status-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -139,6 +139,7 @@ export function AvailabilityStatus({
             <Icon
               className={styles.icon()}
               icon={icon ?? defaultIcons[status]}
+              size="current"
             />
           ) : null}
           <div className={styles.content()}>

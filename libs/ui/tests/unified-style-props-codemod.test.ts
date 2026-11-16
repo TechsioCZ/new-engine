@@ -1,0 +1,184 @@
+import { describe, expect, it } from "vitest"
+import { transformSource } from "../codemods/unified-style-props/transform.mjs"
+
+const run = (source: string) =>
+  (transformSource("example.tsx", source) as { text: string; notes: string[] })
+    .text
+
+const imports = `import { Button } from "@techsio/ui-kit/atoms/button"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Input } from "@techsio/ui-kit/atoms/input"
+import { Accordion } from "@techsio/ui-kit/molecules/accordion"
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import { Tabs } from "@techsio/ui-kit/molecules/tabs"
+import { Sidebar } from "@techsio/ui-kit/organisms/sidebar"
+import { VerticalNavigation } from "@techsio/ui-kit/molecules/vertical-navigation"
+`
+
+describe("unified-style-props codemod", () => {
+  it("renames Button color and fill props", () => {
+    const out = run(
+      `${imports}<Button variant="danger" theme="outlined">Delete</Button>`
+    )
+    expect(out).toContain('<Button severity="danger" appearance="outline">')
+  })
+
+  it("maps every legacy Button theme", () => {
+    const out = run(
+      `${imports}<><Button theme="light" /><Button theme="borderless" /><Button theme="unstyled" /></>`
+    )
+    expect(out).toContain('<Button appearance="subtle" />')
+    expect(out).toContain('<Button appearance="ghost" />')
+    expect(out).toContain("<Button unstyled />")
+  })
+
+  it("maps literals inside expressions and flags identifiers", () => {
+    const result = transformSource(
+      "example.tsx",
+      `${imports}<><Button theme={on ? "solid" : "outlined"} /><Badge variant={tone} /></>`
+    ) as { text: string; notes: string[] }
+    expect(result.text).toContain('appearance={on ? "solid" : "outline"}')
+    expect(result.text).toContain("severity={tone}")
+    expect(result.notes.join("\n")).toContain("severity={tone}")
+  })
+
+  it("splits Badge outline and dynamic", () => {
+    const out = run(
+      `${imports}<><Badge variant="outline">A</Badge><Badge variant="dynamic">B</Badge><Badge variant="info">C</Badge></>`
+    )
+    expect(out).toContain('<Badge appearance="outline" severity="neutral">A')
+    expect(out).toContain('<Badge severity="custom">B')
+    expect(out).toContain('<Badge severity="info">C')
+  })
+
+  it("renames style variants to appearance with new value names", () => {
+    const out = run(
+      `${imports}<><Pagination variant="minimal" /><Tabs variant="default" /><Accordion variant="child" /></>`
+    )
+    expect(out).toContain('<Pagination appearance="ghost" />')
+    expect(out).toContain('<Tabs appearance="underline" />')
+    expect(out).toContain('<Accordion appearance="ghost" nested />')
+  })
+
+  it("renames validation, pane size and navigation props", () => {
+    const out = run(
+      `${imports}<><Input variant="error" /><Sidebar.Pane size="rail" /><VerticalNavigation.Group tone="accent" variant="secondary" /></>`
+    )
+    expect(out).toContain('<Input validateStatus="error" />')
+    expect(out).toContain('<Sidebar.Pane paneSize="rail" />')
+    expect(out).toContain(
+      '<VerticalNavigation.Group appearance="solid" severity="secondary" />'
+    )
+  })
+
+  it("treats compound triggers as Button props", () => {
+    const out = run(
+      `${imports}<Tabs.Trigger theme="solid" variant="secondary" />`
+    )
+    expect(out).toContain(
+      '<Tabs.Trigger appearance="solid" severity="secondary" />'
+    )
+  })
+
+  it("reports theme in object literals instead of rewriting data", () => {
+    const source = `${imports}const action = { theme: "outlined", label: "Go" }
+localStorage.setItem("prefs", JSON.stringify({ theme: "light" }))`
+    const result = transformSource("example.tsx", source) as {
+      text: string
+      notes: string[]
+    }
+    expect(result.text).toBe(source)
+    const notes = result.notes.join("\n")
+    expect(notes).toContain('theme: "outlined"')
+    expect(notes).toContain('appearance: "outline"')
+    expect(notes).toContain('theme: "light"')
+  })
+
+  it("never takes a project's own relative component for the kit", () => {
+    const source = `import { Button } from "./atoms/button"
+<Button variant="danger" theme="outlined" />`
+    expect(run(source)).toBe(source)
+  })
+
+  it("migrates relative imports that resolve into --kit-src", () => {
+    const source = `import { Button } from "../../src/atoms/button"
+<Button variant="danger" theme="outlined" />`
+    const result = transformSource(
+      "/repo/libs/ui/stories/atoms/x.tsx",
+      source,
+      {
+        kitSources: ["/repo/libs/ui/src"],
+      }
+    ) as { text: string }
+    expect(result.text).toContain(
+      '<Button severity="danger" appearance="outline" />'
+    )
+    const elsewhere = transformSource("/repo/app/stories/atoms/x.tsx", source, {
+      kitSources: ["/repo/libs/ui/src"],
+    }) as { text: string }
+    expect(elsewhere.text).toBe(source)
+  })
+
+  it("migrates TotalsSummary rows under an aliased import, and only rows", () => {
+    const source = `import { TotalsSummary as Summary } from "@techsio/ui-kit/molecules/totals-summary"
+const rows = [{ id: "a", label: "Sale", value: "1", emphasis: "discount" }]
+const unrelated = { emphasis: "default", mode: "x" }`
+    const result = transformSource("example.tsx", source) as {
+      text: string
+      notes: string[]
+    }
+    expect(result.text).toContain('value: "1", severity: "discount" }')
+    expect(result.text).toContain('{ emphasis: "default", mode: "x" }')
+    expect(result.notes.join("\n")).toContain("outside a TotalsSummary row")
+  })
+
+  it("never rewrites literals in conditions or comparisons", () => {
+    const out = run(
+      `${imports}<Button theme={kind === "light" ? "outlined" : "solid"} />`
+    )
+    expect(out).toContain('appearance={kind === "light" ? "outline" : "solid"}')
+  })
+
+  it("maps fallbacks but flags values it cannot see", () => {
+    const result = transformSource(
+      "example.tsx",
+      `${imports}<><Button theme={custom ?? "borderless"} /><Button theme={pick(kind)} /></>`
+    ) as { text: string; notes: string[] }
+    expect(result.text).toContain('appearance={custom ?? "ghost"}')
+    expect(result.text).toContain("appearance={pick(kind)}")
+    expect(result.notes.join("\n")).toContain("appearance={pick(kind)}")
+  })
+
+  it("flags special values inside expressions instead of guessing", () => {
+    const result = transformSource(
+      "example.tsx",
+      `${imports}<Badge variant={draft ? "outline" : "info"} />`
+    ) as { text: string; notes: string[] }
+    expect(result.text).toContain('severity={draft ? "outline" : "info"}')
+    expect(result.notes.join("\n")).toContain('"outline"')
+  })
+
+  it("keeps dynamic TotalsSummary emphasis and maps its values", () => {
+    const source = `import { TotalsSummary } from "@techsio/ui-kit/molecules/totals-summary"
+const rows = [
+  { id: "a", label: "Fixed", value: "1", emphasis: "default" },
+  { id: "b", label: "Sale", value: "2", emphasis: discounted ? "discount" : "default" },
+  { id: "c", label: "Other", value: "3", emphasis: rowEmphasis },
+]`
+    const result = transformSource("example.tsx", source) as {
+      text: string
+      notes: string[]
+    }
+    expect(result.text).toContain('severity: "neutral" }')
+    expect(result.text).toContain(
+      'severity: discounted ? "discount" : "neutral"'
+    )
+    expect(result.text).toContain("severity: rowEmphasis")
+    expect(result.notes.join("\n")).toContain("severity={rowEmphasis}")
+  })
+
+  it("leaves files without ui-kit imports alone", () => {
+    const source = `import { Button } from "other-lib"\n<Button variant="danger" theme="outlined" />`
+    expect(run(source)).toBe(source)
+  })
+})

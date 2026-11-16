@@ -6,7 +6,7 @@ description: >
   triggers, content, indicator, orientation, activation mode, variants, fitted,
   and justify props.
 metadata:
-  component_version: "1.3.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -73,7 +73,7 @@ where actions and feedback live). This section applies them to `Tabs`.
 
 | Figma | Code |
 | --- | --- |
-| `variant`, `size`, `orientation` | same prop names and values |
+| `variant`, `size`, `orientation` | `appearance` (Figma `default` → `underline`), `size`, `orientation` |
 | `state=selected` | `value` / `defaultValue` |
 | `state=disabled` | `disabled` on `Tabs.Trigger` |
 | — | `activationMode`, `fitted`, `justify` (not in Figma) |
@@ -83,7 +83,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 ## Setup
 
 ```tsx
-<Tabs defaultValue="details" variant="line">
+<Tabs defaultValue="details" appearance="line">
   <Tabs.List aria-label="Product information">
     <Tabs.Trigger value="details">Details</Tabs.Trigger>
     <Tabs.Trigger value="reviews">Reviews</Tabs.Trigger>
@@ -97,7 +97,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 Supported props:
 
 ```text
-variant: default | line | solid | outline
+appearance: underline | line | solid | outline
 size: sm | md | lg
 orientation: horizontal | vertical
 activationMode: automatic | manual
@@ -173,7 +173,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Tabs variant="solid" defaultValue="overview">
+<Tabs appearance="solid" defaultValue="overview">
   <Tabs.List aria-label="Product information">
     <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
     <Tabs.Trigger value="delivery">Delivery</Tabs.Trigger>
@@ -190,7 +190,7 @@ Source: libs/ui/src/tokens/components/molecules/_tabs.css
 ```sh
 rg -n "setTab|<Tabs\\.Trigger[^>]*className=.*(bg-|text-|border-|data-\\[selected)" apps
 rg -P -n "<Tabs\\.Trigger(?![^>]*value=)|<Tabs\\.Content(?![^>]*value=)" apps
-rg -n "<Tabs[^>]*variant=\"(primary|underline)\"" apps
+rg -n "<Tabs[^>]*(variant=|appearance=\"(primary|default)\")" apps
 ```
 
 ## Template default selection

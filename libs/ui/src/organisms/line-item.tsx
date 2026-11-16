@@ -3,7 +3,7 @@
 /**
  * LineItem — @techsio/ui-kit organism.
  * @component LineItem
- * @componentVersion v1.0.2
+ * @componentVersion v2.0.0
  * @skill line-item-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -261,7 +261,7 @@ LineItem.Remove = function LineItemRemove({
   onClick,
   disabled,
   size = "sm",
-  theme = "borderless",
+  appearance = "ghost",
   ...props
 }: LineItemRemoveProps) {
   const { title, readOnly, pending } = useLineItemContext()
@@ -271,6 +271,7 @@ LineItem.Remove = function LineItemRemove({
   return (
     <Button
       {...props}
+      appearance={appearance}
       aria-label={`${label}: ${title}`}
       data-part="remove"
       disabled={pending || disabled}
@@ -280,7 +281,6 @@ LineItem.Remove = function LineItemRemove({
         }
       }}
       size={size}
-      theme={theme}
       type="button"
     >
       {label}

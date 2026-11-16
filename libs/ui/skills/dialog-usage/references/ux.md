@@ -78,7 +78,7 @@ steps inside one dialog instead).
 - A destructive title is a question: `Delete this product?` — cs: `Smazat tento produkt?`. The description names the record and the consequence.
 - In an alertdialog the destructive button replaces the primary and repeats
   the verb + object (`Delete product`). Never `Yes` / `No`.
-- Neutral Cancel is `variant="tertiary" theme="outlined"`; `variant="danger"`
+- Neutral Cancel is `severity="tertiary" appearance="outline"`; `severity="danger"`
   is only for the destructive action.
 
 ## Accessibility

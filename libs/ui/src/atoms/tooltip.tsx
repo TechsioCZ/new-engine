@@ -2,7 +2,7 @@
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v1.1.3
+ * @componentVersion v2.0.0
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -31,6 +31,7 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { joinDescribedBy } from "../internal/described-by"
 import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const tooltipVariants = tv({
@@ -48,8 +49,8 @@ const tooltipVariants = tv({
     arrow: "",
   },
   variants: {
-    variant: {
-      default: {},
+    appearance: {
+      solid: {},
       outline: {
         content: "border border-tooltip-border-outline",
         arrow: "border-tooltip-border-outline border-s border-t",
@@ -69,7 +70,7 @@ const tooltipVariants = tv({
   },
   defaultVariants: {
     size: "md",
-    variant: "default",
+    appearance: "solid",
   },
 })
 
@@ -126,11 +127,16 @@ export function Tooltip({
   children,
   className,
   ref,
-  size,
-  variant,
+  size: sizeProp,
+  appearance: appearanceProp,
 
   ...props
 }: TooltipProps) {
+  const { size, appearance } = useUIDefaults(
+    "Tooltip",
+    { size: sizeProp, appearance: appearanceProp },
+    tooltipVariants
+  )
   const generatedId = useId()
   const [machineProps, positioningProps] = splitProps(props)
   const service = useMachine(machine, {
@@ -225,7 +231,7 @@ export function Tooltip({
     content: contentSlot,
     arrow,
   } = tooltipVariants({
-    variant,
+    appearance,
     size,
   })
 

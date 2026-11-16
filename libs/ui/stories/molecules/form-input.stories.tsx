@@ -62,7 +62,6 @@ export const Playground: Story = {
     label: "Contact name",
     helpText: "Use the name shown on your delivery address.",
     placeholder: "e.g. Alex Morgan",
-    size: "md",
     validateStatus: "default",
     readOnly: false,
     disabled: false,
@@ -236,7 +235,7 @@ export const FeedbackLifecycle: Story = {
           label="Contact name"
           validateStatus={invalid ? "error" : "default"}
         />
-        <Button onClick={() => setInvalid(false)} variant="secondary">
+        <Button onClick={() => setInvalid(false)} severity="secondary">
           Clear validation
         </Button>
       </div>
@@ -285,10 +284,10 @@ export const CallerOwnedError: Story = {
           label="Delivery details"
           validateStatus={localError ? "error" : "default"}
         />
-        <Button onClick={() => setLocalError(false)} variant="secondary">
+        <Button onClick={() => setLocalError(false)} severity="secondary">
           Clear field validation
         </Button>
-        <Button onClick={() => setCallerError(false)} variant="secondary">
+        <Button onClick={() => setCallerError(false)} severity="secondary">
           Clear caller error
         </Button>
       </div>

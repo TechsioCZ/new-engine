@@ -5,7 +5,7 @@ description: >
   for inline validation, success, warning, or default status messages with
   default-on state icons and size/alignment props.
 metadata:
-  component_version: "1.1.4"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -190,7 +190,7 @@ Source: libs/ui/src/tokens/components/atoms/_status-text.css
 Wrong:
 
 ```tsx
-<Badge variant="danger">Email is required.</Badge>
+<Badge severity="danger">Email is required.</Badge>
 ```
 
 Correct:

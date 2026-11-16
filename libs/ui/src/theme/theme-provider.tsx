@@ -19,6 +19,7 @@ import {
   brandAttr,
   brandKeys,
   brandSupportsDark,
+  brandUIDefaults,
   type ColorMode,
   DEFAULT_BRAND,
   DEFAULT_MODE,
@@ -26,6 +27,7 @@ import {
   MODE_STORAGE_KEY,
   type ModeSetting,
 } from "./theme-config"
+import { UIProvider } from "./ui-provider"
 
 function readStoredBrand(): BrandKey | null {
   try {
@@ -139,7 +141,11 @@ function BrandProvider({
         mounted,
       }}
     >
-      {children}
+      {/* Stored brands resolve after mount, so the server and first client
+          render agree on the default brand's component defaults. */}
+      <UIProvider {...brandUIDefaults(mounted ? brand : defaultBrand)}>
+        {children}
+      </UIProvider>
     </AppThemeContext.Provider>
   )
 }

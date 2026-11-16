@@ -19,7 +19,7 @@ const css = (name: string) =>
 type ReadOnlyFieldProps = {
   readOnly?: boolean
   defaultValue?: string
-  variant?: "error"
+  validateStatus?: "error"
 }
 
 describe.each([
@@ -56,7 +56,9 @@ describe.each([
 
   it("keeps validation focus borders on read-only fields", () => {
     const classes = classOf(
-      renderToStaticMarkup(renderField({ readOnly: true, variant: "error" }))
+      renderToStaticMarkup(
+        renderField({ readOnly: true, validateStatus: "error" })
+      )
     )
     expect(classes).toContain(`focus:border-${name}-border-danger-focus`)
     expect(classes.some((c) => c.includes("border-readonly-"))).toBe(false)

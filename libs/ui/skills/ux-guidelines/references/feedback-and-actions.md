@@ -22,7 +22,7 @@ something the user fills or reads top-to-bottom.
 | Settings section / inline form card | `Save changes` for that section | bottom-right of the section, after its last field | `[Reset]` … `[Save changes]` |
 | Wizard / checkout step | `Back`, `Continue` (last step: the real action) | bottom: `Back` start, primary end | `[Back] ……… [Continue]` |
 | Popover / filter panel | `Reset`, `Apply` | bottom-right of the panel | `[Reset] [Apply]` |
-| Table rows | `Open`/`Edit`, `Duplicate`, `Delete` | end of the row (DataTable actions column), overflow in a Menu | destructive last, `tone: "danger"` |
+| Table rows | `Open`/`Edit`, `Duplicate`, `Delete` | end of the row (DataTable actions column), overflow in a Menu | destructive last, `severity: "danger"` |
 | Bulk selection | actions for the selected rows | table toolbar, top, only while a selection exists | destructive last |
 | Card (product, record) | one primary action | bottom of the card | — |
 | Danger zone (delete record/workspace) | `Delete <object>` | its own section at the **bottom of the page**, never beside Save | — |
@@ -91,7 +91,7 @@ later, content they need to copy, or the only copy of an error message.
 | Irreversible, high impact (workspace, all data, billing) | `alertdialog` + type the name to confirm; lives in a danger-zone section |
 | Bulk irreversible | `alertdialog` with the count: `Delete 12 products?` |
 
-- Destructive buttons use `variant="danger"`; row actions use `tone: "danger"`
+- Destructive buttons use `severity="danger"`; row actions use `severity: "danger"`
   and sit last.
 - The confirmation's description says what will be lost and what will not
   (`Orders that include it are kept.`).

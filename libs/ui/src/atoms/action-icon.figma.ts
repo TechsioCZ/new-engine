@@ -9,7 +9,8 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const tone = figma.selectedInstance.getEnum("tone", {
+// Figma still names the property tone; code reads severity.
+const severity = figma.selectedInstance.getEnum("tone", {
   neutral: "neutral",
   danger: "danger",
 })
@@ -20,6 +21,6 @@ export default {
   example: figma.code`<ActionIcon aria-label="Clear" icon="token-icon-close"${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("tone", tone)}/>`,
+  )}${figma.helpers.react.renderProp("severity", severity)}/>`,
   metadata: { nestable: true },
 }

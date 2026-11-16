@@ -5,7 +5,7 @@ description: >
   transient edge panels, modal or non-modal behavior, snap points, swipe
   gestures, multiple triggers, custom portals, controlled state, and stacks.
 metadata:
-  component_version: "1.1.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -168,7 +168,7 @@ Give each `Drawer.Trigger` a stable `value`. Read `api.triggerValue` through
 An Edit trigger must open labelled editable fields, not a read-only summary.
 Keep a draft per open session, persist it only after valid submission, and reset
 it when reopening after Cancel. Put a neutral
-`<Drawer.CloseTrigger size="md" theme="outlined" variant="tertiary">Cancel</Drawer.CloseTrigger>`
+`<Drawer.CloseTrigger size="md" appearance="outline" severity="tertiary">Cancel</Drawer.CloseTrigger>`
 before the primary Save changes action; a footer submit button can target the
 body form with `form={formId}`. Use `draggable={false}` on editable content to
 avoid competing with text selection, and show a persistent saved confirmation

@@ -2,7 +2,7 @@
  * RadioGroup — @techsio/ui-kit molecule.
  *
  * @component RadioGroup
- * @componentVersion v1.1.5
+ * @componentVersion v2.0.0
  * @skill radio-group-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -44,6 +44,7 @@ import {
   useDescribedBy,
   useRegisterDescription,
 } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 /** @internal One reset integration for both radio compositions. */
@@ -134,7 +135,7 @@ const radioGroupVariants = tv({
     hiddenInput: "sr-only",
   },
   variants: {
-    variant: {
+    appearance: {
       outline: {
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-bg-outline-checked",
@@ -200,13 +201,13 @@ const radioGroupVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "outline",
+    appearance: "outline",
     size: "md",
   },
 })
 
-type RadioGroupVariant = NonNullable<
-  VariantProps<typeof radioGroupVariants>["variant"]
+type RadioGroupAppearance = NonNullable<
+  VariantProps<typeof radioGroupVariants>["appearance"]
 >
 
 type RadioGroupSize = NonNullable<
@@ -222,7 +223,7 @@ type RadioGroupContextValue = {
   registerError: DescribedBy["registerDescription"]
   api: ReturnType<typeof connect>
   selectValue: (value: string) => void
-  variant: RadioGroupVariant
+  appearance: RadioGroupAppearance
   size: RadioGroupSize
   orientation: "horizontal" | "vertical"
   disabled: boolean
@@ -290,13 +291,18 @@ export function RadioGroup({
   orientation = "vertical",
   validateStatus = "default",
   onValueChange,
-  variant = "outline",
-  size = "md",
+  appearance: appearanceProp,
+  size: sizeProp,
   children,
   className,
   ref,
   ...machineProps
 }: RadioGroupProps) {
+  const { size = "md", appearance = "outline" } = useUIDefaults(
+    "RadioGroup",
+    { size: sizeProp, appearance: appearanceProp },
+    radioGroupVariants
+  )
   const generatedId = useId()
   const id = providedId || generatedId
   const invalid = validateStatus === "error"
@@ -318,7 +324,7 @@ export function RadioGroup({
 
   const api = connect(service, normalizeProps)
   const focusRef = useChoiceFocusRecovery()
-  const styles = radioGroupVariants({ size, variant })
+  const styles = radioGroupVariants({ size, appearance })
   const describedBy = useDescribedBy()
   const errors = useDescribedBy()
 
@@ -332,7 +338,7 @@ export function RadioGroup({
         errorMessageId: errors.describedById,
         registerError: errors.registerDescription,
         ...describedBy,
-        variant,
+        appearance,
         size,
         orientation,
         disabled,
@@ -419,8 +425,8 @@ RadioGroup.ItemGroup = function RadioGroupItemGroup({
   ref,
   ...props
 }: RadioGroupItemGroupProps) {
-  const { size, variant, orientation } = useRadioGroupContext()
-  const styles = radioGroupVariants({ size, variant })
+  const { size, appearance, orientation } = useRadioGroupContext()
+  const styles = radioGroupVariants({ size, appearance })
 
   return (
     <div
@@ -451,8 +457,8 @@ RadioGroup.Item = function RadioGroupItem({
   ref,
   ...props
 }: RadioGroupItemProps) {
-  const { api, size, variant } = useRadioGroupContext()
-  const styles = radioGroupVariants({ size, variant })
+  const { api, size, appearance } = useRadioGroupContext()
+  const styles = radioGroupVariants({ size, appearance })
   const itemProps = { value, disabled, invalid }
   const descriptions = useDescribedBy()
 
@@ -487,7 +493,7 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
     api,
     selectValue,
     size,
-    variant,
+    appearance,
     readOnly,
     callerDescribedBy,
     describedById,
@@ -496,7 +502,7 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
   } = useRadioGroupContext()
   const { itemProps, describedById: itemDescriptionId } =
     useRadioGroupItemContext()
-  const styles = radioGroupVariants({ size, variant })
+  const styles = radioGroupVariants({ size, appearance })
   const inputProps = getControlledChoiceInputProps(
     mergeChoiceInputProps(
       props,
@@ -566,9 +572,9 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
   ref,
   ...props
 }: RadioGroupItemControlProps) {
-  const { api, size, variant } = useRadioGroupContext()
+  const { api, size, appearance } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
-  const styles = radioGroupVariants({ size, variant })
+  const styles = radioGroupVariants({ size, appearance })
   const itemState = api.getItemState(itemProps)
 
   return (
@@ -600,8 +606,8 @@ RadioGroup.ItemContent = function RadioGroupItemContent({
   ref,
   ...props
 }: RadioGroupItemContentProps) {
-  const { size, variant } = useRadioGroupContext()
-  const styles = radioGroupVariants({ size, variant })
+  const { size, appearance } = useRadioGroupContext()
+  const styles = radioGroupVariants({ size, appearance })
 
   return (
     <div className={styles.itemContent({ className })} ref={ref} {...props}>
@@ -620,9 +626,9 @@ RadioGroup.ItemText = function RadioGroupItemText({
   ref,
   ...props
 }: RadioGroupItemTextProps) {
-  const { api, size, variant } = useRadioGroupContext()
+  const { api, size, appearance } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
-  const styles = radioGroupVariants({ size, variant })
+  const styles = radioGroupVariants({ size, appearance })
 
   return (
     <span
@@ -646,12 +652,12 @@ RadioGroup.ItemDescription = function RadioGroupItemDescription({
   ref,
   ...props
 }: RadioGroupItemDescriptionProps) {
-  const { api, size, variant } = useRadioGroupContext()
+  const { api, size, appearance } = useRadioGroupContext()
   const { itemProps, registerDescription } = useRadioGroupItemContext()
   const generatedId = useId()
   const id = props.id ?? generatedId
   useRegisterDescription(id, registerDescription)
-  const styles = radioGroupVariants({ size, variant })
+  const styles = radioGroupVariants({ size, appearance })
   const itemState = api.getItemState(itemProps)
 
   return (

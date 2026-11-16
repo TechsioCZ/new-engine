@@ -69,7 +69,6 @@ const meta: Meta<typeof SearchForm> = {
     children: { control: false },
   },
   args: {
-    size: "md",
     gapped: false,
     readOnly: false,
     disabled: false,

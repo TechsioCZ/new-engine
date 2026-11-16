@@ -9,7 +9,8 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names the property variant; code reads appearance.
+const appearance = figma.selectedInstance.getEnum("variant", {
   subtle: "subtle",
   solid: "solid",
 })
@@ -20,7 +21,7 @@ export default {
   example: figma.code`<Steps count={3} defaultStep={0}${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("appearance", appearance)}>
         <Steps.List>
           <Steps.Item index={0}>
             <Steps.Trigger>Step 1</Steps.Trigger>

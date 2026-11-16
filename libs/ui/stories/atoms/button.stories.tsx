@@ -13,20 +13,28 @@ const meta: Meta<typeof Button> = {
   tags: ["autodocs"],
   argTypes: {
     composition: { table: { disable: true } },
-    variant: {
+    severity: {
       control: "select",
       options: ["primary", "secondary", "tertiary", "warning", "danger"],
-      description: "Controls the semantic style of the button",
+      description: "Color intent of the button",
       table: {
         defaultValue: { summary: "primary" },
       },
     },
-    theme: {
+    appearance: {
       control: "select",
-      options: ["solid", "light", "outlined", "borderless", "unstyled"],
-      description: "Controls the visual weight/theme of the button",
+      options: ["solid", "subtle", "outline", "ghost"],
+      description:
+        "Fill style. Falls back to the nearest UIProvider, then solid.",
       table: {
         defaultValue: { summary: "solid" },
+      },
+    },
+    unstyled: {
+      control: "boolean",
+      description: "Drop every Button visual (fill and color)",
+      table: {
+        defaultValue: { summary: "false" },
       },
     },
     size: {
@@ -103,9 +111,7 @@ const meta: Meta<typeof Button> = {
     },
   },
   args: {
-    variant: "primary",
-    theme: "solid",
-    size: "md",
+    severity: "primary",
     type: "button",
     block: false,
     uppercase: false,
@@ -165,70 +171,70 @@ export const Variants: Story = {
   },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Solid themes">
+      <VariantGroup title="Solid">
         <Button>Primary</Button>
-        <Button variant="secondary">Secondary</Button>
-        <Button variant="tertiary">Tertiary</Button>
-        <Button variant="warning">Warning</Button>
-        <Button variant="danger">Danger</Button>
+        <Button severity="secondary">Secondary</Button>
+        <Button severity="tertiary">Tertiary</Button>
+        <Button severity="warning">Warning</Button>
+        <Button severity="danger">Danger</Button>
       </VariantGroup>
-      <VariantGroup title="Light themes">
-        <Button variant="primary" theme="light">
+      <VariantGroup title="Subtle">
+        <Button severity="primary" appearance="subtle">
           Primary Light
         </Button>
-        <Button variant="secondary" theme="light">
+        <Button severity="secondary" appearance="subtle">
           Secondary Light
         </Button>
-        <Button variant="tertiary" theme="light">
+        <Button severity="tertiary" appearance="subtle">
           Tertiary Light
         </Button>
-        <Button variant="warning" theme="light">
+        <Button severity="warning" appearance="subtle">
           Warning Light
         </Button>
-        <Button variant="danger" theme="light">
+        <Button severity="danger" appearance="subtle">
           Danger Light
         </Button>
       </VariantGroup>
-      <VariantGroup title="Outlined themes">
-        <Button variant="primary" theme="outlined">
+      <VariantGroup title="Outline">
+        <Button severity="primary" appearance="outline">
           Primary Outlined
         </Button>
-        <Button variant="secondary" theme="outlined">
+        <Button severity="secondary" appearance="outline">
           Secondary Outlined
         </Button>
-        <Button variant="tertiary" theme="outlined">
+        <Button severity="tertiary" appearance="outline">
           Tertiary Outlined
         </Button>
-        <Button variant="warning" theme="outlined">
+        <Button severity="warning" appearance="outline">
           Warning Outlined
         </Button>
-        <Button variant="danger" theme="outlined">
+        <Button severity="danger" appearance="outline">
           Danger Outlined
         </Button>
       </VariantGroup>
-      <VariantGroup title="Borderless themes">
-        <Button variant="primary" theme="borderless">
+      <VariantGroup title="Ghost">
+        <Button severity="primary" appearance="ghost">
           Primary Borderless
         </Button>
-        <Button variant="secondary" theme="borderless">
+        <Button severity="secondary" appearance="ghost">
           Secondary Borderless
         </Button>
-        <Button variant="tertiary" theme="borderless">
+        <Button severity="tertiary" appearance="ghost">
           Tertiary Borderless
         </Button>
-        <Button variant="warning" theme="borderless">
+        <Button severity="warning" appearance="ghost">
           Warning Borderless
         </Button>
-        <Button variant="danger" theme="borderless">
+        <Button severity="danger" appearance="ghost">
           Danger Borderless
         </Button>
       </VariantGroup>
       <VariantGroup title="Block (full width)" fullWidth>
         <Button block>Primary Block</Button>
-        <Button variant="secondary" block>
+        <Button severity="secondary" block>
           Secondary Block
         </Button>
-        <Button variant="primary" theme="outlined" block>
+        <Button severity="primary" appearance="outline" block>
           Outlined Block
         </Button>
       </VariantGroup>
@@ -277,24 +283,24 @@ export const States: Story = {
       <VariantContainer>
         <VariantGroup title="Disabled states">
           <Button disabled>Solid</Button>
-          <Button variant="secondary" theme="light" disabled>
+          <Button severity="secondary" appearance="subtle" disabled>
             Light
           </Button>
-          <Button variant="tertiary" theme="borderless" disabled>
+          <Button severity="tertiary" appearance="ghost" disabled>
             Borderless
           </Button>
-          <Button variant="warning" theme="outlined" disabled>
+          <Button severity="warning" appearance="outline" disabled>
             Outlined
           </Button>
         </VariantGroup>
 
         <VariantGroup title="Loading states">
           <Button isLoading>Primary</Button>
-          <Button isLoading theme="outlined" loadingText="Loading...">
+          <Button isLoading appearance="outline" loadingText="Loading...">
             Outlined
           </Button>
 
-          <Button variant="danger" isLoading>
+          <Button severity="danger" isLoading>
             Danger
           </Button>
         </VariantGroup>
@@ -325,13 +331,13 @@ export const AllVariants: Story = {
     docs: {
       description: {
         story:
-          "Compare every semantic variant and visual treatment, including genuine light treatments and pressed feedback.",
+          "Compare every severity and appearance, including subtle treatments and pressed feedback.",
       },
     },
   },
   render: () => (
     <VariantContainer>
-      {(["solid", "light", "outlined", "borderless", "unstyled"] as const).map(
+      {(["solid", "subtle", "outline", "ghost", "unstyled"] as const).map(
         (theme) => (
           <VariantGroup key={theme} title={`${theme} variants`}>
             <div className="grid w-full grid-cols-2 justify-items-start gap-200 sm:flex sm:flex-wrap sm:gap-400">
@@ -342,8 +348,9 @@ export const AllVariants: Story = {
                   data-variant={variant}
                   data-theme-treatment={theme}
                   key={variant}
-                  theme={theme}
-                  variant={variant}
+                  appearance={theme === "unstyled" ? undefined : theme}
+                  severity={variant}
+                  unstyled={theme === "unstyled"}
                 >
                   {variant === "danger"
                     ? "Delete project"
@@ -370,7 +377,7 @@ export const AllVariants: Story = {
     if (document.defaultView?.matchMedia("(min-width: 40rem)").matches) {
       return
     }
-    for (const theme of ["solid", "light", "outlined", "borderless", "unstyled"]) {
+    for (const theme of ["solid", "subtle", "outline", "ghost", "unstyled"]) {
       const buttons = Array.from(
         canvasElement.querySelectorAll<HTMLButtonElement>(
           `button[data-theme-treatment="${theme}"]`
@@ -416,10 +423,10 @@ export const IconButtons: Story = {
           Send
         </Button>
         <Button icon="icon-[mdi--magnify]" aria-label="Search" />
-        <Button variant="secondary" icon="icon-[mdi--pencil]">
+        <Button severity="secondary" icon="icon-[mdi--pencil]">
           Edit
         </Button>
-        <Button variant="danger" icon="icon-[mdi--delete]">
+        <Button severity="danger" icon="icon-[mdi--delete]">
           Delete
         </Button>
       </VariantGroup>
@@ -453,7 +460,7 @@ function PendingActionExample() {
       </p>
       <div className="flex flex-wrap gap-150">
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => {
             setPending(false)
             setResult("success")
@@ -462,7 +469,7 @@ function PendingActionExample() {
           Complete save
         </Button>
         <Button
-          theme="outlined"
+          appearance="outline"
           onClick={() => {
             setPending(false)
             setResult("error")
@@ -474,7 +481,7 @@ function PendingActionExample() {
           type="reset"
           isLoading={pending}
           loadingText="Reset unavailable while saving"
-          theme="outlined"
+          appearance="outline"
         >
           Reset project name
         </Button>

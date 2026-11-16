@@ -66,7 +66,6 @@ const meta = {
     title: "Publish catalog changes?",
     description:
       "Twelve updated products will become visible in your storefront.",
-    size: "md",
     behavior: "modal",
     closeOnEscape: true,
     closeOnInteractOutside: true,
@@ -89,8 +88,8 @@ function PlaygroundDialog(args: DialogProps) {
         actions={
           <>
             <Button
-              variant="tertiary"
-              theme="outlined"
+              severity="tertiary"
+              appearance="outline"
               onClick={() => setOpen(false)}
             >
               Cancel
@@ -301,7 +300,7 @@ function DeleteAccountExample() {
   const cancelRef = useRef<HTMLButtonElement>(null)
   return (
     <div className="flex flex-col items-center gap-150">
-      <Button variant="danger" theme="outlined" onClick={() => setOpen(true)}>
+      <Button severity="danger" appearance="outline" onClick={() => setOpen(true)}>
         Delete account
       </Button>
       <Dialog
@@ -318,14 +317,14 @@ function DeleteAccountExample() {
           <>
             <Button
               ref={cancelRef}
-              variant="tertiary"
-              theme="outlined"
+              severity="tertiary"
+              appearance="outline"
               onClick={() => setOpen(false)}
             >
               Cancel
             </Button>
             <Button
-              variant="danger"
+              severity="danger"
               onClick={() => {
                 setDeleted(true)
                 setOpen(false)
@@ -405,8 +404,8 @@ function EditProfileExample() {
         actions={
           <>
             <Button
-              variant="tertiary"
-              theme="outlined"
+              severity="tertiary"
+              appearance="outline"
               onClick={() => setOpen(false)}
             >
               Cancel
@@ -476,8 +475,8 @@ function ModelessExample() {
   return (
     <div className="flex min-h-screen flex-col items-start gap-150 p-300">
       <Button
-        variant="tertiary"
-        theme="outlined"
+        severity="tertiary"
+        appearance="outline"
         onClick={() => setRefreshes((count) => count + 1)}
       >
         Refresh results
@@ -560,11 +559,11 @@ function OverlayControls() {
   const toast = useToast()
   const [notificationStatus, setNotificationStatus] = useState("No catalog changes yet.")
   return <div className="space-y-200">
-    <Tooltip content="Only this hint closes first." openDelay={0} closeDelay={0} closeOnClick={false} closeOnPointerDown={false} ids={{ content: "overlay-hint" }} positioning={{ placement: "top", gutter: 12 }}><Button variant="secondary">Explain action</Button></Tooltip>
+    <Tooltip content="Only this hint closes first." openDelay={0} closeDelay={0} closeOnClick={false} closeOnPointerDown={false} ids={{ content: "overlay-hint" }} positioning={{ placement: "top", gutter: 12 }}><Button severity="secondary">Explain action</Button></Tooltip>
     <Menu triggerText="Nested commands" items={[{ type: "action", value: "duplicate", label: "Duplicate catalog" }]} />
     <SelectTemplate size="sm" label="Shipping method" placeholder="Choose shipping" items={[{ value: "standard", label: "Standard delivery" }, { value: "express", label: "Express delivery" }]} />
     <Combobox size="sm" label="Destination" items={[{ id: "cz", value: "cz", label: "Czech Republic" }, { id: "sk", value: "sk", label: "Slovakia" }]} />
-    <Button variant="secondary" onClick={() => { setNotificationStatus("Catalog updated for this preview."); toast.create({ title: "Catalog updated", duration: Infinity, action: { label: "Undo", onClick: () => setNotificationStatus("Catalog update undone.") } }) }}>Notify</Button>
+    <Button severity="secondary" onClick={() => { setNotificationStatus("Catalog updated for this preview."); toast.create({ title: "Catalog updated", duration: Infinity, action: { label: "Undo", onClick: () => setNotificationStatus("Catalog update undone.") } }) }}>Notify</Button>
     <StatusText role="status">{notificationStatus}</StatusText>
     <Dialog title="Nested confirmation" triggerText="Open nested dialog" description="The child backdrop sits above its parent panel."><p>Press Escape to return to the host.</p></Dialog>
     <Drawer size="sm"><Drawer.Trigger>Open nested drawer</Drawer.Trigger><Drawer.Portal><Drawer.Backdrop /><Drawer.Positioner><Drawer.Content><Drawer.Header><Drawer.Title>Nested drawer</Drawer.Title></Drawer.Header><Drawer.Body>Press Escape to return to the host.</Drawer.Body><Drawer.Footer><Drawer.CloseTrigger>Close nested drawer</Drawer.CloseTrigger></Drawer.Footer></Drawer.Content></Drawer.Positioner></Drawer.Portal></Drawer>

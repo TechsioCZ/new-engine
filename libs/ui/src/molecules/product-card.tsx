@@ -2,7 +2,7 @@
  * ProductCard — @techsio/ui-kit molecule.
  *
  * @component ProductCard
- * @componentVersion v1.4.0
+ * @componentVersion v2.0.0
  * @skill product-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -70,7 +70,7 @@ const productCardVariants = tv({
       contain: { imageSlot: "object-contain" },
       fill: { imageSlot: "object-fill" },
     },
-    buttonVariant: {
+    action: {
       cart: {
         button:
           "w-max bg-product-card-button-cart-bg-base text-product-card-button-cart-fg hover:bg-product-card-button-cart-bg-hover active:bg-product-card-button-cart-bg-active active:text-product-card-button-cart-fg",
@@ -113,7 +113,7 @@ const productCardVariants = tv({
     shadow: true,
     objectFit: "cover",
     layout: "column",
-    buttonVariant: "cart",
+    action: "cart",
   },
 })
 
@@ -127,10 +127,7 @@ const ProductCardContext = createContext<ProductCardContextValue>({})
 
 // === TYPE DEFINITIONS ===
 export type ProductCardProps = HTMLAttributes<HTMLDivElement> &
-  Omit<
-    VariantProps<typeof productCardVariants>,
-    "buttonVariant" | "objectFit"
-  > & {
+  Omit<VariantProps<typeof productCardVariants>, "action" | "objectFit"> & {
     /** Preserve the default surface shadow, or disable it for flat catalogues. */
     shadow?: boolean
     /** Opt-in featured composition; default retains the original component token roles. */
@@ -190,7 +187,7 @@ type ProductCardButtonProps = Omit<
   ComponentProps<typeof ButtonComponent>,
   "size" | "variant"
 > & {
-  buttonVariant?: "cart" | "detail" | "wishlist" | "custom"
+  action?: "cart" | "detail" | "wishlist" | "custom"
 }
 
 // === ROOT COMPONENT ===
@@ -366,11 +363,11 @@ ProductCard.Button = function ProductCardButton({
   icon,
   iconSize,
   className,
-  buttonVariant,
+  action,
   ref,
   ...props
 }: ProductCardButtonProps) {
-  const { button } = productCardVariants({ buttonVariant })
+  const { button } = productCardVariants({ action })
 
   return (
     <ButtonComponent
@@ -379,12 +376,10 @@ ProductCard.Button = function ProductCardButton({
       iconSize={iconSize}
       onClick={onClick}
       ref={ref}
-      size="sm"
-      variant={
-        buttonVariant === "detail" || buttonVariant === "wishlist"
-          ? "secondary"
-          : "primary"
+      severity={
+        action === "detail" || action === "wishlist" ? "secondary" : "primary"
       }
+      size="sm"
       {...props}
     >
       {children}
