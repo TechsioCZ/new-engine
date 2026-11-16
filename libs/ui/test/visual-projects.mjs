@@ -33,6 +33,36 @@ export function createThemeMatrix() {
   )
 }
 
+/** The two device projects that execute the component behavior specs, in config
+ * order. Screenshot projects come from createVisualMatrix below. */
+export const DEVICE_PROJECTS = ["desktop", "mobile"]
+
+/** CI splits the component suite by project group, never by test count across
+ * the whole project list: Playwright's --shard is a contiguous partition by
+ * test count, so it only splits duration inside a cost-homogeneous group.
+ * Shard counts per group are decided by the CI plan job. */
+export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
+
+/** Specs the `mobile` project runs. Every other behavior spec asserts DOM,
+ * keyboard or engine semantics that do not change with device emulation, or
+ * sizes its own viewport, so Desktop Chrome covers it once. The three here
+ * cannot be covered there:
+ * - cascade-select.behavior.spec.ts reads page.viewportSize() without setting
+ *   it, so only the phone viewport can make the open column hierarchy overflow.
+ * - drawer.behavior.spec.ts drives the snap-point drawer with touch pointer
+ *   events; touch dragging is the drawer's mobile interaction contract.
+ * - search-suggestions.spec.ts asserts documentElement.scrollWidth <=
+ *   innerWidth for rich results at the project viewport, which only a phone
+ *   width can fail.
+ * Mobile WebKit still executes every createVisualMatrix mobile screenshot
+ * project, so responsive layout, safe-area insets, coarse-pointer touch targets
+ * and the engine itself stay in CI. */
+export const MOBILE_VIEWPORT_SPECS = [
+  "cascade-select.behavior.spec.ts",
+  "drawer.behavior.spec.ts",
+  "search-suggestions.spec.ts",
+]
+
 /**
  * Brand × device × color-scheme projects. Device settings come from
  * Playwright's "Desktop Chrome" and "iPhone 15" descriptors in the config.
@@ -68,4 +98,61 @@ export function createVisualMatrix(
       }))
     )
   })
+}
+
+/** Every Playwright project name, in the order playwright.config.mts declares
+ * them. The config asserts its own project names against this list, so this is
+ * the single place a project is added or renamed.
+ * @param {string} [brandsString]
+ * @returns {string[]}
+ */
+export function createProjectNames(brandsString) {
+  return [
+    ...DEVICE_PROJECTS,
+    ...createVisualMatrix(brandsString).map((project) => project.name),
+  ]
+}
+
+/** Projects one CI group runs.
+ * @param {string | undefined} group
+ * @param {string} [brandsString]
+ * @returns {string[]}
+ */
+export function groupProjectNames(group, brandsString) {
+  if (group === "visual") {
+    return createVisualMatrix(brandsString).map((project) => project.name)
+  }
+  if (group === "mobile" || group === "desktop") {
+    return [group]
+  }
+  throw new Error(
+    `Unsupported PLAYWRIGHT_GROUP ${JSON.stringify(group)}: choose ${PLAYWRIGHT_GROUPS.join(", ")}`
+  )
+}
+
+/** A project that belongs to no group, or to two, stops running in CI without
+ * failing anything. Asserted on every run so a rename cannot hide.
+ * @param {string} [brandsString]
+ */
+export function assertGroupsCoverProjects(brandsString) {
+  const grouped = PLAYWRIGHT_GROUPS.flatMap((group) =>
+    groupProjectNames(group, brandsString)
+  )
+  const duplicates = grouped.filter(
+    (name, index) => grouped.indexOf(name) !== index
+  )
+  if (duplicates.length) {
+    throw new Error(
+      `Projects belong to more than one group: ${[...new Set(duplicates)].join(", ")}`
+    )
+  }
+  const expected = createProjectNames(brandsString)
+  const missing = expected.filter((name) => !grouped.includes(name))
+  const unknown = grouped.filter((name) => !expected.includes(name))
+  if (missing.length || unknown.length) {
+    throw new Error(
+      `The ${PLAYWRIGHT_GROUPS.join("/")} groups do not cover the project list.${missing.length ? ` Ungrouped: ${missing.join(", ")}.` : ""}${unknown.length ? ` Unknown: ${unknown.join(", ")}.` : ""}`
+    )
+  }
+  return expected
 }

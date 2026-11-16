@@ -244,7 +244,7 @@ Optional environment overrides:
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
 - `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
 - `VISUAL_ASSET_HAR_PATH` (absolute path to an alternative HAR; its directory and attachments mount read-only)
-- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`, with an `-arm64` suffix on `linux/arm64`)
+- `PLAYWRIGHT_DOCKER_IMAGE` (default: `ghcr.io/techsiocz/new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`, with an `-arm64` suffix on `linux/arm64`; the tag is content-addressed, so the runner pulls it when it exists and builds the same image when it does not)
 - `PLAYWRIGHT_DOCKER_PLATFORM` (`linux/amd64` or `linux/arm64`; default: host architecture, or `linux/amd64` for snapshot updates and release runs)
 - `PLAYWRIGHT_DOCKER_SHM_SIZE` (default: `2g`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)

@@ -7,6 +7,7 @@ import { describe, it } from "node:test"
 import {
   assertChangedShard,
   loadChangedShards,
+  parseShardArgs,
   summarizeChangedShards,
   verifyShards,
 } from "./verify-component-shards.mjs"
@@ -259,71 +260,252 @@ describe("loadChangedShards", () => {
   })
 })
 
+/**
+ * The matrix the plan job declares and uploads as expected.json. The scope and
+ * the per-group shard counts are what quality-gate verifies its collected
+ * artifacts against, so a shard that never reported cannot pass as silence.
+ * @param {{scope?: string, groups?: Record<string, number>, total?: number}} [overrides]
+ */
+function expectedPlan({ scope = "full", groups, total } = {}) {
+  const declared = groups ?? (scope === "none" ? {} : { visual: 2 })
+  const include = Object.entries(declared).flatMap(([group, count]) =>
+    Array.from({ length: count }, (_, index) => ({
+      group,
+      shard: index + 1,
+      total: count,
+    }))
+  )
+  return JSON.stringify({
+    scope,
+    components: {
+      include,
+      groups: declared,
+      total: total ?? include.length,
+    },
+    a11y: { themes: [], shards_per_theme: 0, total: 0 },
+  })
+}
+
+/** Artifact folder name for one shard, as ui-quality.yml uploads it. */
+function shardFolder(group, index) {
+  return `ui-component-report-abc1234-${group}-shard-${index}`
+}
+
+describe("parseShardArgs", () => {
+  it("requires both flags", () => {
+    for (const argv of [[], ["--expect"], ["--expect", "a"], ["--nope", "a"]]) {
+      assertThrowsText(
+        () => parseShardArgs(argv),
+        "Usage: verify-component-shards.mjs --expect <expected.json> --reports <directory>"
+      )
+    }
+    assert.deepEqual(
+      parseShardArgs(["--expect", "a.json", "--reports", "dir"]),
+      { expect: "a.json", reports: "dir" }
+    )
+  })
+})
+
 describe("verifyShards", () => {
-  it("throws the usage message without a directory", () => {
+  it("throws the usage message without both inputs", () => {
     assertThrowsText(
-      () => verifyShards(undefined, {}),
+      () => verifyShards({}),
       "Usage: verify-component-shards.mjs"
     )
   })
 
-  it("rejects an unknown VISUAL_SHARD_MODE", () => {
-    assertThrowsText(
-      () => verifyShards("/unused", { VISUAL_SHARD_MODE: "partial" }),
-      "VISUAL_SHARD_MODE must be full or changed, got partial"
+  it("rejects a plan that declares an unknown scope", () => {
+    withShardTree(
+      { "expected.json": expectedPlan({ scope: "partial" }) },
+      (root) => {
+        assertThrowsText(
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
+          'declares scope "partial"'
+        )
+      }
+    )
+  })
+
+  it("rejects a plan that declares an unknown component group", () => {
+    withShardTree(
+      { "expected.json": expectedPlan({ groups: { rest: 1 } }) },
+      (root) => {
+        assertThrowsText(
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
+          'declares unknown component group "rest"'
+        )
+      }
+    )
+  })
+
+  it("rejects a plan whose total disagrees with its groups", () => {
+    withShardTree(
+      {
+        "expected.json": expectedPlan({
+          groups: { visual: 2, desktop: 2, mobile: 1 },
+          total: 8,
+        }),
+      },
+      (root) => {
+        assertThrowsText(
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
+          "components.total 8 but its groups add up to 5"
+        )
+      }
+    )
+  })
+
+  it("fails when one group's shard never reported", () => {
+    withShardTree(
+      {
+        "expected.json": expectedPlan({
+          scope: "ui",
+          groups: { desktop: 2 },
+        }),
+        [`${shardFolder("desktop", 1)}/all.json`]: JSON.stringify(
+          cleanReport()
+        ),
+      },
+      (root) => {
+        assertThrowsText(
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
+          "Group desktop declared 2 shards, found 1"
+        )
+      }
+    )
+  })
+
+  it("fails when a group reported shards the plan never declared", () => {
+    withShardTree(
+      {
+        "expected.json": expectedPlan({ scope: "ui", groups: { desktop: 1 } }),
+        [`${shardFolder("desktop", 1)}/all.json`]: JSON.stringify(
+          cleanReport()
+        ),
+        [`${shardFolder("rest", 1)}/all.json`]: JSON.stringify(cleanReport()),
+      },
+      (root) => {
+        assertThrowsText(
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
+          "Group rest reported shards that the plan did not declare"
+        )
+      }
+    )
+  })
+
+  it("rejects an artifact folder that carries no group and index", () => {
+    withShardTree(
+      {
+        "expected.json": expectedPlan({ scope: "ui", groups: { desktop: 1 } }),
+        "ui-component-report-abc1234/all.json": JSON.stringify(cleanReport()),
+      },
+      (root) => {
+        assertThrowsText(
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
+          "does not end in -<group>-shard-<index>"
+        )
+      }
+    )
+  })
+
+  it("passes an idle commit and fails one that reported anyway", () => {
+    withShardTree(
+      { "expected.json": expectedPlan({ scope: "none" }) },
+      (root) => {
+        assert.doesNotThrow(() =>
+          verifyShards({
+            expect: path.join(root, "expected.json"),
+            reports: root,
+          })
+        )
+      }
+    )
+    withShardTree(
+      {
+        "expected.json": expectedPlan({ scope: "none" }),
+        [`${shardFolder("visual", 1)}/all.json`]: JSON.stringify(cleanReport()),
+      },
+      (root) => {
+        assertThrowsText(
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
+          "Group visual reported shards that the plan did not declare"
+        )
+      }
     )
   })
 
   it("passes a changed run where every shard reported or left a marker", () => {
     withShardTree(
       {
-        "shard-1/all.json": JSON.stringify(cleanReport()),
-        "shard-2/changed-none.json": JSON.stringify({ mode: "none" }),
+        "expected.json": expectedPlan({
+          scope: "ui",
+          groups: { visual: 1, desktop: 2, mobile: 1 },
+        }),
+        [`${shardFolder("visual", 1)}/all.json`]: JSON.stringify(cleanReport()),
+        [`${shardFolder("desktop", 1)}/all.json`]: JSON.stringify(
+          cleanReport()
+        ),
+        [`${shardFolder("desktop", 2)}/changed-none.json`]: JSON.stringify({
+          mode: "none",
+        }),
+        [`${shardFolder("mobile", 1)}/changed-none.json`]: JSON.stringify({
+          mode: "none",
+        }),
       },
       (root) => {
         assert.doesNotThrow(() =>
-          verifyShards(root, {
-            VISUAL_SHARD_MODE: "changed",
-            PLAYWRIGHT_RELEASE_SHARDS: "2",
+          verifyShards({
+            expect: path.join(root, "expected.json"),
+            reports: root,
           })
         )
       }
     )
   })
 
-  it("fails a changed run when the shard count is short", () => {
-    withShardTree(
-      { "shard-1/changed-none.json": JSON.stringify({ mode: "none" }) },
-      (root) => {
-        assertThrowsText(
-          () =>
-            verifyShards(root, {
-              VISUAL_SHARD_MODE: "changed",
-              PLAYWRIGHT_RELEASE_SHARDS: "8",
-            }),
-          "Expected 8 shard folders, found 1"
-        )
-      }
-    )
-  })
-
-  it("fails a changed run with no shard folders", () => {
-    withShardTree({}, (root) => {
-      assertThrowsText(
-        () => verifyShards(root, { VISUAL_SHARD_MODE: "changed" }),
-        "No shard folders found"
-      )
-    })
-  })
-
   it("fails a changed run when a shard reports a failure", () => {
     withShardTree(
       {
-        "shard-1/all.json": JSON.stringify(cleanReport({ unexpected: 1 })),
+        "expected.json": expectedPlan({ scope: "ui", groups: { visual: 1 } }),
+        [`${shardFolder("visual", 1)}/all.json`]: JSON.stringify(
+          cleanReport({ unexpected: 1 })
+        ),
       },
       (root) => {
         assertThrowsText(
-          () => verifyShards(root, { VISUAL_SHARD_MODE: "changed" }),
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
           "shard-1 has 1 unexpected failures"
         )
       }
@@ -332,10 +514,19 @@ describe("verifyShards", () => {
 
   it("keeps the full mode strict about missing shard reports", () => {
     withShardTree(
-      { "shard-1/index.json": "{}", "shard-1/all.json": "{}" },
+      {
+        "expected.json": expectedPlan({ groups: { visual: 2 } }),
+        [`${shardFolder("visual", 1)}/index.json`]: "{}",
+        [`${shardFolder("visual", 1)}/all.json`]: "{}",
+        [`${shardFolder("visual", 2)}/index.json`]: "{}",
+      },
       (root) => {
         assertThrowsText(
-          () => verifyShards(root, { PLAYWRIGHT_RELEASE_SHARDS: "2" }),
+          () =>
+            verifyShards({
+              expect: path.join(root, "expected.json"),
+              reports: root,
+            }),
           "Expected 2 shard reports, found 1"
         )
       }

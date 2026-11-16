@@ -9,7 +9,13 @@ import {
   parseReleaseShard,
   visualStories,
 } from "../test/visual-completion.mjs"
-import { createVisualMatrix } from "../test/visual-projects.mjs"
+import {
+  assertGroupsCoverProjects,
+  createProjectNames,
+  createVisualMatrix,
+  groupProjectNames,
+  PLAYWRIGHT_GROUPS,
+} from "../test/visual-projects.mjs"
 import {
   affectedStoriesFromDisk,
   gitChangedFiles,
@@ -34,7 +40,14 @@ const dockerfileHash = crypto
   .digest("hex")
   .slice(0, 12)
 const playwrightVersion = dockerfile.match(playwrightVersionPattern)?.[1]
-const extraArgs = process.argv.slice(2).filter((arg) => arg !== "--")
+// Introspection flag: prints the resolved image, platform, group and shard as
+// JSON and exits without touching Storybook or Docker. The image publish
+// workflow and the tooling tests both read it, so the tag and the group filter
+// have exactly one definition.
+const printPlan = process.argv.slice(2).includes("--print-plan")
+const extraArgs = process.argv
+  .slice(2)
+  .filter((arg) => arg !== "--" && arg !== "--print-plan")
 const updatesSnapshots = extraArgs.some((arg, index) => {
   const match = updateSnapshotsPattern.exec(arg)
   const mode = match?.[1] ?? (match && extraArgs[index + 1])
@@ -61,12 +74,20 @@ if (!["linux/amd64", "linux/arm64"].includes(platform)) {
 }
 const platformTag =
   platform === "linux/amd64" ? "" : `-${platform.split("/").at(-1)}`
+// Content-addressed tag: Playwright version plus the hash of this checkout's
+// Dockerfile. .github/workflows/playwright-image.yml publishes exactly this tag
+// so a runner can pull the image instead of rebuilding it per shard.
+const imageTag = `${playwrightVersion ? `${playwrightVersion}-` : ""}${dockerfileHash}${platformTag}`
 const imageName =
   process.env.PLAYWRIGHT_DOCKER_IMAGE ??
-  `new-engine-ui-playwright:${playwrightVersion ? `${playwrightVersion}-` : ""}${dockerfileHash}${platformTag}`
+  `ghcr.io/techsiocz/new-engine-ui-playwright:${imageTag}`
 const projects = createVisualMatrix(process.env.VISUAL_BRANDS).map(
   (project) => project.name
 )
+// CI runs one shard set per cost-homogeneous project group: mobile, desktop or
+// visual. Playwright's --shard partitions by test count over the ordered
+// project list, so it only splits duration inside one group.
+const group = (process.env.PLAYWRIGHT_GROUP ?? "").trim() || undefined
 const sequentialProjects =
   (process.env.PLAYWRIGHT_DOCKER_SEQUENTIAL ?? "0") !== "0"
 const storybookOverride = process.env.VISUAL_STORYBOOK_STATIC_DIR
@@ -179,7 +200,10 @@ function verifyCompletion(reports) {
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
   )
-  const requireComplete = selectedStories.length === 0 && extraArgs.length === 0
+  // A group run covers part of the project list, so completeness belongs to
+  // scripts/verify-component-shards.mjs over every group's merged reports.
+  const requireComplete =
+    selectedStories.length === 0 && extraArgs.length === 0 && !group
   if (requireComplete && !activeShard) {
     assertVisualCompletion(reports, stories, projects)
     return
@@ -208,20 +232,57 @@ function verifyReviewedBaselines() {
   )
 }
 
-function ensureDockerImage() {
-  if (docker(["image", "inspect", imageName]).status !== 0) {
-    run("docker", [
-      "build",
-      `--platform=${platform}`,
-      "-t",
-      imageName,
-      "-f",
-      dockerfilePath,
-      repoRoot,
-    ])
+/** The tag of an image reference, "" when it carries none. A colon before the
+ * last slash is a registry port, not a tag.
+ * @param {string} reference
+ * @returns {string}
+ */
+function imageReferenceTag(reference) {
+  const colon = reference.lastIndexOf(":")
+  return colon > reference.lastIndexOf("/") ? reference.slice(colon + 1) : ""
+}
+
+/** A pulled image is equivalent to a built one only while the tag is the
+ * content hash of the Dockerfile in this checkout. Asserting that is what makes
+ * the pull a second source of one artifact rather than an untested image. */
+function assertImageMatchesDockerfile() {
+  const tag = imageReferenceTag(imageName)
+  if (tag !== imageTag) {
+    throw new Error(
+      `Docker image "${imageName}" is tagged "${tag}", not "${imageTag}" for the checked-out docker/development/playwright/Dockerfile`
+    )
   }
-  console.log(`Using Docker image: ${imageName}`)
-  console.log(`Using Docker platform: ${platform}`)
+}
+
+/** Local image, else the published tag, else build it from this checkout.
+ * A Dockerfile-changing commit has no published tag yet and builds. */
+function ensureDockerImage() {
+  const started = Date.now()
+  /** @param {string} source */
+  const report = (source) => {
+    const seconds = ((Date.now() - started) / 1000).toFixed(1)
+    console.log(`Docker image ${imageName}: ${source} in ${seconds}s`)
+    console.log(`Using Docker platform: ${platform}`)
+  }
+  if (docker(["image", "inspect", imageName]).status === 0) {
+    report("already on this runner")
+    return
+  }
+  if (docker(["pull", `--platform=${platform}`, imageName]).status === 0) {
+    report("pulled")
+    return
+  }
+  console.log(`No published ${imageName}; building it from this checkout`)
+  run("docker", [
+    "build",
+    `--platform=${platform}`,
+    "-t",
+    imageName,
+    "-f",
+    dockerfilePath,
+    repoRoot,
+  ])
+  report("built")
 }
 
 function startContainer() {
@@ -291,32 +352,45 @@ function startContainer() {
   ])
 }
 
-/**
- * Projects to run one by one. In a changed subset only the brand projects run:
- * desktop and mobile exclude visual.spec.ts via testIgnore, so they match no tests.
- * Changed mode "all" is a normal full run and keeps every project.
- * @returns {Array<string | undefined>}
- */
-function projectRunList() {
-  if (!sequentialProjects) {
-    return [undefined]
-  }
-  return changedSubset ? [...projects] : ["desktop", "mobile", ...projects]
+/** @returns {boolean} */
+function userChoseProject() {
+  return extraArgs.some(
+    (arg) => arg === "--project" || arg.startsWith("--project=")
+  )
 }
 
 /**
- * Project filters that keep a subset run on the screenshot spec. Adds nothing
- * when the user already passed --project.
+ * The one place that decides which Playwright projects a run covers. Release
+ * runs and changed runs share it, so a group narrows both: release mode rejects
+ * CLI arguments, which is why the group is an environment input and never
+ * --project from YAML. An empty list means "every project in the config".
  * @returns {string[]}
  */
-function changedProjectArgs() {
-  const userChoseProject = extraArgs.some(
-    (arg) => arg === "--project" || arg.startsWith("--project=")
-  )
-  if (!changedSubset || userChoseProject) {
+function selectedProjectNames() {
+  if (userChoseProject()) {
     return []
   }
-  return projects.map((project) => `--project=${project}`)
+  if (group) {
+    return groupProjectNames(group, process.env.VISUAL_BRANDS)
+  }
+  // A changed subset only screenshots: the desktop project excludes
+  // visual.spec.ts and the mobile project lists its specs, so neither matches.
+  return changedSubset ? [...projects] : []
+}
+
+/**
+ * Projects to run one by one, for PLAYWRIGHT_DOCKER_SEQUENTIAL. Changed mode
+ * "all" is a normal full run and keeps every project.
+ * @returns {Array<string | undefined>}
+ */
+function projectRunList() {
+  if (!sequentialProjects || userChoseProject()) {
+    return [undefined]
+  }
+  const selected = selectedProjectNames()
+  return selected.length
+    ? selected
+    : createProjectNames(process.env.VISUAL_BRANDS)
 }
 
 /**
@@ -353,7 +427,9 @@ function runPlaywrightProjects() {
         "-c",
         "playwright.config.mts",
         "--reporter=list,html,json",
-        ...(project ? [`--project=${project}`] : changedProjectArgs()),
+        ...(project
+          ? [`--project=${project}`]
+          : selectedProjectNames().map((name) => `--project=${name}`)),
         ...shardArgs(),
         ...extraArgs,
       ],
@@ -606,6 +682,9 @@ function printCanonicalPlatformHint(reportNames) {
 
 /**
  * Release shards belong to the release gate and never mix with a PLAYWRIGHT_SHARD.
+ * Either shard variable also requires a group: a count-based shard across the
+ * whole project list is a contiguous partition of a heterogeneous suite, which
+ * is why eight equal-sized shards used to run between 2.4 and 14.5 minutes.
  */
 function assertShardCompatible() {
   if (playwrightShard && releaseShard) {
@@ -618,11 +697,36 @@ function assertShardCompatible() {
       "PLAYWRIGHT_SHARD cannot be combined with VISUAL_RELEASE_READINESS=1: release runs shard with PLAYWRIGHT_RELEASE_SHARD"
     )
   }
+  if (activeShard && !group) {
+    throw new Error(
+      `A shard requires PLAYWRIGHT_GROUP (${PLAYWRIGHT_GROUPS.join(", ")}): --shard splits by test count, which only splits duration inside one cost-homogeneous group`
+    )
+  }
+  // Rejects an unknown group, with or without a shard.
+  if (group) {
+    groupProjectNames(group, process.env.VISUAL_BRANDS)
+  }
 }
 
 function main() {
+  assertGroupsCoverProjects(process.env.VISUAL_BRANDS)
+  assertImageMatchesDockerfile()
   assertShardCompatible()
   assertChangedModeCompatible()
+  if (printPlan) {
+    console.log(
+      JSON.stringify({
+        image: imageName,
+        platform,
+        group: group ?? null,
+        projects: selectedProjectNames(),
+        shard: activeShard ?? null,
+        release: process.env.VISUAL_RELEASE_READINESS === "1",
+        changed: changedMode,
+      })
+    )
+    return 0
+  }
   if (dryRun) {
     // Dry runs never build Storybook or touch Docker.
     applyChangedMode()

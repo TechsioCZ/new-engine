@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
+import { createHash } from "node:crypto"
 import { EventEmitter } from "node:events"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
@@ -33,8 +35,14 @@ import {
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
 import {
+  assertGroupsCoverProjects,
+  createProjectNames,
   createThemeMatrix,
   createVisualMatrix,
+  DEVICE_PROJECTS,
+  groupProjectNames,
+  MOBILE_VIEWPORT_SPECS,
+  PLAYWRIGHT_GROUPS,
   resolveVisualTheme,
 } from "./visual-projects.mjs"
 import {
@@ -349,7 +357,7 @@ test("all hook-free compound templates are included in the build boundary set", 
   }
 })
 
-test("CI and forced publication require the same immutable-SHA quality workflow", () => {
+test("CI owns the quality gate and publication chains behind its conclusion", () => {
   const ci = read("../../../.github/workflows/ci.yml")
   const release = read("../../../.github/workflows/ui-release.yml")
   const quality = read("../../../.github/workflows/ui-quality.yml")
@@ -359,13 +367,22 @@ test("CI and forced publication require the same immutable-SHA quality workflow"
     /ui-quality:\s+uses: \.\/\.github\/workflows\/ui-quality.yml/
   )
   assert.match(ci, /needs:[\s\S]*- main\s+- ui-quality/)
-  assert.match(release, /needs: \[check-affected, validate\]/)
-  assert.match(release, /needs.validate.result == 'success'/)
+  // The release never repeats the gate. It reacts to CI concluding success for
+  // a pushed commit, and CI's quality-gate fails unless every blocking job
+  // succeeded, so that conclusion is itself the proof the gate passed.
+  assert.doesNotMatch(release, /ui-quality\.yml/)
   assert.match(
     release,
-    /validate:[\s\S]*uses: \.\/\.github\/workflows\/ui-quality.yml[\s\S]*sha: \$\{\{ github.sha \}\}/
+    /workflow_run:\s+workflows: \["CI"\]\s+types: \[completed\]\s+branches: \[master\]/
   )
-  assert.match(release, /release:[\s\S]*ref: \$\{\{ github.sha \}\}/)
+  assert.match(release, /github\.event\.workflow_run\.event == 'push'/)
+  assert.match(release, /github\.event\.workflow_run\.conclusion == 'success'/)
+  // Under workflow_run GITHUB_SHA is the default-branch tip at dispatch time,
+  // not the commit CI validated, so the publish tree is resolved from head_sha
+  // and then asserted against the checkout.
+  assert.match(release, /sha="\$\{RUN_HEAD_SHA:-\$DISPATCH_SHA\}"/)
+  assert.match(release, /ref: \$\{\{ steps\.commit\.outputs\.sha \}\}/)
+  assert.match(release, /actual="\$\(git rev-parse HEAD\)"/)
   for (const command of [
     "typecheck",
     "test",
@@ -386,11 +403,12 @@ test("CI and forced publication require the same immutable-SHA quality workflow"
 const WORKFLOW_JOB_BOUNDARY = /\n(?= {2}[\w-]+:\n)/
 const WORKFLOW_JOB_HEADER = /^ {2}([\w-]+):\n/
 const WORKFLOW_STEP_BOUNDARY = /\n {6}- /
-// CI always asks for the changed scope; only the release gate runs everything.
-const CI_MODE_LINE = /\n {6}mode: changed\n/
+// A pull request runs only what its diff can affect; a push to master runs the
+// full release-readiness gate, which is what licenses chaining the publish.
+const CI_MODE_LINE =
+  /\n {6}mode: \$\{\{ github\.event_name == 'push' && 'full' \|\| 'changed' \}\}\n/
 const CI_BASE_SHA_LINE =
   /base_sha: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.before \|\| '' \}\}/
-const RELEASE_HAS_SCOPE_INPUT = /\bmode:|base_sha/
 const QUALITY_MODE_INPUT = /mode:\n {8}description:[\s\S]*default: full/
 const QUALITY_BASE_INPUT = /base_sha:\n {8}description:[\s\S]*default: ""/
 const SCOPE_BASE_ENV = /BASE_SHA: \$\{\{ inputs\.base_sha \}\}/
@@ -398,25 +416,34 @@ const SCOPE_HEAD_ENV = /HEAD_SHA: \$\{\{ inputs\.sha \}\}/
 const EXPRESSION_START = /\$\{\{/
 const SCOPE_FULL_OUTPUT = /scope=full\n/
 const BASE_SHA_GUARD = /-n "\$BASE_SHA" \]/
-const SCOPE_NONE_OUTPUT = /scope=none|"none"/
+// "none" may only ever come out of the classifier. A shell that can assign it
+// would skip every heavy job and still hand quality-gate an empty plan to
+// verify, so the assignment is the thing to forbid, not the word.
+const SCOPE_NONE_ASSIGNMENT = /scope=["']?none/
+// An unrecognised classifier value used to run no test step at all; now it
+// fails the plan job instead of narrowing the matrix silently.
+const UNKNOWN_SCOPE_EXIT = /::error::Unknown scope[\s\S]*?exit 1/
 const CHANGED_FILES_ARTIFACT = /name: ui-changed-files-\$\{\{ inputs\.sha \}\}/
 const PLAN_SCOPE_IF = /if: needs\.plan\.outputs\.scope/
 const NEEDS_PLAN = /needs: \[?plan/
-const COMPLETE_NEEDS = /needs: \[plan, components\]/
-const SHARD_MODE_ENV =
-  /VISUAL_SHARD_MODE: \$\{\{ needs\.plan\.outputs\.scope == 'ui' && 'changed' \|\| 'full' \}\}/
+// The plan declares each group's shard width once; the matrix and the
+// expected.json quality-gate verifies against are both derived from it.
+const COMPONENT_MATRIX =
+  /matrix: \$\{\{ fromJson\(needs\.plan\.outputs\.component_matrix\) \}\}/
+const EXPECTED_ARTIFACT = /name: ui-ci-expected-\$\{\{ inputs\.sha \}\}/
+const A11Y_SHARDS_INPUT =
+  /shards: \$\{\{ fromJson\(needs\.plan\.outputs\.a11y_shards\) \}\}/
 const FULL_SCOPE_IF = /if: needs\.plan\.outputs\.scope == 'full'/
 const UI_SCOPE_IF = /if: needs\.plan\.outputs\.scope == 'ui'/
 const RELEASE_SHARD_ENV =
-  /PLAYWRIGHT_RELEASE_SHARD: \$\{\{ matrix\.shard \}\}\/8/
+  /PLAYWRIGHT_RELEASE_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/
 const RELEASE_SHARD_KEY = /PLAYWRIGHT_RELEASE_SHARD:/
-const PLAYWRIGHT_SHARD_ENV = /PLAYWRIGHT_SHARD: \$\{\{ matrix\.shard \}\}\/8/
+const PLAYWRIGHT_SHARD_ENV =
+  /PLAYWRIGHT_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/
+const GROUP_ENV = /PLAYWRIGHT_GROUP: \$\{\{ matrix\.group \}\}/
 const BEHAVIOR_ENV = /VISUAL_CHANGED_BEHAVIOR: "1"/
 const CHANGED_RUN = /run: pnpm --dir libs\/ui test:components$/m
 const NONE_MARKER = /changed-none\.json/
-const INPUTS_HASH_CALL = /visual-storybook-build\.mjs --inputs-hash/
-const STORYBOOK_CACHE_KEY =
-  /key: ui-storybook-v1-\$\{\{ steps\.storybook-inputs\.outputs\.hash \}\}/
 const STORYBOOK_ENSURE_CALL =
   /node "\$\{ROOT_DIR\}\/scripts\/visual-storybook-build\.mjs" --ensure/
 const BUILD_STORYBOOK_SCRIPT = /build:storybook/
@@ -442,13 +469,11 @@ function stepContaining(yaml, needle) {
   return step
 }
 
-test("CI requests the changed scope while the release gate keeps the full run", () => {
+test("a pull request runs the changed scope and a push runs the full gate", () => {
   const ci = read("../../../.github/workflows/ci.yml")
-  const release = read("../../../.github/workflows/ui-release.yml")
   const quality = read("../../../.github/workflows/ui-quality.yml")
   assert.match(ci, CI_MODE_LINE)
   assert.match(ci, CI_BASE_SHA_LINE)
-  assert.doesNotMatch(release, RELEASE_HAS_SCOPE_INPUT)
   assert.match(quality, QUALITY_MODE_INPUT)
   assert.match(quality, QUALITY_BASE_INPUT)
 })
@@ -470,21 +495,26 @@ test("the reusable quality workflow plans a scope and never fails open to none",
     mergeBase > 0 && classify > mergeBase,
     "scope is set only after a merge-base"
   )
-  assert.doesNotMatch(script, SCOPE_NONE_OUTPUT)
+  assert.doesNotMatch(script, SCOPE_NONE_ASSIGNMENT)
+  assert.match(script, UNKNOWN_SCOPE_EXIT)
   assert.match(plan, CHANGED_FILES_ARTIFACT)
 })
 
 test("components and accessibility run unless the plan says none", () => {
   const jobs = workflowJobs(read("../../../.github/workflows/ui-quality.yml"))
-  for (const job of ["components", "components-complete", "accessibility"]) {
+  for (const job of ["components", "accessibility"]) {
     assert.ok(
       jobs[job].includes("if: needs.plan.outputs.scope != 'none'"),
       `${job} must skip only on scope none`
     )
     assert.match(jobs[job], NEEDS_PLAN)
   }
-  assert.match(jobs["components-complete"], COMPLETE_NEEDS)
-  assert.match(jobs["components-complete"], SHARD_MODE_ENV)
+  // Both heavy legs take their width from the plan, and the plan uploads the
+  // same declaration quality-gate checks the collected reports against, so a
+  // shard or theme that never reported fails instead of passing as silence.
+  assert.match(jobs.components, COMPONENT_MATRIX)
+  assert.match(jobs.accessibility, A11Y_SHARDS_INPUT)
+  assert.match(jobs.plan, EXPECTED_ARTIFACT)
   assert.doesNotMatch(jobs.plan, PLAN_SCOPE_IF)
 })
 
@@ -499,6 +529,13 @@ test("the release suite runs only for the full scope and owns PLAYWRIGHT_RELEASE
   assert.doesNotMatch(changed, RELEASE_SHARD_KEY)
   assert.match(changed, PLAYWRIGHT_SHARD_ENV)
   assert.match(changed, BEHAVIOR_ENV)
+  // A count-based shard is only a duration split inside one cost-homogeneous
+  // group, so both modes must name the group. Wiring it into the release mode
+  // alone would make each group's shards an independent full sharding of the
+  // same affected tests, and only the shard folder count would notice.
+  for (const step of [full, changed]) {
+    assert.match(step, GROUP_ENV)
+  }
   assert.match(changed, CHANGED_RUN)
   assert.match(
     stepContaining(quality, "visual-reports/changed-none.json"),
@@ -506,15 +543,16 @@ test("the release suite runs only for the full scope and owns PLAYWRIGHT_RELEASE
   )
 })
 
-test("Storybook is reused through the inputs hash in both workflows and the a11y script", () => {
-  const quality = read("../../../.github/workflows/ui-quality.yml")
-  const a11y = read("../../../.github/workflows/storybook-a11y.yml")
-  const script = read("../scripts/storybook-a11y.sh")
-  for (const yaml of [quality, a11y]) {
-    assert.match(yaml, INPUTS_HASH_CALL)
-    assert.match(yaml, STORYBOOK_CACHE_KEY)
-    assert.ok(yaml.includes("path: libs/ui/storybook-static"))
+test("the accessibility scan builds Storybook through the shared ensure path", () => {
+  // The workflows no longer cache storybook-static: the key was a content hash
+  // of libs/ui plus the lockfile plus every workflow file with no restore-keys,
+  // and all consuming jobs are created in the same second, so this commit's key
+  // has never been written when they start. The build is 29-40s.
+  for (const workflow of ["ui-quality", "storybook-a11y"]) {
+    const yaml = read(`../../../.github/workflows/${workflow}.yml`)
+    assert.doesNotMatch(yaml, /actions\/cache/, workflow)
   }
+  const script = read("../scripts/storybook-a11y.sh")
   assert.match(script, STORYBOOK_ENSURE_CALL)
   assert.doesNotMatch(script, BUILD_STORYBOOK_SCRIPT)
 })
@@ -1335,10 +1373,16 @@ test("native-form lifecycle matrix uses all maintained adapters without disablin
   for (const { id } of nativeFormAdapters) {
     assert.ok(fixture.includes(`case "${id}"`))
   }
+  // The spec never opts a device out itself. Which devices run it is the
+  // config's decision: it asserts native form semantics, not touch or viewport
+  // behavior, so Desktop Chrome covers it once and it is not in
+  // MOBILE_VIEWPORT_SPECS. Mobile WebKit keeps every screenshot project.
   const config = read("../playwright.config.mts")
-  assert.match(config, /"desktop", "mobile"/)
+  assert.match(config, /"Desktop Chrome"/)
+  assert.match(config, /"iPhone 15"/)
   assert.match(config, /"webkit"/)
   assert.match(config, /"chromium"/)
+  assert.ok(!MOBILE_VIEWPORT_SPECS.includes("native-form.behavior.spec.ts"))
 })
 
 test("a11y enforcement blocks WCAG A/AA rules and only reports advisory ones", () => {
@@ -1352,6 +1396,185 @@ test("a11y enforcement blocks WCAG A/AA rules and only reports advisory ones", (
     ]),
     ["button-name", "color-contrast"]
   )
+})
+
+const COMPONENT_RUNNER = new URL(
+  "../scripts/run-component-tests.mjs",
+  import.meta.url
+).pathname
+
+/** The content-addressed component image reference this checkout must use,
+ * from the same two inputs the publish workflow tags with.
+ * @returns {string}
+ */
+function playwrightImageReference() {
+  const dockerfile = read("../../../docker/development/playwright/Dockerfile")
+  const version = dockerfile.match(/^ARG\s+PLAYWRIGHT_VERSION\s*=\s*(\S+)$/m)[1]
+  const hash = createHash("sha256")
+    .update(dockerfile)
+    .digest("hex")
+    .slice(0, 12)
+  return `ghcr.io/techsiocz/new-engine-ui-playwright:${version}-${hash}`
+}
+
+/** Runs the component runner's --print-plan introspection in a clean
+ * environment, so a developer's exported VISUAL_* or PLAYWRIGHT_* variable
+ * cannot change what these cases assert.
+ * @param {Record<string, string>} env
+ */
+function componentPlan(env) {
+  const inherited = Object.entries(process.env).filter(
+    ([name]) => !/^(VISUAL_|PLAYWRIGHT_|TEST_)/.test(name)
+  )
+  const result = spawnSync(
+    process.execPath,
+    [COMPONENT_RUNNER, "--print-plan"],
+    { env: { ...Object.fromEntries(inherited), ...env }, encoding: "utf8" }
+  )
+  return {
+    status: result.status,
+    stderr: result.stderr,
+    plan: () => JSON.parse(result.stdout.trim().split("\n").at(-1)),
+  }
+}
+
+test("the three component groups cover every Playwright project exactly once", () => {
+  assert.deepEqual(PLAYWRIGHT_GROUPS, ["mobile", "desktop", "visual"])
+  assert.deepEqual(DEVICE_PROJECTS, ["desktop", "mobile"])
+  assert.deepEqual(createProjectNames(), [
+    ...DEVICE_PROJECTS,
+    ...createVisualMatrix().map((project) => project.name),
+  ])
+  // The union assertion is what keeps a renamed or added project in CI.
+  assert.deepEqual(assertGroupsCoverProjects(), createProjectNames())
+  assert.deepEqual(
+    assertGroupsCoverProjects("akros"),
+    createProjectNames("akros")
+  )
+  assert.deepEqual(groupProjectNames("desktop"), ["desktop"])
+  assert.deepEqual(groupProjectNames("mobile"), ["mobile"])
+  assert.deepEqual(
+    groupProjectNames("visual"),
+    createVisualMatrix().map((project) => project.name)
+  )
+  assert.deepEqual(groupProjectNames("visual", "akros"), [
+    "akros-desktop-light",
+    "akros-mobile-light",
+  ])
+  for (const group of ["rest", "all", "visual,desktop", "VISUAL", ""]) {
+    assert.throws(
+      () => groupProjectNames(group),
+      /Unsupported PLAYWRIGHT_GROUP/,
+      group
+    )
+  }
+  // The config builds its projects from the same list and rejects a divergence.
+  const config = read("../playwright.config.mts")
+  assert.match(config, /createProjectNames\(process\.env\.VISUAL_BRANDS\)/)
+  assert.match(config, /name: "mobile",\s+testMatch: MOBILE_VIEWPORT_SPECS/)
+})
+
+test("a group narrows the release run and the changed run through one code path", () => {
+  const visual = createVisualMatrix().map((project) => project.name)
+  const changed = {
+    VISUAL_CHANGED_FILES: "libs/ui/src/atoms/button.tsx",
+    VISUAL_CHANGED_BEHAVIOR: "1",
+  }
+  for (const [group, projects] of [
+    ["visual", visual],
+    ["desktop", ["desktop"]],
+    ["mobile", ["mobile"]],
+  ]) {
+    const release = componentPlan({
+      VISUAL_RELEASE_READINESS: "1",
+      PLAYWRIGHT_GROUP: group,
+      PLAYWRIGHT_RELEASE_SHARD: "2/5",
+    })
+    assert.equal(release.status, 0, release.stderr)
+    const { image, ...resolved } = release.plan()
+    assert.equal(image, playwrightImageReference())
+    assert.deepEqual(resolved, {
+      platform: "linux/amd64",
+      group,
+      projects,
+      shard: { index: 2, total: 5 },
+      release: true,
+      changed: false,
+    })
+    // Changed mode used to ignore projects entirely, so every behavior spec ran
+    // once per shard and only the shard folder count noticed.
+    const subset = componentPlan({
+      ...changed,
+      PLAYWRIGHT_GROUP: group,
+      PLAYWRIGHT_SHARD: "1/2",
+    })
+    assert.equal(subset.status, 0, subset.stderr)
+    assert.deepEqual(subset.plan().projects, projects)
+    assert.equal(subset.plan().changed, true)
+    assert.deepEqual(subset.plan().shard, { index: 1, total: 2 })
+  }
+  // Either shard variable requires a group: a count-based shard over the whole
+  // project list is a contiguous partition of a heterogeneous suite.
+  for (const env of [
+    { PLAYWRIGHT_SHARD: "1/8", ...changed },
+    { PLAYWRIGHT_RELEASE_SHARD: "1/8", VISUAL_RELEASE_READINESS: "1" },
+  ]) {
+    const missing = componentPlan(env)
+    assert.notEqual(missing.status, 0)
+    assert.match(missing.stderr, /A shard requires PLAYWRIGHT_GROUP/)
+  }
+  for (const group of ["rest", "all", "visual,desktop"]) {
+    const unknown = componentPlan({
+      PLAYWRIGHT_GROUP: group,
+      PLAYWRIGHT_RELEASE_SHARD: "1/2",
+      VISUAL_RELEASE_READINESS: "1",
+    })
+    assert.notEqual(unknown.status, 0)
+    assert.match(unknown.stderr, /Unsupported PLAYWRIGHT_GROUP/)
+  }
+})
+
+test("the component image is the content-addressed tag the publish workflow pushes", () => {
+  const reference = playwrightImageReference()
+  const resolved = componentPlan({ PLAYWRIGHT_DOCKER_PLATFORM: "linux/amd64" })
+  assert.equal(resolved.status, 0, resolved.stderr)
+  assert.equal(resolved.plan().image, reference)
+  // Baselines were recorded against this base image's fonts.
+  assert.match(
+    read("../../../docker/development/playwright/Dockerfile"),
+    /^FROM node:26\.11\.1-bookworm$/m
+  )
+  // An image whose tag is not this Dockerfile's hash is a different artifact,
+  // so pulling it would not be equivalent to building it. Rejected before any
+  // Docker work, which is what makes pull-then-build one artifact.
+  const stale = componentPlan({
+    PLAYWRIGHT_DOCKER_IMAGE: `${reference.split(":")[0]}:0.0.0-000000000000`,
+  })
+  assert.notEqual(stale.status, 0)
+  assert.match(stale.stderr, /is tagged "0\.0\.0-000000000000"/)
+  const workflow = read("../../../.github/workflows/playwright-image.yml")
+  assert.match(workflow, /packages: write/)
+  assert.match(workflow, /--print-plan \| jq -er \.image/)
+  assert.match(workflow, /paths:\s+- docker\/development\/playwright\/\*\*/)
+  assert.match(workflow, /docker push "\$REFERENCE"/)
+})
+
+test("mobile WebKit runs only the touch and device-viewport behavior specs", () => {
+  assert.deepEqual(MOBILE_VIEWPORT_SPECS, [
+    "cascade-select.behavior.spec.ts",
+    "drawer.behavior.spec.ts",
+    "search-suggestions.spec.ts",
+  ])
+  // Each listed spec must still contain the dependency that earns the second
+  // device: a touch pointer sequence, or a measurement against the project
+  // viewport that it does not set itself.
+  for (const name of MOBILE_VIEWPORT_SPECS) {
+    const spec = read(`./${name}`)
+    assert.match(spec, /pointerType: "touch"|viewportSize\(\)|innerWidth/, name)
+    // The restriction lives in the config, so no listed spec skips the device
+    // it was kept for.
+    assert.doesNotMatch(spec, /project\.name !== "mobile"/, name)
+  }
 })
 
 test("release shards are validated index/total pairs", () => {
