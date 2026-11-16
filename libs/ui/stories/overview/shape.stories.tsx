@@ -57,6 +57,43 @@ const RADII = [
   ["rounded-2xl", "rounded-2xl"],
 ] as const
 
+type PlaygroundArgs = {
+  shape: (typeof KEYWORDS)[number][0]
+  radius: (typeof RADII)[number][0]
+}
+
+export const Playground: StoryObj<PlaygroundArgs> = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Pick a `corner-*` keyword and a `rounded-*` radius. The radius sets how far the shape reaches into the corner; the keyword sets the curve.",
+      },
+    },
+  },
+  argTypes: {
+    shape: {
+      control: "select",
+      options: KEYWORDS.map(([name]) => name),
+      description: "corner-shape keyword (`corner-*`)",
+    },
+    radius: {
+      control: "select",
+      options: RADII.map(([name]) => name),
+      description: "border-radius the shape applies to (`rounded-*`)",
+    },
+  },
+  args: { shape: "squircle", radius: "rounded-2xl" },
+  render: ({ shape, radius }) => {
+    const corner = KEYWORDS.find(([name]) => name === shape)?.[1] ?? ""
+    return (
+      <Tile className={`${radius} ${corner}`}>
+        {`${radius} corner-${shape}`}
+      </Tile>
+    )
+  },
+}
+
 export const Keywords: Story = {
   parameters: {
     docs: {
@@ -238,7 +275,7 @@ export const BorderShapeExperimental: Story = {
         </Tile>
       </VariantGroup>
       <VariantGroup title="Fill (outer and inner shape)">
-        <Tile className="border-8 border-shape-[rect(0_100%_100%_0_round_24px)_circle(40%)]">
+        <Tile className="border-8 border-shape-[rect(0_100%_100%_0_round_var(--radius-lg))_circle(40%)]">
           rect + circle
         </Tile>
       </VariantGroup>

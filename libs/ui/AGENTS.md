@@ -63,6 +63,9 @@ gh pr edit <pr-number> --body-file /tmp/pr-body.md
 - `forwardRef` / `useCallback` for handlers (React 19 doesn't need them)
 - `tailwind.config.*` (Tailwind v4 uses @theme)
 - Arbitrary values (`bg-[#ff0000]`, `p-[1rem]`)
+  - Exception: a story that demonstrates an arbitrary-value utility itself
+    (`corner-[superellipse(1.5)]`, `border-shape-[circle(50%)]`) may use one;
+    every other dimension inside it stays token-based (`var(--radius-lg)`, not `24px`).
 - Default exports or barrel files (`index.ts`) unless framework requires
 - `interface` for type definitions (use `type`)
 - Direct semantic tokens in component implementations (`bg-primary`, `text-fg`)
