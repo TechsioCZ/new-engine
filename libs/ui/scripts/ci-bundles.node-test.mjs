@@ -66,7 +66,7 @@ test("component suites retain separate reports", (t) => {
 
 test("a failed suite fails the bundle before launching more browser work", (t) => {
   const { directory, result } = runBundle(t, "desktop")
-  assert.equal(result.status, 1)
+  assert.equal(result.status, 7)
   assert.ok(!fs.existsSync(path.join(
     directory, "component-reports/ui-visual-shard-4/all.json"
   )))
