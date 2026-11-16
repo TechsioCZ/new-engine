@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v2.0.0
+ * @componentVersion v2.0.1
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -3325,6 +3325,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         data-pinned={column.getIsPinned() || undefined}
         key={header.id}
         ref={dnd?.nodeRef as unknown as RefObject<HTMLTableCellElement>}
+        role={header.isPlaceholder ? "presentation" : undefined}
+        scope={header.isPlaceholder ? undefined : "col"}
         style={{
           ...OPAQUE_HEADER_BG,
           ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),

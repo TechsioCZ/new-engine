@@ -304,6 +304,8 @@ Pick the smallest run that answers your question:
 | The change is intended and I need new baselines | let CI fail, then `pnpm -C libs/ui baselines:pull --pr <number>` | one CI run |
 
 CI renders the committed Linux baselines on `linux/amd64` and is the authority for them.
+Each screenshot story owns a fresh browser context and gets one capture attempt.
+Neither full nor changed CI accepts a successful fallback after a failed first render.
 
 To keep screenshots stable across machines, comparisons against the committed baselines run inside Docker.
 
@@ -339,7 +341,7 @@ Optional environment overrides:
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
 - `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
 - `VISUAL_ASSET_HAR_PATH` (absolute path to an alternative HAR; its directory and attachments mount read-only)
-- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`, with an `-arm64` suffix on `linux/arm64`)
+- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`, with an `-arm64` suffix on `linux/arm64`; CI caches the image by Dockerfile content, and a cache miss builds it from that Dockerfile)
 - `PLAYWRIGHT_DOCKER_PLATFORM` (`linux/amd64` or `linux/arm64`; default: host architecture, or `linux/amd64` for snapshot updates and release runs)
 - `PLAYWRIGHT_DOCKER_SHM_SIZE` (default: `2g`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)
@@ -353,8 +355,8 @@ Optional environment overrides:
 
 Example: `VISUAL_CHANGED_SINCE=origin/master pnpm -C libs/ui test:components`
 
-Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
-Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
+Extra arguments are passed to `playwright test`, e.g. `VISUAL_BRANDS=n1 pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
+Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. CI checks every story on all three desktop brands and on business mobile WebKit; brand-locked stories retain their own brand on mobile. Brand × phone cross-products are not gated. Set `VISUAL_BRANDS=akros` or `VISUAL_BRANDS=n1` to diagnose those phone projects locally. A full run must cover every story in every declared visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
 ### Known differences on `linux/arm64`
 
@@ -410,7 +412,7 @@ and serial Docker wrapper, never concurrent ad hoc browser launches.
 - Exports only, no barrel: import from explicit subpaths (e.g. `@techsio/ui-kit/atoms/button`, `@techsio/ui-kit/templates/accordion`, `@techsio/ui-kit/utils`). The package root is intentionally not exported.
 - Automated releases: `libs/ui/release.config.mjs` uses semantic-release (tag format `ui-kit-v<version>`) to publish to npm and create GitHub releases without pushing generated version/changelog commits back to the protected branch. While we are <1.0.0, `BREAKING CHANGE` commits are forced to “minor” bumps to stay in 0.x; remove that release rule when stabilizing for 1.0.0+ to restore SemVer majors.
 - Security posture: releases are restricted to GitHub Actions (`GITHUB_ACTIONS` required), npm publishes use trusted publishing through GitHub OIDC (`id-token: write`) and do not require an npm token.
-- CI and release share `.github/workflows/ui-quality.yml`: both TypeScript projects, unit/SSR/tooling tests, token/package checks, full Docker component visuals, and enforced three-theme accessibility. Publication depends on successful validation of the exact checked-out SHA. Manual `force_release` changes affected detection only; it cannot bypass quality checks.
+- CI's `main` job checks the workspace on Node 24 and the UI package's types, unit/SSR/tooling tests, tokens and package output on Node 26. `.github/workflows/ui-quality.yml` plans the Docker component and three-theme accessibility checks. Results append once per story; summaries are generated after the workers finish. Release follows successful master push CI for the exact SHA instead of repeating validation. Manual `force_release` changes affected detection only; it cannot bypass the exact-SHA CI gate.
 - Local semantic-release (including `--dry-run`) is intentionally unsupported. Use `pnpm -C libs/ui typecheck`, `test`, and `check:package` locally; never set `GITHUB_ACTIONS=true` to impersonate CI.
 - Commit format: follow Conventional Commits (`feat:`, `fix:`, `chore:`, `BREAKING CHANGE:`) so semantic-release can infer the correct version bump.
 - Required CI secrets: none for npm publishing; npm trusted publishing must be configured on npmjs.com for this repository and workflow path.

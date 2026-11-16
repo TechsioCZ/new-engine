@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### DataTable v2.0.1
+- Grouped-header layout placeholders are presentational cells, not unnamed column headers; the real leaf headers keep their labels and column scope.
+
 ### Shape utilities v1.0.0
 - New: \`corner-*\` utilities for CSS \`corner-shape\` (Chrome/Edge 139+, Safari 27.3+) from \`src/tokens/_shape.css\`: keywords \`round\`, \`squircle\`, \`bevel\`, \`scoop\`, \`notch\`, \`square\`, any \`corner-[superellipse(n)]\`, plus sides (\`corner-t-*\`, logical \`corner-s-*\`) and corners (\`corner-tl-*\`, logical \`corner-ss-*\`) mirroring \`rounded-*\`. They reshape an existing radius; unsupported browsers keep the plain rounded corner. \`corner-base\` reads the new brand token \`--corner-shape-base\` (default \`round\`). Experimental \`border-shape-*\` (Chrome 147+, arbitrary values and \`border-shape-none\`). No component changes. Storybook: Overview → Shape.
 

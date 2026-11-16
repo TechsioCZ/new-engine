@@ -85,9 +85,6 @@ const runnerEnvKeys = [
   // Not part of the harness key, so a custom HAR must not shape cached baselines.
   "VISUAL_ASSET_HAR_PATH",
 ]
-/** Removed from the inherited env of base runs only; compare runs keep what the user set. */
-const baseOnlyEnvKeys = ["VISUAL_CANONICAL"]
-
 /** @type {{ tmp: string, wt: string } | null} */
 let baseTemp = null
 /** @type {string[]} */
@@ -484,10 +481,7 @@ export function childEnv({
   if (kind === "base" && !storybookDir) {
     throw new Error("A base run needs the base Storybook directory")
   }
-  const dropped = new Set([
-    ...runnerEnvKeys,
-    ...(kind === "base" ? baseOnlyEnvKeys : []),
-  ])
+  const dropped = new Set(runnerEnvKeys)
   const inherited = Object.fromEntries(
     Object.entries(env).filter(([key]) => !dropped.has(key))
   )

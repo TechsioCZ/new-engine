@@ -3,27 +3,24 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import {
   type Browser,
-  type BrowserContext,
   type BrowserContextOptions,
-  test as base,
+  test,
   expect,
   type Page,
   type TestInfo,
-  type WorkerInfo,
 } from "@playwright/test"
 import { PNG } from "pngjs"
 import { installVisualAssets } from "./visual-assets.mjs"
 import { visualCaptureTiles } from "./visual-capture.mjs"
-import { visualStories } from "./visual-completion.mjs"
+import { parseReleaseShard, visualStories } from "./visual-completion.mjs"
 import { assertDecodedVisualImages } from "./visual-image-readiness.mjs"
 import {
   assertFloatingContainment,
   assertSubmenuCaptureReady,
   checkStoryPopupCheckpoints,
-  popupCheckpointStories,
   visibleFloatingSurfaces,
 } from "./visual-popup-capture.mjs"
-import { resolveVisualTheme } from "./visual-projects.mjs"
+import { resolveVisualTheme, shardVisualStories } from "./visual-projects.mjs"
 import { freezeVisualSvgImages } from "./visual-svg.mjs"
 
 type StorybookEntry = {
@@ -49,7 +46,6 @@ type StoryCompletion = {
 }
 type StorybookWindow = Window & {
   __VISUAL_RANDOM_RESET__?: () => void
-  __VISUAL_SET_SEED__?: (seed: number) => void
   __STORYBOOK_ADDONS_CHANNEL__?: {
     on: (name: string, listener: (value: unknown) => void) => void
     off: (name: string, listener: (value: unknown) => void) => void
@@ -76,26 +72,7 @@ type StoryRun = {
   assets: VisualAssets
   errors: string[]
   annotations: { type: string; description?: string }[]
-  fast: boolean
-  tokenChecks: Set<string>
 }
-type VisualSession = {
-  context: BrowserContext
-  page: Page
-  origin: string
-  assets: VisualAssets
-  rendered: number
-  lastStoryId: string | null
-  dirty: boolean
-  tokenChecks: Set<string>
-  errors: string[]
-}
-type VisualSessions = {
-  acquire: (storyId: string) => Promise<VisualSession>
-  discard: () => Promise<void>
-  close: () => Promise<void>
-}
-
 // Decoded RGBA comparison instead of Playwright's toHaveScreenshot, which
 // tolerates anti-aliasing differences even with a zero threshold. Ignored:
 // per-channel rounding between machines (local amd64 emulation vs native CI
@@ -129,20 +106,23 @@ function comparePng(actual: Buffer, expected: Buffer) {
   if (a.data.equals(e.data)) {
     return { equal: true }
   }
-  const diff = new PNG({ width: a.width, height: a.height })
   let changedPixels = 0
   for (let offset = 0; offset < a.data.length; offset += 4) {
+    changedPixels += Number(pixelChanged(a.data, e.data, offset))
+  }
+  if (changedPixels <= edgePixelAllowance(a.width, a.height)) {
+    return { equal: true }
+  }
+  // The normal passing path needs no diff bitmap or per-pixel red/fade work.
+  // Keep exactly the same tolerance, allowance and failure diagnostic.
+  const diff = new PNG({ width: a.width, height: a.height })
+  for (let offset = 0; offset < a.data.length; offset += 4) {
     const changed = pixelChanged(a.data, e.data, offset)
-    changedPixels += Number(changed)
-    // Changed pixels are red; unchanged pixels are a faded copy of the baseline.
     const faded = 255 - Math.round((255 - e.data.readUInt8(offset)) / 4)
     diff.data[offset] = changed ? 255 : faded
     diff.data[offset + 1] = changed ? 0 : faded
     diff.data[offset + 2] = changed ? 0 : faded
     diff.data[offset + 3] = 255
-  }
-  if (changedPixels <= edgePixelAllowance(a.width, a.height)) {
-    return { equal: true }
   }
   return {
     equal: false,
@@ -156,7 +136,7 @@ function comparePng(actual: Buffer, expected: Buffer) {
 // Persistent toasts (duration Infinity) stay part of the frame.
 async function settleTransientUi(
   page: Page,
-  { waitForTimedToasts, fast }: { waitForTimedToasts: boolean; fast: boolean }
+  { waitForTimedToasts }: { waitForTimedToasts: boolean }
 ) {
   if (waitForTimedToasts) {
     await expect
@@ -179,10 +159,6 @@ async function settleTransientUi(
         { message: "Timed toasts did not dismiss", timeout: 20_000 }
       )
       .toBe(0)
-  }
-  if (fast) {
-    await waitForFrameSettle(page)
-    return
   }
   const scrollPositions = () =>
     page.evaluate(() =>
@@ -235,62 +211,10 @@ async function attachComparison(
   }
 }
 
-// Fast-path scroll settle: same criterion as the polling loop, sampled per frame.
-// The timer covers hidden or stalled pages where no animation frame arrives.
-async function waitForFrameSettle(page: Page) {
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve, reject) => {
-        let previous: string | undefined
-        let frames = 0
-        let done = false
-        const finish = (error?: Error) => {
-          done = true
-          clearTimeout(timer)
-          if (error) {
-            reject(error)
-            return
-          }
-          resolve()
-        }
-        const timer = setTimeout(
-          () => finish(new Error("Scroll positions did not settle")),
-          10_000
-        )
-        const sample = () => {
-          if (done) {
-            return
-          }
-          const current = [...document.querySelectorAll<HTMLElement>("*")]
-            .filter(
-              (element) =>
-                element.scrollWidth > element.clientWidth ||
-                element.scrollHeight > element.clientHeight
-            )
-            .map((element) => `${element.scrollLeft},${element.scrollTop}`)
-            .join("|")
-          if (current === previous) {
-            finish()
-            return
-          }
-          previous = current
-          frames += 1
-          if (frames > 600) {
-            finish(new Error("Scroll positions did not settle"))
-            return
-          }
-          requestAnimationFrame(sample)
-        }
-        requestAnimationFrame(sample)
-      })
-  )
-}
-
 async function compareSnapshotBuffer(
   actual: Buffer,
   name: string,
-  testInfo: TestInfo,
-  attachEvidence: boolean
+  testInfo: TestInfo
 ) {
   const expectedPath = testInfo.snapshotPath(`${name}.png`, {
     kind: "screenshot",
@@ -315,9 +239,7 @@ async function compareSnapshotBuffer(
   if (comparison?.equal) {
     return { passed: true, message: "" }
   }
-  if (attachEvidence) {
-    await attachComparison(testInfo, name, actual, expected, comparison?.diff)
-  }
+  await attachComparison(testInfo, name, actual, expected, comparison?.diff)
   return {
     passed: false,
     message: expected
@@ -515,9 +437,13 @@ const storyFilter = (process.env.TEST_STORIES ?? "")
   .split(",")
   .map((id) => id.trim())
   .filter(Boolean)
-const selectedStories = storyFilter.length
+const matchingStories = storyFilter.length
   ? stories.filter((story) => storyFilter.includes(story.id))
   : stories
+const selectedStories = shardVisualStories(
+  matchingStories,
+  parseReleaseShard(process.env.PLAYWRIGHT_VISUAL_SHARD, "PLAYWRIGHT_VISUAL_SHARD")
+)
 const missingStories = storyFilter.filter(
   (id) => !stories.some((story) => story.id === id)
 )
@@ -569,15 +495,13 @@ async function openPreview(page: Page) {
   )
 }
 
-// Globals persist across story switches, so the fast path sends this once per session.
 function applyGlobals(
   page: Page,
   mode: "light" | "dark",
-  brand: VisualBrand,
-  manualA11y: boolean
+  brand: VisualBrand
 ) {
   return page.evaluate(
-    async ({ colorMode, colorBrand, manual }) => {
+    async ({ colorMode, colorBrand }) => {
       const storybookWindow = window as StorybookWindow
       const channel = storybookWindow.__STORYBOOK_ADDONS_CHANNEL__
       const preview = storybookWindow.__STORYBOOK_PREVIEW__
@@ -596,20 +520,19 @@ function applyGlobals(
           resolve()
         }
         channel.on("globalsUpdated", updated)
-        // Only the fast session goes manual: the addon's axe/APCA pass would
-        // otherwise run per screenshot. Its reports never reject a story in
-        // selectStory, so the verdict does not depend on it.
+        // Accessibility has its own full three-theme scan. Screenshot renders
+        // must not repeat the advisory axe/APCA pass.
         channel.emit("updateGlobals", {
           globals: {
             brand: colorBrand,
             mode: colorMode,
             theme: colorMode,
-            ...(manual ? { a11y: { manual: true } } : {}),
+            a11y: { manual: true },
           },
         })
       })
     },
-    { colorMode: mode, colorBrand: brand, manual: manualA11y }
+    { colorMode: mode, colorBrand: brand }
   )
 }
 
@@ -728,7 +651,7 @@ async function renderStory(
   brand: VisualBrand
 ) {
   await openPreview(page)
-  await applyGlobals(page, mode, brand, true)
+  await applyGlobals(page, mode, brand)
   return selectStory(page, id, mode, brand)
 }
 
@@ -870,26 +793,8 @@ function assertThemeTokens(
   )
 }
 
-const freezeStyleId = "visual-freeze-style"
 const freezeCss =
   "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}html{scroll-behavior:auto!important}"
-
-// The fast path tags the style so the next story's reset can remove it.
-async function addFreezeStyle(page: Page, fast: boolean) {
-  if (!fast) {
-    await page.addStyleTag({ content: freezeCss })
-    return
-  }
-  await page.evaluate(
-    ({ id, css }) => {
-      const style = document.createElement("style")
-      style.id = id
-      style.textContent = css
-      document.head.append(style)
-    },
-    { id: freezeStyleId, css: freezeCss }
-  )
-}
 
 function projectTheme(project: TestInfo["project"]): {
   mode: "light" | "dark"
@@ -901,8 +806,7 @@ function projectTheme(project: TestInfo["project"]): {
   }
 }
 
-// Returns true when the story did more than the primary capture.
-async function captureStory(run: StoryRun): Promise<boolean> {
+async function captureStory(run: StoryRun): Promise<void> {
   const {
     page,
     story,
@@ -911,13 +815,9 @@ async function captureStory(run: StoryRun): Promise<boolean> {
     assets: disposeAssets,
     errors,
     annotations,
-    fast,
-    tokenChecks,
   } = run
   const { mode, brand } = projectTheme(testInfo.project)
-  const completion = fast
-    ? await selectStory(page, story.id, mode, brand)
-    : await renderStory(page, story.id, mode, brand)
+  const completion = await renderStory(page, story.id, mode, brand)
   const { brand: expectedBrand, mode: expectedMode } = resolveVisualTheme(
     completion.effectiveGlobals ?? {},
     completion.brandLock
@@ -929,7 +829,7 @@ async function captureStory(run: StoryRun): Promise<boolean> {
     })
   }
   await expect(page.locator("#storybook-root")).toBeAttached()
-  await addFreezeStyle(page, fast)
+  await page.addStyleTag({ content: freezeCss })
   const settledText = finalText[story.id]
   if (settledText) {
     await expect(page.getByText(settledText, { exact: true })).toBeVisible()
@@ -948,7 +848,6 @@ async function captureStory(run: StoryRun): Promise<boolean> {
     // Toast stories document the toast itself; elsewhere a timed
     // toast is transient feedback that must not decide the frame.
     waitForTimedToasts: completion.visualTimedToasts !== "capture",
-    fast,
   })
   const root = page.locator("#storybook-root")
   const capture = async (suffix = "", fullPage = false) => {
@@ -1009,11 +908,7 @@ async function captureStory(run: StoryRun): Promise<boolean> {
     })
     await waitForAssets(page, story.id)
     await disposeAssets.whenIdle()
-    const themeKey = `${expectedBrand}/${expectedMode}`
-    if (!(fast && tokenChecks.has(themeKey))) {
-      await assertThemeTokens(page, expectedBrand, expectedMode)
-      tokenChecks.add(themeKey)
-    }
+    await assertThemeTokens(page, expectedBrand, expectedMode)
     await page.evaluate(
       () =>
         new Promise<void>((resolve) =>
@@ -1115,8 +1010,7 @@ async function captureStory(run: StoryRun): Promise<boolean> {
       const snapshot = await compareSnapshotBuffer(
         actual,
         `${name}${tile?.suffix ?? ""}`,
-        testInfo,
-        !fast
+        testInfo
       )
       await disposeAssets.whenIdle()
       expect(snapshot.passed, snapshot.message).toBe(true)
@@ -1161,13 +1055,7 @@ async function captureStory(run: StoryRun): Promise<boolean> {
       throw new Error(`Browser errors: ${errors.join("\n")}`)
     }
   }
-  return (
-    hasVisiblePortal ||
-    Boolean(drawerVariants[story.id]) ||
-    Boolean(interactivePortals[story.id]) ||
-    postCaptureBehaviorStories.has(story.id) ||
-    popupCheckpointStories.some(([id]) => id === story.id)
-  )
+
 }
 
 const visualContextKeys: (keyof BrowserContextOptions)[] = [
@@ -1194,7 +1082,7 @@ function visualContextOptions(use: BrowserContextOptions) {
   return options
 }
 
-async function runCanonical(
+async function runStoryCapture(
   browser: Browser,
   story: StorybookEntry,
   testInfo: TestInfo
@@ -1234,8 +1122,6 @@ async function runCanonical(
         assets,
         errors,
         annotations,
-        fast: false,
-        tokenChecks: new Set<string>(),
       })
     } catch (error) {
       failures.push(error)
@@ -1261,241 +1147,19 @@ async function runCanonical(
   }
 }
 
-// Fast-path sessions are shared by one worker. Storybook keeps its globals, so
-// a session boots once and renders many stories; anything that leaves
-// overlays, storage or a repeated story forces a fresh page.
-const maxRendersPerSession = 150
-
-function fastPathAllowed(testInfo: TestInfo) {
-  return (
-    testInfo.config.updateSnapshots === "none" &&
-    process.env.VISUAL_CANONICAL !== "1"
-  )
-}
-
-async function bootSession(
-  browser: Browser,
-  workerInfo: WorkerInfo
-): Promise<VisualSession> {
-  const context = await browser.newContext(
-    visualContextOptions(workerInfo.project.use)
-  )
-  try {
-    const page = await context.newPage()
-    const errors: string[] = []
-    page.on("pageerror", (error) => errors.push(error.message))
-    // Math.random is reseeded per story through __VISUAL_SET_SEED__.
-    await context.addInitScript(() => {
-      let seed = 1
-      let state = 1
-      Math.random = () => {
-        state = (state * 48_271) % 2_147_483_647
-        return state / 2_147_483_647
-      }
-      const storybookWindow = window as StorybookWindow
-      storybookWindow.__VISUAL_RANDOM_RESET__ = () => {
-        state = seed
-      }
-      storybookWindow.__VISUAL_SET_SEED__ = (next) => {
-        seed = next || 1
-        state = seed
-      }
-    })
-    await page.clock.setFixedTime(new Date(fixedDate))
-    const origin = new URL(String(workerInfo.project.use.baseURL)).origin
-    const assets = await installVisualAssets(context, { harPath, origin })
-    await openPreview(page)
-    const { mode, brand } = projectTheme(workerInfo.project)
-    await applyGlobals(page, mode, brand, true)
-    return {
-      context,
-      page,
-      origin,
-      assets,
-      rendered: 0,
-      lastStoryId: null,
-      dirty: false,
-      tokenChecks: new Set(),
-      errors,
-    }
-  } catch (error) {
-    await context.close()
-    throw error
-  }
-}
-
-async function closeSession(session: VisualSession) {
-  try {
-    await session.assets()
-  } finally {
-    await session.context.close()
-  }
-}
-
-function createVisualSessions(
-  browser: Browser,
-  workerInfo: WorkerInfo
-): VisualSessions {
-  let current: VisualSession | undefined
-  const close = async () => {
-    const session = current
-    current = undefined
-    if (session) {
-      await closeSession(session)
-    }
-  }
-  return {
-    acquire: async (storyId) => {
-      if (
-        !current ||
-        current.dirty ||
-        current.rendered >= maxRendersPerSession ||
-        current.lastStoryId === storyId
-      ) {
-        await close()
-        current = await bootSession(browser, workerInfo)
-      }
-      return current
-    },
-    // Discard runs after a failed fast attempt; the canonical retry is the verdict.
-    discard: async () => {
-      await close().catch(() => undefined)
-    },
-    close,
-  }
-}
-
-async function resetForStory(page: Page, storyId: string) {
-  await page.evaluate(
-    ({ id, seed }) => {
-      document.getElementById(id)?.remove()
-      window.scrollTo(0, 0)
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur()
-      }
-      localStorage.clear()
-      sessionStorage.clear()
-      const storybookWindow = window as StorybookWindow
-      storybookWindow.__VISUAL_SET_SEED__?.(seed)
-    },
-    { id: freezeStyleId, seed: storySeed(storyId) }
-  )
-  await page.mouse.move(0, 0)
-}
-
-// Cookies and toasts survive resetForStory and would reach the next story in a
-// shared session; a fresh page never has them.
-function leavesSharedState(page: Page) {
-  return page.evaluate(
-    () =>
-      document.cookie !== "" ||
-      document.querySelector('[data-scope="toast"][data-part="root"]') !== null
-  )
-}
-
-async function runFast(
-  session: VisualSession,
-  story: StorybookEntry,
-  testInfo: TestInfo
-) {
-  await resetForStory(session.page, story.id)
-  const annotations: StoryRun["annotations"] = []
-  const beyondPrimary = await captureStory({
-    page: session.page,
-    story,
-    testInfo,
-    origin: session.origin,
-    assets: session.assets,
-    errors: session.errors,
-    annotations,
-    fast: true,
-    tokenChecks: session.tokenChecks,
-  })
-  await session.assets.whenIdle()
-  testInfo.annotations.push(...annotations)
-  // Errors are cleared only at a clean story boundary, so one raised while the
-  // session booted still fails the first story into the canonical retry.
-  session.errors.length = 0
-  session.rendered += 1
-  session.lastStoryId = story.id
-  if (beyondPrimary || (await leavesSharedState(session.page))) {
-    session.dirty = true
-  }
-}
-
-// Bounds the whole fast attempt, including a session boot that never finishes.
-// Closing the session rejects any pending evaluate, so the fallback starts cleanly.
-const fastAttemptBudgetMs = 45_000
-
-async function runFastAttempt(
-  visualSessions: VisualSessions,
-  story: StorybookEntry,
-  testInfo: TestInfo
-) {
-  let abandoned = false
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      abandoned = true
-      reject(new Error(`Fast attempt exceeded ${fastAttemptBudgetMs} ms`))
-    }, fastAttemptBudgetMs)
-  })
-  const attempt = visualSessions.acquire(story.id).then(async (session) => {
-    if (!abandoned) {
-      await runFast(session, story, testInfo)
-    }
-  })
-  try {
-    await Promise.race([attempt, deadline])
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-function retryReason(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-  return (message.split("\n")[0] ?? "").slice(0, 300)
-}
-
-const test = base.extend<object, { visualSessions: VisualSessions }>({
-  visualSessions: [
-    async ({ browser }, use, workerInfo) => {
-      const sessions = createVisualSessions(browser, workerInfo)
-      await use(sessions)
-      await sessions.close()
-    },
-    { scope: "worker" },
-  ],
-})
-
-test.describe
-  .parallel("storybook visual", () => {
-    for (const story of selectedStories) {
-      test(`${story.title} ${story.name} should not have visual regressions`, async ({
-        browser,
-        visualSessions,
-      }, testInfo) => {
-        testInfo.annotations.push({
-          type: "visual-story-id",
-          description: story.id,
-        })
-        if (!fastPathAllowed(testInfo)) {
-          await runCanonical(browser, story, testInfo)
-          return
-        }
-        try {
-          await runFastAttempt(visualSessions, story, testInfo)
-          return
-        } catch (error) {
-          await visualSessions.discard()
-          testInfo.annotations.push({
-            type: "visual-canonical-retry",
-            description: retryReason(error),
-          })
-        }
-        // The canonical retry gets its own budget on top of the test timeout.
-        testInfo.setTimeout(testInfo.timeout + fastAttemptBudgetMs)
-        await runCanonical(browser, story, testInfo)
+// A story owns its browser context. Reusing pages leaked globals, listeners and
+// rendered state between unrelated tests; a fresh-page fallback hid 50 failures
+// in run 43914903156. There is one capture attempt and one verdict now.
+test.describe.parallel("storybook visual", () => {
+  for (const story of selectedStories) {
+    test(`${story.title} ${story.name} should not have visual regressions`, async ({
+      browser,
+    }, testInfo) => {
+      testInfo.annotations.push({
+        type: "visual-story-id",
+        description: story.id,
       })
-    }
-  })
+      await runStoryCapture(browser, story, testInfo)
+    })
+  }
+})

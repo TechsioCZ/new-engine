@@ -1,7 +1,10 @@
-// Asserts that the sharded CI release run covered every screenshot identity
-// exactly once and that every shard ran clean.
-//   node scripts/verify-component-shards.mjs <directory with one folder per shard>
-// VISUAL_SHARD_MODE=changed only asserts that every shard reported and ran
+// Asserts that the sharded CI component run covered every screenshot identity
+// exactly once, that every shard the plan declared reported, and that every
+// shard ran clean.
+//   node scripts/verify-component-shards.mjs --expect <expected.json> --reports <dir>
+// expected.json is the matrix the plan job declared and uploaded; `reports` is
+// one folder per uploaded shard artifact, named ...-<group>-shard-<index>.
+// A changed run (scope "ui") only asserts that every shard reported and ran
 // clean. A shard with no changed stories leaves changed-none.json instead.
 import fs from "node:fs"
 import path from "node:path"
@@ -9,11 +12,19 @@ import {
   assertVisualCompletion,
   visualStories,
 } from "../test/visual-completion.mjs"
-import { createVisualMatrix } from "../test/visual-projects.mjs"
+import {
+  createVisualMatrix,
+  PLAYWRIGHT_GROUPS,
+} from "../test/visual-projects.mjs"
 
 const REPORT_NAME = "all.json"
 const NONE_MARKER_NAME = "changed-none.json"
-const SHARD_MODES = new Set(["full", "changed"])
+const USAGE =
+  "Usage: verify-component-shards.mjs --expect <expected.json> --reports <directory>"
+// One folder per uploaded shard artifact; its name carries group and index.
+const SHARD_FOLDER = /-(?<group>[a-z]+)-shard-(?<shard>\d+)$/
+// The plan's scope: a full release gate, the changed UI subset, or no work.
+const SHARD_SCOPES = new Set(["full", "ui", "none"])
 
 /**
  * @param {string} directory
@@ -76,6 +87,12 @@ function assertCleanReport(name, report) {
   )
   const flaky = report.stats?.flaky ?? 0
   assert(flaky === 0, `Shard ${name} has ${flaky} flaky tests`)
+  forEachTest(report.suites, (test) => {
+    assert(
+      !test.annotations?.some((item) => item.type === "visual-canonical-retry"),
+      `Shard ${name} recovered from a failed first render`
+    )
+  })
 }
 
 /**
@@ -209,27 +226,111 @@ function verifyFullShards(root, expectedShards) {
 }
 
 /**
- * @param {string | undefined} root
- * @param {NodeJS.ProcessEnv} env
+ * The component matrix the plan job declared for this commit.
+ * @param {string} file
+ * @returns {{scope: string, groups: Record<string, number>, total: number}}
  */
-export function verifyShards(root, env) {
-  if (!root) {
-    throw new Error(
-      "Usage: verify-component-shards.mjs <shard artifact directory>"
+export function readExpectedComponents(file) {
+  const declared = JSON.parse(fs.readFileSync(file, "utf8"))
+  const scope = declared.scope
+  assert(
+    SHARD_SCOPES.has(scope),
+    `${file} declares scope "${scope}"; expected one of ${[...SHARD_SCOPES].join(", ")}`
+  )
+  const groups = declared.components?.groups ?? {}
+  const total = declared.components?.total ?? 0
+  let sum = 0
+  for (const [group, count] of Object.entries(groups)) {
+    assert(
+      PLAYWRIGHT_GROUPS.includes(group),
+      `${file} declares unknown component group "${group}"; expected one of ${PLAYWRIGHT_GROUPS.join(", ")}`
+    )
+    assert(
+      Number.isInteger(count) && count > 0,
+      `${file} declares ${count} shards for group ${group}`
+    )
+    sum += count
+  }
+  assert(
+    sum === total,
+    `${file} declares components.total ${total} but its groups add up to ${sum}`
+  )
+  return { scope, groups, total }
+}
+
+/**
+ * Asserts every declared shard of every group left an artifact folder. Without
+ * this a shard that never ran passes as silence.
+ * @param {string} root
+ * @param {Record<string, number>} groups
+ */
+function assertDeclaredGroupsReported(root, groups) {
+  /** @type {Map<string, string[]>} */
+  const found = new Map()
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue
+    }
+    const group = SHARD_FOLDER.exec(entry.name)?.groups?.group
+    assert(
+      group !== undefined,
+      `Shard artifact folder "${entry.name}" does not end in -<group>-shard-<index>`
+    )
+    found.set(group, [...(found.get(group) ?? []), entry.name])
+  }
+  for (const group of found.keys()) {
+    assert(
+      group in groups,
+      `Group ${group} reported shards that the plan did not declare`
     )
   }
-  const mode = env.VISUAL_SHARD_MODE ?? "full"
-  if (!SHARD_MODES.has(mode)) {
-    throw new Error(`VISUAL_SHARD_MODE must be full or changed, got ${mode}`)
+  for (const [group, count] of Object.entries(groups)) {
+    const reported = found.get(group) ?? []
+    assert(
+      reported.length === count,
+      `Group ${group} declared ${count} shards, found ${reported.length}${reported.length ? `: ${reported.join(", ")}` : ""}`
+    )
   }
-  const expectedShards = Number(env.PLAYWRIGHT_RELEASE_SHARDS ?? 0)
-  if (mode === "changed") {
-    verifyChangedShards(root, expectedShards)
+}
+
+/**
+ * @param {{expect: string, reports: string}} options
+ */
+export function verifyShards({ expect: expectFile, reports }) {
+  assert(Boolean(expectFile && reports), USAGE)
+  const { scope, groups, total } = readExpectedComponents(expectFile)
+  assertDeclaredGroupsReported(reports, groups)
+  if (scope === "none") {
+    console.log("No component shards were declared for this commit")
     return
   }
-  verifyFullShards(root, expectedShards)
+  if (scope === "ui") {
+    verifyChangedShards(reports, total)
+    return
+  }
+  verifyFullShards(reports, total)
+}
+
+/**
+ * @param {string[]} argv
+ * @returns {{expect: string, reports: string}}
+ */
+export function parseShardArgs(argv) {
+  /** @type {Record<string, string>} */
+  const options = {}
+  for (let index = 0; index < argv.length; index += 2) {
+    const flag = argv[index]
+    const value = argv[index + 1]
+    assert(
+      (flag === "--expect" || flag === "--reports") && Boolean(value),
+      USAGE
+    )
+    options[flag.slice(2)] = value
+  }
+  assert(Boolean(options.expect && options.reports), USAGE)
+  return { expect: options.expect, reports: options.reports }
 }
 
 if (import.meta.filename === path.resolve(process.argv[1] ?? "")) {
-  verifyShards(process.argv[2], process.env)
+  verifyShards(parseShardArgs(process.argv.slice(2)))
 }

@@ -45,7 +45,7 @@ async function resolveFile(url) {
   return info?.isFile() ? file : undefined
 }
 
-createServer(async (request, response) => {
+const server = createServer(async (request, response) => {
   const file = await resolveFile(request.url ?? "/").catch(() => undefined)
   if (!file) {
     response.writeHead(404).end()
@@ -58,4 +58,8 @@ createServer(async (request, response) => {
     "X-Content-Type-Options": "nosniff",
   })
   createReadStream(file).pipe(response)
-}).listen(port, "127.0.0.1")
+})
+
+server.listen(port, "127.0.0.1", () => {
+  console.log(`Serving Storybook on http://127.0.0.1:${server.address().port}`)
+})
