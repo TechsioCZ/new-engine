@@ -63,7 +63,8 @@ fi
 cp "${INDEX_JSON}" "${FULL_INDEX}"
 
 SERVER_LOG="${RUN_REPORT_ROOT}/server.log"
-VISUAL_STORYBOOK_PORT="${PORT}" node test/visual-static-server.mjs > "${SERVER_LOG}" 2>&1 &
+VISUAL_STORYBOOK_PORT="${PORT}" VISUAL_STORYBOOK_STATIC_DIR="${ROOT_DIR}/storybook-static" \
+  node test/visual-static-server.mjs > "${SERVER_LOG}" 2>&1 &
 SERVER_PID=$!
 cleanup() {
   kill "${SERVER_PID}" >/dev/null 2>&1 || true
