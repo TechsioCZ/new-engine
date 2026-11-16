@@ -207,7 +207,7 @@ function SupportBadge({ property, value }: { property: string; value: string }) 
     return null
   }
   return (
-    <Badge size="sm" variant={supported ? "success" : "warning"}>
+    <Badge size="sm" severity={supported ? "success" : "warning"}>
       {supported
         ? `${property} supported in this browser`
         : `${property} not supported here — showing the fallback`}
