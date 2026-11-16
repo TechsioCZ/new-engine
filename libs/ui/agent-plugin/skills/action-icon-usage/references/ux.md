@@ -37,8 +37,8 @@ users recognise: close, clear, edit, delete, copy, more. The name lives in
 | --- | --- | --- |
 | fixed close (✕) glyph | `icon` (any glyph) | Figma has one fixed ✕. In code the glyph is a prop; pick the one that matches the action. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. Default `md`; prefer `lg` for standalone touch actions. `sm` never shrinks the target below what the task needs. |
-| `tone=neutral` | `severity="neutral"` | An ordinary action with no destructive result. |
-| `tone=danger` | `severity="danger"` | A destructive action. Put it last in the group; it still confirms or offers Undo. |
+| `severity=neutral` | `severity="neutral"` | An ordinary action with no destructive result. |
+| `severity=danger` | `severity="danger"` | A destructive action. Put it last in the group; it still confirms or offers Undo. |
 | `state=hover` | not a prop | Highlight only. It never confirms or runs anything. |
 | — | `disabled` | Can't be used right now. Removed from the tab order, so explain why elsewhere. |
 

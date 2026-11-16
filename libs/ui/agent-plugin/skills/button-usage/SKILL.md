@@ -76,7 +76,7 @@ where actions and feedback live). This section applies them to `Button`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=primary…danger`, `theme=solid…borderless`, `size=sm…lg` | `severity`, `appearance` (Figma `light` / `outlined` / `borderless` → `subtle` / `outline` / `ghost`), `size` |
+| `severity=primary…danger`, `appearance=solid…ghost`, `size=sm…lg` | `severity`, `appearance`, `size` |
 | `state=disabled` | `disabled` |
 | `state=loading` | `isLoading` + `loadingText` |
 | `state=hover` / `focus` / `active` | not props (browser states) |

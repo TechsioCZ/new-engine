@@ -9,8 +9,7 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-// Figma still names the property variant; code reads appearance.
-const appearance = figma.selectedInstance.getEnum("variant", {
+const appearance = figma.selectedInstance.getEnum("appearance", {
   subtle: "subtle",
   solid: "solid",
 })

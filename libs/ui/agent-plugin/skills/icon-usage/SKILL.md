@@ -68,7 +68,7 @@ where actions and feedback live). This section applies them to `Icon`.
 | Figma | Code |
 | --- | --- |
 | `size=current` (16 px preview) | `size="current"` (1em) |
-| `size=xs…2xl`, `color=current…warning` | `size` (same values), `severity` (same values as Figma `color`) |
+| `size=xs…2xl`, `severity=current…warning` | same prop names and values |
 | `token-icon-cog`, `-filter`, `-sort-unfold`, `-drag-horizontal`, `-drag-vertical`, `-row-edit`, `-table-empty` | no token; DataTable uses `icon-[mdi--…]` classes |
 | glyph doc "Vazba" (host) | ignore; the host is whichever component uses the token in code |
 

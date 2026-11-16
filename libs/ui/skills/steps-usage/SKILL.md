@@ -79,7 +79,7 @@ where actions and feedback live). This section applies them to `Steps`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=subtle\|solid`, `size=sm…lg` | `appearance` (same values), `size` |
+| `appearance=subtle\|solid`, `size=sm…lg` | `appearance` (same values), `size` |
 | current / complete / default | `step` / `defaultStep`; complete = steps before the current one |
 | — | `linear`, `orientation` (not in Figma) |
 

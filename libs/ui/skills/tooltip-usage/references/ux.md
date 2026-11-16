@@ -30,8 +30,8 @@ The task must be understandable without it.
 | Figma | Code | Meaning |
 | --- | --- | --- |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` (default `md`) | Text size and padding only. |
-| `variant=default` | `appearance="solid"` | Filled bubble. |
-| `variant=outline` | `appearance="outline"` | Bubble with a border. Same meaning. |
+| `appearance=solid` | `appearance="solid"` | Filled bubble. |
+| `appearance=outline` | `appearance="outline"` | Bubble with a border. Same meaning. |
 | `placement=top` … `left` | `placement` | Preferred side. The kit flips it when there's no room. |
 | — (right-start, right-end, left-start, left-end) | `placement` | Any placement works in code, though Figma shows only some of them. |
 | `Tooltip/md/default/right-start` | `size="md" appearance="solid" placement="right-start"` | A reference frame, not a separate component. |
