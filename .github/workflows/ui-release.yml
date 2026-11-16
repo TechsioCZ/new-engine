@@ -1,14 +1,23 @@
 name: UI Release
 
+# Chained behind CI instead of racing it on the same push. CI's quality-gate
+# fails unless every blocking job succeeded, and on a push CI calls ui-quality
+# with mode: full, so a CI run that concluded success is itself the proof that
+# the strict release gate passed for that commit. Nothing here repeats it.
 on:
-  push:
-    branches:
-      - master
-      - main
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master]
   workflow_dispatch:
     inputs:
       force_release:
         description: Run the UI release even when Nx does not mark ui-kit as affected.
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: Run semantic-release with --dry-run. Resolves and prints the next version, publishes nothing.
         required: false
         type: boolean
         default: false
@@ -21,17 +30,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check-affected:
+  release:
+    # Absent context never proceeds: only a manual dispatch, or a CI run that
+    # was itself triggered by a push and concluded success, gets past this.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    outputs:
-      is_affected: ${{ steps.check.outputs.is_affected }}
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     steps:
+      # Under workflow_run, GITHUB_SHA is the default branch tip at dispatch
+      # time, not the commit CI validated. head_sha is.
+      - name: Resolve the commit to release
+        id: commit
+        env:
+          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          sha="${RUN_HEAD_SHA:-$DISPATCH_SHA}"
+          if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Resolved commit is not a full SHA: '$sha'"
+            exit 1
+          fi
+          echo "Releasing commit $sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ steps.commit.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
+
+      # The thing that stops a silent SHA swap: everything below builds and
+      # publishes from this working tree, so it must be the commit CI validated.
+      - name: Assert the checkout is the resolved commit
+        env:
+          EXPECTED_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          if [ "$actual" != "$EXPECTED_SHA" ]; then
+            echo "::error::Checked out $actual, expected $EXPECTED_SHA"
+            exit 1
+          fi
+          echo "Working tree is $actual"
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
@@ -40,6 +89,8 @@ jobs:
         with:
           node-version: 26.11.1
           cache: 'pnpm'
+          registry-url: https://registry.npmjs.org
+          scope: '@techsio'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
@@ -49,76 +100,86 @@ jobs:
         with:
           main-branch-name: master
 
-      - name: Check if UI is affected
-        id: check
+      # nx-set-shas derives NX_HEAD from GITHUB_SHA, which is wrong under
+      # workflow_run. Pin both ends explicitly instead of trusting the context.
+      - name: Pin the Nx SHAs to the resolved commit
+        env:
+          HEAD_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NX_BASE:-}" ]; then
+            echo "::error::nx-set-shas produced no NX_BASE"
+            exit 1
+          fi
+          git cat-file -e "${NX_BASE}^{commit}"
+          echo "NX_BASE=${NX_BASE}" >> "$GITHUB_ENV"
+          echo "NX_HEAD=${HEAD_SHA}" >> "$GITHUB_ENV"
+          echo "NX_BASE=${NX_BASE} NX_HEAD=${HEAD_SHA}"
+
+      # Two reasons not to publish, both normal outcomes rather than failures:
+      # a newer commit is already master's tip (that push's CI releases it, and
+      # publishing a stale tree would be wrong), or Nx says ui-kit is untouched.
+      # semantic-release reads the branch from GITHUB_REF, which under
+      # workflow_run is refs/heads/master, so the tip assertion is also what
+      # makes that reading honest.
+      - name: Decide whether to publish this commit
+        id: decide
         env:
           FORCE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_release }}
+          HEAD_SHA: ${{ steps.commit.outputs.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+          tip="$(gh api "repos/${GITHUB_REPOSITORY}/commits/master" --jq .sha)"
+          if [ "$tip" != "$HEAD_SHA" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "$HEAD_SHA is no longer the tip of master ($tip); that commit's CI run releases instead."
+            exit 0
+          fi
+
           if [ "$FORCE_RELEASE" = "true" ]; then
-            echo "is_affected=true" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
             echo "UI release was manually forced"
             exit 0
           fi
 
-          AFFECTED=$(./node_modules/.bin/nubx --node nx show projects --affected --base="$NX_BASE" --head="$NX_HEAD")
+          AFFECTED="$(./node_modules/.bin/nubx --node nx show projects --affected --base="$NX_BASE" --head="$NX_HEAD")"
           echo "$AFFECTED"
-          if echo "$AFFECTED" | grep -q "^ui-kit$"; then
-            echo "is_affected=true" >> "$GITHUB_OUTPUT"
+          if printf '%s\n' "$AFFECTED" | grep -q '^ui-kit$'; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
             echo "UI library is affected, will proceed with release"
           else
-            echo "is_affected=false" >> "$GITHUB_OUTPUT"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
             echo "UI library is not affected, skipping release"
           fi
 
-  validate:
-    needs: check-affected
-    if: needs.check-affected.outputs.is_affected == 'true'
-    uses: ./.github/workflows/ui-quality.yml
-    with:
-      sha: ${{ github.sha }}
-
-  release:
-    needs: [check-affected, validate]
-    if: needs.check-affected.outputs.is_affected == 'true' && needs.validate.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.11.1
-          registry-url: https://registry.npmjs.org
-          scope: '@techsio'
-
       - name: Update npm (trusted publishing needs >= 11.5.1)
+        if: steps.decide.outputs.publish == 'true'
         run: npm install -g npm@latest
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=@techsio/ui-kit...
-
+      # The last gate before npm publish: rslib build with output checks,
+      # validate-package-exports and check:consumer, 11s.
       - name: Check UI package output
+        if: steps.decide.outputs.publish == 'true'
         run: pnpm -C libs/ui check:package
 
       - name: Fetch semantic-release notes
+        if: steps.decide.outputs.publish == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/notes/*:refs/notes/*" || true
 
       - name: Run semantic-release
+        if: steps.decide.outputs.publish == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm -C libs/ui semantic-release
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run: resolving the next version without publishing."
+            pnpm -C libs/ui exec semantic-release --dry-run
+            exit 0
+          fi
+          pnpm -C libs/ui semantic-release
