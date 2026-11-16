@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+: "${SHARD:?}" "${SCOPE:?}" "${BUNDLE:?}" "${BUNDLES:?}" "${RUNNER_TEMP:?}"
 
 # Each suite has its own container, server, and output directory. Behavior is
 # mostly browser waits, so it can use the cores screenshot workers leave idle.
@@ -11,9 +12,9 @@ run_group() {
   local started=$SECONDS
   if [ "$SCOPE" = full ]; then
     unset VISUAL_CHANGED_FILES_FROM
-    PLAYWRIGHT_RELEASE_SHARD="$shard" pnpm --dir libs/ui test:components:release
+    VISUAL_RELEASE_READINESS=1 PLAYWRIGHT_RELEASE_SHARD="$shard" node libs/ui/scripts/run-component-tests.mjs
   else
-    VISUAL_CHANGED_BEHAVIOR=1 PLAYWRIGHT_SHARD="$shard" pnpm --dir libs/ui test:components
+    VISUAL_CHANGED_BEHAVIOR=1 PLAYWRIGHT_SHARD="$shard" node libs/ui/scripts/run-component-tests.mjs
   fi
   echo "CI timing: $group $((SECONDS - started))s"
   local out="$RUNNER_TEMP/component-reports/ui-$group-shard-${shard%/*}"

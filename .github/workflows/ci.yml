@@ -109,8 +109,8 @@ jobs:
   # A push to master runs mode: full. That is the release-readiness gate and it
   # lives here now, because verifyFullShards -> assertVisualCompletion over every
   # story x every createVisualMatrix project is reachable only in full mode
-  # (libs/ui/scripts/verify-component-shards.mjs). ui-release.yml chains behind
-  # this workflow's conclusion instead of repeating it, so this call must never
+  # (libs/ui/scripts/verify-component-shards.mjs). ui-release.yml prepares in
+  # parallel but requires this workflow's success before publishing. This call must never
   # be made conditional: a skipped need would take quality-gate with it.
   ui-quality:
     uses: ./.github/workflows/ui-quality.yml
