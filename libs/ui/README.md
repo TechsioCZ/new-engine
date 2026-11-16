@@ -190,6 +190,39 @@ never rewrites data such as stored settings).
 Run your type checker afterwards; story `args`, wrapper components and
 data objects are reported there. The full table is in
 `codemods/unified-style-props/README.md`.
+## Shape utilities (`corner-shape`, `border-shape`)
+
+The kit ships utilities for two CSS properties that Tailwind and Figma do not
+cover yet. They come with every token entry point (`tokens`,
+`tokens-with-tailwind`, `tokens/*`).
+
+`corner-*` sets [`corner-shape`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/corner-shape)
+(Chrome/Edge 139+, Safari 27.3+). It reshapes the curve that `rounded-*`
+draws; background, border, outline and shadow follow it:
+
+```tsx
+<div className="rounded-2xl corner-squircle" />          {/* all corners */}
+<div className="rounded-lg corner-t-bevel" />            {/* top side */}
+<div className="rounded-lg corner-ss-scoop" />           {/* logical start-start corner */}
+<div className="rounded-2xl corner-[superellipse(1.5)]" /> {/* any curve */}
+<div className="rounded-lg corner-base" />               {/* brand default */}
+```
+
+- Values: `round` (default), `squircle`, `bevel`, `scoop`, `notch`, `square`,
+  or `superellipse(<number>)`. Sides `t r b l s e`, corners `tl tr br bl ss se es ee`.
+- Without a radius it does nothing. Browsers without support ignore it and keep
+  the rounded corner. Use `supports-[corner-shape:squircle]:` for another fallback.
+- `corner-base` reads `--corner-shape-base`; override it per brand to reshape
+  everything that uses it (see the `app-token-overrides` skill).
+- Figma's corner smoothing (~60%, iOS) is the nearest look: use `corner-squircle`.
+
+`border-shape-*` sets [`border-shape`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-shape)
+and is **experimental** (Chrome 147+ only): `border-shape-[circle(50%)]` strokes
+the border along a shape, `border-shape-[<outer>_<inner>]` fills between two,
+`border-shape-none` resets it. It ignores `rounded-*`/`corner-*`, renders solid
+and changes the hit area; other browsers show the normal rectangular border.
+
+Live examples: Storybook → Overview → Shape.
 
 ## Source layout and token ownership
 

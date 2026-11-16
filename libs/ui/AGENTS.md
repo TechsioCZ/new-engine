@@ -228,6 +228,17 @@ Common prefixes used in this repo:
 - Storybook: semantic tokens are allowed for demonstration
 - Brand/status text accents use `--color-<semantic>-fg` (e.g., `--color-primary-fg`, `--color-success-fg`)
 
+## Shape utilities (`src/tokens/_shape.css`)
+
+Tailwind and Figma do not ship `corner-shape` / `border-shape` yet, so the kit owns them:
+
+- `corner-{shape}` sets `corner-shape` from the `--corner-shape-*` scale (`round`, `squircle`, `bevel`, `scoop`, `notch`, `square`) or an arbitrary value (`corner-[superellipse(1.5)]`, `corner-(--x)`). Sides `corner-{t,r,b,l,s,e}-*` and corners `corner-{tl,tr,br,bl,ss,se,es,ee}-*` mirror `rounded-*`.
+- It only reshapes an existing radius: always pair it with `rounded-*`. Unsupported browsers keep the plain rounded corner, so no fallback is needed; for a different one use `supports-[corner-shape:squircle]:…`.
+- `corner-base` reads the semantic `--corner-shape-base` (default `round`), the brand override point. Components adopt it via component tokens (`--corner-shape-<component>: var(--corner-shape-base)`) when a component opts in.
+- `border-shape-*` is **experimental** (Chrome 147+): arbitrary values and `border-shape-none` only. It replaces `rounded-*`/`corner-*`, renders solid, and changes the hit area — do not use it in components until it ships in more engines.
+- Figma has no corner-shape; its corner smoothing (~60%, iOS) maps to `corner-squircle`. Do not add Figma variables for it yet.
+- Register new prefixes in `scripts/token-utility-prefixes.js` so the token validators read them.
+
 ## Figma Sync Rules
 
 - Codebase token architecture is the source of truth for Figma library work.

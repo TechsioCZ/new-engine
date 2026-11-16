@@ -38,6 +38,7 @@
     --container-5xl: var(--dimension-container-5xl);
     --container-6xl: var(--dimension-container-6xl);
     --container-max-w: var(--dimension-container-max-w);
+    --corner-shape-base: var(--corner-shape-round);
     --color-primary: var(--color-primary-300);
     --color-primary-hover: var(--color-bg-primary-hover);
     --color-primary-active: var(--color-bg-primary-active);

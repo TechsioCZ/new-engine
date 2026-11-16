@@ -16,6 +16,7 @@ import { performance } from "node:perf_hooks"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import {
   COLOR_PREFIXES,
+  CORNER_SHAPE_PREFIXES,
   GAP_PREFIXES,
   HEIGHT_PREFIXES,
   INSET_PREFIXES,
@@ -130,6 +131,7 @@ const UTILITY_PREFIXES = {
   duration: ["duration"],
   ease: ["ease"],
   animate: ["animate"],
+  "corner-shape": CORNER_SHAPE_PREFIXES,
 }
 
 // Map CSS token to possible Tailwind utility classes

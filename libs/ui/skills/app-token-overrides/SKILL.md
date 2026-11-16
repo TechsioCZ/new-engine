@@ -72,6 +72,22 @@ When using nested scheme scopes, include `.light`, `.dark`, `.always-light`,
 intentionally re-resolve the default alias graph; repeat your app semantic
 sources there if they should replace those defaults.
 
+### Reshape corners for the whole brand
+
+`corner-base` (from `src/tokens/_shape.css`) reads `--corner-shape-base`,
+which defaults to `round`. Override that one semantic token to reshape every
+element using `corner-base`. It needs a `rounded-*` radius to show, and
+browsers without `corner-shape` keep the plain rounded corner:
+
+```css
+:root, [data-theme] {
+  --corner-shape-base: var(--corner-shape-squircle);
+}
+```
+
+Point it at the keyword scale (`--corner-shape-round | squircle | bevel |
+scoop | notch | square`) or any `superellipse(<number>)`.
+
 ### Use component overrides only for exceptions
 
 For one exceptional primary Button, use `--color-button-bg-primary-base`
