@@ -28,7 +28,7 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
   time docker build -t "$image" -f docker/development/playwright/Dockerfile .
 fi
 
-run_group visual 6 &
+run_group visual 4 &
 visual_pid=$!
 (
   run_group desktop 2

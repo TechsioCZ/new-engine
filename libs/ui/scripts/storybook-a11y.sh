@@ -38,8 +38,7 @@ case "${SCOPE}" in
     ;;
 esac
 SHARDS_SCRIPT="${ROOT_DIR}/scripts/verify-a11y-shards.mjs"
-STORYBOOK_DIR="${A11Y_STORYBOOK_STATIC_DIR:-${ROOT_DIR}/storybook-static}"
-INDEX_JSON="${STORYBOOK_DIR}/index.json"
+INDEX_JSON="${ROOT_DIR}/storybook-static/index.json"
 
 mkdir -p "${REPORT_ROOT}"
 # The reporter appends to NDJSON, so each invocation needs fresh output.
@@ -64,7 +63,7 @@ fi
 cp "${INDEX_JSON}" "${FULL_INDEX}"
 
 SERVER_LOG="${RUN_REPORT_ROOT}/server.log"
-VISUAL_STORYBOOK_PORT="${PORT}" VISUAL_STORYBOOK_STATIC_DIR="${STORYBOOK_DIR}" \
+VISUAL_STORYBOOK_PORT="${PORT}" VISUAL_STORYBOOK_STATIC_DIR="${ROOT_DIR}/storybook-static" \
   node test/visual-static-server.mjs > "${SERVER_LOG}" 2>&1 &
 SERVER_PID=$!
 cleanup() {

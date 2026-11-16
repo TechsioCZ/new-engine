@@ -149,7 +149,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
-          cache: pnpm
       - if: steps.scope.outputs.scope != 'none'
         run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
       - name: Hash the Storybook inputs
@@ -173,7 +172,6 @@ jobs:
           path: libs/ui/storybook-static
           include-hidden-files: true
           if-no-files-found: error
-          retention-days: 1
 
   accessibility:
     needs: plan
@@ -182,7 +180,7 @@ jobs:
     with:
       sha: ${{ inputs.sha }}
       scope: ${{ needs.plan.outputs.scope }}
-      workers: 2
+      workers: 4
       storybook_artifact: ui-storybook-${{ inputs.sha }}
       changed_files_artifact: ${{ needs.plan.outputs.list == 'true' && format('ui-changed-files-{0}', inputs.sha) || '' }}
 
@@ -190,7 +188,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.scope != 'none'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       max-parallel: 4

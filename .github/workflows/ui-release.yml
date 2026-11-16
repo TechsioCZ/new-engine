@@ -28,7 +28,7 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
       actions: read
       contents: write
@@ -85,25 +85,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Set Nx SHAs
-        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
-        with:
-          main-branch-name: master
-
-      # Pin the affected calculation to the commit this job builds.
-      - name: Pin the Nx SHAs to the resolved commit
+      - name: Compare against the last published UI release
         env:
           HEAD_SHA: ${{ steps.commit.outputs.sha }}
         run: |
           set -euo pipefail
-          if [ -z "${NX_BASE:-}" ]; then
-            echo "::error::nx-set-shas produced no NX_BASE"
-            exit 1
-          fi
-          git cat-file -e "${NX_BASE}^{commit}"
-          echo "NX_BASE=${NX_BASE}" >> "$GITHUB_ENV"
-          echo "NX_HEAD=${HEAD_SHA}" >> "$GITHUB_ENV"
-          echo "NX_BASE=${NX_BASE} NX_HEAD=${HEAD_SHA}"
+          tag="$(git describe --tags --match 'ui-kit-v*' --abbrev=0 "$HEAD_SHA")"
+          base="$(git rev-parse "${tag}^{commit}")"
+          echo "NX_BASE=$base" >> "$GITHUB_ENV"
+          echo "NX_HEAD=$HEAD_SHA" >> "$GITHUB_ENV"
+          echo "Unpublished changes since $tag ($base) through $HEAD_SHA"
 
       # Two reasons not to publish, both normal outcomes rather than failures:
       # a newer commit is already master's tip (that push's CI releases it, and
