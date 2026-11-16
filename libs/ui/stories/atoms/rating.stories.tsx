@@ -503,36 +503,41 @@ export const ChangingScale: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "Use whole stars" })
     )
-    const thirdStar = canvas.getByRole("radio", { name: "3 stars" })
-    const secondStar = canvas.getByRole("radio", { name: "2 stars" })
-    await waitFor(() => expect(thirdStar).toHaveAttribute("aria-checked", "true"))
-    thirdStar.focus()
+    // Re-query at every step. Each scale change remounts the Zag items, so a
+    // held reference waits on a detached node that can never become checked or
+    // focused (convention: stories/atoms/tooltip.stories.tsx).
+    const getThirdStar = () => canvas.getByRole("radio", { name: "3 stars" })
+    const getSecondStar = () => canvas.getByRole("radio", { name: "2 stars" })
+    await waitFor(() =>
+      expect(getThirdStar()).toHaveAttribute("aria-checked", "true")
+    )
+    getThirdStar().focus()
     await userEvent.keyboard("{ArrowLeft}")
     // Finish value, ARIA and deferred focus before starting the next transaction.
     await waitFor(() => {
       expect(new FormData(form).get("score")).toBe("2")
-      expect(secondStar).toHaveAttribute("aria-checked", "true")
-      expect(secondStar).toHaveFocus()
+      expect(getSecondStar()).toHaveAttribute("aria-checked", "true")
+      expect(getSecondStar()).toHaveFocus()
     })
     await userEvent.click(
       canvas.getByRole("button", { name: "Restore original score" })
     )
     await waitFor(() => {
       expect(new FormData(form).get("score")).toBe("3")
-      expect(thirdStar).toHaveAttribute("aria-checked", "true")
+      expect(getThirdStar()).toHaveAttribute("aria-checked", "true")
     })
-    thirdStar.focus()
+    getThirdStar().focus()
     await userEvent.keyboard("{ArrowLeft}")
     await waitFor(() => {
       expect(new FormData(form).get("score")).toBe("2")
-      expect(secondStar).toHaveAttribute("aria-checked", "true")
-      expect(secondStar).toHaveFocus()
+      expect(getSecondStar()).toHaveAttribute("aria-checked", "true")
+      expect(getSecondStar()).toHaveFocus()
     })
     form.reset()
     await waitFor(() => {
       expect(new FormData(form).get("score")).toBe("3")
-      expect(thirdStar).toHaveAttribute("aria-checked", "true")
-      expect(thirdStar).toHaveAttribute("tabindex", "0")
+      expect(getThirdStar()).toHaveAttribute("aria-checked", "true")
+      expect(getThirdStar()).toHaveAttribute("tabindex", "0")
     })
     // Scale normalization and two real arrow edits notify; both resets are silent.
     await expect(canvas.getByText("Score changes: 3")).toBeVisible()

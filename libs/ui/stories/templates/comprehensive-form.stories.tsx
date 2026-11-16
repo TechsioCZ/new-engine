@@ -878,8 +878,10 @@ export const ModalPopupContracts: Story = {
       const category = within(modal).getByRole("combobox", {
         name: "Modal category",
       })
-      category.focus()
-      await userEvent.keyboard("{ArrowDown}")
+      // userEvent waits until pointer events are enabled on the target; a raw
+      // focus() does not, so the key that followed it was dropped while the
+      // previous modal still held the document.
+      await userEvent.click(category)
       const tree = await body.findByRole("tree")
       await expect(modal.contains(tree)).toBe(true)
       await expect(tree.closest('[aria-hidden="true"], [inert]')).toBeNull()
@@ -888,7 +890,7 @@ export const ModalPopupContracts: Story = {
       const search = within(modal).getByRole("combobox", {
         name: "Modal suggestions",
       })
-      search.focus()
+      await userEvent.click(search)
       await userEvent.keyboard("{ArrowDown}")
       const list = await body.findByRole("listbox")
       await expect(modal.contains(list)).toBe(true)
@@ -904,6 +906,16 @@ export const ModalPopupContracts: Story = {
       await userEvent.keyboard("{Escape}")
       await waitFor(() => expect(modal).not.toBeInTheDocument())
       await waitFor(() => expect(trigger).toHaveFocus())
+      // The next host must not start while this one still owns the document:
+      // an inert body makes focus() a no-op and pointer-events: none swallows
+      // the click that follows.
+      await waitFor(() => {
+        const bodyElement = canvasElement.ownerDocument.body
+        expect(bodyElement).not.toHaveAttribute("data-inert")
+        expect(bodyElement).not.toHaveAttribute("data-scroll-lock")
+        expect(bodyElement).not.toHaveAttribute("inert")
+        expect(getComputedStyle(bodyElement).pointerEvents).not.toBe("none")
+      })
     }
   },
 }

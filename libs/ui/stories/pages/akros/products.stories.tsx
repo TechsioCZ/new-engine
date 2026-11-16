@@ -1,4 +1,4 @@
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import { parcelComplete } from "../page-models"
 import { DemoBoundary } from "../demo-boundary"
 import type { Meta, StoryObj } from "@storybook/react"
@@ -733,7 +733,9 @@ export const EditorMissingDimensions: Story = {
       canvas.getByRole("textbox", { name: "Description" }),
       "A complete description"
     )
-    await expect(save).toBeEnabled()
+    // Save enables from the editor's own draft state, which React commits
+    // after the last keystroke rather than within it.
+    await waitFor(() => expect(save).toBeEnabled())
     await userEvent.click(save)
     await userEvent.click(canvas.getByRole("tab", { name: "Images" }))
     const input =
@@ -748,9 +750,9 @@ export const EditorMissingDimensions: Story = {
         { type: "image/svg+xml" }
       )
     )
-    await expect(save).toBeEnabled()
+    await waitFor(() => expect(save).toBeEnabled())
     await userEvent.click(save)
-    await expect(save).toBeDisabled()
+    await waitFor(() => expect(save).toBeDisabled())
     await userEvent.click(canvas.getByRole("tab", { name: "Description" }))
   },
   name: "Product editor — missing dimensions",
