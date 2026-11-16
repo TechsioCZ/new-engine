@@ -56,6 +56,8 @@ const meta: Meta<FormArgs> = {
     readOnly: { control: "boolean" },
   },
   args: {
+    // Wrapper parts (Label, StatusText) read this size, so keep it explicit.
+    size: "md",
     validateStatus: "default",
     disabled: false,
     readOnly: false,

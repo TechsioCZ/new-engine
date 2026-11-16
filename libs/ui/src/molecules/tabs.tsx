@@ -491,7 +491,7 @@ Tabs.Trigger = function TabsTrigger({
   ref,
   className,
   size = "current",
-  unstyled = true,
+  unstyled,
   type = "button",
   ...props
 }: TabsTriggerProps) {
@@ -546,7 +546,11 @@ Tabs.Trigger = function TabsTrigger({
       }}
       size={size}
       type={type}
-      unstyled={unstyled}
+      unstyled={
+        // Unstyled by default; an explicit look opts back into Button visuals.
+        unstyled ??
+        (props.appearance === undefined && props.severity === undefined)
+      }
     >
       {children}
     </Button>

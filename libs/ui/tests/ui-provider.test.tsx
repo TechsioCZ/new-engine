@@ -5,6 +5,7 @@ import { Badge } from "../src/atoms/badge"
 import { Button } from "../src/atoms/button"
 import { Icon } from "../src/atoms/icon"
 import { Tooltip } from "../src/atoms/tooltip"
+import { SearchForm } from "../src/molecules/search-form"
 import { Tabs } from "../src/molecules/tabs"
 import { BASE_UI_DEFAULTS, brandUIDefaults } from "../src/theme/theme-config"
 import { UIProvider, useUIDefaults } from "../src/theme/ui-provider"
@@ -177,5 +178,58 @@ describe("brand UI defaults", () => {
   it("starts every brand from the md + solid baseline", () => {
     expect(BASE_UI_DEFAULTS).toEqual({ size: "md", appearance: "solid" })
     expect(brandUIDefaults("business")).toEqual(BASE_UI_DEFAULTS)
+  })
+})
+
+describe("migration regressions", () => {
+  it("keeps the SearchForm input's own validateStatus", () => {
+    const markup = renderToStaticMarkup(
+      <SearchForm defaultValue="book">
+        <SearchForm.Control>
+          <SearchForm.Input validateStatus="error" />
+        </SearchForm.Control>
+      </SearchForm>
+    )
+    expect(markup).toContain('aria-invalid="true"')
+    expect(markup).toContain("border-input-border-danger-base")
+  })
+
+  it("lets the form status win over the input's own status", () => {
+    const markup = renderToStaticMarkup(
+      <SearchForm defaultValue="book" validateStatus="success">
+        <SearchForm.Control>
+          <SearchForm.Input validateStatus="error" />
+        </SearchForm.Control>
+      </SearchForm>
+    )
+    expect(markup).toContain("border-input-border-success-base")
+    expect(markup).not.toContain('aria-invalid="true"')
+  })
+
+  it("styles an unstyled-by-default trigger when a look is set explicitly", () => {
+    const tabs = (trigger: ReactNode) =>
+      renderToStaticMarkup(
+        <Tabs defaultValue="a">
+          <Tabs.List>{trigger}</Tabs.List>
+          <Tabs.Content value="a">Panel</Tabs.Content>
+        </Tabs>
+      )
+    expect(tabs(<Tabs.Trigger value="a">A</Tabs.Trigger>)).not.toContain(
+      "bg-button-bg-primary-base"
+    )
+    expect(
+      tabs(
+        <Tabs.Trigger appearance="solid" value="a">
+          A
+        </Tabs.Trigger>
+      )
+    ).toContain("bg-button-bg-primary-base")
+    expect(
+      tabs(
+        <Tabs.Trigger appearance="solid" unstyled value="a">
+          A
+        </Tabs.Trigger>
+      )
+    ).not.toContain("bg-button-bg-primary-base")
   })
 })

@@ -410,7 +410,10 @@ SearchForm.Input = function SearchFormInput({
         data-readonly={readOnly ? "" : undefined}
         disabled={disabled || props.disabled}
         readOnly={readOnly || props.readOnly}
-        validateStatus={validateStatus}
+        // The form's status wins; without one the input keeps its own.
+        validateStatus={
+          validateStatus === "default" ? props.validateStatus : validateStatus
+        }
       />
     </div>
   )

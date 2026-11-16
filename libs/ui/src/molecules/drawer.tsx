@@ -505,7 +505,7 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
     onClick,
     ref,
     size = "current",
-    unstyled = true,
+    unstyled,
     type = "button",
     ...buttonProps
   } = props
@@ -525,7 +525,12 @@ Drawer.CloseTrigger = function DrawerCloseTrigger(
       ref={ref}
       size={size}
       type={type}
-      unstyled={unstyled}
+      unstyled={
+        // Unstyled by default; an explicit look opts back into Button visuals.
+        unstyled ??
+        (buttonProps.appearance === undefined &&
+          buttonProps.severity === undefined)
+      }
     >
       {children}
     </Button>

@@ -585,6 +585,8 @@ function ComponentComparison() {
               items={comboboxItems}
               label="Fruit"
               placeholder="Pick a fruit"
+              // Combobox hands its own size to the label; keep md explicit.
+              size="md"
             />
           </ComponentCard>
           <ComponentCard title="Dialog">

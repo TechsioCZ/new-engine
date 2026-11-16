@@ -512,7 +512,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   onClick,
   ref,
   size = "current",
-  unstyled = true,
+  unstyled,
   type = "button",
   ...props
 }: PopoverCloseTriggerProps) {
@@ -539,7 +539,11 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
       ref={ref}
       size={size}
       type={type}
-      unstyled={unstyled}
+      unstyled={
+        // Unstyled by default; an explicit look opts back into Button visuals.
+        unstyled ??
+        (props.appearance === undefined && props.severity === undefined)
+      }
     >
       {children}
     </Button>

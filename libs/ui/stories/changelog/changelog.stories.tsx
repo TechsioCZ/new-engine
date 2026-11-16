@@ -56,13 +56,13 @@ const CHANGELOG = `
 - **Breaking:** \`variant\` → \`appearance\`; row actions \`tone\` → \`severity\`; toolbar actions take Button's \`severity\` / \`appearance\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
 
 ### DatePicker v2.0.0
-- **Breaking:** trigger parts take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+- **Breaking:** trigger parts take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Parts that are unstyled by default (\`Tabs.Trigger\`, close and clear triggers) switch to Button visuals when \`appearance\` or \`severity\` is set; an explicit \`unstyled\` still wins.
 
 ### Dialog v1.4.0
 - Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
 
 ### Drawer v2.0.0
-- **Breaking:** \`Drawer.Trigger\` / \`Drawer.CloseTrigger\` take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`; \`CloseTrigger\` \`tone\` → \`severity\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+- **Breaking:** \`Drawer.Trigger\` / \`Drawer.CloseTrigger\` take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`; \`CloseTrigger\` \`tone\` → \`severity\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Parts that are unstyled by default (\`Tabs.Trigger\`, close and clear triggers) switch to Button visuals when \`appearance\` or \`severity\` is set; an explicit \`unstyled\` still wins.
 
 ### FacetFilterPanel v1.4.0
 - Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Its nested accordion uses \`appearance="ghost" nested\`.
@@ -128,7 +128,7 @@ const CHANGELOG = `
 - Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
 
 ### Popover v2.0.0
-- **Breaking:** \`Popover.Trigger\` / \`Popover.CloseTrigger\` take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+- **Breaking:** \`Popover.Trigger\` / \`Popover.CloseTrigger\` take Button's \`severity\` / \`appearance\` / \`unstyled\` instead of \`variant\` / \`theme\`. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). Parts that are unstyled by default (\`Tabs.Trigger\`, close and clear triggers) switch to Button visuals when \`appearance\` or \`severity\` is set; an explicit \`unstyled\` still wins.
 
 ### PriceBlock v1.0.2
 - Internal discount badge uses Badge \`severity\`.
@@ -176,7 +176,7 @@ const CHANGELOG = `
 - **Breaking:** \`variant\` → \`appearance\` (\`line\` | \`outline\` | \`striped\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
 
 ### Tabs v2.0.0
-- **Breaking:** \`variant\` → \`appearance\`; \`default\` → \`underline\`, \`line\` / \`solid\` / \`outline\` unchanged. \`Tabs.Trigger\` takes Button's \`appearance\` / \`severity\` / \`unstyled\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`.
+- **Breaking:** \`variant\` → \`appearance\`; \`default\` → \`underline\`, \`line\` / \`solid\` / \`outline\` unchanged. \`Tabs.Trigger\` takes Button's \`appearance\` / \`severity\` / \`unstyled\`. \`size\` and \`appearance\` follow the nearest \`UIProvider\`. Parts that are unstyled by default (\`Tabs.Trigger\`, close and clear triggers) switch to Button visuals when \`appearance\` or \`severity\` is set; an explicit \`unstyled\` still wins.
 
 ### Textarea v2.0.0
 - **Breaking:** the validation \`variant\` → \`validateStatus\`; \`variant="borderless"\` → \`appearance="ghost"\` (default \`outline\`). \`size\` and \`appearance\` follow the nearest \`UIProvider\`.

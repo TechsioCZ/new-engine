@@ -92,6 +92,7 @@ export const Playground: Story = {
     step: 0.1,
     disabled: false,
     invalid: false,
+    size: "md",
     locale: "en-US",
     allowMouseWheel: true,
     clampValueOnBlur: true,

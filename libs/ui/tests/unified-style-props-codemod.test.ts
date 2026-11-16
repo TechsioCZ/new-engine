@@ -81,6 +81,51 @@ describe("unified-style-props codemod", () => {
     expect(out).toContain('{ appearance: "outline", label: "Go" }')
   })
 
+  it("never rewrites literals in conditions or comparisons", () => {
+    const out = run(
+      `${imports}<Button theme={kind === "light" ? "outlined" : "solid"} />`
+    )
+    expect(out).toContain('appearance={kind === "light" ? "outline" : "solid"}')
+  })
+
+  it("maps fallbacks but flags values it cannot see", () => {
+    const result = transformSource(
+      "example.tsx",
+      `${imports}<><Button theme={custom ?? "borderless"} /><Button theme={pick(kind)} /></>`
+    ) as { text: string; notes: string[] }
+    expect(result.text).toContain('appearance={custom ?? "ghost"}')
+    expect(result.text).toContain("appearance={pick(kind)}")
+    expect(result.notes.join("\n")).toContain("appearance={pick(kind)}")
+  })
+
+  it("flags special values inside expressions instead of guessing", () => {
+    const result = transformSource(
+      "example.tsx",
+      `${imports}<Badge variant={draft ? "outline" : "info"} />`
+    ) as { text: string; notes: string[] }
+    expect(result.text).toContain('severity={draft ? "outline" : "info"}')
+    expect(result.notes.join("\n")).toContain('"outline"')
+  })
+
+  it("keeps dynamic TotalsSummary emphasis and maps its values", () => {
+    const source = `import { TotalsSummary } from "@techsio/ui-kit/molecules/totals-summary"
+const rows = [
+  { id: "a", label: "Fixed", value: "1", emphasis: "default" },
+  { id: "b", label: "Sale", value: "2", emphasis: discounted ? "discount" : "default" },
+  { id: "c", label: "Other", value: "3", emphasis: rowEmphasis },
+]`
+    const result = transformSource("example.tsx", source) as {
+      text: string
+      notes: string[]
+    }
+    expect(result.text).toContain('severity: "neutral" }')
+    expect(result.text).toContain(
+      'severity: discounted ? "discount" : "neutral"'
+    )
+    expect(result.text).toContain("severity: rowEmphasis")
+    expect(result.notes.join("\n")).toContain("severity={rowEmphasis}")
+  })
+
   it("leaves files without ui-kit imports alone", () => {
     const source = `import { Button } from "other-lib"\n<Button variant="danger" theme="outlined" />`
     expect(run(source)).toBe(source)

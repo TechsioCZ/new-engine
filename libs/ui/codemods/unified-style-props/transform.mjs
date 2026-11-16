@@ -47,26 +47,87 @@ function attrText(name, value) {
   return `${name}="${value}"`
 }
 
-/** Map every string literal inside an expression (e.g. a ternary). */
-function mapLiterals(node, map, edits, sourceFile) {
-  let mapped = false
+/**
+ * Map the string literals an expression can evaluate to: ternary branches,
+ * `||` / `??` operands and the right side of `&&`. Literals in conditions or
+ * comparisons (`kind === "light" ? …`) are never touched. Returns whether
+ * every result was a literal, and which mapped values need a special rewrite
+ * that cannot be expressed inside an expression (e.g. Badge "outline").
+ */
+const isWrapper = (node) =>
+  ts.isParenthesizedExpression(node) ||
+  ts.isAsExpression(node) ||
+  ts.isSatisfiesExpression(node) ||
+  ts.isNonNullExpression(node)
+
+const isLiteral = (node) =>
+  ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+
+/** The sub-expressions whose value the whole expression can take, or null. */
+function resultBranches(node) {
+  if (isWrapper(node)) {
+    return [node.expression]
+  }
+  if (ts.isConditionalExpression(node)) {
+    return [node.whenTrue, node.whenFalse]
+  }
+  if (!ts.isBinaryExpression(node)) {
+    return null
+  }
+  const op = node.operatorToken.kind
+  if (
+    op === ts.SyntaxKind.BarBarToken ||
+    op === ts.SyntaxKind.QuestionQuestionToken
+  ) {
+    return [node.left, node.right]
+  }
+  return op === ts.SyntaxKind.AmpersandAmpersandToken ? [node.right] : null
+}
+
+function mapLiteral(literal, rule, edits, sourceFile, result) {
+  if (rule.special?.[literal.text]) {
+    result.special.push(literal.text)
+    return
+  }
+  const next = rule.map(literal.text)
+  if (typeof next === "string" && next !== literal.text) {
+    edits.push({
+      start: literal.getStart(sourceFile),
+      end: literal.getEnd(),
+      text: `"${next}"`,
+    })
+  }
+}
+
+function mapValues(node, rule, edits, sourceFile) {
+  const result = { complete: true, special: [] }
   const visit = (child) => {
-    if (ts.isStringLiteral(child)) {
-      const next = map(child.text)
-      if (typeof next === "string" && next !== child.text) {
-        edits.push({
-          start: child.getStart(sourceFile),
-          end: child.getEnd(),
-          text: `"${next}"`,
-        })
-      }
-      mapped = true
+    if (isLiteral(child)) {
+      mapLiteral(child, rule, edits, sourceFile, result)
       return
     }
-    ts.forEachChild(child, visit)
+    const branches = resultBranches(child)
+    if (branches) {
+      branches.forEach(visit)
+    } else {
+      result.complete = false
+    }
   }
   visit(node)
-  return mapped
+  return result
+}
+
+function reviewNote(notes, where, prop, expression, sourceFile, outcome) {
+  const code = expression.getText(sourceFile).replace(/\s+/g, " ")
+  if (outcome.special.length > 0) {
+    notes.push(
+      `${where}: \`${prop}={${code}}\` can be ${outcome.special.map((v) => `"${v}"`).join(", ")}, which needs separate props — rewrite by hand`
+    )
+  } else if (!outcome.complete) {
+    notes.push(
+      `${where}: check \`${prop}={${code}}\` — the value is computed, so its possible values were not mapped`
+    )
+  }
 }
 
 function transformAttribute(attribute, rule, edits, notes, sourceFile, where) {
@@ -88,10 +149,8 @@ function transformAttribute(attribute, rule, edits, notes, sourceFile, where) {
     text: rule.to,
   })
   if (init && ts.isJsxExpression(init) && init.expression) {
-    mapLiterals(init.expression, rule.map, edits, sourceFile)
-    if (rule.special && ts.isIdentifier(init.expression)) {
-      notes.push(`${where}: check \`${rule.to}={${init.expression.text}}\``)
-    }
+    const outcome = mapValues(init.expression, rule, edits, sourceFile)
+    reviewNote(notes, where, rule.to, init.expression, sourceFile, outcome)
   }
 }
 
@@ -128,7 +187,9 @@ function transformJsx(node, imports, edits, notes, sourceFile) {
 const THEME_VALUES = new Set([...Object.keys(THEME_TO_APPEARANCE), "unstyled"])
 
 /** Object literals such as DataTable toolbar actions or story args. */
-function transformObject(node, edits, sourceFile, emphasisFile) {
+const EMPHASIS_RULE = { map: (v) => (v === "default" ? "neutral" : v) }
+
+function transformObject(node, edits, notes, sourceFile, emphasisFile) {
   for (const property of node.properties) {
     if (
       !(ts.isPropertyAssignment(property) && ts.isIdentifier(property.name))
@@ -152,8 +213,32 @@ function transformObject(node, edits, sourceFile, emphasisFile) {
           : `appearance: "${THEME_TO_APPEARANCE[value]}"`
       )
     } else if (key === "emphasis" && emphasisFile) {
-      replace(
-        `severity: "${value === "default" || value === null ? "neutral" : value}"`
+      if (value !== null) {
+        replace(`severity: "${EMPHASIS_RULE.map(value)}"`)
+        continue
+      }
+      // Computed: rename the key, map its result literals, keep the logic.
+      edits.push({
+        start: property.name.getStart(sourceFile),
+        end: property.name.getEnd(),
+        text: "severity",
+      })
+      const outcome = mapValues(
+        property.initializer,
+        EMPHASIS_RULE,
+        edits,
+        sourceFile
+      )
+      const { line } = sourceFile.getLineAndCharacterOfPosition(
+        property.getStart(sourceFile)
+      )
+      reviewNote(
+        notes,
+        `${sourceFile.fileName}:${line + 1} TotalsSummary row`,
+        "severity",
+        property.initializer,
+        sourceFile,
+        outcome
       )
     }
   }
@@ -189,7 +274,7 @@ export function transformSource(fileName, text) {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       transformJsx(node, imports, edits, notes, sourceFile)
     } else if (ts.isObjectLiteralExpression(node)) {
-      transformObject(node, edits, sourceFile, emphasisFile)
+      transformObject(node, edits, notes, sourceFile, emphasisFile)
     }
     ts.forEachChild(node, visit)
   }

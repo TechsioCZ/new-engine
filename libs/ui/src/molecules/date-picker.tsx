@@ -1814,7 +1814,7 @@ DatePicker.Trigger = function DatePickerTrigger({
   iconSize = "current",
   ref,
   size = "current",
-  unstyled = true,
+  unstyled,
   type = "button",
   ...props
 }: DatePickerTriggerProps) {
@@ -1840,7 +1840,11 @@ DatePicker.Trigger = function DatePickerTrigger({
       ref={composedRef}
       size={size}
       type={type}
-      unstyled={unstyled}
+      unstyled={
+        // Unstyled by default; an explicit look opts back into Button visuals.
+        unstyled ??
+        (props.appearance === undefined && props.severity === undefined)
+      }
     >
       {children}
     </Button>
@@ -1859,7 +1863,7 @@ DatePicker.ClearTrigger = function DatePickerClearTrigger({
   onClick,
   ref,
   size = "current",
-  unstyled = true,
+  unstyled,
   type = "button",
   ...props
 }: DatePickerClearTriggerProps) {
@@ -1893,7 +1897,11 @@ DatePicker.ClearTrigger = function DatePickerClearTrigger({
       ref={ref}
       size={size}
       type={type}
-      unstyled={unstyled}
+      unstyled={
+        // Unstyled by default; an explicit look opts back into Button visuals.
+        unstyled ??
+        (props.appearance === undefined && props.severity === undefined)
+      }
     >
       {children}
     </Button>

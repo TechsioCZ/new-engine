@@ -190,6 +190,7 @@ const meta = {
     onOpenChange: fn(),
     placement: "end",
     preventScroll: true,
+    size: "md",
     trapFocus: true,
     triggerLabel: "Open drawer",
   },

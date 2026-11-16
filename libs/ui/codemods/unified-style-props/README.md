@@ -39,13 +39,21 @@ survive. Run your formatter and type checker afterwards.
 | any object literal | `theme: "outlined"` (Button themes) | `appearance: "outline"` |
 | TotalsSummary rows | `emphasis: "default"` | `severity: "neutral"` |
 
-String literals inside expressions are mapped too
+String literals an expression can evaluate to are mapped too — ternary
+branches, `||` / `??` operands and the right side of `&&`
 (`theme={on ? "solid" : "outlined"}` → `appearance={on ? "solid" : "outline"}`).
+Literals in conditions and comparisons are left alone
+(`kind === "light" ? …` keeps `"light"`).
 
 ## What it reports instead
 
 - A computed value it cannot map (`<Badge variant={status} />`) is renamed and
   listed under `review:` — check that the variable now holds the new values.
+- A value that needs separate props (Badge `"outline"`, Accordion `"child"`,
+  Button `"unstyled"`) inside an expression is left as is and listed.
+- A computed TotalsSummary `emphasis` keeps its logic: the key becomes
+  `severity`, its literals are mapped (`"default"` → `"neutral"`), and it is
+  listed when a value is not a literal.
 - Wrapper components, spread props, Storybook `args` / `argTypes` and data
   objects with a `variant` key are not rewritten; the type checker lists them.
 
