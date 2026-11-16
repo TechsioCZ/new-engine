@@ -39,6 +39,7 @@ jobs:
       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     permissions:
+      actions: read
       contents: write
       issues: write
       pull-requests: write
@@ -60,6 +61,24 @@ jobs:
           fi
           echo "Releasing commit $sha"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # Manual releases used to go through validate too. Removing duplicate
+      # validation must not let a manual publish bypass the exact-SHA CI gate.
+      - name: Require successful push CI before a manual publish
+        if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
+        env:
+          HEAD_SHA: ${{ steps.commit.outputs.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          count="$(gh api --method GET \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+            -f event=push -f head_sha="$HEAD_SHA" -f branch=master \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No successful master push CI for $HEAD_SHA; refusing to publish."
+            exit 1
+          fi
 
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
