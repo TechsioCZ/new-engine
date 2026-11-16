@@ -40,7 +40,6 @@ const SCANNED_NAME = "scanned.json"
 const CALIBRATION_NAME = "calibration.ndjson"
 const SHARD_FORMAT = /^([1-9][0-9]*)\/([1-9][0-9]*)$/
 const SUITE_SEPARATOR = "--"
-const REGEX_SPECIAL = /[\\^$.*+?()[\]{}|/]/g
 const NEWLINE = /\r?\n/
 /** Statuses that mean Jest ran the story; anything else left it unscanned. */
 const EXECUTED = new Set(["passed", "failed"])
@@ -207,20 +206,28 @@ async function changedSuites(indexFile, changedFiles) {
   }
 }
 
-/** Jest matches a path pattern against the generated suite files.
- * @param {string[]} suites
- * @returns {string}
+/** The index this shard is given to scan: the same index with every entry that
+ * belongs to another shard removed.
+ *
+ * This, and not a Jest path pattern, is how a shard is narrowed. The runner
+ * generates one suite per index entry it is served, so filtering the index
+ * makes the shard boundary data rather than a regex. A pattern cannot be used:
+ * test-storybook assembles its jest command into a string and runs it through
+ * /bin/sh, so "(^|/)(?:atoms-badge|...)" dies with `Syntax error: "("
+ * unexpected` (measured on run 43889315897), and every alternation needs
+ * characters the shell would eat.
+ * @param {object} index
+ * @param {string[]} storyIds
+ * @returns {object}
  */
-function suitePattern(suites) {
-  if (suites.length === 0) {
-    // A shard that owns no suite must run nothing. An empty alternation would
-    // match every path instead, which is the opposite.
-    return "$^"
-  }
-  const names = suites
-    .map((suite) => suite.replace(REGEX_SPECIAL, "\\$&"))
-    .join("|")
-  return `(^|/)(?:${names})\\.test\\.js$`
+function shardIndex(index, storyIds) {
+  const mine = new Set(storyIds)
+  const entries = Object.fromEntries(
+    Object.entries(index.entries ?? index).filter(([, entry]) =>
+      mine.has(entry.id)
+    )
+  )
+  return index.entries ? { ...index, entries } : entries
 }
 
 /** Deterministic, balanced assignment of suites to shards.
@@ -333,11 +340,11 @@ async function planShard(argv) {
     themeSuites: selected,
     themeStoryIds,
   })
+  // The runner is served this index, so it generates exactly these suites.
+  writeJson(requireArg(argv, "--write-index"), shardIndex(index, storyIds))
   process.stderr.write(
     `A11y plan ${theme} shard ${shard.index}/${shard.total}: ${mine.length} of ${selected.length} suites, ${storyIds.length} of ${themeStoryIds.length} stories (${selection.reason})\n`
   )
-  // Always: every shard now runs exactly the suites planned for it.
-  process.stdout.write(`${suitePattern(mine)}\n`)
 }
 
 /**

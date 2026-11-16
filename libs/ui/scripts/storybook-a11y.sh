@@ -52,6 +52,16 @@ if [ "${A11Y_STORYBOOK_REBUILD:-1}" != "0" ]; then
   node "${ROOT_DIR}/scripts/visual-storybook-build.mjs" --ensure
 fi
 
+# Every shard plans and records against the build's whole index; only the copy
+# the runner is served gets narrowed to the shard, so a stale narrowing from a
+# previous invocation can never be mistaken for the build's real contents.
+FULL_INDEX="${RUN_REPORT_ROOT}/index-full.json"
+if [ ! -f "${INDEX_JSON}" ]; then
+  echo "The Storybook build produced no index at ${INDEX_JSON}." >&2
+  exit 1
+fi
+cp "${INDEX_JSON}" "${FULL_INDEX}"
+
 SERVER_LOG="${RUN_REPORT_ROOT}/server.log"
 python3 -m http.server "${PORT}" --bind 127.0.0.1 \
   --directory "${ROOT_DIR}/storybook-static" > "${SERVER_LOG}" 2>&1 &
@@ -94,22 +104,21 @@ while read -r brand mode; do
   theme="${brand}-${mode}"
   THEME_DIR="${RUN_REPORT_ROOT}/${theme}"
   mkdir -p "${THEME_DIR}"
-  # Declares the stories this theme must cover and prints a Jest path pattern for a narrowed scan.
-  PLAN_ARGS=(--plan --index "${INDEX_JSON}" --out "${THEME_DIR}" --theme "${theme}" \
+  # Declares the stories this theme must cover and which of them are this shard's.
+  PLAN_ARGS=(--plan --index "${FULL_INDEX}" --out "${THEME_DIR}" --theme "${theme}" \
     --shard "${SHARD}" --theme-count "${THEME_COUNT}" --scope "${SCOPE}")
   if [ "${SCOPE}" = "changed" ]; then
     PLAN_ARGS+=(--changed-files "${CHANGED_FILES}")
   fi
-  # The plan prints the path pattern of the suites this shard owns. Jest's own
-  # --shard is deliberately not used: it orders suites by a SHA-1 of each test
-  # path relative to rootDir, and the runner regenerates the index-json suites
-  # into a fresh mkdtemp directory every invocation, so the shards hash
-  # different paths and neither agree nor cover. Measured on run 43882857373:
-  # 21 business-light stories ran in two shards and others in none.
-  PATTERN="$(node "${SHARDS_SCRIPT}" "${PLAN_ARGS[@]}")"
-  [ -n "${PATTERN}" ] || { echo "The a11y plan produced no suite pattern for ${A11Y_THEME:-all} shard ${SHARD}" >&2; exit 1; }
+  # The plan writes the index this shard is served, which is what narrows it.
+  # Jest's own --shard is deliberately not used: it orders suites by a SHA-1 of
+  # each test path relative to rootDir, and the runner regenerates the
+  # index-json suites into a fresh mkdtemp directory every invocation, so the
+  # shards hash different paths and neither agree nor cover. Measured on run
+  # 43882857373: 21 business-light stories ran in two shards and others in none.
+  node "${SHARDS_SCRIPT}" "${PLAN_ARGS[@]}" --write-index "${INDEX_JSON}"
   RUN_ARGS=(--url "http://127.0.0.1:${PORT}" --config-dir .storybook --index-json --json \
-    --maxWorkers "${WORKERS}" "${PATTERN}")
+    --maxWorkers "${WORKERS}")
   # --json puts Jest's machine-readable result on stdout and leaves every human message on stderr, so the log keeps the failures
   # and the report keeps the list of stories this shard ran.
   JEST_STDOUT="${THEME_DIR}/jest-stdout.log"
@@ -132,9 +141,10 @@ while read -r brand mode; do
     # A narrowed scan can hand a shard only stories that belong to another theme, or no story at all.
     echo "No story in this shard produced an a11y report for ${theme}."
   fi
-  # Records what this shard scanned from Jest's own result JSON. Calibration and story coverage are asserted over the theme's
-  # shards together, because Jest hands the calibration suite to exactly one of them.
-  node "${SHARDS_SCRIPT}" --record --index "${INDEX_JSON}" --out "${THEME_DIR}" \
+  # Records what this shard scanned from Jest's own result JSON, mapped through the whole index so a story belonging to another
+  # shard is recognised rather than unmatched. Calibration and story coverage are asserted over the theme's shards together,
+  # because the plan hands the calibration suite to exactly one of them.
+  node "${SHARDS_SCRIPT}" --record --index "${FULL_INDEX}" --out "${THEME_DIR}" \
     --theme "${theme}" --shard "${SHARD}" --jest-output "${JEST_STDOUT}" || STATUS=1
 done <<< "$THEME_MATRIX"
 
