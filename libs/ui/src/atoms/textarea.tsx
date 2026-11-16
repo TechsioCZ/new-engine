@@ -2,114 +2,210 @@
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the textarea-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { Ref, TextareaHTMLAttributes } from "react"
+import {
+  type Ref,
+  type TextareaHTMLAttributes,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  subscribeOwnerFormReset,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
-const textareaVariants = tv({
-  base: [
-    "block w-full",
-    "font-normal",
-    "bg-textarea-bg",
-    "text-textarea-fg",
-    "placeholder:font-normal",
-    "placeholder:text-textarea-fg-placeholder",
-    "border-(length:--border-width-textarea) border-textarea-border",
-    "rounded-textarea",
-    "transition-all duration-200 motion-reduce:transition-none",
-    "hover:border-textarea-border-hover hover:bg-textarea-bg-hover",
-    "focus:border-textarea-border-focus focus:bg-textarea-bg-focus",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-    "focus-visible:outline-textarea-ring",
-    "focus-visible:outline-offset-(length:--default-ring-offset)",
-    "disabled:pointer-events-none disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",
-  ],
-  variants: {
-    variant: {
-      default: "",
-      error: [
-        "border-(length:--border-width-validation)",
-        "border-textarea-border-danger-base",
-        "hover:border-textarea-border-danger-hover",
-        "focus:border-textarea-border-danger-focus",
-        "placeholder:text-textarea-placeholder-danger",
-      ],
-      success: [
-        "border-(length:--border-width-validation)",
-        "border-textarea-border-success-base",
-        "hover:border-textarea-border-success-hover",
-        "focus:border-textarea-border-success-focus",
-      ],
-      warning: [
-        "border-(length:--border-width-validation)",
-        "border-textarea-border-warning-base",
-        "hover:border-textarea-border-warning-hover",
-        "focus:border-textarea-border-warning-focus",
-      ],
-      borderless: [
-        "border-transparent",
-        "bg-textarea-bg-borderless",
-        "hover:bg-textarea-bg-borderless-hover",
-        "focus:bg-textarea-bg-borderless-focus",
-      ],
+const textareaVariants = tv(
+  {
+    base: [
+      "form-control-readonly textarea-readonly form-control-disabled block w-full",
+      "font-normal",
+      "bg-textarea-bg",
+      "text-textarea-fg",
+      "placeholder:font-normal",
+      "placeholder:text-textarea-fg-placeholder",
+      "border-(length:--border-width-textarea) border-textarea-border",
+      "rounded-textarea",
+      "transition duration-200 motion-reduce:transition-none",
+      "hover:border-textarea-border-hover hover:bg-textarea-bg-hover",
+      "focus:border-textarea-border-focus focus:bg-textarea-bg-focus",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-textarea-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "disabled:cursor-not-allowed disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",
+      // A disabled field is inert, so it must not advertise the native resize
+      // grip; editable and read-only fields keep their configured resize mode.
+      "disabled:resize-none",
+      // Native constraint validation once the user has interacted with the field.
+      "user-invalid:border-(length:--border-width-validation)",
+      "user-invalid:border-textarea-border-danger-base",
+      "user-invalid:hover:border-textarea-border-danger-hover",
+      "user-invalid:focus:border-textarea-border-danger-focus",
+    ],
+    variants: {
+      // Declared before validateStatus so a validation border wins over `ghost`.
+      appearance: {
+        outline: "",
+        ghost: [
+          "border-transparent",
+          "bg-textarea-bg-borderless",
+          "hover:bg-textarea-bg-borderless-hover",
+          "focus:bg-textarea-bg-borderless-focus",
+        ],
+      },
+      validateStatus: {
+        default: "",
+        error: [
+          "border-(length:--border-width-validation)",
+          "border-textarea-border-danger-base",
+          "hover:border-textarea-border-danger-hover",
+          "focus:border-textarea-border-danger-focus",
+          "placeholder:text-textarea-placeholder-danger",
+        ],
+        success: [
+          "border-(length:--border-width-validation)",
+          "border-textarea-border-success-base",
+          "hover:border-textarea-border-success-hover",
+          "focus:border-textarea-border-success-focus",
+        ],
+        warning: [
+          "border-(length:--border-width-validation)",
+          "border-textarea-border-warning-base",
+          "hover:border-textarea-border-warning-hover",
+          "focus:border-textarea-border-warning-focus",
+        ],
+      },
+      size: {
+        sm: "rounded-textarea-sm p-textarea-sm px-textarea-inline-sm text-textarea-sm",
+        md: "rounded-textarea-md p-textarea-md px-textarea-inline-md text-textarea-md",
+        lg: "rounded-(--radius-textarea-surface-lg) p-textarea-lg px-textarea-inline-lg text-textarea-lg",
+      },
+      resize: {
+        none: "resize-none",
+        y: "resize-y",
+        x: "resize-x",
+        both: "resize",
+        auto: "field-sizing-content resize-none",
+      },
+      readOnly: {
+        true: "",
+      },
     },
-    size: {
-      sm: "rounded-textarea-sm p-textarea-sm text-textarea-sm",
-      md: "rounded-textarea-md p-textarea-md text-textarea-md",
-      lg: "p-textarea-lg text-textarea-lg",
-    },
-    resize: {
-      none: "resize-none",
-      y: "resize-y",
-      x: "resize-x",
-      both: "resize",
-      auto: "field-sizing-content resize-none",
-    },
-    readonly: {
-      true: "cursor-default border-textarea-border-disabled bg-textarea-bg-disabled text-textarea-fg-disabled",
+    compoundVariants: [
+      {
+        // Validation and ghost borders stay authoritative on read-only fields.
+        validateStatus: "default",
+        appearance: "outline",
+        readOnly: true,
+        class: [
+          "hover:border-textarea-border-readonly-hover",
+          "focus:border-textarea-border-readonly-focus",
+        ],
+      },
+    ],
+    defaultVariants: {
+      size: "md",
+      resize: "y",
+      validateStatus: "default",
+      appearance: "outline",
     },
   },
-  defaultVariants: {
-    size: "md",
-    resize: "y",
-    variant: "default",
-  },
-})
+  {
+    twMergeConfig: {
+      theme: {
+        radius: ["textarea", "textarea-sm", "textarea-md"],
+      },
+    },
+  }
+)
 
-export interface TextareaProps
-  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size">,
-    VariantProps<typeof textareaVariants> {
-  ref?: Ref<HTMLTextAreaElement>
-}
+export type TextareaProps = Omit<
+  TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "size"
+> &
+  VariantProps<typeof textareaVariants> & {
+    ref?: Ref<HTMLTextAreaElement>
+    /** @deprecated Use native readOnly. Both aliases share appearance and behavior. */
+    readonly?: boolean
+  }
 
 export function Textarea({
-  size,
+  size: sizeProp,
+  appearance: appearanceProp,
   resize,
-  variant,
+  validateStatus,
   readonly,
+  readOnly = readonly,
+  id,
   className,
   ref,
   ...props
 }: TextareaProps) {
+  const generatedId = useId()
+  const { size, appearance } = useUIDefaults(
+    "Textarea",
+    { size: sizeProp, appearance: appearanceProp },
+    textareaVariants
+  )
+  const currentValue = useRef(props.value)
+  useLayoutEffect(() => {
+    currentValue.current = props.value
+  })
+  const textareaRef = useMemo(
+    () => (textarea: HTMLTextAreaElement | null) => {
+      const stopReset = textarea
+        ? subscribeOwnerFormReset(textarea, () => {
+            syncReactFormControl(
+              textarea,
+              currentValue.current == null
+                ? textarea.value
+                : String(currentValue.current)
+            )
+          })
+        : undefined
+      const cleanup = typeof ref === "function" ? ref(textarea) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = textarea
+      }
+      return () => {
+        stopReset?.()
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
   return (
     <textarea
       className={textareaVariants({
         size,
         resize,
-        variant,
-        readonly,
+        validateStatus,
+        appearance,
+        readOnly: Boolean(readOnly),
         className,
       })}
-      readOnly={readonly}
-      ref={ref}
+      data-readonly={readOnly ? "" : undefined}
+      id={id || generatedId}
+      readOnly={readOnly}
+      ref={textareaRef}
       {...props}
+      aria-invalid={validateStatus === "error" ? true : props["aria-invalid"]}
     />
   )
 }

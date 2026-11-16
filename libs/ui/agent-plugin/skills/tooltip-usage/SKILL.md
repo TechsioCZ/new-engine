@@ -1,37 +1,84 @@
 ---
-component_version: "1.0.0"
 name: tooltip-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Tooltip for
   supplemental hover/focus help using the Zag.js tooltip wrapper, supported
   timing, placement, interaction, controlled state, and token styling props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/tooltip.tsx"
-  - "libs/ui/src/tokens/components/atoms/_tooltip.css"
-  - "libs/ui/stories/atoms/tooltip.stories.tsx"
-  - "libs/ui/src/atoms/tooltip.figma.ts"
-  - "https://zagjs.com/components/react/tooltip"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: "https://zagjs.com/components/react/tooltip"
+  contributor_sources: "libs/ui/src/atoms/tooltip.tsx libs/ui/src/tokens/components/atoms/_tooltip.css libs/ui/stories/atoms/tooltip.stories.tsx libs/ui/src/atoms/tooltip.figma.ts"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Tooltip Usage
 
 Use Tooltip for short supplemental information on hover/focus. Do not use it
 for required instructions, blocking errors, or primary content.
 
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Tooltip`.
+
+**Use it when**
+
+- Short, non-essential hints on hover and focus: icon-button names, truncated text, keyboard shortcuts.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Required information or instructions | visible help text |
+| Interactive content | Popover |
+| Errors | inline StatusText / field error |
+
+**Do**
+
+- Keep to a few words; repeat the ActionIcon's `aria-label`.
+- Attach to focusable triggers so keyboard users get it too.
+- Use for the full value of truncated cells.
+
+**Don't**
+
+- Put tooltips on disabled buttons (they don't receive hover/focus) — explain next to the control.
+- Put links or buttons inside a tooltip.
+- Use tooltips on touch-only surfaces as the only explanation.
+
+**Copy and states**
+
+- No trailing period for fragments; sentence case.
+
+**Behaviour (from the UX spec)**
+
+- The task must make sense without the hint, including on touch screens where there is no hover.
+- The bubble stays open while the pointer moves onto it (`interactive`, default) and Escape closes it without moving focus.
+- Never the only place for a format or instruction a field needs; show that as help text.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `placement=…` (8 values) | `placement` (any Zag placement; flips on collision) |
+| `Tooltip/md/default/right-start` frame | `size="md" appearance="solid" placement="right-start"` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Tooltip → UX guidelines*.
+
 ## Setup
 
 ```tsx
-import { Button } from "@techsio/ui-kit/atoms/button"
+import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"
 import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 
 <Tooltip content="Search products" placement="top">
-  <Button aria-label="Search" icon="icon-[mdi--magnify]" />
+  <ActionIcon aria-label="Search" icon="icon-[mdi--magnify]" />
 </Tooltip>
 ```
 
@@ -40,7 +87,7 @@ Supported UI-kit props:
 ```text
 content: ReactNode
 size: sm | md | lg
-variant: default | outline
+appearance: solid | outline
 openDelay, closeDelay, interactive, defaultOpen, open, onOpenChange, disabled
 closeOnEscape, closeOnPointerDown, closeOnScroll, closeOnClick
 placement, gutter, offset, flip, sameWidth, boundary, listeners, strategy
@@ -52,7 +99,7 @@ placement, gutter, offset, flip, sameWidth, boundary, listeners, strategy
 
 ```tsx
 <Tooltip content="The SKU is visible to warehouse staff.">
-  <Button theme="unstyled" aria-label="SKU help" icon="icon-[mdi--help-circle-outline]" />
+  <ActionIcon aria-label="SKU help" icon="icon-[mdi--help-circle-outline]" />
 </Tooltip>
 ```
 
@@ -62,11 +109,11 @@ If the text is required to complete the task, render visible help text instead.
 
 ```tsx
 <Tooltip content="Delete product">
-  <Button variant="danger" aria-label="Delete product" icon="icon-[mdi--trash-can-outline]" />
+  <ActionIcon severity="danger" aria-label="Delete product" icon="icon-[mdi--trash-can-outline]" />
 </Tooltip>
 ```
 
-Use UI-kit Button/Icon props for triggers instead of native buttons.
+Use UI-kit triggers (ActionIcon for icon-only, Button for text) instead of native buttons.
 
 ### Use Zag positioning props through the wrapper
 
@@ -135,7 +182,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Tooltip content="Help" variant="default" size="md" />
+<Tooltip content="Help" appearance="solid" size="md" />
 ```
 
 Use `_tooltip.css` or app token overrides for visual changes.
@@ -157,7 +204,8 @@ Correct:
 ```tsx
 <FormInput
   type="password"
-  helperText="Password must contain 12 characters."
+  label="Password"
+  helpText="Password must contain 12 characters."
 />
 ```
 
@@ -171,3 +219,20 @@ rg -n "<Tooltip[^>]*className=.*(bg-|text-|rounded-|px-|py-)" apps
 rg -U -n "<Tooltip[\\s\\S]{0,240}<button\\b" apps
 rg -n "openDelay|closeDelay|placement|interactive|closeOn" apps
 ```
+
+## Surface bounds and content
+
+Hints wrap even unbroken references and are capped at 22rem or the viewport
+minus the shared edge spacing. Content and positioner share popup-layer,
+including Zag’s managed layer index. The opaque fill, arrow and soft shadow
+follow the active theme. Keep tooltip content non-interactive; use Popover
+for buttons, links or inputs. Existing `interactive` permits pointer travel
+onto the hint, not keyboard focusable content. Essential help stays visible.
+
+Tooltip forwards all Zag machine options, including `ids`, `getRootNode`, and
+trigger-value callbacks. Positioning options may be supplied at the top level
+for compatibility or in `positioning`; nested options take precedence.
+Escape closes an open tooltip without also dismissing its parent modal. A
+focused managed popup outside the hint's owning scope takes priority: opening a
+Menu after a hint means the first Escape closes the Menu, not the older hint.
+The next Escape can dismiss the hint while leaving the modal open.

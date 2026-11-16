@@ -6,6 +6,15 @@
  * (repeat/minmax can't be expressed as a Figma variable).
  */
 
+/* Hover text must remain text, not the brand's decorative fill. */
+:root {
+  --color-footer-interactive: var(--color-fg-primary);
+  --color-footer-link-fg-hover: var(--color-footer-interactive);
+  --color-footer-title-fg-hover: var(--color-footer-interactive);
+}
+
 @theme static {
+  --color-footer-border: var(--color-border-primary);
+  --color-footer-bottom-border: var(--color-footer-border);
   --footer-cols: repeat(auto-fit, minmax(22%, 1fr));
 }

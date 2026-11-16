@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.2.0
+ * @componentVersion v2.0.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,15 +12,16 @@
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type RefObject,
+  type Ref,
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const tableVariants = tv({
   slots: {
-    root: ["w-full border-collapse", "bg-table-bg text-table-fg"],
+    root: ["isolate w-full border-collapse", "bg-table-bg text-table-fg"],
     caption: ["text-table-caption-fg", "text-start font-table-caption"],
     header: ["bg-table-header-bg", "font-table-header text-table-header-fg"],
     body: "",
@@ -48,7 +49,7 @@ const tableVariants = tv({
     ],
   },
   variants: {
-    variant: {
+    appearance: {
       line: {
         root: "",
         row: "border-b-(length:--border-table-width) border-table-border",
@@ -57,12 +58,16 @@ const tableVariants = tv({
         root: "border-(length:--border-table-width) rounded-table border-table-border shadow-table-outline",
       },
       striped: {
-        row: "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
+        row: "table-row-striped odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
       },
     },
     interactive: {
       true: {
-        row: "cursor-pointer hover:bg-table-row-bg-hover",
+        row: [
+          "table-row-interactive cursor-pointer hover:bg-table-row-bg-hover",
+          "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+          "focus-visible:-outline-offset-(length:--default-ring-width) focus-visible:outline-table-ring",
+        ],
       },
     },
     size: {
@@ -90,24 +95,23 @@ const tableVariants = tv({
     stickyFirstColumn: {
       true: {
         columnHeader: [
-          "first:sticky first:start-0 first:z-20",
+          "first:sticky first:inset-s-0 first:z-20",
           "bg-table-header-bg",
         ],
         cell: [
-          "first:sticky first:start-0 first:z-10",
+          "first:sticky first:inset-s-0 first:z-10",
           /* The sticky cell paints its own background to stay opaque over
            * scrolled content, which would otherwise hide the row's selected
            * fill behind it — mirror that state here via the row's `group`. */
-          "bg-table-bg group-data-[selected=true]:bg-table-row-bg-selected",
-          "group-data-[selected=true]:text-table-row-fg-selected",
+          "first:table-frozen-cell",
         ],
       },
     },
     showColumnBorder: {
       true: {
         columnHeader:
-          "border-r-(length:--border-table-width) border-table-border",
-        cell: "border-r-(length:--border-table-width) border-table-border",
+          "border-e-(length:--border-table-width) border-table-border",
+        cell: "border-e-(length:--border-table-width) border-table-border",
       },
     },
     captionPlacement: {
@@ -120,7 +124,7 @@ const tableVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "line",
+    appearance: "line",
     size: "md",
     interactive: false,
     stickyHeader: false,
@@ -132,7 +136,7 @@ const tableVariants = tv({
 
 // Context for sharing state between sub-components
 type TableContextValue = {
-  variant?: "line" | "outline" | "striped"
+  appearance?: "line" | "outline" | "striped"
   size?: "sm" | "md" | "lg"
   interactive?: boolean
   stickyHeader?: boolean
@@ -156,12 +160,12 @@ function useTableContext() {
 interface TableProps
   extends VariantProps<typeof tableVariants>,
     ComponentPropsWithoutRef<"table"> {
-  ref?: RefObject<HTMLTableElement>
+  ref?: Ref<HTMLTableElement>
 }
 
 export function Table({
-  variant,
-  size,
+  appearance: appearanceProp,
+  size: sizeProp,
   interactive,
   stickyHeader,
   stickyFirstColumn,
@@ -172,8 +176,13 @@ export function Table({
   className,
   ...props
 }: TableProps) {
+  const { size, appearance } = useUIDefaults(
+    "Table",
+    { size: sizeProp, appearance: appearanceProp },
+    tableVariants
+  )
   const styles = tableVariants({
-    variant,
+    appearance,
     size,
     interactive,
     stickyHeader,
@@ -185,7 +194,7 @@ export function Table({
   return (
     <TableContext.Provider
       value={{
-        variant,
+        appearance,
         size,
         interactive,
         stickyHeader,
@@ -204,7 +213,7 @@ export function Table({
 
 // Caption component
 interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
-  ref?: RefObject<HTMLTableCaptionElement>
+  ref?: Ref<HTMLTableCaptionElement>
 }
 
 Table.Caption = function TableCaption({
@@ -224,7 +233,7 @@ Table.Caption = function TableCaption({
 
 // Header component
 interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: Ref<HTMLTableSectionElement>
 }
 
 Table.Header = function TableHeader({
@@ -244,7 +253,7 @@ Table.Header = function TableHeader({
 
 // Body component
 interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: Ref<HTMLTableSectionElement>
 }
 
 Table.Body = function TableBody({
@@ -264,7 +273,7 @@ Table.Body = function TableBody({
 
 // Footer component
 interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: Ref<HTMLTableSectionElement>
 }
 
 Table.Footer = function TableFooter({
@@ -284,7 +293,7 @@ Table.Footer = function TableFooter({
 
 // Row component
 interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
-  ref?: RefObject<HTMLTableRowElement>
+  ref?: Ref<HTMLTableRowElement>
   selected?: boolean
 }
 
@@ -293,15 +302,34 @@ Table.Row = function TableRow({
   ref,
   className,
   selected,
+  onClick,
+  onKeyDown,
+  tabIndex,
   ...props
 }: TableRowProps) {
-  const { styles } = useTableContext()
+  const { styles, interactive } = useTableContext()
+  const actionable = Boolean(interactive && onClick)
 
   return (
     <tr
+      aria-selected={selected}
       className={styles.row({ className })}
       data-selected={selected}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        onKeyDown?.(event)
+        if (
+          !event.defaultPrevented &&
+          actionable &&
+          event.target === event.currentTarget &&
+          (event.key === "Enter" || event.key === " ")
+        ) {
+          event.preventDefault()
+          event.currentTarget.click()
+        }
+      }}
       ref={ref}
+      tabIndex={tabIndex ?? (actionable ? 0 : undefined)}
       {...props}
     >
       {children}
@@ -320,7 +348,7 @@ export type TableAlign = "start" | "center" | "end"
 // `align` is a deprecated HTML attribute typed as a bare string on th/td;
 // omitting it lets the typed prop above take the name.
 type TableColumnHeaderProps = Omit<ComponentPropsWithoutRef<"th">, "align"> & {
-  ref?: RefObject<HTMLTableCellElement>
+  ref?: Ref<HTMLTableCellElement>
   numeric?: boolean
   align?: TableAlign
 }
@@ -351,7 +379,7 @@ Table.ColumnHeader = function TableColumnHeader({
 
 // Cell component
 type TableCellProps = Omit<ComponentPropsWithoutRef<"td">, "align"> & {
-  ref?: RefObject<HTMLTableCellElement>
+  ref?: Ref<HTMLTableCellElement>
   numeric?: boolean
   align?: TableAlign
 }

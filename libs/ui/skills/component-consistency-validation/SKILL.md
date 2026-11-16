@@ -5,9 +5,10 @@ description: >
   stories, Figma Code Connect files, package exports, or validation scripts.
   Checks prop/variant/token/story/Figma consistency and recommends focused
   commands before maintainer handoff.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 sources:
   - "libs/ui/package.json"
   - "libs/ui/project.json"
@@ -42,13 +43,14 @@ Release       -> ui-kit-publish-readiness
 
 ```text
 src/atoms/button.tsx:
-  variant: primary | secondary | tertiary | danger | warning
-  theme: solid | light | borderless | outlined | unstyled
+  severity: primary | secondary | tertiary | danger | warning
+  appearance: solid | subtle | outline | ghost
+  unstyled: boolean
   size: sm | md | lg | current
 
 stories/atoms/button.stories.tsx:
-  argTypes.variant.options must match real variants
-  argTypes.theme.options must match real themes
+  argTypes.severity.options must match real severities
+  argTypes.appearance.options must match real appearances
   argTypes.size.options must match real sizes
 ```
 
@@ -93,7 +95,7 @@ Wrong:
 
 ```tsx
 argTypes: {
-  variant: { options: ["primary", "ghost"] },
+  severity: { options: ["primary", "ghost"] },
 }
 ```
 
@@ -101,7 +103,7 @@ Correct:
 
 ```tsx
 argTypes: {
-  variant: { options: ["primary", "secondary", "tertiary", "warning", "danger"] },
+  severity: { options: ["primary", "secondary", "tertiary", "warning", "danger"] },
 }
 ```
 
@@ -155,7 +157,7 @@ Source: libs/ui/src/molecules/carousel.tsx
 ```sh
 bunx biome check --write libs/ui/src/atoms/button.tsx libs/ui/stories/atoms/button.stories.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+pnpm --dir libs/ui build
 pnpm --dir libs/ui figma:connect:parse
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
@@ -165,3 +167,24 @@ pnpm --dir libs/ui test:components
 Run only commands relevant to the changed area unless the maintainer asks for
 a full readiness pass.
 
+
+## Shared-contract review (required)
+
+Check `libs/ui/docs/component-contracts.md` alongside API/token matching:
+
+- StatusText icons default on for error/warning/success, decorative ARIA,
+  multiline first-line alignment, unique message IDs and merged descriptions.
+- Every value control has true readOnly behavior (typing, keyboard, clear,
+  steppers, triggers, chips, paste/drop, controlled/uncontrolled); focus and copy
+  remain available. Disabled removes tab stops. CSS-only inertness is a failure.
+- Canonical size controls/stories use sm/md/lg and one consistently labeled Sizes
+  story, with compatibility exceptions documented rather than removed silently.
+- Popup Content and Positioner agree on popup-layer, use opaque surfaces and
+  border/shadow aliases, and preserve nested --layer-index.
+- All components have autodocs plus a useful component description; every story
+  has a what/why description and working controls, realistic content and action
+  hierarchy, no navigation away or foreign-component demo.
+- Review Business/light, Akros/light and N1/light. During the shared overhaul do not
+  run Storybook builds/servers or launch browsers. Use the supplied ds-page
+  runner; Playwright suites require Docker and its serial lock. Ignore the
+  generic Storybook-build recommendation above when this restriction applies.

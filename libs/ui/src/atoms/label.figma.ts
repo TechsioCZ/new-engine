@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-14837
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/label.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/label.tsx
 // component=Label
 
 import figma from "figma"
@@ -15,7 +15,7 @@ const required = figma.selectedInstance.getBoolean("required")
 // no text component property — the label is a plain text layer
 const childrenLayer = figma.selectedInstance.findText("Label")
 const children =
-  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
+  childrenLayer.type === "ERROR" ? undefined : childrenLayer.textContent
 
 export default {
   id: "Label",

@@ -6,7 +6,6 @@
     "**/node_modules/**",
     "**/dist/**",
     "**/.next/**",
-    "**/.medusa/**",
     "**/build/**",
     "**/coverage/**",
     "**/*.test.{ts,tsx,js,jsx}",
@@ -23,7 +22,7 @@
     "**/*.generated.{ts,tsx,js,jsx}",
     "**/.cache/**"
   ],
-  "path": ["apps/", "libs/"],
+  "path": ["libs/"],
   "format": ["typescript", "javascript", "css"],
   "absolute": true,
   "gitignore": true,

@@ -1,7 +1,18 @@
-/*
- * Breadcrumb — runtime tokens come entirely from
- * libs/ui/src/tokens/figma/variables.css. Only glyph aliases live here.
- */
+/* Breadcrumb colors and layout come from the Figma token layer. */
+@theme static {
+  /* Reference layer */
+  --outline-breadcrumb-focus-style: var(--default-ring-style);
+  --outline-breadcrumb-focus-width: var(--default-ring-width);
+  --outline-breadcrumb-focus-offset: var(--default-ring-offset);
+}
+
+/* Keep focus dimensions locally overridable without arbitrary TSX utilities. */
+@utility breadcrumb-focus {
+  outline-style: var(--outline-breadcrumb-focus-style);
+  outline-width: var(--outline-breadcrumb-focus-width);
+  outline-color: var(--color-breadcrumb-ring);
+  outline-offset: var(--outline-breadcrumb-focus-offset);
+}
 
 @utility token-icon-breadcrumb-separator {
   @apply token-icon-chevron-right;

@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-23394
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/phone-input.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/phone-input.tsx
 // component=PhoneInput
 
 import figma from "figma"
@@ -42,16 +42,16 @@ export default {
   ],
   example: figma.code`<PhoneInput defaultCountry="SK"${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "readOnly",
-    readOnly,
+    readOnly
   )}${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}>
         <PhoneInput.Label>Phone number</PhoneInput.Label>
         <PhoneInput.Control>

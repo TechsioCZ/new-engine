@@ -2,147 +2,597 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.0.0
+ * @componentVersion v1.5.0
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the rating-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as ratingGroup from "@zag-js/rating-group"
+import { connect, type IntlTranslations, machine } from "@zag-js/rating-group"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import { type HTMLAttributes, useId } from "react"
+import {
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactNode,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import {
+  isSilentChoiceReset,
+  runSilentChoiceReset,
+  trackChoiceFormControl,
+  useChoiceFocusRecovery,
+} from "../internal/choice-control"
+import { joinDescribedBy } from "../internal/described-by"
+import {
+  isEffectivelyDisabled,
+  syncReactFormControl,
+} from "../internal/form-control-lifecycle"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import type { UiMessages } from "../messages/ui-messages"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Label } from "./label"
+import { StatusText } from "./status-text"
+
+/** Clamp editable scores to their scale and precision; display averages retain fractions. */
+function normalizeRating(
+  value: number,
+  count: number,
+  allowHalf: boolean,
+  readOnly: boolean
+) {
+  const bounded = Math.max(
+    0,
+    Math.min(count, Number.isFinite(value) ? value : 0)
+  )
+  if (readOnly) {
+    return bounded
+  }
+  const step = allowHalf ? 2 : 1
+  return Math.round(bounded * step) / step
+}
+
+const ratingValueActions = machine.implementations?.actions ?? {}
+const guardRatingAction =
+  (action: typeof ratingValueActions.setValue) =>
+  (params: Parameters<NonNullable<typeof ratingValueActions.setValue>>[0]) => {
+    const root = params.scope.getById(
+      params.scope.ids?.root ?? `rating:${params.scope.id}`
+    )
+    if (
+      params.prop("readOnly") ||
+      isEffectivelyDisabled(root, params.prop("disabled"))
+    ) {
+      return
+    }
+    action?.(params)
+  }
+
+// The value watcher runs after React commits, outside runSilentChoiceReset's
+// synchronous callback guard. Remember the reset projection until that commit.
+const ratingResetValues = new WeakMap<object, number>()
+
+// Uncontrolled values and their focus requests commit together, avoiding Zag's frame racing
+// ahead of the value. Controlled values keep Zag's existing focus path: their parent may accept
+// a proposal in a separate React transition, outside this component's commit.
+const ratingFocusRequests = new WeakMap<object, () => void>()
+
+const ratingChoiceMachine: typeof machine = {
+  ...machine,
+  watch({ track, action, prop, context, scope }) {
+    track(
+      [() => prop("count"), () => prop("allowHalf"), () => prop("readOnly")],
+      () => {
+        action(["clearHoveredValue"])
+        // Controlled values are normalized projections, never unsolicited parent writes.
+        if (prop("value") !== undefined) {
+          return
+        }
+        const value = normalizeRating(
+          context.get("value"),
+          prop("count"),
+          !!prop("allowHalf"),
+          !!prop("readOnly")
+        )
+        if (value !== context.get("value")) {
+          context.set("value", value)
+        }
+      }
+    )
+    track([() => context.get("value")], () => {
+      const resetValue = ratingResetValues.get(context)
+      ratingResetValues.delete(context)
+      if (resetValue === context.get("value")) {
+        const input = scope.getById<HTMLInputElement>(
+          scope.ids?.hiddenInput ?? `rating:${scope.id}:input`
+        )
+        if (input) {
+          syncReactFormControl(input, String(resetValue))
+        }
+      } else {
+        action(["dispatchChangeEvent"])
+      }
+    })
+  },
+  implementations: {
+    ...machine.implementations,
+    actions: {
+      ...ratingValueActions,
+      setPrevValue: guardRatingAction(ratingValueActions.setPrevValue),
+      setNextValue: guardRatingAction(ratingValueActions.setNextValue),
+      setValueToMin: guardRatingAction(ratingValueActions.setValueToMin),
+      setValueToMax: guardRatingAction(ratingValueActions.setValueToMax),
+      setValue: guardRatingAction(ratingValueActions.setValue),
+      clearValue: guardRatingAction(ratingValueActions.clearValue),
+      setHoveredValue: guardRatingAction(ratingValueActions.setHoveredValue),
+      focusActiveRadio(params) {
+        if (params.prop("value") !== undefined) {
+          ratingValueActions.focusActiveRadio?.(params)
+          return
+        }
+        ratingFocusRequests.get(params.context)?.()
+      },
+    },
+    effects: {
+      ...machine.implementations?.effects,
+      trackFormControlState({ scope, context, prop }) {
+        const root = scope.getById(scope.ids?.root ?? `rating:${scope.id}`)
+        return trackChoiceFormControl(
+          root,
+          () => {
+            if (prop("value") === undefined) {
+              const restoredValue = normalizeRating(
+                context.initial("value"),
+                prop("count"),
+                !!prop("allowHalf"),
+                !!prop("readOnly")
+              )
+              ratingResetValues.set(context, restoredValue)
+              runSilentChoiceReset(context, () =>
+                context.set("value", restoredValue)
+              )
+            } else {
+              const input = root?.querySelector("input")
+              if (input) {
+                input.value = String(context.get("value"))
+              }
+            }
+          },
+          (disabled) => context.set("fieldsetDisabled", disabled)
+        )
+      },
+    },
+  },
+}
 
 const rating = tv({
   slots: {
-    root: ["grid items-center"],
-    control: ["flex"],
-    itemWrapper: [
-      "flex items-center",
-      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
-      "has-focus-visible:outline-rating-ring",
-      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
+    root: "grid min-w-0 max-w-full items-center",
+    control:
+      "rating-readonly form-control-readonly focus-visible:rating-focus-outline inline-flex w-fit max-w-full flex-wrap items-center",
     item: [
-      "cursor-pointer transition-colors duration-200",
-      "cursor-pointer transition-colors duration-200 motion-reduce:transition-none",
-      "text-rating-fg-base",
-      "data-highlighted:text-rating-fg-active",
-      "data-disabled:cursor-not-allowed",
-      "data-disabled:data-highlighted:text-rating-fg-disabled",
-      "token-icon-rating",
-      "data-half:token-icon-rating-half",
+      "rating-item-fluid inline-grid min-h-rating-target place-items-center",
+      "cursor-pointer data-disabled:cursor-not-allowed",
+      "focus-visible:rating-focus-outline",
     ],
+    glyph: [
+      "token-icon-rating pointer-events-none col-start-1 row-start-1 text-rating-fg-empty",
+      "transition-colors duration-200 motion-reduce:transition-none",
+      "data-highlighted:not-data-half:token-icon-rating-selected data-highlighted:not-data-disabled:text-rating-fg-selected",
+      "data-half:token-icon-rating-half rtl:data-half:-scale-x-100",
+      "data-disabled:text-rating-fg-disabled",
+    ],
+    fractionalGlyph: [
+      "token-icon-rating-selected rating-fractional-fill pointer-events-none col-start-1 row-start-1 text-rating-fg-selected",
+      "data-disabled:text-rating-fg-disabled",
+    ],
+    valueText:
+      "text-rating-fg-selected text-rating-value tabular-nums data-disabled:text-rating-fg-disabled",
   },
   variants: {
     size: {
       sm: {
         root: "gap-rating-sm",
-        control: "gap-rating-sm",
+        control: "gap-rating-control-sm",
         item: "text-rating-sm",
+        glyph: "text-rating-sm",
+        fractionalGlyph: "text-rating-sm",
       },
       md: {
         root: "gap-rating-md",
-        control: "gap-rating-md",
+        control: "gap-rating-control-md",
         item: "text-rating-md",
+        glyph: "text-rating-md",
+        fractionalGlyph: "text-rating-md",
       },
       lg: {
         root: "gap-rating-lg",
-        control: "gap-rating-lg",
+        control: "gap-rating-control-lg",
         item: "text-rating-lg",
+        glyph: "text-rating-lg",
+        fractionalGlyph: "text-rating-lg",
       },
     },
-    isInteractive: {
-      true: {},
-      false: {
-        item: "cursor-default",
-      },
-    },
+    isDisplay: { true: { item: "cursor-default" }, false: {} },
   },
-  defaultVariants: {
-    size: "md",
-  },
+  defaultVariants: { size: "md" },
 })
 
-type RatingVariants = Omit<VariantProps<typeof rating>, "isInteractive">
-
-export interface RatingProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange">,
-    RatingVariants {
-  value?: number
-  defaultValue?: number
-  count?: number
-  labelText?: string
-  readOnly?: boolean
-  disabled?: boolean
-  allowHalf?: boolean
-  name?: string
-  dir?: "ltr" | "rtl"
-  translations?: ratingGroup.IntlTranslations
-  onChange?: (value: number) => void
-  onHoverChange?: (value: number) => void
-}
+type RatingVariants = Omit<VariantProps<typeof rating>, "isDisplay">
+export type RatingProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> &
+  RatingVariants & {
+    value?: number
+    defaultValue?: number
+    count?: number
+    labelText?: string
+    readOnly?: boolean
+    /** Nonfocusable aggregate summary; does not participate in form submission. */
+    displayOnly?: boolean
+    disabled?: boolean
+    allowHalf?: boolean
+    name?: string
+    dir?: "ltr" | "rtl"
+    translations?: IntlTranslations
+    helpText?: ReactNode
+    validateStatus?: "default" | "error" | "warning" | "success"
+    onChange?: (value: number) => void
+    onHoverChange?: (value: number) => void
+  }
 
 export function Rating({
   value,
-  defaultValue,
+  defaultValue = 0,
   count = 5,
   labelText,
-  readOnly = false,
-  disabled = false,
+  readOnly: readOnlyProp = false,
+  displayOnly = false,
+  disabled: disabledProp = false,
   allowHalf = true,
   name,
   dir = "ltr",
   translations,
+  helpText,
+  validateStatus = "default",
   onChange,
   onHoverChange,
-  size = "md",
+  size: sizeProp,
   className,
+  "aria-describedby": ariaDescribedBy,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: RatingProps) {
+  const { size = "md" } = useUIDefaults("Rating", { size: sizeProp }, rating)
+  const readOnly = readOnlyProp || displayOnly
+  const messages = useUiMessages()
+  const zagTranslations = {
+    ...messages.rating.translations,
+    ...definedEntries(translations),
+  }
+  const [controlElement, setControlElement] = useState<HTMLDivElement | null>(
+    null
+  )
+  const disabled = useEffectiveDisabled(controlElement, disabledProp)
   const generatedId = useId()
-  const uniqueId = props.id || generatedId
-
-  const service = useMachine(ratingGroup.machine, {
-    id: uniqueId,
-    count,
-    value,
-    defaultValue,
+  const helpTextId = useId()
+  const scoreId = useId()
+  const id = props.id || generatedId
+  const invalid = validateStatus === "error"
+  const describedBy = joinDescribedBy(
+    ariaDescribedBy,
+    scoreId,
+    helpText ? helpTextId : undefined
+  )
+  const errorMessageId = invalid && helpText ? helpTextId : undefined
+  const interactive = !(readOnly || disabled)
+  const normalizedCount = Number.isFinite(count)
+    ? Math.max(1, Math.floor(count))
+    : 5
+  const focusRef = useChoiceFocusRecovery('[role="radio"]')
+  // Bumped only by an accepted interaction, so its commit is the only one that may claim focus.
+  const [focusRequest, setFocusRequest] = useState(0)
+  const controlRef = useMemo(
+    () => (node: HTMLDivElement | null) => {
+      focusRef.current = node
+      setControlElement(node)
+    },
+    [focusRef]
+  )
+  const service = useMachine(ratingChoiceMachine, {
+    id,
+    count: normalizedCount,
+    value:
+      value === undefined
+        ? undefined
+        : normalizeRating(value, normalizedCount, allowHalf, readOnly),
+    defaultValue: normalizeRating(
+      defaultValue,
+      normalizedCount,
+      allowHalf,
+      readOnly
+    ),
     disabled,
-    readOnly,
+    readOnly: readOnly && !disabled,
     allowHalf,
     name,
     dir,
-    translations,
+    translations: zagTranslations,
     onValueChange: ({ value: newValue }) => {
-      onChange?.(newValue)
+      if (interactive && !isSilentChoiceReset(service.context)) {
+        onChange?.(newValue)
+      }
     },
     onHoverChange: ({ hoveredValue }) => {
-      onHoverChange?.(hoveredValue)
+      if (interactive) {
+        onHoverChange?.(hoveredValue)
+      }
     },
   })
-
-  const api = ratingGroup.connect(service, normalizeProps)
-
-  const { root, control, itemWrapper, item } = rating({
-    size,
-    isInteractive: !(readOnly || disabled),
-  })
+  const api = connect(service, normalizeProps)
+  // The machine requests commit-owned focus only for uncontrolled interactions.
+  useLayoutEffect(() => {
+    const machineContext = service.context
+    ratingFocusRequests.set(machineContext, () => {
+      setFocusRequest((request) => request + 1)
+    })
+    return () => {
+      ratingFocusRequests.delete(machineContext)
+    }
+  }, [service.context])
+  const handledFocusRequest = useRef(focusRequest)
+  // Own the focus move inside the commit: only the request an interaction just made may move focus,
+  // so a later external value, read-only or scale change can never replay it.
+  useLayoutEffect(() => {
+    if (focusRequest === handledFocusRequest.current) {
+      return
+    }
+    handledFocusRequest.current = focusRequest
+    if (value !== undefined || !interactive) {
+      return
+    }
+    const checked = controlElement?.querySelector<HTMLElement>(
+      '[role="radio"][aria-checked="true"]'
+    )
+    if (checked && checked !== checked.ownerDocument.activeElement) {
+      checked.focus()
+    }
+  }, [controlElement, focusRequest, interactive, value])
+  const isDisplay = displayOnly
+  const styles = rating({ size, isDisplay })
 
   return (
-    <div className={root({ className })} {...api.getRootProps()} {...props}>
-      {labelText && <Label {...api.getLabelProps()}>{labelText}</Label>}
-      <input {...api.getHiddenInputProps()} />
-      <div className={control()} {...api.getControlProps()}>
-        {api.items.map((index) => (
-          <div className={itemWrapper()} key={`star-${index}`}>
-            <span className={item()} {...api.getItemProps({ index })} />
-          </div>
-        ))}
+    <div
+      className={styles.root({ className })}
+      {...api.getRootProps()}
+      {...props}
+      aria-disabled={disabled || undefined}
+    >
+      <RatingLabel
+        api={api}
+        disabled={disabled}
+        isDisplay={isDisplay}
+        labelText={labelText}
+        size={size}
+      />
+      {!displayOnly && (
+        <input
+          {...api.getHiddenInputProps()}
+          defaultValue={undefined}
+          value={api.value}
+        />
+      )}
+      <div
+        className={styles.control()}
+        {...getRatingControlProps(
+          api,
+          isDisplay,
+          labelText,
+          ariaLabel,
+          ariaLabelledBy,
+          messages
+        )}
+        aria-describedby={describedBy}
+        aria-errormessage={errorMessageId}
+        aria-invalid={invalid || undefined}
+        data-disabled={disabled ? "" : undefined}
+        data-readonly={readOnly && !(disabled || isDisplay) ? "" : undefined}
+        ref={controlRef}
+      >
+        <RatingItems
+          api={api}
+          describedBy={describedBy}
+          dir={dir}
+          errorMessageId={errorMessageId}
+          invalid={invalid}
+          isDisplay={isDisplay}
+          itemValueText={messages.rating.itemValueText}
+          showExactValue={readOnly}
+          styles={styles}
+          translations={zagTranslations}
+        />
       </div>
+      <span
+        className={styles.valueText()}
+        data-disabled={disabled ? "" : undefined}
+        id={scoreId}
+      >
+        <bdi dir="ltr">
+          {Math.max(0, api.value)} / {normalizedCount}
+        </bdi>
+      </span>
+      {helpText && (
+        <StatusText id={helpTextId} size={size} status={validateStatus}>
+          {helpText}
+        </StatusText>
+      )}
     </div>
   )
+}
+
+type RatingApi = ReturnType<typeof connect>
+
+function RatingLabel({
+  api,
+  labelText,
+  size,
+  isDisplay,
+  disabled,
+}: {
+  api: RatingApi
+  labelText?: string
+  size: RatingProps["size"]
+  isDisplay: boolean
+  disabled: boolean
+}) {
+  if (!labelText) {
+    return null
+  }
+  return isDisplay ? (
+    <Label aria-hidden size={size}>
+      {labelText}
+    </Label>
+  ) : (
+    <Label disabled={disabled} size={size} {...api.getLabelProps()}>
+      {labelText}
+    </Label>
+  )
+}
+
+function getRatingControlProps(
+  api: RatingApi,
+  isDisplay: boolean,
+  labelText: string | undefined,
+  ariaLabel: string | undefined,
+  ariaLabelledBy: string | undefined,
+  messages: UiMessages
+): HTMLAttributes<HTMLDivElement> {
+  if (isDisplay) {
+    const label = labelText ?? ariaLabel
+    return {
+      role: "img",
+      "aria-labelledby": ariaLabelledBy,
+      "aria-label": messages.rating.valueText({
+        label,
+        value: Math.max(0, api.value),
+        count: api.count,
+      }),
+      "aria-description": messages.rating.averageDescription,
+    }
+  }
+  const visibleLabelId =
+    labelText && !ariaLabel ? api.getLabelProps().id : undefined
+  return {
+    ...api.getControlProps(),
+    "aria-label":
+      ariaLabel ??
+      (labelText || ariaLabelledBy ? undefined : messages.rating.label),
+    "aria-labelledby": ariaLabelledBy ?? visibleLabelId,
+  }
+}
+
+function RatingItems({
+  api,
+  dir,
+  styles,
+  isDisplay,
+  showExactValue,
+  describedBy,
+  errorMessageId,
+  invalid,
+  translations,
+  itemValueText,
+}: {
+  api: ReturnType<typeof connect>
+  dir: NonNullable<RatingProps["dir"]>
+  styles: ReturnType<typeof rating>
+  isDisplay: boolean
+  showExactValue: boolean
+  describedBy?: string
+  errorMessageId?: string
+  invalid: boolean
+  translations?: IntlTranslations
+  itemValueText: (value: number) => string
+}) {
+  return (
+    <>
+      {api.items.map((index) => {
+        const itemProps = api.getItemProps({ index })
+        const fill = Math.max(0, Math.min(1, api.value - index + 1))
+        const glyphProps = getRatingGlyphProps(itemProps, fill, showExactValue)
+        const checked = api.value > 0 && Math.ceil(api.value) === index
+        const tabIndex = index === Math.max(1, Math.ceil(api.value)) ? 0 : -1
+        const focusableProps = {
+          ...itemProps,
+          "aria-checked": checked,
+          tabIndex: itemProps["aria-disabled"] ? undefined : tabIndex,
+          "aria-label": checked
+            ? (translations?.ratingValueText?.(api.value) ??
+              itemValueText(api.value))
+            : itemProps["aria-label"],
+        }
+        return (
+          <span
+            className={styles.item()}
+            key={index}
+            {...(isDisplay ? pickDataAttributes(itemProps) : focusableProps)}
+            aria-describedby={isDisplay ? undefined : describedBy}
+            aria-errormessage={isDisplay ? undefined : errorMessageId}
+            aria-invalid={(!isDisplay && invalid) || undefined}
+          >
+            <span
+              aria-hidden="true"
+              className={styles.glyph()}
+              {...glyphProps}
+            />
+            {showExactValue && fill > 0 && fill < 1 && (
+              <span
+                aria-hidden="true"
+                className={styles.fractionalGlyph()}
+                data-disabled={itemProps["data-disabled"]}
+                data-part="fractional-glyph"
+                dir={dir}
+                style={
+                  {
+                    // Keep sub-percent averages precise without exposing
+                    // floating-point noise for ordinary scores such as 4.6.
+                    "--rating-item-clip": `${Number(((1 - fill) * 100).toFixed(10))}%`,
+                  } as CSSProperties
+                }
+              />
+            )}
+          </span>
+        )
+      })}
+    </>
+  )
+}
+
+function pickDataAttributes(props: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(props).filter(([key]) => key.startsWith("data-"))
+  )
+}
+
+function getRatingGlyphProps(
+  itemProps: Record<string, unknown>,
+  fill: number,
+  showExactValue: boolean
+) {
+  return {
+    ...pickDataAttributes(itemProps),
+    ...(showExactValue
+      ? {
+          "data-highlighted": fill === 1 ? "" : undefined,
+          "data-half": undefined,
+        }
+      : {}),
+  }
 }

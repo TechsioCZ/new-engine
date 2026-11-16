@@ -1,0 +1,17 @@
+@theme static {
+  /* Reference layer */
+  --color-quantity-field-unit: var(--color-fg-primary);
+  --color-quantity-field-message: var(--color-fg-primary);
+
+  /* Derived foreground */
+  --color-quantity-field-unit-fg: var(--color-quantity-field-unit);
+  --color-quantity-field-message-fg: var(--color-quantity-field-message);
+
+  /* Layout and typography follow the existing form controls. */
+  --gap-quantity-field: var(--spacing-form-field);
+  --gap-quantity-field-control: var(--spacing-150);
+  --spacing-quantity-field-control-min-width: var(--spacing-950);
+  --text-quantity-field-unit-sm: var(--text-sm);
+  --text-quantity-field-unit-md: var(--text-md);
+  --text-quantity-field-unit-lg: var(--text-lg);
+}

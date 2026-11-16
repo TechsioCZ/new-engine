@@ -1,53 +1,101 @@
 ---
-component_version: "1.0.0"
 name: textarea-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Textarea for
   multi-line text entry with valid variant, size, resize, readonly styling, and
   token-first validation.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/textarea.tsx"
-  - "libs/ui/src/tokens/components/atoms/_textarea.css"
-  - "libs/ui/stories/atoms/textarea.stories.tsx"
-  - "libs/ui/src/atoms/textarea.figma.ts"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/textarea.tsx libs/ui/src/tokens/components/atoms/_textarea.css libs/ui/stories/atoms/textarea.stories.tsx libs/ui/src/atoms/textarea.figma.ts"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Textarea Usage
 
 Use Textarea for multi-line text entry. Use form molecules when a complete
 label/help/error field abstraction exists for the current app context.
+Business keeps error prompts neutral; validation stays on the border and associated
+message. `--color-textarea-placeholder-danger` remains the error-prompt override.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Textarea`.
+
+**Use it when**
+
+- Bare multi-line text controls in compositions that supply their own label (inline comment boxes, table editors).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A labelled field | FormTextarea |
+| Single-line text | Input |
+
+**Do**
+
+- Give it an accessible name.
+- Auto-grow or size to the expected content; keep a sensible max height.
+
+**Don't**
+
+- Use placeholder as the label.
+
+**Copy and states**
+
+- Placeholder as an example (`Add a note for the courier…`).
+
+**Behaviour (from the UX spec)**
+
+- Enter inserts a newline and never submits; `rows` sets the initial height, not a length limit.
+- `validateStatus="error" | "success" | "warning"` is presentation only; the rule lives in the form or app.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=default…warning`, `variant=borderless` | `validateStatus` (same values); Figma `borderless` → `appearance="ghost"` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` (not the legacy `readonly`) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Textarea → UX guidelines*.
 
 ## Setup
 
 ```tsx
 import { Textarea } from "@techsio/ui-kit/atoms/textarea"
 
-<Textarea name="note" variant="default" size="md" resize="y" />
+<Textarea name="note" validateStatus="default" size="md" resize="y" />
 ```
 
 Supported component props:
 
 ```text
-variant: default | error | success | warning | borderless
+validateStatus: default | error | success | warning
+appearance: outline | ghost
 size: sm | md | lg
 resize: none | y | x | both | auto
-readonly: boolean
+readOnly: boolean
+readonly: boolean (legacy alias; prefer readOnly)
 ```
 
-Use `readonly` when you need the UI-kit readonly visual variant.
+Use native `readOnly` for both immutable behavior and the full-contrast read-only surface. The legacy `readonly` alias remains supported; explicit `readOnly` takes precedence.
 
 ## Core Patterns
 
 ### Use variant for validation
 
 ```tsx
-<Textarea aria-describedby="note-error" variant="error" />
+<Textarea aria-describedby="note-error" validateStatus="error" />
 ```
 
 Do not style borders or placeholders inline for validation.
@@ -61,14 +109,13 @@ auto -> content-sized field when supported by the target browser matrix
 both/x -> rare, only when the product explicitly needs it
 ```
 
-### Use readonly for read-only styling
+### Use readOnly for read-only styling
 
 ```tsx
-<Textarea readonly value={note} />
+<Textarea readOnly value={note} />
 ```
 
-The component-specific `readonly` prop drives both the visual variant and the
-`readOnly` attribute.
+Both spellings drive the native attribute and the same full-contrast visual treatment.
 
 ## Common Mistakes
 
@@ -93,13 +140,13 @@ Source: libs/ui/src/atoms/textarea.tsx
 Wrong:
 
 ```tsx
-<Textarea variant="danger" />
+<Textarea validateStatus="danger" />
 ```
 
 Correct:
 
 ```tsx
-<Textarea variant="error" />
+<Textarea validateStatus="error" />
 ```
 
 Source: libs/ui/src/atoms/textarea.tsx
@@ -115,33 +162,66 @@ Wrong:
 Correct:
 
 ```tsx
-<Textarea variant="error" />
+<Textarea validateStatus="error" />
 ```
 
 Source: libs/ui/src/tokens/components/atoms/_textarea.css
 
-### MEDIUM readOnly without readonly styling
+### MEDIUM Disabling a value that should remain copyable
 
 Wrong:
 
 ```tsx
-<Textarea readOnly value={note} />
+<Textarea disabled value={note} />
 ```
 
 Correct:
 
 ```tsx
-<Textarea readonly value={note} />
+<Textarea readOnly value={note} />
 ```
 
-Use `readonly` so the token-backed readonly styles apply.
+Use `readOnly` to preserve focus, selection, submission and normal contrast. Disabled takes precedence if both are set.
 
 ## Validation Commands
 
 ```sh
-rg -n "<textarea\\b|<Textarea[^>]*variant=\"(danger|invalid|primary)\"" apps
+rg -n "<textarea\\b|<Textarea[^>]*(variant=|validateStatus=\"(danger|invalid|primary)\")" apps
 rg -n "<Textarea[^>]*className=.*(border-|bg-|text-|placeholder:|p-|px-|py-)" apps
 rg -n "<Textarea[^>]*readOnly" apps
 rg -n "resize=\"(none|y|x|both|auto)\"" apps
 ```
 
+
+## Feedback and sizes
+
+The atom generates a stable ID when no nonempty `id` is supplied. Bare field
+compositions must associate StatusText IDs through `aria-describedby` and, for
+errors, `aria-errormessage`. Use FormTextarea for automatic wiring. Canonical
+sizes are sm/md/lg, default md; multiline height comes from rows/content, not
+a forced single-line control height.
+
+
+### Component-specific read-only colors
+
+Override `--color-textarea-bg-readonly` and `--color-textarea-fg-readonly`
+to tune only this field's read-only surface and value. The default reference
+aliases follow `--color-form-control-readonly` and `--color-form-control-text`.
+These overrides also apply on hover/focus; disabled styling still wins.
+
+### Focus fill
+
+In the Business brand, focus keeps the field's own resting fill
+(`--color-textarea-bg`) instead of darkening the surface again, so the existing
+focus outline, border and native text selection carry the signal. Override
+`--color-textarea-bg-focus` to retarget that surface per consumer.
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.

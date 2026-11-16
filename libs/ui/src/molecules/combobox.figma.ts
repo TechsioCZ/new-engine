@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-36312
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/combobox.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/combobox.tsx
 // component=Combobox
 
 import figma from "figma"
@@ -30,13 +30,13 @@ export default {
   imports: ['import { Combobox } from "@techsio/ui-kit/molecules/combobox"'],
   example: figma.code`<Combobox${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} items={[]} label="Label"${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}/>`,
   metadata: { nestable: true },
 }

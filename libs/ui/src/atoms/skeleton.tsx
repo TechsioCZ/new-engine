@@ -2,7 +2,7 @@
  * Skeleton — @techsio/ui-kit atom.
  *
  * @component Skeleton
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill skeleton-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,18 +16,21 @@ import {
   type Ref,
   useContext,
 } from "react"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const skeletonVariants = tv({
   slots: {
-    root: ["relative overflow-hidden"],
-    rectangle: "w-full",
+    root: ["relative min-w-0 overflow-clip"],
+    shape: "relative min-w-0 overflow-clip",
+    rectangle: "skeleton-rectangle w-full",
     circle: ["rounded-full", "shrink-0"],
     textContainer: ["flex", "flex-col"],
     textLine: ["h-skeleton-text-line", "rounded-skeleton-text", "w-full"],
   },
   variants: {
-    variant: {
+    severity: {
       primary: {
         root: "",
         circle: "bg-skeleton-bg-primary",
@@ -61,26 +64,26 @@ const skeletonVariants = tv({
     },
     speed: {
       slow: {
-        root: "animate-skeleton-pulse-slow",
+        shape: "animate-skeleton-pulse-slow",
       },
       normal: {
-        root: "animate-skeleton-pulse-normal",
+        shape: "animate-skeleton-pulse-normal",
       },
       fast: {
-        root: "animate-skeleton-pulse-fast",
+        shape: "animate-skeleton-pulse-fast",
       },
     },
   },
   defaultVariants: {
-    variant: "primary",
+    severity: "primary",
     size: "md",
     speed: "normal",
   },
 })
 
-interface SkeletonContextValue {
+type SkeletonContextValue = {
   isLoaded: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
 }
 
@@ -94,21 +97,44 @@ const useSkeletonContext = () => useContext(SkeletonContext)
  */
 function useResolvedSkeletonProps(props: {
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
 }) {
   const context = useSkeletonContext()
   return {
     isLoaded: props.isLoaded ?? context?.isLoaded ?? false,
-    variant: props.variant ?? context?.variant,
+    severity: props.severity ?? context?.severity,
     speed: props.speed ?? context?.speed,
   }
 }
 
-interface SkeletonRootProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+const LOADING_STATUS_PROPS = {
+  role: "status",
+  "aria-busy": true,
+} as const
+
+/**
+ * Accessible semantics for a skeleton shape. A standalone shape is its own
+ * loading status; a shape inside `<Skeleton>` is decorative because the root
+ * already announces the loading state once. `aria-label` is only allowed on a
+ * role that supports naming, hence `role="status"` instead of a bare div.
+ * A consumer-hidden shape (`aria-hidden`) gets no status semantics at all.
+ */
+function useSkeletonA11yProps(ariaHidden?: boolean | "true" | "false") {
+  const context = useSkeletonContext()
+  const messages = useUiMessages()
+  if (context) {
+    return { "aria-hidden": true } as const
+  }
+  if (ariaHidden === true || ariaHidden === "true") {
+    return { "aria-busy": true, "aria-hidden": true } as const
+  }
+  return { ...LOADING_STATUS_PROPS, "aria-label": messages.skeleton.loading }
+}
+
+type SkeletonRootProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   speed?: "slow" | "normal" | "fast"
   children?: ReactNode
   ref?: Ref<HTMLDivElement>
@@ -116,59 +142,67 @@ interface SkeletonRootProps
 
 export function Skeleton({
   isLoaded = false,
-  variant,
+  severity,
   children,
   speed,
   className,
   ref,
   ...props
 }: SkeletonRootProps) {
-  const styles = skeletonVariants({ variant, speed })
+  const styles = skeletonVariants({ severity, speed })
+  const messages = useUiMessages()
 
   return (
-    <SkeletonContext.Provider value={{ isLoaded, variant, speed }}>
+    <SkeletonContext.Provider value={{ isLoaded, severity, speed }}>
       {isLoaded ? (
-        <>{children}</>
+        children
       ) : (
         <div
-          aria-busy="true"
-          aria-label="Loading content"
+          {...LOADING_STATUS_PROPS}
+          aria-label={messages.skeleton.loading}
           className={styles.root({ className })}
           ref={ref}
           {...props}
         >
-          {children}
+          <div aria-hidden="true" className="contents" inert>
+            {children}
+          </div>
         </div>
       )}
     </SkeletonContext.Provider>
   )
 }
 
-interface SkeletonCircleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonCircleProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   size?: "sm" | "md" | "lg" | "xl"
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   children?: ReactNode
   ref?: Ref<HTMLDivElement>
 }
 
 Skeleton.Circle = function SkeletonCircle({
-  size = "md",
+  size: sizeProp,
   speed,
   isLoaded,
-  variant,
+  severity,
   children,
   className,
   ref,
   ...props
 }: SkeletonCircleProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const { size = "md" } = useUIDefaults(
+    "Skeleton",
+    { size: sizeProp },
+    skeletonVariants
+  )
+  const resolved = useResolvedSkeletonProps({ isLoaded, severity, speed })
+  const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
     size,
-    variant: resolved.variant,
+    severity: resolved.severity,
     speed: resolved.speed,
   })
 
@@ -178,9 +212,8 @@ Skeleton.Circle = function SkeletonCircle({
 
   return (
     <div
-      aria-busy="true"
-      aria-label="Loading content"
-      className={styles.root({
+      {...a11yProps}
+      className={styles.shape({
         className: styles.circle({ className }),
       })}
       ref={ref}
@@ -189,14 +222,13 @@ Skeleton.Circle = function SkeletonCircle({
   )
 }
 
-interface SkeletonTextProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonTextProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
   noOfLines?: number
   size?: "sm" | "md" | "lg" | "xl"
   speed?: "slow" | "normal" | "fast"
   lastLineWidth?: string
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   children?: ReactNode
   containerClassName?: string
   ref?: Ref<HTMLDivElement>
@@ -204,22 +236,28 @@ interface SkeletonTextProps
 
 Skeleton.Text = function SkeletonText({
   noOfLines = 3,
-  size = "md",
+  size: sizeProp,
   speed,
   lastLineWidth = "80%",
   isLoaded,
-  variant,
+  severity,
   children,
   containerClassName,
   className,
   ref,
   ...props
 }: SkeletonTextProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const { size = "md" } = useUIDefaults(
+    "Skeleton",
+    { size: sizeProp },
+    skeletonVariants
+  )
+  const resolved = useResolvedSkeletonProps({ isLoaded, severity, speed })
+  const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
     size,
-    variant: resolved.variant,
+    severity: resolved.severity,
     speed: resolved.speed,
   })
 
@@ -228,12 +266,13 @@ Skeleton.Text = function SkeletonText({
   }
 
   // Guard against invalid values (negative, NaN, Infinity)
-  const lineCount = Number.isFinite(noOfLines) ? Math.max(1, noOfLines) : 1
+  const lineCount = Number.isFinite(noOfLines)
+    ? Math.max(1, Math.floor(noOfLines))
+    : 1
 
   return (
     <div
-      aria-busy="true"
-      aria-label="Loading content"
+      {...a11yProps}
       className={styles.textContainer({ className: containerClassName })}
       ref={ref}
       {...props}
@@ -244,9 +283,10 @@ Skeleton.Text = function SkeletonText({
 
         return (
           <div
-            className={styles.root({
+            className={styles.shape({
               className: styles.textLine({ className }),
             })}
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed, stateless placeholder lines have no reorderable identity.
             key={`skeleton-text-${index}`}
             style={{ width }}
           />
@@ -256,11 +296,13 @@ Skeleton.Text = function SkeletonText({
   )
 }
 
-interface SkeletonRectangleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
+type SkeletonRectangleProps = Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> & {
   speed?: "slow" | "normal" | "fast"
   isLoaded?: boolean
-  variant?: "primary" | "secondary"
+  severity?: "primary" | "secondary"
   children?: ReactNode
   ref?: Ref<HTMLDivElement>
 }
@@ -268,16 +310,17 @@ interface SkeletonRectangleProps
 Skeleton.Rectangle = function SkeletonRectangle({
   speed,
   isLoaded,
-  variant,
+  severity,
   children,
   className,
   ref,
   ...props
 }: SkeletonRectangleProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const resolved = useResolvedSkeletonProps({ isLoaded, severity, speed })
+  const a11yProps = useSkeletonA11yProps(props["aria-hidden"])
 
   const styles = skeletonVariants({
-    variant: resolved.variant,
+    severity: resolved.severity,
     speed: resolved.speed,
   })
 
@@ -287,13 +330,10 @@ Skeleton.Rectangle = function SkeletonRectangle({
 
   return (
     <div
-      aria-busy="true"
-      aria-label="Loading content"
-      className={styles.root({ className: styles.rectangle({ className }) })}
+      {...a11yProps}
+      className={styles.shape({ className: styles.rectangle({ className }) })}
       ref={ref}
       {...props}
-    >
-      {children}
-    </div>
+    />
   )
 }

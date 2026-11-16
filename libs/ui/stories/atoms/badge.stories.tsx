@@ -1,167 +1,237 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Badge, type BadgeProps } from '../../src/atoms/badge'
+import type { Meta, StoryObj } from "@storybook/react"
+import { expect, within } from "storybook/test"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Badge, type BadgeProps } from "../../src/atoms/badge"
 
 const meta: Meta<typeof Badge> = {
-  title: 'Atoms/Badge',
+  title: "Atoms/Badge",
   component: Badge,
   parameters: {
-    layout: 'centered',
-  },
-  tags: ['autodocs'],
-  argTypes: {
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'xl'],
-      description: 'Badge size',
-      table: {
-        defaultValue: { summary: 'md' },
+    docs: {
+      description: {
+        component:
+          "A compact, non-interactive label for status, categorisation or counts. Use short, explicit copy rather than colour alone; choose StatusText for field feedback and Button for an action. Legacy xl remains available for display composition, not as a canonical control size.",
       },
     },
-    variant: {
-      control: 'select',
-      options: [
-        'primary',
-        'secondary',
-        'tertiary',
-        'discount',
-        'info',
-        'success',
-        'warning',
-        'danger',
-        'outline',
-        'dynamic',
-      ],
-      description: 'Visual style variant of the badge',
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  argTypes: {
+    size: {
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Badge size",
       table: {
-        defaultValue: { summary: 'info' },
+        defaultValue: { summary: "md" },
+      },
+    },
+    severity: {
+      control: "select",
+      options: [
+        "primary",
+        "secondary",
+        "tertiary",
+        "discount",
+        "info",
+        "success",
+        "warning",
+        "danger",
+        "neutral",
+        "custom",
+      ],
+      description: "Color intent of the badge",
+      table: {
+        defaultValue: { summary: "info" },
+      },
+    },
+    appearance: {
+      control: "select",
+      options: ["solid", "outline"],
+      description:
+        "Fill style. Falls back to the nearest UIProvider, then solid.",
+      table: {
+        defaultValue: { summary: "solid" },
       },
     },
     children: {
-      control: 'text',
-      description: 'Text content of the badge',
+      control: "text",
+      description: "Text content of the badge",
     },
     bgColor: {
-      control: 'color',
-      description: 'Background color for dynamic variant',
+      control: "color",
+      description: "Background color for the custom severity",
       if: {
-        arg: 'variant',
-        eq: 'dynamic',
+        arg: "severity",
+        eq: "custom",
       },
     },
     fgColor: {
-      control: 'color',
-      description: 'Foreground color for dynamic variant',
+      control: "color",
+      description: "Foreground color for the custom severity",
       if: {
-        arg: 'variant',
-        eq: 'dynamic',
+        arg: "severity",
+        eq: "custom",
       },
     },
     borderColor: {
-      control: 'color',
-      description: 'Border color for dynamic variant',
+      control: "color",
+      description: "Border color for the custom severity",
       if: {
-        arg: 'variant',
-        eq: 'dynamic',
+        arg: "severity",
+        eq: "custom",
       },
     },
   },
   args: {
-    variant: 'info',
-    size: 'md',
-    children: 'Badge',
+    severity: "info",
+    children: "Ready to ship",
   },
 }
 
 export default meta
-type Story = Omit<StoryObj<typeof meta>, 'args'> & { args?: Partial<BadgeProps> }
+type Story = Omit<StoryObj<typeof meta>, "args"> & {
+  args?: Partial<BadgeProps>
+}
 
 export const Playground: Story = {
+  render: (args: BadgeProps) =>
+    args.severity === "custom" ? (
+      <Badge
+        {...args}
+        bgColor={args.bgColor ?? "var(--color-badge-bg-primary)"}
+        fgColor={args.fgColor ?? "var(--color-badge-fg-primary)"}
+        borderColor={args.borderColor ?? "var(--color-badge-border-primary)"}
+      />
+    ) : (
+      <Badge {...args} />
+    ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Adjust status, size and copy to create a concise label that remains meaningful without colour.",
+      },
+    },
+  },
   args: {
-    variant: 'info',
-    size: 'md',
-    children: 'Badge text',
+    severity: "info",
+    children: "Ready to ship",
   },
 }
 
 export const Variants: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare status and category labels using realistic fulfilment copy.",
+      },
+    },
+  },
   args: {},
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const discount = canvas.getByText("Discount 30%")
+    const danger = canvas.getByText("Unavailable")
+    await expect(discount).toBeVisible()
+    await expect(danger).toBeVisible()
+    if (canvasElement.closest('[data-theme="business"]')) {
+      await expect(getComputedStyle(discount).backgroundColor).not.toBe(
+        getComputedStyle(danger).backgroundColor
+      )
+    }
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Solid themes">
-        <Badge variant="primary">Primary</Badge>
-        <Badge variant="secondary">Secondary</Badge>
-        <Badge variant="tertiary">Tertiary</Badge>
-        <Badge variant="discount">Discount 30%</Badge>
-        <Badge variant="info">Ships within 24 h</Badge>
-        <Badge variant="success">Delivered</Badge>
-        <Badge variant="warning">Last units</Badge>
-        <Badge variant="danger">Unavailable</Badge>
+      <VariantGroup title="Solid">
+        <Badge severity="primary">Primary</Badge>
+        <Badge severity="secondary">Secondary</Badge>
+        <Badge severity="tertiary">Tertiary</Badge>
+        <Badge severity="discount">Discount 30%</Badge>
+        <Badge severity="info">Ships within 24 h</Badge>
+        <Badge severity="success">Delivered</Badge>
+        <Badge severity="warning">Last units</Badge>
+        <Badge severity="danger">Unavailable</Badge>
       </VariantGroup>
       <VariantGroup title="Outline">
-        <Badge variant="outline">Outline badge</Badge>
+        <Badge appearance="outline" severity="neutral">
+          Outline badge
+        </Badge>
+        <Badge appearance="outline" severity="primary">
+          Primary outline
+        </Badge>
+        <Badge appearance="outline" severity="danger">
+          Danger outline
+        </Badge>
       </VariantGroup>
     </VariantContainer>
   ),
 }
 
 export const Sizes: Story = {
-  args: {},
+  play: async ({ canvasElement }) => {
+    const badges = within(canvasElement).getAllByText("Ready to ship")
+    await expect(badges).toHaveLength(3)
+    for (const [index, current] of badges.entries()) {
+      const previous = badges[index - 1]
+      if (!previous) {
+        continue
+      }
+      await expect(
+        Number.parseFloat(getComputedStyle(current).fontSize)
+      ).toBeGreaterThanOrEqual(
+        Number.parseFloat(getComputedStyle(previous).fontSize)
+      )
+      await expect(current.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+        previous.getBoundingClientRect().width
+      )
+      await expect(current.getBoundingClientRect().height).toBeGreaterThanOrEqual(
+        previous.getBoundingClientRect().height
+      )
+    }
+  },
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "The same Ready to ship label is shown at Small (sm), Medium (md) and Large (lg).",
+      },
+    },
+  },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Info">
-        <Badge variant="info" size="sm">
-          Small badge
-        </Badge>
-        <Badge variant="info" size="md">
-          Medium badge
-        </Badge>
-        <Badge variant="info" size="lg">
-          Large badge
-        </Badge>
-        <Badge variant="info" size="xl">
-          Extra large badge
-        </Badge>
-      </VariantGroup>
-      <VariantGroup title="Outline">
-        <Badge variant="outline" size="sm">
-          Small outline
-        </Badge>
-        <Badge variant="outline" size="md">
-          Medium outline
-        </Badge>
-        <Badge variant="outline" size="lg">
-          Large outline
-        </Badge>
-        <Badge variant="outline" size="xl">
-          Extra large outline
-        </Badge>
-      </VariantGroup>
-      <VariantGroup title="Dynamic">
-        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='sm'>
-          Small dynamic
-        </Badge>
-        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='md'>
-          Medium dynamic
-        </Badge>
-        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='lg'>
-          Large dynamic
-        </Badge>
-        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='xl'>
-          Extra dynamic
-        </Badge>
-      </VariantGroup>
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <VariantGroup
+          key={size}
+          title={
+            { sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]
+          }
+        >
+          <Badge size={size} severity="success">
+            Ready to ship
+          </Badge>
+        </VariantGroup>
+      ))}
     </VariantContainer>
   ),
 }
 
 export const Dynamic: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Custom colours support application-defined categories; always supply a readable foreground and border.",
+      },
+    },
+  },
   args: {
-    variant: 'dynamic',
-    size: 'md',
-    bgColor: '#8A0002',
-    fgColor: '#FFFFFF',
-    borderColor: '#FFF500',
-    children: 'Dynamic badge',
+    severity: "custom",
+    bgColor: "var(--color-badge-bg-primary)",
+    fgColor: "var(--color-badge-fg-primary)",
+    borderColor: "var(--color-badge-border-primary)",
+    children: "Priority support",
   },
 }

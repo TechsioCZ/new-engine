@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-35761
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/carousel.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/carousel.tsx
 // component=Carousel
 
 import figma from "figma"
@@ -8,6 +8,7 @@ const size = figma.selectedInstance.getEnum("size", {
   sm: "sm",
   md: "md",
   lg: "lg",
+  full: "full",
 })
 const align = figma.selectedInstance.getEnum("Alignment", {
   Left: "start",

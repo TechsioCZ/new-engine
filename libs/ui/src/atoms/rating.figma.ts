@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-14985
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/rating.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/rating.tsx
 // component=Rating
 
 import figma from "figma"
@@ -23,7 +23,7 @@ const count = figma.selectedInstance.getString("count")
 // "Label" is a plain text layer on Rating, not a nested instance
 const labelLayer = figma.selectedInstance.findText("Label")
 const labelText =
-  labelLayer.type !== "ERROR" ? labelLayer.textContent : undefined
+  labelLayer.type === "ERROR" ? undefined : labelLayer.textContent
 
 export default {
   id: "Rating",

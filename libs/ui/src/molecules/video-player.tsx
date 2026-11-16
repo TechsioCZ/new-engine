@@ -2,7 +2,7 @@
  * VideoPlayer — @techsio/ui-kit molecule.
  *
  * @component VideoPlayer
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill video-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,10 +20,10 @@ const videoPlayerStyles = tv({
       "player-overlay player-video-controls absolute inset-x-0 bottom-0 z-player-controls transition-opacity duration-200",
     layout:
       "flex-col items-stretch gap-player-video-control p-player-video-control",
-    toolbar: "w-full justify-between",
-    leading: "shrink-0",
-    trailing: "shrink-0",
-    timeline: "w-full",
+    toolbar: "w-full flex-wrap justify-between",
+    leading: "min-w-0 flex-wrap",
+    trailing: "ms-auto shrink-0",
+    timeline: "player-video-timeline flex-none self-stretch",
     volumeSlider: "player-responsive-volume",
   },
 })
@@ -61,6 +61,31 @@ const DEFAULT_CONTROLS: readonly VideoPlayerControls[] = [
   "fullscreen",
 ]
 
+function PlaybackControls({
+  play,
+  time,
+  seekTime,
+}: {
+  play: boolean
+  time: boolean
+  seekTime: number
+}) {
+  return (
+    <Player.Control className={videoPlayerStyles().leading()}>
+      {play ? <Player.PlayButton /> : null}
+      {time ? (
+        <>
+          <Player.SeekButton direction="backward" seconds={seekTime} />
+          <Player.SeekButton direction="forward" seconds={seekTime} />
+          <Player.Time type="current" />
+          <span aria-hidden="true">/</span>
+          <Player.Time type="duration" />
+        </>
+      ) : null}
+    </Player.Control>
+  )
+}
+
 export function VideoPlayer({
   src,
   poster,
@@ -86,62 +111,42 @@ export function VideoPlayer({
     <Player
       {...props}
       className={styles.root({ className })}
-      style={{ width, height, ...style }}
-      src={src}
-      poster={poster}
-      viewType="video"
       onVolumeChange={
         onVolumeChange ? (detail) => onVolumeChange(detail.volume) : undefined
       }
+      poster={poster}
+      src={src}
+      style={{ width, height, ...style }}
+      viewType="video"
     >
       <Player.Provider />
       <Player.Poster />
       {hasControls ? (
         <Player.Controls className={styles.controls()}>
-          <Player.ControlGroup
-            className={styles.layout()}
-            padding="none"
-          >
+          <Player.ControlGroup className={styles.layout()} padding="none">
             {hasTimeControl ? (
               <Player.TimeSlider className={styles.timeline()} />
             ) : null}
-            {hasPlaybackControls || hasSecondaryControls ? (
-              <Player.Control className={styles.toolbar()}>
-                {hasPlaybackControls ? (
-                  <Player.Control className={styles.leading()}>
-                    {hasPlayControl ? <Player.PlayButton /> : null}
-                    {hasTimeControl ? (
-                      <>
-                        <Player.SeekButton
-                          direction="backward"
-                          seconds={seekTime}
-                        />
-                        <Player.SeekButton
-                          direction="forward"
-                          seconds={seekTime}
-                        />
-                        <Player.Time type="current" />
-                        <span aria-hidden="true">/</span>
-                        <Player.Time type="duration" />
-                      </>
-                    ) : null}
-                  </Player.Control>
-                ) : null}
-                {hasSecondaryControls ? (
-                  <Player.Control className={styles.trailing()}>
-                    {hasVolumeControl ? (
-                      <>
-                        <Player.MuteButton />
-                        <Player.VolumeSlider
-                          className={styles.volumeSlider()}
-                        />
-                      </>
-                    ) : null}
-                    {hasFullscreenControl ? <Player.FullscreenButton /> : null}
-                  </Player.Control>
-                ) : null}
-              </Player.Control>
-            ) : null}
+            <Player.Control className={styles.toolbar()}>
+              {hasPlaybackControls ? (
+                <PlaybackControls
+                  play={hasPlayControl}
+                  seekTime={seekTime}
+                  time={hasTimeControl}
+                />
+              ) : null}
+              {hasSecondaryControls ? (
+                <Player.Control className={styles.trailing()}>
+                  {hasVolumeControl ? (
+                    <>
+                      <Player.MuteButton />
+                      <Player.VolumeSlider className={styles.volumeSlider()} />
+                    </>
+                  ) : null}
+                  {hasFullscreenControl ? <Player.FullscreenButton /> : null}
+                </Player.Control>
+              ) : null}
+            </Player.Control>
           </Player.ControlGroup>
         </Player.Controls>
       ) : null}

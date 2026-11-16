@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit atom.
  *
  * @component NumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,28 +17,126 @@ import {
   type ReactNode,
   type Ref,
   useContext,
+  useEffect,
   useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react"
+import { flushSync } from "react-dom"
+import {
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  runSilentChoiceReset,
+  trackChoiceFormControl,
+} from "../internal/choice-control"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
+import {
+  createNumericInputEditing,
+  type NumericInputEditing,
+  syncNumericInputValue,
+} from "../internal/numeric-input-editing"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
-import { Button } from "./button"
+import { Button, type ButtonAppearance, type ButtonSeverity } from "./button"
 import type { IconType } from "./icon"
 import { Input } from "./input"
+import { StatusText, type StatusTextProps } from "./status-text"
+
+// Zag guards native keys but not all machine actions (notably blur clamping,
+// wheel and an already-running press). Enforce immutability at the value boundary.
+const valueActions = numberInput.machine.implementations?.actions ?? {}
+const guardValueAction =
+  (action: typeof valueActions.increment) =>
+  (params: Parameters<NonNullable<typeof valueActions.increment>>[0]) => {
+    if (params.prop("readOnly") || params.computed("isDisabled")) {
+      return
+    }
+    action?.(params)
+  }
+const defaultComputed = numberInput.machine.computed
+const readOnlySafeMachine: typeof numberInput.machine = {
+  ...numberInput.machine,
+  computed: defaultComputed && {
+    ...defaultComputed,
+    formattedValue(params) {
+      const value = params.computed("valueAsNumber")
+      // Integer presentation is not integer validation. Keep a fractional draft
+      // available to the application instead of silently turning 1.5 into 2.
+      if (
+        Number.isFinite(value) &&
+        !Number.isInteger(value) &&
+        params.prop("formatOptions")?.maximumFractionDigits === 0
+      ) {
+        return params.context.get("value")
+      }
+      return defaultComputed.formattedValue(params)
+    },
+  },
+  implementations: {
+    ...numberInput.machine.implementations,
+    actions: {
+      ...valueActions,
+      increment: guardValueAction(valueActions.increment),
+      decrement: guardValueAction(valueActions.decrement),
+      incrementToMax: guardValueAction(valueActions.incrementToMax),
+      decrementToMin: guardValueAction(valueActions.decrementToMin),
+      setValue() {
+        // Native input is captured synchronously by NumericInput.Input. Zag's
+        // queued event still sets its hint, but must not reread a mutable target.
+      },
+      setRawValue: guardValueAction(valueActions.setRawValue),
+      clearValue: guardValueAction(valueActions.clearValue),
+      setClampedValue: guardValueAction(valueActions.setClampedValue),
+      setFormattedValue: guardValueAction(valueActions.setFormattedValue),
+      invokeOnValueCommit({ computed, prop, event }) {
+        let valueAsNumber = computed("valueAsNumber")
+        let value = computed("formattedValue")
+        // React batches the preceding clamp update. Zag's computed snapshot can
+        // still contain the pre-blur draft when this action runs in that batch.
+        if (
+          event.type === "INPUT.BLUR" &&
+          prop("clampValueOnBlur") &&
+          !prop("readOnly") &&
+          !computed("isDisabled") &&
+          Number.isFinite(valueAsNumber)
+        ) {
+          const clamped = Math.min(
+            prop("max"),
+            Math.max(prop("min"), valueAsNumber)
+          )
+          if (clamped !== valueAsNumber) {
+            valueAsNumber = clamped
+            value = prop("formatOptions")
+              ? computed("formatter").format(clamped)
+              : String(clamped)
+          }
+        }
+        prop("onValueCommit")?.({ value, valueAsNumber })
+      },
+    },
+  },
+}
 
 const numericInputVariants = tv({
   slots: {
-    root: ["relative flex"],
+    root: ["relative flex min-w-0 flex-col"],
     container: [
-      "group form-control-base relative flex",
-      "border-numeric-input-border",
-      "items-center overflow-hidden",
+      "group numeric-input-focus-owner form-control-base numeric-input-validation numeric-input-readonly relative flex",
+      "min-w-0 items-center overflow-clip",
       "hover:border-numeric-input-border-hover",
       "focus-within:border-numeric-input-border-focus",
       "data-disabled:bg-numeric-input-bg-disabled",
       "data-disabled:border-numeric-input-border-disabled",
       "data-disabled:text-numeric-input-fg-disabled",
-      "data-invalid:bg-numeric-input-bg-invalid",
-      "data-invalid:border-(length:--border-width-validation)",
-      "data-invalid:border-numeric-input-border-invalid",
       "text-numeric-input-fg",
       "has-[input:not(:disabled):hover]:bg-numeric-input-input-bg-hover",
       "has-[input:focus]:bg-numeric-input-input-bg-focus",
@@ -48,61 +146,130 @@ const numericInputVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     input: [
-      "h-full rounded-none border-none",
+      "h-full min-w-0 flex-1 rounded-none border-none",
       "bg-numeric-input-input-bg",
-      "focus:bg-numeric-input-input-bg-focus",
-      "hover:bg-numeric-input-input-bg-hover",
+      "focus:bg-numeric-input-input-bg",
+      "hover:bg-numeric-input-input-bg",
       "disabled:hover:bg-numeric-input-input-bg",
       "disabled:cursor-not-allowed",
-      "focus-visible:outline-none",
+      "focus-visible:outline-hidden",
       "duration-0 data-invalid:focus:border-input-border-danger-focus",
     ],
-    // Subtle divider from the input instead of a gray fill block; the gap-px
-    // shows the field behind it as a hairline between the two arrows.
+    // Reserve the stepper width; only the editor shrinks in a narrow field.
     triggerContainer: [
-      "flex flex-col gap-px self-stretch",
-      "border-numeric-input-border border-s",
+      "flex shrink-0 flex-row self-stretch",
+      "border-numeric-input-border border-s group-data-disabled:border-numeric-input-border-disabled",
     ],
     // Unified neutral icon-control treatment: transparent base (matches the
     // field, no "disabled" gray), neutral arrows, subtle neutral hover pill —
     // no blue arrow-on-gray. Glyph size is kept per NumericInput's own scale.
     trigger: [
-      "flex flex-1 place-items-center",
-      "px-numeric-input-trigger-x py-numeric-input-trigger-y",
-      "bg-transparent hover:bg-icon-control-bg-hover active:bg-icon-control-bg-active",
-      "text-icon-control-fg",
+      "flex min-h-numeric-input-trigger-min min-w-numeric-input-trigger-min flex-1 place-items-center",
+      "pointer-coarse:min-w-numeric-input-trigger-touch-min",
+      "py-numeric-input-trigger-y",
+      "bg-transparent hover:bg-numeric-input-trigger-bg-hover active:bg-numeric-input-trigger-bg-active",
+      "text-numeric-input-trigger-fg",
       "cursor-pointer",
       "transition-colors duration-200 motion-reduce:transition-none",
-      "disabled:cursor-not-allowed disabled:text-icon-control-fg-disabled",
+      "disabled:cursor-not-allowed disabled:text-numeric-input-trigger-fg-disabled",
     ],
+    triggerIcon: "",
     scrubber: "absolute inset-0 cursor-ew-resize",
   },
   variants: {
+    // Compact is a fixed-height dense field for toolbars and tables; default keeps
+    // the field's own form-control geometry.
+    density: {
+      default: {
+        container: "border-numeric-input-border",
+        trigger: "px-numeric-input-trigger-x",
+      },
+      compact: {
+        container: "border-numeric-input-compact-border",
+        trigger: "px-numeric-input-compact-trigger",
+      },
+    },
     size: {
       sm: {
         root: "gap-numeric-input-sm text-numeric-input-sm",
-        container: "h-form-control-sm rounded-numeric-input-sm",
+        container: "rounded-numeric-input-sm",
         trigger: "text-numeric-input-sm",
-        input: "pl-numeric-input-input-sm text-numeric-input-sm",
+        triggerIcon: "numeric-input-trigger-icon-sm",
+        input: "text-numeric-input-sm",
       },
       md: {
         root: "gap-numeric-input-md text-numeric-input-md",
-        container: "h-form-control-md rounded-numeric-input-md",
+        container: "rounded-numeric-input-md",
         trigger: "text-numeric-input-md",
-        input: "pl-numeric-input-input-md text-numeric-input-md",
+        triggerIcon: "numeric-input-trigger-icon-md",
+        input: "text-numeric-input-md",
       },
       lg: {
         root: "gap-numeric-input-lg text-numeric-input-lg",
-        container: "h-form-control-lg rounded-numeric-input-lg",
+        container: "rounded-numeric-input-lg",
         trigger: "text-numeric-input-lg",
-        input: "pl-numeric-input-input-lg text-numeric-input-lg",
+        triggerIcon: "numeric-input-trigger-icon-lg",
+        input: "text-numeric-input-lg",
       },
     },
   },
+  compoundVariants: [
+    {
+      density: "default",
+      size: "sm",
+      className: {
+        container: "h-form-control-sm",
+        input: "ps-numeric-input-input-sm",
+      },
+    },
+    {
+      density: "default",
+      size: "md",
+      className: {
+        container: "h-form-control-md",
+        input: "ps-numeric-input-input-md",
+      },
+    },
+    {
+      density: "default",
+      size: "lg",
+      className: {
+        container: "h-form-control-lg",
+        input: "ps-numeric-input-input-lg",
+      },
+    },
+    {
+      density: "compact",
+      size: "sm",
+      className: {
+        container: "h-numeric-input-compact-sm",
+        input: "ps-numeric-input-compact-sm",
+      },
+    },
+    {
+      density: "compact",
+      size: "md",
+      className: {
+        container: "h-numeric-input-compact-md",
+        input: "ps-numeric-input-compact-md",
+      },
+    },
+    {
+      density: "compact",
+      size: "lg",
+      className: {
+        container: "h-numeric-input-compact-lg",
+        input: "ps-numeric-input-compact-lg",
+      },
+    },
+  ],
   defaultVariants: {
+    density: "default",
     size: "md",
   },
 })
+
+const numericDraftPattern = /^[+-]?\d*(?:\.\d*)?$/
 
 // Context for sharing state between sub-components
 type NumericInputContextValue = {
@@ -110,7 +277,19 @@ type NumericInputContextValue = {
   size?: "sm" | "md" | "lg"
   styles: ReturnType<typeof numericInputVariants>
   invalid?: boolean
+  validateStatus: "default" | "error" | "success" | "warning"
   describedBy?: string
+  controlledValue?: string
+  editing: NumericInputEditing
+  onNativeInput: (input: HTMLInputElement) => void
+  onNativeCommit: () => void
+  setInputId: (id: string | undefined) => void
+  isValidInputDraft?: (value: string) => boolean
+  readOnly?: boolean
+  disabled?: boolean
+  description: DescribedBy
+  errors: DescribedBy
+  errorMessageId?: string
 }
 
 const NumericInputContext = createContext<NumericInputContextValue | null>(null)
@@ -130,10 +309,15 @@ export type NumericInputProps = Omit<
   numberInput.Props,
   "value" | "defaultValue" | "id"
 > &
-  Omit<ComponentPropsWithoutRef<"div">, "onChange" | "children"> & {
+  Omit<
+    ComponentPropsWithoutRef<"div">,
+    "onChange" | "children" | "defaultValue"
+  > & {
+    density?: "default" | "compact"
     size?: "sm" | "md" | "lg"
-    value?: number
-    defaultValue?: number
+    value?: number | string
+    defaultValue?: number | string
+    validateStatus?: "default" | "error" | "success" | "warning"
     onChange?: (value: number) => void
     precision?: number
     children?: ReactNode
@@ -143,94 +327,311 @@ export type NumericInputProps = Omit<
     locale?: string
   }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the catalog locale fallback adds one branch to the existing input contract.
 export function NumericInput({
+  density,
   id,
-  name,
-  size,
-  disabled = false,
-  required = false,
-  pattern,
-  readOnly,
-  inputMode,
+  size: sizeProp,
   value,
   defaultValue,
   onChange,
+  validateStatus = "default",
   dir = "ltr",
   describedBy,
-  min,
-  max,
-  step = 1,
+  "aria-describedby": ariaDescribedBy,
+  "aria-errormessage": ariaErrorMessage,
+  "aria-invalid": ariaInvalid,
   precision,
-  allowMouseWheel = true,
-  allowOverflow,
-  clampValueOnBlur = true,
-  spinOnPress = true,
-  formatOptions,
-  invalid,
   children,
   ref,
   className,
-  locale = "cs-CZ",
+  locale,
   ...props
 }: NumericInputProps) {
+  const { size } = useUIDefaults(
+    "NumericInput",
+    { size: sizeProp },
+    numericInputVariants
+  )
+  const messages = useUiMessages()
+  const resolvedLocale = locale ?? messages.locale ?? "cs-CZ"
   const generatedId = useId()
-  const uniqueId = id || generatedId
-  const resolvedFormatOptions = precision
-    ? { ...(formatOptions ?? {}), maximumFractionDigits: precision }
-    : formatOptions
+  const [inputId, setInputId] = useState<string>()
+  const description = useDescribedBy()
+  const errors = useDescribedBy()
+  const [machineProps, elementProps] = numberInput.splitProps(props)
+  const {
+    formatOptions,
+    invalid: machineInvalid,
+    disabled = false,
+    required = false,
+    step = 1,
+    allowMouseWheel = true,
+    clampValueOnBlur = true,
+    spinOnPress = true,
+    focusInputOnChange = true,
+  } = machineProps
+  const invalid =
+    validateStatus === "error" ||
+    machineInvalid ||
+    (ariaInvalid !== undefined &&
+      ariaInvalid !== false &&
+      ariaInvalid !== "false")
+  const resolvedFormatOptions =
+    precision === undefined
+      ? formatOptions
+      : {
+          ...(formatOptions ?? {}),
+          minimumFractionDigits: Math.min(
+            formatOptions?.minimumFractionDigits ?? 0,
+            precision
+          ),
+          maximumFractionDigits: precision,
+        }
 
-  const formatValue = (inputValue: number) => {
-    if (!resolvedFormatOptions) {
+  const formatValue = (inputValue: number | string) => {
+    if (typeof inputValue === "number" && !Number.isFinite(inputValue)) {
+      return ""
+    }
+    if (typeof inputValue === "string" || !resolvedFormatOptions) {
       return String(inputValue)
     }
-    return new Intl.NumberFormat(locale, resolvedFormatOptions).format(
+    return new Intl.NumberFormat(resolvedLocale, resolvedFormatOptions).format(
       inputValue
     )
   }
 
-  const stringValue = value !== undefined ? formatValue(value) : undefined
-  const stringDefaultValue =
-    defaultValue !== undefined ? formatValue(defaultValue) : undefined
+  const parseDraft = useRef(Number.parseFloat)
+  const [editing] = useState(() =>
+    createNumericInputEditing((draft) => parseDraft.current(draft))
+  )
+  const [, refreshNativeValue] = useState(0)
+  const controlledValue = value === undefined ? undefined : formatValue(value)
+  const resolvedValue = editing.resolve(controlledValue, value)
+  const coordinatedMachine = useMemo<typeof numberInput.machine>(() => {
+    const actions = readOnlySafeMachine.implementations?.actions ?? {}
+    const authoritativeAction =
+      (action: typeof valueActions.increment) =>
+      (params: Parameters<NonNullable<typeof valueActions.increment>>[0]) => {
+        if (!(params.prop("readOnly") || params.computed("isDisabled"))) {
+          editing.reset()
+        }
+        action?.(params)
+      }
+    return {
+      ...readOnlySafeMachine,
+      implementations: {
+        ...readOnlySafeMachine.implementations,
+        effects: {
+          ...readOnlySafeMachine.implementations?.effects,
+          trackFormControl({ scope, context, prop, action }) {
+            const root = scope.getById(
+              scope.ids?.root ?? `number-input:${scope.id}`
+            )
+            return trackChoiceFormControl(
+              root,
+              () => {
+                editing.reset()
+                // Reset discards optimistic echoes too: a controlled reset
+                // restores the actual parent prop, without proposing a change.
+                flushSync(() => refreshNativeValue((current) => current + 1))
+                if (prop("value") === undefined) {
+                  runSilentChoiceReset(context, () =>
+                    context.set("value", context.initial("value"))
+                  )
+                }
+                action(["syncInputElement"])
+              },
+              (fieldsetDisabled) =>
+                context.set("fieldsetDisabled", fieldsetDisabled)
+            )
+          },
+        },
+        actions: {
+          ...actions,
+          syncInputElement({ scope, context, computed, event }) {
+            if (editing.nativeOwnsValue) {
+              return
+            }
+            const input = scope.getById<HTMLInputElement>(
+              scope.ids?.input ?? `number-input:${scope.id}:input`
+            )
+            const nextValue = event.type.endsWith("CHANGE")
+              ? context.get("value")
+              : computed("formattedValue")
+            if (input) {
+              editing.schedule(input, () =>
+                syncNumericInputValue(input, nextValue)
+              )
+            }
+          },
+          increment: authoritativeAction(actions.increment),
+          decrement: authoritativeAction(actions.decrement),
+          incrementToMax: authoritativeAction(actions.incrementToMax),
+          decrementToMin: authoritativeAction(actions.decrementToMin),
+          setRawValue: authoritativeAction(actions.setRawValue),
+          clearValue: authoritativeAction(actions.clearValue),
+        },
+      },
+    }
+  }, [editing])
 
-  const service = useMachine(numberInput.machine, {
-    id: uniqueId,
-    min,
-    max,
-    step,
-    name,
-    disabled,
-    locale,
-    required,
-    pattern,
-    readOnly,
-    inputMode,
-    dir,
+  const service = useMachine(coordinatedMachine, {
+    ...machineProps,
     invalid,
-    value: stringValue,
-    defaultValue: stringDefaultValue,
+    disabled,
+    required,
+    step,
     allowMouseWheel,
-    allowOverflow,
     clampValueOnBlur,
     spinOnPress,
+    focusInputOnChange,
+    id: id || generatedId,
+    ids:
+      inputId || id
+        ? {
+            ...machineProps.ids,
+            input: inputId ?? machineProps.ids?.input ?? id,
+          }
+        : machineProps.ids,
+    dir,
+    locale: resolvedLocale,
+    translations: {
+      ...messages.numericInput.translations,
+      ...definedEntries(machineProps.translations),
+    },
+    value: resolvedValue,
+    defaultValue:
+      defaultValue === undefined ? undefined : formatValue(defaultValue),
     formatOptions: resolvedFormatOptions,
     onValueChange: (details) => {
+      if (isSilentChoiceReset(service.context)) {
+        return
+      }
+      editing.propose(details.value)
       onChange?.(details.valueAsNumber)
+      machineProps.onValueChange?.(details)
     },
-    focusInputOnChange: true,
+  })
+  // Use Zag's exact parser rather than comparing locale-formatted draft text.
+  parseDraft.current = (draft) =>
+    resolvedFormatOptions
+      ? service.computed("parser").parse(draft)
+      : Number.parseFloat(draft)
+  useLayoutEffect(() => {
+    if (!editing.reconcile(controlledValue, value)) {
+      return
+    }
+    const input = service.scope.getById<HTMLInputElement>(
+      service.scope.ids?.input ?? `number-input:${service.scope.id}:input`
+    )
+    if (input && controlledValue !== undefined) {
+      syncNumericInputValue(input, controlledValue)
+    }
   })
 
+  const onNativeCommit = () => {
+    editing.commit()
+    // Even an unchanged refusing parent needs a fresh projection on blur/Enter.
+    flushSync(() => refreshNativeValue((current) => current + 1))
+  }
+
+  const onNativeInput = (input: HTMLInputElement) => {
+    if (machineProps.readOnly || service.computed("isDisabled")) {
+      return
+    }
+    const draft = input.value
+    editing.edit(draft)
+    service.send({ type: "INPUT.CHANGE", value: draft, hint: "set" })
+    // Capture and notify in the native event, before another task or a queued
+    // projection can change input.value. This also renders a refusing parent’s
+    // unchanged authority, without waiting for it to rerender on our behalf.
+    flushSync(() => {
+      service.context.set("value", draft)
+      refreshNativeValue((current) => current + 1)
+    })
+  }
+
+  // With no formatOptions Zag parses via parseFloat, so validate dot decimals
+  // rather than applying a conflicting locale guard. Integer presentation must
+  // also admit fractional drafts: precision is not an application validator.
+  let isValidInputDraft: ((draft: string) => boolean) | undefined
+  if (!resolvedFormatOptions) {
+    isValidInputDraft = (draft) => numericDraftPattern.test(draft)
+  } else if (
+    resolvedFormatOptions.maximumFractionDigits === 0 &&
+    (!resolvedFormatOptions.style || resolvedFormatOptions.style === "decimal")
+  ) {
+    const separator = new Intl.NumberFormat(resolvedLocale)
+      .formatToParts(1.1)
+      .find((part) => part.type === "decimal")?.value
+    if (separator) {
+      isValidInputDraft = (draft) => {
+        const integerDraft = draft.replace(separator, "")
+        return (
+          !integerDraft.includes(separator) &&
+          service.computed("parser").isValidPartialNumber(integerDraft)
+        )
+      }
+    }
+  }
+
   const api = numberInput.connect(service, normalizeProps)
-  const styles = numericInputVariants({ size })
+  useEffect(() => {
+    if (machineProps.readOnly || disabled) {
+      // End an in-progress hold/drag when the parent locks the value.
+      service.send({ type: "TRIGGER.PRESS_UP" })
+      service.send({ type: "SCRUBBER.POINTER_UP" })
+    }
+  }, [machineProps.readOnly, disabled, service])
+  useEffect(() => {
+    // React's autoFocus runs before the parent machine starts. Reconcile that
+    // existing DOM focus so typing and arrow keys work without refocusing.
+    const machineInputId = api.getInputProps().id
+    const input = machineInputId ? service.scope.getById(machineInputId) : null
+    if (input && input === service.scope.getActiveElement() && !api.focused) {
+      service.send({ type: "INPUT.FOCUS" })
+    }
+  }, [api, service])
+  const styles = numericInputVariants({ density, size })
+  const inputDisabled = api.getInputProps().disabled
 
   return (
     <NumericInputContext.Provider
-      value={{ api, size, styles, invalid, describedBy }}
+      value={{
+        api,
+        size,
+        styles,
+        invalid: invalid || Boolean(errors.describedById),
+        validateStatus:
+          invalid || errors.describedById ? "error" : validateStatus,
+        describedBy: joinDescribedBy(describedBy, ariaDescribedBy),
+        description,
+        errors,
+        errorMessageId: ariaErrorMessage,
+        readOnly: machineProps.readOnly,
+        disabled: inputDisabled,
+        controlledValue: resolvedValue,
+        editing,
+        onNativeInput,
+        onNativeCommit,
+        setInputId,
+        isValidInputDraft,
+      }}
     >
       <div
         className={styles.root({ className })}
         ref={ref}
         {...api.getRootProps()}
-        {...props}
+        {...elementProps}
+        onWheelCapture={(event) => {
+          // Zag attaches a native wheel listener while focused. Its listener
+          // remains attached when readOnly changes, so block it before target.
+          if (inputDisabled || machineProps.readOnly) {
+            event.stopPropagation()
+          }
+          elementProps.onWheelCapture?.(event)
+        }}
       >
         {children}
       </div>
@@ -239,7 +640,7 @@ export function NumericInput({
 }
 
 // Control component (wrapper for input + triggers)
-interface NumericInputControlProps extends ComponentPropsWithoutRef<"div"> {
+type NumericInputControlProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -249,7 +650,8 @@ NumericInput.Control = function NumericInputControl({
   className,
   ...props
 }: NumericInputControlProps) {
-  const { api, styles, invalid } = useNumericInputContext()
+  const { api, styles, invalid, readOnly, disabled, validateStatus } =
+    useNumericInputContext()
 
   return (
     <div
@@ -257,7 +659,12 @@ NumericInput.Control = function NumericInputControl({
       ref={ref}
       {...api.getControlProps()}
       {...props}
+      data-disabled={disabled ? "" : undefined}
       data-invalid={invalid || undefined}
+      data-readonly={readOnly ? "" : undefined}
+      data-validation={
+        validateStatus === "default" ? undefined : validateStatus
+      }
     >
       {children}
     </div>
@@ -265,38 +672,154 @@ NumericInput.Control = function NumericInputControl({
 }
 
 // Input component
-interface NumericInputInputProps
-  extends Omit<ComponentPropsWithoutRef<"input">, "size"> {
+type NumericInputInputProps = Omit<
+  ComponentPropsWithoutRef<"input">,
+  "size"
+> & {
   ref?: Ref<HTMLInputElement>
 }
 
 NumericInput.Input = function NumericInputInput({
   ref,
+  id,
   className,
   ...props
 }: NumericInputInputProps) {
-  const { api, styles, describedBy } = useNumericInputContext()
-  const ariaDescribedBy =
-    [props["aria-describedby"], describedBy].filter(Boolean).join(" ") ||
-    undefined
+  const {
+    api,
+    styles,
+    size,
+    describedBy,
+    controlledValue,
+    editing,
+    onNativeInput,
+    onNativeCommit,
+    setInputId,
+    isValidInputDraft,
+    description,
+    errors,
+    errorMessageId,
+    invalid,
+    readOnly,
+    disabled,
+  } = useNumericInputContext()
+  // A native id override must also reach Zag's labels, focus actions and
+  // stepper aria-controls. Unregister it when the input is replaced/unmounted.
+  useLayoutEffect(() => {
+    setInputId(id)
+    return () => setInputId(undefined)
+  }, [id, setInputId])
+  const inputRef = useRef<HTMLInputElement>(null)
+  const mergedRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        inputRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Zag can synchronize the DOM after any machine update, even when the controlled draft is unchanged.
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    const cancel =
+      input && controlledValue !== undefined
+        ? editing.schedule(input, () => {
+            if (input.value !== controlledValue) {
+              syncNumericInputValue(input, controlledValue)
+            }
+          })
+        : undefined
+    return () => cancel?.()
+  }, [api, controlledValue, editing])
+
+  const ariaDescribedBy = joinDescribedBy(
+    props["aria-describedby"],
+    describedBy,
+    description.describedById
+  )
+  const errorId = joinDescribedBy(
+    props["aria-errormessage"],
+    errorMessageId,
+    errors.describedById
+  )
+  const isInvalid =
+    invalid || Boolean(errors.describedById) || props["aria-invalid"]
+
+  const machineInputProps = api.getInputProps()
+  const inputProps = mergeChoiceInputProps(props, {
+    ...machineInputProps,
+    onChange(event) {
+      onNativeInput(event.currentTarget)
+    },
+    onBlur(event) {
+      onNativeCommit()
+      machineInputProps.onBlur?.(event)
+    },
+    onKeyDown(event) {
+      if (event.key === "Enter") {
+        onNativeCommit()
+      }
+      machineInputProps.onKeyDown?.(event)
+    },
+    onBeforeInput(event) {
+      if (!isValidInputDraft) {
+        machineInputProps.onBeforeInput?.(event)
+        return
+      }
+      const nativeEvent = event.nativeEvent as InputEvent
+      if (
+        nativeEvent.isComposing ||
+        nativeEvent.inputType?.startsWith("delete")
+      ) {
+        return
+      }
+      const input = event.currentTarget
+      const nextValue =
+        input.value.slice(0, input.selectionStart ?? 0) +
+        (nativeEvent.data ?? event.data ?? "") +
+        input.value.slice(input.selectionEnd ?? 0)
+      if (!isValidInputDraft(nextValue)) {
+        event.preventDefault()
+      }
+    },
+  })
 
   return (
     <Input
-      ref={ref}
-      {...api.getInputProps()}
-      {...props}
+      ref={controlledValue === undefined ? ref : mergedRef}
+      {...inputProps}
       aria-describedby={ariaDescribedBy}
+      aria-errormessage={errorId}
+      aria-invalid={isInvalid || undefined}
       className={styles.input({ className })}
+      disabled={disabled || props.disabled}
+      id={id ?? machineInputProps.id}
+      readOnly={readOnly || props.readOnly}
+      size={size}
     />
   )
 }
 
 // Increment Trigger component
-interface NumericInputIncrementTriggerProps
-  extends Omit<ComponentPropsWithoutRef<"button">, "children"> {
+type NumericInputIncrementTriggerProps = Omit<
+  ComponentPropsWithoutRef<"button">,
+  "children"
+> & {
   // === Button styling ===
-  variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
-  theme?: "solid" | "light" | "borderless" | "outlined"
+  severity?: ButtonSeverity
+  appearance?: ButtonAppearance
   uppercase?: boolean
   block?: boolean
 
@@ -316,8 +839,8 @@ interface NumericInputIncrementTriggerProps
 
 NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   // Button props with defaults
-  variant = "primary",
-  theme = "borderless",
+  severity = "primary",
+  appearance = "ghost",
   icon = "token-icon-numeric-input-increment",
   iconPosition = "left",
   iconSize,
@@ -332,26 +855,33 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   children,
   ...props
 }: NumericInputIncrementTriggerProps) {
-  const { api, styles, size } = useNumericInputContext()
-  const resolvedIconSize =
-    iconSize ?? (size === "sm" ? "xs" : size === "lg" ? "md" : "sm")
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
+  if (readOnly) {
+    return null
+  }
 
   return (
     <Button
+      appearance={appearance}
       block={block}
-      className={styles.trigger({ className })}
+      className={styles.trigger({
+        className: [iconSize === undefined && styles.triggerIcon(), className],
+      })}
       icon={icon}
       iconPosition={iconPosition}
-      iconSize={resolvedIconSize}
+      iconSize={iconSize ?? "current"}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
+      severity={severity}
       size="current"
-      theme={theme}
       uppercase={uppercase}
-      variant={variant}
       {...api.getIncrementTriggerProps()}
       {...props}
+      data-readonly-affordance=""
+      disabled={
+        api.getIncrementTriggerProps().disabled || disabled || props.disabled
+      }
     >
       {children}
     </Button>
@@ -359,11 +889,13 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
 }
 
 // Decrement Trigger component
-interface NumericInputDecrementTriggerProps
-  extends Omit<ComponentPropsWithoutRef<"button">, "children"> {
+type NumericInputDecrementTriggerProps = Omit<
+  ComponentPropsWithoutRef<"button">,
+  "children"
+> & {
   // === Button styling ===
-  variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
-  theme?: "solid" | "light" | "borderless" | "outlined"
+  severity?: ButtonSeverity
+  appearance?: ButtonAppearance
   uppercase?: boolean
   block?: boolean
 
@@ -383,8 +915,8 @@ interface NumericInputDecrementTriggerProps
 
 NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   // Button props with defaults
-  variant = "primary",
-  theme = "borderless",
+  severity = "primary",
+  appearance = "ghost",
   icon = "token-icon-numeric-input-decrement",
   iconPosition = "left",
   iconSize,
@@ -399,26 +931,33 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   children,
   ...props
 }: NumericInputDecrementTriggerProps) {
-  const { api, styles, size } = useNumericInputContext()
-  const resolvedIconSize =
-    iconSize ?? (size === "sm" ? "xs" : size === "lg" ? "md" : "sm")
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
+  if (readOnly) {
+    return null
+  }
 
   return (
     <Button
+      appearance={appearance}
       block={block}
-      className={styles.trigger({ className })}
+      className={styles.trigger({
+        className: [iconSize === undefined && styles.triggerIcon(), className],
+      })}
       icon={icon}
       iconPosition={iconPosition}
-      iconSize={resolvedIconSize}
+      iconSize={iconSize ?? "current"}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
+      severity={severity}
       size="current"
-      theme={theme}
       uppercase={uppercase}
-      variant={variant}
       {...api.getDecrementTriggerProps()}
       {...props}
+      data-readonly-affordance=""
+      disabled={
+        api.getDecrementTriggerProps().disabled || disabled || props.disabled
+      }
     >
       {children}
     </Button>
@@ -426,7 +965,7 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
 }
 
 // Scrubber component (for drag-to-change functionality)
-interface NumericInputScrubberProps extends ComponentPropsWithoutRef<"div"> {
+type NumericInputScrubberProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -435,7 +974,10 @@ NumericInput.Scrubber = function NumericInputScrubber({
   className,
   ...props
 }: NumericInputScrubberProps) {
-  const { api, styles } = useNumericInputContext()
+  const { api, styles, readOnly, disabled } = useNumericInputContext()
+  if (readOnly || disabled) {
+    return null
+  }
 
   return (
     <div
@@ -448,8 +990,7 @@ NumericInput.Scrubber = function NumericInputScrubber({
 }
 
 // Trigger Container component (wrapper for increment/decrement triggers)
-interface NumericInputTriggerContainerProps
-  extends ComponentPropsWithoutRef<"div"> {
+type NumericInputTriggerContainerProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -459,7 +1000,10 @@ NumericInput.TriggerContainer = function NumericInputTriggerContainer({
   className,
   ...props
 }: NumericInputTriggerContainerProps) {
-  const { styles } = useNumericInputContext()
+  const { styles, readOnly } = useNumericInputContext()
+  if (readOnly) {
+    return null
+  }
 
   return (
     <div
@@ -469,6 +1013,36 @@ NumericInput.TriggerContainer = function NumericInputTriggerContainer({
     >
       {children}
     </div>
+  )
+}
+
+const ignoreDescription: DescribedBy["registerDescription"] = () => () => {
+  // A neutral message never registers an error reference.
+}
+
+NumericInput.StatusText = function NumericInputStatusText({
+  id,
+  status = "default",
+  size,
+  showIcon,
+  ...props
+}: StatusTextProps) {
+  const generatedId = useId()
+  const messageId = id || generatedId
+  const { size: fieldSize, description, errors } = useNumericInputContext()
+  useRegisterDescription(messageId, description.registerDescription)
+  useRegisterDescription(
+    messageId,
+    status === "error" ? errors.registerDescription : ignoreDescription
+  )
+  return (
+    <StatusText
+      {...props}
+      id={messageId}
+      showIcon={status !== "default" || showIcon}
+      size={size ?? fieldSize}
+      status={status}
+    />
   )
 }
 

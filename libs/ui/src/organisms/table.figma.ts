@@ -1,10 +1,11 @@
-// url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-39180
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/organisms/table.tsx
+// url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=3938-1793
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/organisms/table.tsx
 // component=Table
 
 import figma from "figma"
 
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names the property variant; code reads appearance.
+const appearance = figma.selectedInstance.getEnum("variant", {
   line: "line",
   outline: "outline",
   striped: "striped",
@@ -20,8 +21,8 @@ export default {
   imports: ['import { Table } from "@techsio/ui-kit/organisms/table"'],
   example: figma.code`<Table${figma.helpers.react.renderProp(
     "size",
-    size,
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+    size
+  )}${figma.helpers.react.renderProp("appearance", appearance)}>
         <Table.Caption>Recent orders</Table.Caption>
         <Table.Header>
           <Table.Row>

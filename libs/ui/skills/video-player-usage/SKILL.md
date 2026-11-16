@@ -1,17 +1,20 @@
 ---
-component_version: "1.0.0"
 name: video-player-usage
 description: >
   Use after component-usage-ux when an app needs a ready-made video player.
   VideoPlayer is an opinionated preset over Player with a Semi Design-shaped
   src/poster/controlsList API; controls overlay the video on a dark scrim.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - player-usage
   - app-token-overrides
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/video-player.tsx"
   - "libs/ui/stories/molecules/video-player.stories.tsx"
@@ -64,3 +67,5 @@ Correct: v1 supports `play`, `time`, `volume` and `fullscreen` only. The rest
 are future versions.
 
 Source: libs/ui/src/molecules/video-player.tsx
+
+Control labels follow `UiMessagesProvider.messages.player`; explicit control `aria-label` props take precedence.

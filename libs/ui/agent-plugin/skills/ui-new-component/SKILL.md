@@ -5,9 +5,14 @@ description: >
   atom, molecule, organism, or template — walks through component source with tv(),
   token CSS, story, and Figma follow-up. Invoke explicitly with $ui-new-component <name>.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
+  requires: "component-authoring zag-compound-components ui-validate"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # New ui-kit component
 

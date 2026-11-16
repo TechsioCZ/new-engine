@@ -1,23 +1,23 @@
 ---
-component_version: "1.0.0"
 name: player-usage
 description: >
   Use after component-usage-ux when an app needs a token-driven media player.
   Player is a headless compound molecule over Vidstack (@vidstack/react); apps
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/player.tsx"
-  - "libs/ui/src/tokens/components/molecules/_player.css"
-  - "libs/ui/stories/molecules/player.stories.tsx"
-  - "https://vidstack.io/docs/player/getting-started/installation/react"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: "https://vidstack.io/docs/player/getting-started/installation/react"
+  contributor_sources: "libs/ui/src/molecules/player.tsx libs/ui/src/tokens/components/molecules/_player.css libs/ui/stories/molecules/player.stories.tsx"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Player Usage
 
@@ -114,3 +114,5 @@ Correct:
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_player.css
+
+Control labels follow `UiMessagesProvider.messages.player`; explicit control `aria-label` props take precedence.

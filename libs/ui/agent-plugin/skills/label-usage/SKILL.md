@@ -1,25 +1,71 @@
 ---
-component_version: "1.0.0"
 name: label-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Label for
   form-control labels with valid size, disabled, required, and htmlFor usage.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/label.tsx"
-  - "libs/ui/src/tokens/components/atoms/_label.css"
-  - "libs/ui/src/atoms/label.figma.ts"
+metadata:
+  component_version: "1.3.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/label.tsx libs/ui/src/tokens/components/atoms/_label.css libs/ui/src/atoms/label.figma.ts"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Label Usage
 
 Use Label for standalone form-control labels. Prefer form molecules when the
 whole field structure is available.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Label`.
+
+**Use it when**
+
+- Standalone labels for controls that are not wrapped by a Form* molecule.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A complete field | FormInput / FormTextarea / FormNumericInput / FormCheckbox |
+| Section headings | a heading element |
+
+**Do**
+
+- Connect every label to its control (`htmlFor`).
+- Keep labels short nouns; move explanations to help text.
+- Keep labels visible — no placeholder-only fields.
+
+**Don't**
+
+- End labels with a colon.
+- Write labels as instructions (`Please enter your email`).
+
+**Copy and states**
+
+- Sentence case, no punctuation; units in parentheses (`Weight (kg)`).
+
+**Behaviour (from the UX spec)**
+
+- Disabled styling matches a control that is really unavailable; it never makes a saved value hard to read.
+- The label names the value (`Supplier`), not an example of it; two neighbouring fields never share a generic label.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=current` | `size="current"` (code default; inherits text size — the Figma md preview is not its real size) |
+| `size=sm…lg`, `disabled`, `required` | same prop names |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Label → UX guidelines*.
 
 ## Setup
 
@@ -37,6 +83,7 @@ Supported props:
 size: sm | md | lg | current
 disabled: boolean
 required: boolean
+requiredLabel: string — screen-reader text after the required marker. Default "(required)"; pass a translation; "" omits it.
 htmlFor: native label target
 ```
 
@@ -143,3 +190,13 @@ rg -P -n "<Label(?![^>]*htmlFor=)" apps
 rg -n "<span[^>]*>\\*</span>|text-red-500.*\\*" apps
 rg -U -n "<Label[\\s\\S]{0,240}<Input" apps
 ```
+
+## Runtime typography and required fields
+
+`font-label` resolves through `--font-weight-label` (700), not a font-family
+alias. Business quiets the label to the existing semibold step (600) so field
+names read less emphatically; every other brand keeps bold. The required
+asterisk has a spoken “required” alternative and a readable error foreground;
+also set `required` on the actual control. Canonical sizes are sm/md/lg;
+`current` is an inherited-size compatibility escape hatch. Pair field feedback
+with the same size of StatusText.

@@ -2,7 +2,7 @@
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.3.0
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,19 +25,28 @@ import {
   createContext,
   type ReactNode,
   type Ref,
-  useCallback,
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import type { IconProps } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
+import { Input as InputComponent, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Select } from "./select"
 
@@ -78,8 +87,10 @@ type PhoneInputValueDetailsOptions = {
   syncCountryFromValue?: boolean
 }
 
-const defaultNativeValidationMessage = "Enter a valid phone number."
+const phoneDigit = /\d/
+const phoneNonDigits = /\D/g
 
+// English defaults. PhoneInput localizes these from the UiMessagesProvider catalog when no countries are passed.
 export const defaultPhoneInputCountries: PhoneInputCountry[] = [
   { value: "SK", label: "Slovakia", name: "Slovakia" },
   { value: "CZ", label: "Czechia", name: "Czechia" },
@@ -95,26 +106,20 @@ const phoneInputVariants = tv({
     root: ["relative flex w-full flex-col gap-phone-input"],
     control: [
       "form-control-base",
-      "relative flex w-full items-center overflow-hidden",
+      "relative flex w-full min-w-0 items-center overflow-clip",
       "text-phone-input-fg",
-      "hover:border-phone-input-border-hover hover:bg-phone-input-bg-hover",
+      "hover:border-phone-input-border-hover hover:bg-phone-input-bg-interaction",
       "phone-input-focus",
       "data-[disabled]:cursor-not-allowed",
       "data-[disabled]:border-phone-input-border-disabled",
       "data-[disabled]:bg-phone-input-bg-disabled",
       "data-[disabled]:text-phone-input-fg-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
-      "data-[validation=error]:border-phone-input-border-danger data-[validation=error]:outline-phone-input-border-danger",
-      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
-      "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=error]:border-phone-input-border-danger",
       "data-[validation=success]:border-(length:--border-width-validation)",
-      "data-[validation=success]:border-phone-input-border-success data-[validation=success]:outline-phone-input-border-success",
-      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
-      "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=success]:border-phone-input-border-success",
       "data-[validation=warning]:border-(length:--border-width-validation)",
-      "data-[validation=warning]:border-phone-input-border-warning data-[validation=warning]:outline-phone-input-border-warning",
-      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
-      "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=warning]:border-phone-input-border-warning",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     countrySelectRoot: ["contents"],
@@ -122,11 +127,11 @@ const phoneInputVariants = tv({
     countryTrigger: [
       "shrink-0",
       "bg-phone-input-trigger-bg-base",
-      "hover:bg-phone-input-trigger-bg-hover",
+      "hover:bg-phone-input-bg-interaction",
       "border-(length:--border-phone-input-trigger)",
-      "focus-visible:outline-none",
-      "w-phone-input-trigger",
-      "focus-visible:bg-phone-input-trigger-bg-hover",
+      "focus-visible:outline-hidden",
+      "w-phone-input-trigger gap-phone-input-country-trigger px-phone-input-country-trigger",
+      "focus-visible:bg-phone-input-bg-interaction",
       // Sits flush against the input: round only the leading (left) corners to
       // match the control; keep the trailing (right) edge square so the hover
       // fill meets the input with no rounded notch.
@@ -142,17 +147,17 @@ const phoneInputVariants = tv({
       "font-medium text-phone-input-country-calling-code-fg",
     ],
     input: [
-      "min-w-0 flex-1 border-0",
+      "min-w-0 flex-1 border-0 read-only:enabled:cursor-text!",
       "bg-phone-input-input-bg-base",
       "text-phone-input-fg",
       "placeholder:text-phone-input-fg-placeholder",
       "hover:bg-phone-input-input-bg-hover",
       "focus:bg-phone-input-input-bg-focus",
-      "focus-visible:outline-none",
+      "focus-visible:outline-hidden",
       "disabled:text-phone-input-fg-disabled",
     ],
     itemContent: ["flex min-w-0 items-center gap-phone-input-item"],
-    itemMeta: ["shrink-0 text-phone-input-item-meta-fg"],
+    itemMeta: ["phone-input-item-meta shrink-0 text-phone-input-item-meta-fg"],
   },
   variants: {
     size: {
@@ -186,6 +191,8 @@ type PhoneInputContextValue = {
   inputId: string
   inputValue: string
   setInputValue: (value: string) => void
+  onFormReset: () => void
+  setResetting: (resetting: boolean) => void
   details: PhoneInputValueChangeDetails
   disabled: boolean
   nativeValidation: boolean
@@ -193,7 +200,9 @@ type PhoneInputContextValue = {
   readOnly: boolean
   required: boolean
   validateStatus: PhoneInputValidateStatus
-}
+  statusTextId: string
+  errorDescriptions: DescribedBy
+} & DescribedBy
 
 const PhoneInputContext = createContext<PhoneInputContextValue | null>(null)
 
@@ -245,7 +254,7 @@ export type PhoneInputProps = VariantProps<typeof phoneInputVariants> &
   }
 
 export function PhoneInput({
-  countries: countriesProp = defaultPhoneInputCountries,
+  countries: countriesProp,
   value,
   defaultValue = "",
   country,
@@ -257,26 +266,44 @@ export function PhoneInput({
   disabled = false,
   readOnly = false,
   nativeValidation = false,
-  nativeValidationMessage = defaultNativeValidationMessage,
+  nativeValidationMessage,
   validateStatus = "default",
   onValueChange,
   onCountryChange,
-  size = "md",
+  size: sizeProp,
   id: providedId,
   className,
   children,
   ref,
   ...props
 }: PhoneInputProps) {
+  const { size = "md" } = useUIDefaults(
+    "PhoneInput",
+    { size: sizeProp },
+    phoneInputVariants
+  )
+  const messages = useUiMessages()
   const generatedId = useId()
   const id = providedId || generatedId
+  const localizedDefaultCountries = useMemo(
+    () =>
+      localizePhoneInputCountries(
+        defaultPhoneInputCountries,
+        messages.phoneInput.countries
+      ),
+    [messages]
+  )
   const countries = useMemo(
     () =>
       normalizePhoneInputCountries(
-        countriesProp.length > 0 ? countriesProp : defaultPhoneInputCountries
+        countriesProp && countriesProp.length > 0
+          ? countriesProp
+          : localizedDefaultCountries
       ),
-    [countriesProp]
+    [countriesProp, localizedDefaultCountries]
   )
+  const resolvedNativeValidationMessage =
+    nativeValidationMessage ?? messages.phoneInput.invalid
   const fallbackCountry = resolveCountry(
     countries,
     getInitialCountry(value ?? defaultValue, defaultCountry, countries)
@@ -304,6 +331,23 @@ export function PhoneInput({
     [countries, inputValue, selectedCountry]
   )
   const nativeFormValue = details.isValid ? details.e164 : inputValue
+  const resetting = useRef(false)
+  const setResetting = (pendingReset: boolean) => {
+    resetting.current = pendingReset
+  }
+  const onFormReset = () => {
+    const resetCountry = resolveCountry(
+      countries,
+      country ??
+        getInitialCountry(value ?? defaultValue, defaultCountry, countries)
+    )
+    if (country === undefined) {
+      setInternalCountry(resetCountry)
+    }
+    if (!isValueControlled) {
+      setInternalValue(formatPhoneInputValue(defaultValue, resetCountry))
+    }
+  }
 
   useEffect(() => {
     if (
@@ -324,6 +368,9 @@ export function PhoneInput({
   }, [countries, country, internalCountry, isValueControlled, value])
 
   const setInputValue = (nextValue: string) => {
+    if (disabled || readOnly) {
+      return
+    }
     const nextDetails = getPhoneInputValueDetailsInternal(
       nextValue,
       selectedCountry,
@@ -353,6 +400,9 @@ export function PhoneInput({
   }
 
   const setCountryValue = (nextCountry: CountryCode) => {
+    if (disabled || readOnly || resetting.current) {
+      return
+    }
     const nextCountryItem = getCountryItem(countries, nextCountry)
     const nextDetails = getPhoneInputValueDetailsInternal(
       inputValue,
@@ -378,6 +428,8 @@ export function PhoneInput({
   }
 
   const styles = phoneInputVariants({ size })
+  const describedBy = useDescribedBy()
+  const errorDescriptions = useDescribedBy()
 
   return (
     <PhoneInputContext.Provider
@@ -392,13 +444,18 @@ export function PhoneInput({
         inputId: `${id}-input`,
         inputValue,
         setInputValue,
+        onFormReset,
+        setResetting,
         details,
         disabled,
         nativeValidation,
-        nativeValidationMessage,
+        nativeValidationMessage: resolvedNativeValidationMessage,
         readOnly,
         required,
         validateStatus,
+        statusTextId: `${id}-status`,
+        ...describedBy,
+        errorDescriptions,
       }}
     >
       {name && (
@@ -456,7 +513,7 @@ PhoneInput.Control = function PhoneInputControl({
   const { disabled, readOnly, size, validateStatus } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+    validateStatus === "default" ? {} : { "data-validation": validateStatus }
 
   return (
     <div
@@ -490,6 +547,7 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
     form,
     readOnly,
     selectedCountry,
+    selectedCountryItem,
     setCountryValue,
     size,
   } = usePhoneInputContext()
@@ -513,6 +571,10 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
       size={size}
       value={[selectedCountry]}
     >
+      <Select.Label className="sr-only">
+        {getCountryDisplayValue(selectedCountryItem)} (+
+        {getPhoneCountryCallingCode(selectedCountryItem)})
+      </Select.Label>
       {children}
     </Select>
   )
@@ -592,6 +654,8 @@ PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
   children,
   className,
   ref,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: PhoneInputCountryTriggerProps) {
   const { selectedCountryItem, size } = usePhoneInputContext()
@@ -599,6 +663,15 @@ PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
 
   return (
     <Select.Trigger
+      // The trigger is a role="combobox", which takes no name from its content
+      // (the flag is decorative), so name it after the visible country and code.
+      aria-label={
+        ariaLabel ??
+        (ariaLabelledBy
+          ? undefined
+          : `${getCountryDisplayValue(selectedCountryItem)} (+${getPhoneCountryCallingCode(selectedCountryItem)})`)
+      }
+      aria-labelledby={ariaLabelledBy}
       className={styles.countryTrigger({ className })}
       ref={ref}
       {...props}
@@ -702,10 +775,11 @@ type PhoneInputInputProps = Omit<
 PhoneInput.Input = function PhoneInputInput({
   className,
   onChange,
-  placeholder = "Phone number",
+  placeholder,
   ref,
   ...props
 }: PhoneInputInputProps) {
+  const messages = useUiMessages()
   const {
     details,
     disabled,
@@ -714,21 +788,146 @@ PhoneInput.Input = function PhoneInputInput({
     inputValue,
     nativeValidation,
     nativeValidationMessage,
+    onFormReset,
+    setResetting,
     readOnly,
     required,
     setInputValue,
     size,
+    describedById,
+    errorDescriptions,
     validateStatus,
   } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const inputRef = useRef<HTMLInputElement>(null)
-  const setInputRef = useCallback(
-    (node: HTMLInputElement | null) => {
+  const setInputRef = useMemo(
+    () => (node: HTMLInputElement | null) => {
       inputRef.current = node
-      assignRef(ref, node)
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        inputRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
     },
     [ref]
   )
+  const [compositionValue, setCompositionValue] = useState<string>()
+  const [selection, setSelection] = useState<{
+    value: string
+    start: number
+    end: number
+    direction: "forward" | "backward" | "none" | null
+  }>()
+  const captureSelection = (input: HTMLInputElement) => {
+    setSelection({
+      value: input.value,
+      start: input.selectionStart ?? input.value.length,
+      end: input.selectionEnd ?? input.value.length,
+      direction: input.selectionDirection,
+    })
+  }
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    if (
+      !(input && selection) ||
+      compositionValue !== undefined ||
+      input.ownerDocument.activeElement !== input
+    ) {
+      return
+    }
+    // International paste drops the calling code from the visible national
+    // number, so exclude those leading digits from both selection boundaries.
+    const digits = (text: string) => text.replace(phoneNonDigits, "").length
+    const dropped = selection.value.startsWith("+")
+      ? Math.max(0, digits(selection.value) - digits(input.value))
+      : 0
+    const map = (offset: number) => {
+      const count = Math.max(
+        0,
+        digits(selection.value.slice(0, offset)) - dropped
+      )
+      if (count === 0) {
+        return 0
+      }
+      let seen = 0
+      for (let i = 0; i < input.value.length; i++) {
+        if (phoneDigit.test(input.value[i] ?? "")) {
+          seen += 1
+          if (seen === count) {
+            return i + 1
+          }
+        }
+      }
+      return input.value.length
+    }
+    input.setSelectionRange(
+      map(selection.start),
+      map(selection.end),
+      selection.direction ?? undefined
+    )
+    setSelection(undefined)
+  }, [compositionValue, selection])
+
+  const resetHandlers = useRef({ onFormReset, setResetting })
+  useLayoutEffect(() => {
+    resetHandlers.current = { onFormReset, setResetting }
+  })
+  useEffect(() => {
+    const input = inputRef.current
+    if (!input) {
+      return
+    }
+    return subscribeOwnerFormReset(
+      input,
+      () => resetHandlers.current.onFormReset(),
+      {
+        onResetStart: () => resetHandlers.current.setResetting(true),
+        onResetEnd: () => resetHandlers.current.setResetting(false),
+      }
+    )
+  }, [])
+
+  useEffect(() => {
+    const input = inputRef.current
+    if (!input) {
+      return
+    }
+    const beforeInput = (event: InputEvent) => {
+      if (
+        disabled ||
+        readOnly ||
+        event.isComposing ||
+        !event.cancelable ||
+        input.selectionStart !== input.selectionEnd
+      ) {
+        return
+      }
+      const range = getSeparatorDeletionRange(
+        input.value,
+        input.selectionStart ?? 0,
+        event.inputType
+      )
+      if (!range) {
+        return
+      }
+      const [start, end] = range
+      event.preventDefault()
+      input.setRangeText("", start, end, "start")
+      // Reuse React's change path and consumer callback for this native edit.
+      input.dispatchEvent(new Event("input", { bubbles: true }))
+    }
+    input.addEventListener("beforeinput", beforeInput)
+    return () => input.removeEventListener("beforeinput", beforeInput)
+  }, [disabled, readOnly])
 
   useEffect(() => {
     const input = inputRef.current
@@ -755,9 +954,22 @@ PhoneInput.Input = function PhoneInputInput({
   ])
 
   return (
-    <Input
+    <InputComponent
       {...props}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        describedById
+      )}
+      aria-errormessage={
+        validateStatus === "error" || errorDescriptions.describedById
+          ? joinDescribedBy(
+              props["aria-errormessage"],
+              errorDescriptions.describedById
+            )
+          : undefined
+      }
       aria-invalid={
+        Boolean(errorDescriptions.describedById) ||
         validateStatus === "error" ||
         (nativeValidation && inputValue.trim() !== "" && !details.isValid) ||
         undefined
@@ -769,16 +981,38 @@ PhoneInput.Input = function PhoneInputInput({
       inputMode="tel"
       name={undefined}
       onChange={(event) => {
-        setInputValue(event.target.value)
-        onChange?.(event)
+        if (!(disabled || readOnly)) {
+          if (
+            (event.nativeEvent as InputEvent).isComposing ||
+            compositionValue !== undefined
+          ) {
+            setCompositionValue(event.target.value)
+          } else {
+            captureSelection(event.target)
+            setInputValue(event.target.value)
+          }
+          onChange?.(event)
+        }
       }}
-      placeholder={placeholder}
+      onCompositionEnd={(event) => {
+        setCompositionValue(undefined)
+        if (!(disabled || readOnly)) {
+          captureSelection(event.currentTarget)
+          setInputValue(event.currentTarget.value)
+        }
+        props.onCompositionEnd?.(event)
+      }}
+      onCompositionStart={(event) => {
+        setCompositionValue(event.currentTarget.value)
+        props.onCompositionStart?.(event)
+      }}
+      placeholder={placeholder ?? messages.phoneInput.placeholder}
       readOnly={readOnly}
       ref={setInputRef}
       required={required}
       size={size}
       type="tel"
-      value={inputValue}
+      value={compositionValue ?? inputValue}
     />
   )
 }
@@ -899,17 +1133,28 @@ PhoneInput.StatusText = function PhoneInputStatusText({
   children,
   ...props
 }: PhoneInputStatusTextProps) {
-  const { size, validateStatus } = usePhoneInputContext()
+  const messageId = useId()
+  const { size, validateStatus, registerDescription, errorDescriptions } =
+    usePhoneInputContext()
+  const id = props.id ?? messageId
+  const resolvedStatus = status ?? validateStatus
+  useRegisterDescription(id, registerDescription)
+  useRegisterDescription(
+    id,
+    errorDescriptions.registerDescription,
+    resolvedStatus === "error"
+  )
 
   return (
-    <StatusText
-      showIcon={showIcon}
+    <StatusTextComponent
+      showIcon={resolvedStatus === "default" ? showIcon : true}
       size={size}
-      status={status ?? validateStatus}
+      status={resolvedStatus}
       {...props}
+      id={id}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 
@@ -990,6 +1235,16 @@ function getPhoneInputValueDetailsInternal(
     isPossible,
     isValid,
   }
+}
+
+function localizePhoneInputCountries(
+  countries: PhoneInputCountry[],
+  names: Partial<Record<string, string>>
+): PhoneInputCountry[] {
+  return countries.map((item) => {
+    const name = names[item.value]
+    return name === undefined ? item : { ...item, label: name, name }
+  })
 }
 
 function normalizePhoneInputCountries(
@@ -1118,17 +1373,33 @@ function getCountryItem(
   )
 }
 
-function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
-  if (!ref) {
+function getSeparatorDeletionRange(
+  value: string,
+  caret: number,
+  inputType: string
+) {
+  const backward = inputType === "deleteContentBackward"
+  const forward = inputType === "deleteContentForward"
+  if (
+    !(backward || forward) ||
+    phoneDigit.test(value[backward ? caret - 1 : caret] ?? "")
+  ) {
     return
   }
-
-  if (typeof ref === "function") {
-    ref(value)
-    return
+  let start = caret
+  let end = caret
+  if (backward) {
+    while (start > 0 && !phoneDigit.test(value[start - 1] ?? "")) {
+      start -= 1
+    }
+    start = Math.max(0, start - 1)
+  } else {
+    while (end < value.length && !phoneDigit.test(value[end] ?? "")) {
+      end += 1
+    }
+    end = Math.min(value.length, end + 1)
   }
-
-  ;(ref as { current: T | null }).current = value
+  return start === end ? undefined : ([start, end] as const)
 }
 
 function getPhoneCountryCallingCode(

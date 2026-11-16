@@ -4,30 +4,22 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-This is an Nx monorepo for an e-commerce platform built with Medusa.js. The project uses pnpm for package management and Nx for orchestrating builds and development workflows.
+This is an Nx monorepo that holds only the shared libraries of an e-commerce platform: the design system and the storefront utility libraries. The applications that consume them live in a separate repository. The project uses pnpm for package management and Nx for orchestrating builds.
 
 ## Architecture
 
 ### Monorepo Structure
-- **apps/**: Application projects
-  - `medusa-be`: Medusa.js v2 backend
-  - `medusa-demo`: Next.js demo frontend (reference implementation)
-  - `medusa-fe`: Next.js frontend (reference implementation)
-  - `herbatika`: Next.js 16 storefront app
 - **libs/**: Shared libraries
-  - `ui`: Component library built with Zag.js and Tailwind CSS
+  - `ui`: Component library built with Zag.js and Tailwind CSS (`@techsio/ui-kit`)
   - `storefront-data`: TanStack Query + Medusa storefront data layer
-
-### Subtree Guidance
-- When touching `apps/herbatika`, read `apps/herbatika/AGENTS.md` before editing.
-  It overrides the root frontend-demo server assumption with Herbatika's
-  `http://localhost:3001` runtime and routes work through the `libs/ui/skills`
-  and `libs/storefront-data/skills` workflows.
+  - `storefront-i18n`: Storefront market resolution and backend-managed messages
+  - `storefront-security`: Next.js storefront security headers and CSP presets
+  - `analytics`: Analytics adapters for storefronts
 
 ### Key Technologies
 - **Monorepo**: Nx
 - **Frontend**: Modern.js, React 19, Tailwind CSS (we prefer Modern.js from Bytedance, but sometimes Next.js 15+ can be used)
-- **Backend**: Medusa.js v2
+- **Backend SDK**: Medusa.js v2 JS SDK (storefront-data, storefront-i18n)
 - **Component Library**: Zag.js for React UI components using Tailwind
 - **Build Tools**: RSLib for library builds
 - **Testing**: Vitest
@@ -88,13 +80,6 @@ This project includes MCP (Model Context Protocol) servers configuration to enha
 
 ## Development Commands
 
-### Important: Development Server Assumptions
-**NEVER ask to run `pnpm dev` or check if the dev server is running!**
-- Always assume the development server is already running on http://localhost:3000 (for frontend-demo)
-- Exception: `apps/herbatika` uses `http://localhost:3001`; follow `apps/herbatika/AGENTS.md` for Herbatika work.
-- This saves time and avoids unnecessary communication
-- If you need to interact with the running application, use MCP tools (especially puppeteer-mcp)
-
 ### Package Management
 Always use CLI commands to install packages, never edit package.json directly:
 ```bash
@@ -103,25 +88,21 @@ pnpm add -D <package>        # Add dev dependency
 pnpm add -w <package>        # Add to workspace root
 ```
 
-### Running Development Servers
+### Running Storybook
 ```bash
-bunx nx run medusa-be:dev      # Start backend dev server
-bunx nx run medusa-fe:dev      # Start frontend dev server
 bunx nx run ui:storybook       # Start Storybook for UI library
 ```
 
 ### Building Projects
 ```bash
-bunx nx run medusa-be:build    # Build backend
-bunx nx run medusa-fe:build    # Build frontend
-bunx nx run ui:build          # Build UI library
+bunx nx run ui:build                         # Build UI library
+bunx nx run-many -t build                    # Build all libraries
 ```
 
 ### Testing
-We don't have tests much (yet), but it is planned.
 ```bash
-bunx nx run medusa-be:test     # Run backend tests with Vitest
-bunx nx run ui:test           # Run UI library tests with Vitest
+bunx nx run-many -t lint test                # Lint and test all libraries
+pnpm --dir libs/ui typecheck                 # Typecheck the UI library
 ```
 
 ### Code Quality
@@ -152,16 +133,6 @@ import { Dialog } from '@techsio/ui-kit/molecules/dialog'
 ```
 
 Use `@libs/ui/...` only in projects that define and verify that alias explicitly. The workspace package contract for app consumers is currently `@techsio/ui-kit/...`.
-
-## Medusa Backend Structure
-
-Key directories in `apps/medusa-be/src/`:
-- `api/`: Custom API endpoints
-- `modules/`: Custom Medusa modules
-- `workflows/`: Business logic workflows
-- `admin/`: Admin panel customizations
-- `subscribers/`: Event subscribers
-- `jobs/`: Background jobs
 
 ## Configuration Files
 

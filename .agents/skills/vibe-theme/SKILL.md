@@ -7,8 +7,8 @@ description: Create a new code-authored ("vibed") brand theme from a brief — d
 
 Author a complete brand theme **in code** from a prompt (a brand brief), so a
 customer theme can ship without first being built in Figma. The result is a
-normal registered brand — selectable via the theme toggler alongside `base` and
-`neo`, **not** the default (`DEFAULT_BRAND` stays `base`).
+normal registered brand — selectable via the theme toggler alongside `business`,
+`akros` and `n1`, **not** the default (`DEFAULT_BRAND` stays `business`).
 
 This is the mirror image of [`figma-token-binding`](../figma-token-binding/SKILL.md):
 that skill pulls tokens Figma → code; this one produces the same artifact
@@ -39,10 +39,9 @@ set** — one folder per mode, each with the exact same set of token names as
 base (parity-enforced by `validate-brand.mjs`):
 
 ```
-libs/ui/src/tokens/figma/light/        base brand, light mode  (source of truth)
-libs/ui/src/tokens/figma/dark/         base brand, dark mode
-libs/ui/src/tokens/figma/neo/          neo brand,  light mode
-libs/ui/src/tokens/figma/neo-dark/     neo brand,  dark mode
+libs/ui/src/tokens/figma/light/        base foundation, light mode  (source of truth)
+libs/ui/src/tokens/figma/dark/         base foundation, dark mode
+libs/ui/src/tokens/figma/business/     business brand, light only (reused for both modes)
 libs/ui/src/tokens/figma/<brand>/      NEW brand,  light mode  ← you write this
 libs/ui/src/tokens/figma/<brand>-dark/ NEW brand,  dark mode   ← and this
 ```
@@ -55,7 +54,7 @@ axis and a `.light`/`.dark` class for the mode axis.
 
 ## The core rule: touch primitives, inherit the rest
 
-`neo` overrides only a few dozen tokens, yet re-skins the entire library. That
+`business` overrides only a small slice of tokens, yet re-skins the entire library. That
 works because every semantic and component token is a `var()` chain pointing at
 the primitive scales — override the roots and the change cascades everywhere.
 
@@ -68,8 +67,8 @@ into a place a bug can hide.
 
 ## The brand-defining surface (what you edit)
 
-Two tiers. Mirror what `neo`/`cyber` change (diff `neo` against `light` to see
-the canonical set):
+Two tiers. Mirror what `business`/`cyber` change (diff `business` against
+`light` to see the canonical set):
 
 **Tier 1 — primitive scales (always edit).** The OKLCH color ramps that define
 the brand:
@@ -80,8 +79,8 @@ the brand:
 
 **Tier 2 — contrast-driven semantic re-aliases (edit only when contrast demands).**
 When the brand's chosen background step is darker or lighter than base's, some
-foregrounds must flip and some `bg-primary-*` aliases must re-point. The set neo
-flips (adapt to your brand — do not copy blindly):
+foregrounds must flip and some `bg-primary-*` aliases must re-point. The set a
+dark-fill brand flips (adapt to your brand — do not copy blindly):
 
 ```
 --color-bg-primary-base / -hover / -active        (which primary step is the fill)
@@ -166,7 +165,7 @@ Edit these values in place in both files. Do not touch token names.
 
 Decide, per mode, whether the primary fill (`--color-bg-primary-base`) is dark
 enough to need white (`--color-fg-reverse`) foreground. If so, flip the Tier-2
-foregrounds and re-point the `bg-primary-*` steps to match (see the neo set).
+foregrounds and re-point the `bg-primary-*` steps to match (see the Tier-2 list above).
 If the brand is light/pastel, you may need the *opposite* — keep dark
 foregrounds and leave these at base.
 
@@ -183,7 +182,7 @@ Two hand-synced registrations (the merge script's comment calls this out):
   ```ts
   <brand>: { label: "<Customer Label>", modes: ["light", "dark"], attr: "<brand>" },
   ```
-  Leave `DEFAULT_BRAND = "base"` unchanged — the brand is toggle-selectable, not
+  Leave `DEFAULT_BRAND = "business"` unchanged — the brand is toggle-selectable, not
   the default.
 
 ### 6. Validate
@@ -203,7 +202,7 @@ node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs
 
 Regenerates `variables.css` + `brand-overrides.css`. Confirm a
 `[data-theme="<brand>"]` block appears with only your intended overrides (a
-handful of tokens (a few dozen, like neo) — if it's hundreds, you edited too much or
+handful of tokens (comparable to the `business` block) — if it's hundreds, you edited too much or
 broke the cascade).
 
 ### 8. Verify in Storybook (mandatory — same rule as figma-token-binding)
@@ -220,8 +219,8 @@ sync. This is the reverse of the export path and uses `use_figma` (load the
 `figma-use` skill first) plus `figma-generate-library`:
 
 1. Read the brand's per-mode folder pair.
-2. For each Figma variable collection, add a **mode** for the brand (neo already
-   proved the multi-mode-per-collection shape) and set the brand's values on the
+2. For each Figma variable collection, add a **mode** for the brand (business, akros
+   and n1 already prove the multi-mode-per-collection shape) and set the brand's values on the
    primitives you overrode.
 3. Everything else inherits through the existing Figma alias chains — same
    "touch primitives, inherit the rest" principle, mirrored in Figma.
@@ -249,7 +248,7 @@ When done, produce:
 
 ## Reference
 
-- Canonical brand to mirror: `neo` (diff `figma/neo/variables.css` against
+- Canonical brand to mirror: `business` (diff `figma/business/variables.css` against
   `figma/light/variables.css` for the exact editable surface).
 - Merge + runtime: `merge-figma-themes.mjs`, `theme-config.ts`,
   `theme-provider.tsx`.

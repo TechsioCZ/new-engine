@@ -4,21 +4,19 @@ description: >
   Use when consuming @techsio/ui-kit in framework apps, especially Next.js 16+
   with React Compiler, NextLink, NextImage, token CSS imports, polymorphic `as`
   props, adapter prop forwarding, and wrapper-avoidance checks.
-type: framework
-framework: react
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-sources:
-  - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
-  - "libs/ui/package.json"
-  - "libs/ui/src/atoms/link.tsx"
-  - "libs/ui/src/atoms/link-button.tsx"
-  - "libs/ui/src/atoms/image.tsx"
-  - "libs/ui/src/molecules/breadcrumb.tsx"
-  - "libs/ui/src/molecules/pagination.tsx"
+metadata:
+  type: "framework"
+  framework: "react"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux"
+  sources: "../../references/consumer_app_usage_rules.md"
+  contributor_sources: "libs/ui/package.json libs/ui/src/atoms/link.tsx libs/ui/src/atoms/link-button.tsx libs/ui/src/atoms/image.tsx libs/ui/src/molecules/breadcrumb.tsx libs/ui/src/molecules/pagination.tsx libs/ui/src/messages/ui-messages.ts libs/ui/src/messages/ui-messages-provider.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 This skill builds on `component-usage-ux`. Read it first for component
 selection before applying framework adapters.
@@ -100,7 +98,7 @@ Correct:
 
 UI-kit Link/Image are framework-agnostic; Next apps should use adapters.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### HIGH Missing token imports
 
@@ -116,7 +114,19 @@ Correct:
 @import "@techsio/ui-kit/tokens-with-tailwind";
 ```
 
-UI-kit component classes need the token CSS loaded in the app.
+Process this global CSS with Tailwind v4 (`@tailwindcss/postcss`); loading the
+unprocessed stylesheet is not enough. Both public token entries register
+`../../dist/**/*.js` relative to the packaged CSS with `@source`, so dependency
+utilities are generated even under node_modules. Do not copy internal class
+strings into app source. If the app already imports Tailwind, use this instead:
+
+```css
+@import "tailwindcss";
+@import "@techsio/ui-kit/tokens";
+```
+
+Choose one recipe, not both. See README and Storybook Guide/Getting Started for
+installation, the PostCSS config, and the packed-consumer smoke check.
 
 Source: libs/ui/package.json
 
@@ -155,7 +165,7 @@ function NextLinkButton(props: NextLinkProps) {
 Correct:
 
 ```tsx
-<LinkButton as={NextLink} href="/account" variant="primary" theme="solid">
+<LinkButton as={NextLink} href="/account" severity="primary" appearance="solid">
   Account
 </LinkButton>
 ```
@@ -173,3 +183,34 @@ rg -n 'as=\\{Next(Link|Image)\\}|from "next/(link|image)"' apps/<app>
 rg -n '@techsio/ui-kit/tokens' apps/<app>
 ```
 
+
+## RSC and compound composition
+
+Published hook/context/event-owning modules are client boundaries; emitted
+prologues are checked during package validation. Keep compound static-member
+composition (`Tabs.Trigger`, `Dialog.Content`, etc.) inside a consuming app's
+`'use client'` module, not a server page accessing members of a client reference.
+Nonserializable callbacks/render functions also belong inside that boundary.
+Plain SSR and a Next App Router build validate different contracts; do not claim
+RSC compatibility from a successful renderToString or Node react-server import.
+
+For fixed Akros use `<html className="light" data-theme="akros">`. For optional
+persisted theme switching import AppThemeProvider/BrandThemeScript from
+`@techsio/ui-kit/theme/theme-provider`; defaults are saved-preference fallbacks,
+not forced brand settings. Place the brand script before visible body content,
+use suppressHydrationWarning on the Next root html, and gate theme-dependent UI
+on useAppTheme().mounted. Base/Neo support light+dark; Business/Akros light only.
+
+## Language
+
+Components carry no fixed language. For an app that is not English, render
+`UiMessagesProvider` from `@techsio/ui-kit/messages/ui-messages-provider` once
+near the root with a `UiMessagesInput` catalog (type from
+`@techsio/ui-kit/messages/ui-messages`); it is a client component, so in Next
+place it inside the app's `'use client'` providers module. Define the catalog as
+a module constant. Do not pass the same translated text to every instance
+(`closeLabel`, `placeholder`, `translations`) — that is what the catalog is for;
+keep per-instance props for texts specific to that instance. Set `locale` in
+the catalog for number and date formatting defaults. One provider covers every
+copy of the kit on the page, including module-federation remotes that bundle
+their own copy.

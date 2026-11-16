@@ -1,17 +1,21 @@
 ---
-component_version: "1.0.0"
 name: breadcrumb-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Breadcrumb for
   page hierarchy navigation with Link/NextLink adapters, current page state,
   separators, ellipsis, icons, size, and underline variant.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/breadcrumb.tsx"
   - "libs/ui/src/tokens/components/molecules/_breadcrumb.css"
@@ -22,6 +26,59 @@ sources:
 # @techsio/ui-kit Breadcrumb Usage
 
 Use Breadcrumb for location hierarchy, not for primary navigation tabs.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Breadcrumb`.
+
+**Use it when**
+
+- Pages three or more levels deep in a hierarchy (catalog → category → product; admin → section → record).
+- Record editors and detail pages, so users can return to the list they came from.
+- Storefront category and product pages, where it also helps SEO.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Switching peer views | Tabs |
+| Progress through a task | Steps |
+| Primary site navigation | Header / Sidebar + VerticalNavigation |
+| Browser-history back | a `Back to list` Button in the page header |
+
+**Do**
+
+- Start at the root users recognise (`Home` or the section), end with the current page as plain text (not a link).
+- Mirror the information architecture, not the click history.
+- Truncate the middle on small screens, never the current page.
+- Use the same labels as the navigation and page titles.
+
+**Don't**
+
+- Link the current page to itself.
+- Use breadcrumbs on top-level pages where they only contain `Home`.
+- Replace the page title with the last breadcrumb — keep both.
+
+**Copy and states**
+
+- Labels are page names in sentence case; separators come from the component, never typed characters.
+
+**Behaviour (from the UX spec)**
+
+- The trail follows the hierarchy, not the click history: the same record shows the same ancestors however the user reached it.
+- Collapsed levels must stay reachable. `Breadcrumb.Ellipsis` is currently decorative (`aria-hidden`), so keep `maxItems` generous enough that nothing the user needs is hidden.
+- Pass a localised `aria-label` on the root (the default is `breadcrumb`).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | same prop |
+| — | `appearance="plain" \| "underline"` (not in Figma) |
+| ellipsis glyph / hidden levels | `Breadcrumb.Ellipsis`, `maxItems` on `BreadcrumbTemplate` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Breadcrumb → UX guidelines*.
 
 ## Setup
 
@@ -58,6 +115,20 @@ the same page.
 
 In Next apps, pass `as={NextLink}` to `Breadcrumb.Link` instead of wrapping or
 restyling anchors.
+
+### Keep demos local without changing production links
+
+Breadcrumb links are real anchors with real destinations. The molecule and
+BreadcrumbTemplate Storybook stories prevent default link activation in their
+demo decorator and log the destination; this also covers keyboard activation
+and destinations edited in Controls. That suppression is documentation-only.
+Do not copy it into application navigation or replace real routes with `#`.
+
+Use BreadcrumbTemplate when an array of page data is enough; use the compound
+Breadcrumb molecule when individual slots need custom content or styling.
+The template's `maxItems` counts visible page items, not the decorative
+ellipsis: `0` shows all, `1` shows the last, and larger limits preserve the root
+and the trailing pages. Keep the current page in that visible trailing segment.
 
 ### Use separators and ellipsis components
 
@@ -121,3 +192,16 @@ rg -P -n "<nav[^>]*breadcrumb|/ <span|<Breadcrumb\\.Link(?![^>]*as=)" apps
 rg -P -n "<Breadcrumb\\.Link(?![^>]*as=\\{?NextLink)" apps
 rg -n "<Breadcrumb[^>]*className=.*(gap-|text-|px-|py-)" apps
 ```
+
+## Wave 2 contracts
+
+An explicit isCurrent item terminates the location path: descendant entries after it are not rendered. This happens before maxItems collapse, keeping exactly one current-page marker visible instead of silently making a descendant current. maxItems counts page entries; ellipsis is additional. Canonical sizes are sm/md/lg (default md).
+
+BreadcrumbTemplate sets ancestor links to size="current" so the inherited breadcrumb size matches the current-page text at sm, md and lg. Its link adapter must forward className for this inheritance to apply.
+
+## Inherited typography and long labels
+
+Breadcrumb.Link defaults to size="current", inheriting the trail's sm/md/lg
+typography. Explicit Link size overrides (including template linkProps.size)
+remain supported. Roots/lists are width-bounded and labels wrap anywhere when
+needed for long product codes; the current label is never truncated.

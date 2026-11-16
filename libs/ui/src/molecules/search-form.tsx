@@ -2,7 +2,7 @@
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,21 +12,34 @@
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type FormEvent,
   type ReactNode,
   type Ref,
+  type SubmitEvent,
   useContext,
   useEffect,
   useId,
+  useMemo,
+  useRef,
   useState,
 } from "react"
 import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
-import { Button, type ButtonProps } from "../atoms/button"
+import { Button as ButtonComponent, type ButtonProps } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
+import { Input as InputComponent, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
+import { StatusText, type StatusTextProps } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const searchFormVariants = tv({
@@ -49,7 +62,7 @@ const searchFormVariants = tv({
     // The clear button (an ActionIcon) lives inside the input, pinned to the
     // trailing edge at the input's inline padding (set per size below) and
     // vertically centered. ActionIcon owns its size, glyph and hover pill.
-    clearButton: ["-translate-y-1/2 absolute top-1/2"],
+    clearButton: ["absolute top-1/2 -translate-y-1/2"],
   },
   variants: {
     size: {
@@ -59,16 +72,19 @@ const searchFormVariants = tv({
       sm: {
         root: "gap-search-form-sm",
         button: "h-form-control-sm",
+        input: "data-clearable:pe-(--height-form-control-sm)",
         clearButton: "end-(length:--padding-input-sm)",
       },
       md: {
         root: "gap-search-form-md",
         button: "h-form-control-md",
+        input: "data-clearable:pe-(--height-form-control-md)",
         clearButton: "end-(length:--padding-input-md)",
       },
       lg: {
         root: "gap-search-form-lg",
         button: "h-form-control-lg",
+        input: "data-clearable:pe-(--height-form-control-lg)",
         clearButton: "end-(length:--padding-input-lg)",
       },
     },
@@ -92,6 +108,17 @@ export type SearchFormSize = "sm" | "md" | "lg"
 
 type SearchFormContextValue = {
   size: SearchFormSize
+  readOnly: boolean
+  disabled: boolean
+  setInputReadOnly: (value: boolean) => void
+  setInputDisabled: (value: boolean) => void
+  hasLabel: boolean
+  setHasLabel: (present: boolean) => void
+  hasButton: boolean
+  setHasButton: (present: boolean) => void
+  validateStatus: "default" | "error" | "warning" | "success"
+  descriptions: DescribedBy
+  errors: DescribedBy
   gapped: boolean
   inputId: string
   inputValue: string
@@ -118,19 +145,24 @@ function useSearchFormContext() {
   return context
 }
 
-export interface SearchFormProps
-  extends VariantProps<typeof searchFormVariants>,
-    Omit<ComponentPropsWithoutRef<"form">, "size"> {
-  children: ReactNode
-  defaultValue?: string
-  value?: string
-  onValueChange?: (value: string) => void
-  ref?: Ref<HTMLFormElement>
-}
+export type SearchFormProps = VariantProps<typeof searchFormVariants> &
+  Omit<ComponentPropsWithoutRef<"form">, "size"> & {
+    readOnly?: boolean
+    disabled?: boolean
+    validateStatus?: "default" | "error" | "warning" | "success"
+    children: ReactNode
+    defaultValue?: string
+    value?: string
+    onValueChange?: (value: string) => void
+    ref?: Ref<HTMLFormElement>
+  }
 
 export function SearchForm({
-  size = "md",
+  size: sizeProp,
   gapped = false,
+  readOnly = false,
+  disabled: explicitDisabled = false,
+  validateStatus = "default",
   children,
   defaultValue = "",
   value,
@@ -140,15 +172,72 @@ export function SearchForm({
   onSubmit,
   ...props
 }: SearchFormProps) {
+  const { size = "md" } = useUIDefaults(
+    "SearchForm",
+    { size: sizeProp },
+    searchFormVariants
+  )
   const generatedId = useId()
   const inputId = `search-input-${generatedId}`
-  const [internalValue, setInternalValue] = useState(defaultValue)
+  const [formElement, setFormElement] = useState<HTMLFormElement | null>(null)
   const [clearSlot, setClearSlot] = useState<HTMLDivElement | null>(null)
+  const disabled = useEffectiveDisabled(
+    clearSlot ?? formElement,
+    explicitDisabled
+  )
+  const formRef = useMemo(
+    () => (node: HTMLFormElement | null) => {
+      setFormElement(node)
+      const cleanup = typeof ref === "function" ? ref(node) : undefined
+      if (ref && typeof ref !== "function") {
+        ref.current = node
+      }
+      return () => {
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof ref === "function") {
+          ref(null)
+        } else if (ref) {
+          ref.current = null
+        }
+      }
+    },
+    [ref]
+  )
+  const initialValue = useRef(defaultValue)
+  const [internalValue, setInternalValue] = useState(defaultValue)
   const [hasClearButton, setHasClearButton] = useState(false)
+  const [inputReadOnly, setInputReadOnly] = useState(false)
+  const [inputDisabled, setInputDisabled] = useState(false)
+  const [hasLabel, setHasLabel] = useState(false)
+  const [hasButton, setHasButton] = useState(false)
+  const descriptions = useDescribedBy()
+  const errors = useDescribedBy()
+  const blocked = readOnly || disabled || inputReadOnly || inputDisabled
   const isControlled = value !== undefined
   const inputValue = isControlled ? value : internalValue
 
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    if (!isControlled) {
+      setInternalValue(initialValue.current)
+    }
+    const input = clearSlot?.querySelector("input")
+    if (input) {
+      input.value = value ?? initialValue.current
+    }
+  }
+  useEffect(() => {
+    const input = clearSlot?.querySelector("input")
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [clearSlot])
+
   const setInputValue = (newValue: string) => {
+    if (blocked) {
+      return
+    }
     if (!isControlled) {
       setInternalValue(newValue)
     }
@@ -157,9 +246,10 @@ export function SearchForm({
 
   const clearInput = () => {
     setInputValue("")
+    clearSlot?.querySelector("input")?.focus()
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     onSubmit?.(e)
   }
@@ -171,6 +261,17 @@ export function SearchForm({
       value={{
         size,
         gapped,
+        readOnly: readOnly || inputReadOnly,
+        disabled: disabled || inputDisabled,
+        setInputReadOnly,
+        setInputDisabled,
+        validateStatus,
+        descriptions,
+        errors,
+        hasLabel,
+        setHasLabel,
+        hasButton,
+        setHasButton,
         inputId,
         inputValue,
         setInputValue,
@@ -186,7 +287,7 @@ export function SearchForm({
         <form
           className={styles.root({ className })}
           onSubmit={handleSubmit}
-          ref={ref}
+          ref={formRef}
           {...props}
         >
           {children}
@@ -196,14 +297,18 @@ export function SearchForm({
   )
 }
 
-interface SearchFormLabelProps extends Omit<LabelProps, "htmlFor" | "size"> {}
+type SearchFormLabelProps = Omit<LabelProps, "htmlFor" | "size"> & {}
 
 SearchForm.Label = function SearchFormLabel({
   children,
   className,
   ...props
 }: SearchFormLabelProps) {
-  const { inputId, size } = useSearchFormContext()
+  const { inputId, size, setHasLabel } = useSearchFormContext()
+  useEffect(() => {
+    setHasLabel(true)
+    return () => setHasLabel(false)
+  }, [setHasLabel])
 
   return (
     <Label className={className} htmlFor={inputId} size={size} {...props}>
@@ -212,7 +317,7 @@ SearchForm.Label = function SearchFormLabel({
   )
 }
 
-interface SearchFormControlProps extends ComponentPropsWithoutRef<"div"> {
+type SearchFormControlProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -232,18 +337,18 @@ SearchForm.Control = function SearchFormControl({
   )
 }
 
-interface SearchFormInputProps
-  extends Omit<
-    InputProps,
-    "size" | "value" | "onChange" | "withButtonInside"
-  > {}
+type SearchFormInputProps = Omit<
+  InputProps,
+  "size" | "value" | "onChange" | "withButtonInside"
+> & {}
 
 SearchForm.Input = function SearchFormInput({
   className,
-  placeholder = "Search...",
+  placeholder,
   ref,
   ...props
 }: SearchFormInputProps) {
+  const messages = useUiMessages()
   const {
     inputId,
     inputValue,
@@ -253,29 +358,68 @@ SearchForm.Input = function SearchFormInput({
     hasValue,
     hasClearButton,
     setClearSlot,
+    readOnly,
+    disabled,
+    setInputReadOnly,
+    setInputDisabled,
+    hasLabel,
+    hasButton,
+    descriptions,
+    errors,
+    validateStatus,
   } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  useEffect(() => {
+    setInputReadOnly(Boolean(props.readOnly))
+    return () => setInputReadOnly(false)
+  }, [props.readOnly, setInputReadOnly])
+  useEffect(() => {
+    setInputDisabled(Boolean(props.disabled))
+    return () => setInputDisabled(false)
+  }, [props.disabled, setInputDisabled])
+  const styles = searchFormVariants({ size, gapped: gapped || !hasButton })
 
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
-      <Input
-        aria-label={props["aria-label"] || "Search"}
+      <InputComponent
+        aria-label={
+          props["aria-label"] ??
+          (hasLabel ? undefined : messages.searchForm.search)
+        }
         className={styles.input({ className })}
+        data-clearable={
+          hasValue && hasClearButton && !readOnly && !disabled ? "" : undefined
+        }
         id={inputId}
         onChange={(e) => setInputValue(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? messages.searchForm.placeholder}
         ref={ref}
         size={size}
         type="search"
         value={inputValue}
-        withButtonInside={hasValue && hasClearButton ? "right" : undefined}
         {...props}
+        aria-describedby={joinDescribedBy(
+          props["aria-describedby"],
+          descriptions.describedById
+        )}
+        aria-errormessage={
+          validateStatus === "error" ? errors.describedById : undefined
+        }
+        aria-invalid={
+          validateStatus === "error" || props["aria-invalid"] || undefined
+        }
+        data-readonly={readOnly ? "" : undefined}
+        disabled={disabled || props.disabled}
+        readOnly={readOnly || props.readOnly}
+        // The form's status wins; without one the input keeps its own.
+        validateStatus={
+          validateStatus === "default" ? props.validateStatus : validateStatus
+        }
       />
     </div>
   )
 }
 
-interface SearchFormButtonProps extends Omit<ButtonProps, "size"> {
+type SearchFormButtonProps = Omit<ButtonProps, "size"> & {
   showSearchIcon?: boolean
 }
 
@@ -287,7 +431,12 @@ SearchForm.Button = function SearchFormButton({
   iconPosition = "right",
   ...props
 }: SearchFormButtonProps) {
-  const { size, gapped } = useSearchFormContext()
+  const messages = useUiMessages()
+  const { size, gapped, disabled, setHasButton } = useSearchFormContext()
+  useEffect(() => {
+    setHasButton(true)
+    return () => setHasButton(false)
+  }, [setHasButton])
   const styles = searchFormVariants({ size, gapped })
 
   // Use provided icon, or search icon if showSearchIcon is true
@@ -295,16 +444,19 @@ SearchForm.Button = function SearchFormButton({
     icon ?? (showSearchIcon ? "token-icon-search" : undefined)
 
   return (
-    <Button
+    <ButtonComponent
+      // An icon-only submit (no children) still needs a name; callers override.
+      aria-label={children ? undefined : messages.searchForm.search}
       className={styles.button({ className })}
       icon={effectiveIcon}
       iconPosition={iconPosition}
       size={size}
       type="submit"
       {...props}
+      disabled={disabled || props.disabled}
     >
       {children}
-    </Button>
+    </ButtonComponent>
   )
 }
 
@@ -318,9 +470,10 @@ type SearchFormClearButtonProps = Omit<
 SearchForm.ClearButton = function SearchFormClearButton({
   className,
   icon = "token-icon-close",
-  tone = "neutral",
+  severity = "neutral",
   ...props
 }: SearchFormClearButtonProps) {
+  const messages = useUiMessages()
   const {
     size,
     gapped,
@@ -329,6 +482,8 @@ SearchForm.ClearButton = function SearchFormClearButton({
     inputValue,
     clearSlot,
     setHasClearButton,
+    readOnly,
+    disabled,
   } = useSearchFormContext()
   const styles = searchFormVariants({ size, gapped })
 
@@ -338,7 +493,7 @@ SearchForm.ClearButton = function SearchFormClearButton({
     return () => setHasClearButton(false)
   }, [setHasClearButton])
 
-  if (!(hasValue && clearSlot)) {
+  if (readOnly || disabled || !(hasValue && clearSlot)) {
     return null
   }
 
@@ -347,18 +502,34 @@ SearchForm.ClearButton = function SearchFormClearButton({
   // ActionIcon supplies the shared size, glyph and hover pill.
   return createPortal(
     <ActionIcon
-      aria-label={`Clear search: ${inputValue}`}
+      aria-label={messages.searchForm.clear(inputValue)}
       className={styles.clearButton({ className })}
       icon={icon}
       onClick={clearInput}
+      severity={severity}
       size={size}
-      tone={tone}
       {...props}
     />,
     clearSlot
   )
 }
 
-export { useSearchFormContext, searchFormVariants }
+SearchForm.StatusText = function SearchFormStatusText({
+  status: statusProp,
+  size: sizeProp,
+  ...props
+}: StatusTextProps) {
+  const { size, descriptions, errors, validateStatus } = useSearchFormContext()
+  const generatedId = useId()
+  const id = props.id ?? `${generatedId}-status`
+  const status = statusProp ?? validateStatus
+  useRegisterDescription(id, descriptions.registerDescription)
+  useRegisterDescription(id, errors.registerDescription, status === "error")
+  return (
+    <StatusText {...props} id={id} size={sizeProp ?? size} status={status} />
+  )
+}
+
+export { searchFormVariants, useSearchFormContext }
 
 SearchForm.displayName = "SearchForm"

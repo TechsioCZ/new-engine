@@ -5,9 +5,10 @@ description: >
   Zag.js machine/connect APIs, normalizeProps, React context, compound
   Component.Subcomponent assignments, slots, adapter props, and data attribute
   state styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-authoring
   - tailwind-token-authoring
@@ -260,7 +261,7 @@ Source: https://chakra-ui.com/docs/components/accordion
 
 ```sh
 bunx biome check --write libs/ui/src/molecules/carousel.tsx
-bunx nx run ui:build
+pnpm --dir libs/ui build
 pnpm --dir libs/ui validate:tokens
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y

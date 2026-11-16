@@ -13,6 +13,8 @@
   --height-menu-separator: var(--size-menu-separator-height);
 
   --text-menu-xs: var(--text-xs);
+  --spacing-menu-viewport: var(--spacing-200);
+  --spacing-menu-content-min: var(--dimension-192);
 }
 
 /* Semantic tokens for menu icons */
@@ -26,4 +28,19 @@
 
 @utility token-icon-menu-check {
   @apply token-icon-check;
+}
+
+@utility menu-viewport {
+  /* Replace Popper's max-content minimum so the viewport cap always wins.
+   * Reference width is a preference, never the width of an icon-only menu. */
+  --menu-available-width: min(
+    var(--available-width, 100vw),
+    calc(100vw - var(--spacing-menu-viewport) * 2)
+  );
+  width: max-content;
+  min-width: min(
+    max(var(--reference-width, 0px), var(--spacing-menu-content-min)),
+    var(--menu-available-width)
+  ) !important;
+  max-width: var(--menu-available-width);
 }

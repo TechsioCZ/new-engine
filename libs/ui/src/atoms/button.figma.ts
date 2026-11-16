@@ -1,21 +1,22 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-3555
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/button.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/button.tsx
 // component=Button
 
 import figma from "figma"
 
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names these properties variant/theme; code reads severity/appearance.
+const severity = figma.selectedInstance.getEnum("variant", {
   primary: "primary",
   secondary: "secondary",
   tertiary: "tertiary",
   warning: "warning",
   danger: "danger",
 })
-const theme = figma.selectedInstance.getEnum("theme", {
+const appearance = figma.selectedInstance.getEnum("theme", {
   solid: "solid",
-  light: "light",
-  outlined: "outlined",
-  borderless: "borderless",
+  light: "subtle",
+  outlined: "outline",
+  borderless: "ghost",
 })
 const size = figma.selectedInstance.getEnum("size", {
   sm: "sm",
@@ -28,7 +29,7 @@ const loadingText = figma.selectedInstance.getString("loadingText")
 // template exposes as metadata rather than embedding its rendered JSX.
 function iconToken(propName) {
   const swap = figma.selectedInstance.getInstanceSwap(propName)
-  if (!swap || swap.type !== "INSTANCE") {
+  if (swap?.type !== "INSTANCE") {
     return
   }
   const props = swap.executeTemplate().metadata?.props
@@ -91,9 +92,9 @@ export default {
     "size",
     size
   )}${figma.helpers.react.renderProp(
-    "theme",
-    theme
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+    "appearance",
+    appearance
+  )}${figma.helpers.react.renderProp("severity", severity)}>
         ${figma.helpers.react.renderChildren(children)}
       </Button>`,
   metadata: { nestable: false },

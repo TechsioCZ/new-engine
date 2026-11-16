@@ -6,6 +6,8 @@
  *   - `--duration-skeleton-pulse-{slow,normal,fast}` — Figma exports
  *     `--duration-skeleton-{slow,normal,fast}` (no `-pulse-` infix), but
  *     the @utility blocks below reference the `-pulse-` names.
+ *   - `--radius-skeleton-rectangle` — no Figma variable yet; defaults to
+ *     square so only themes that opt in round rectangle placeholders.
  *   - `--spacing-skeleton-text-{sm,md,lg,xl}` — alias bridges so the
  *     `gap-skeleton-text-{size}` utility resolves; Figma exports only
  *     `--spacing-skeleton-{size}` without the `-text-` infix.
@@ -23,6 +25,16 @@
   --spacing-skeleton-text-md: var(--spacing-skeleton-md);
   --spacing-skeleton-text-lg: var(--spacing-skeleton-lg);
   --spacing-skeleton-text-xl: var(--spacing-skeleton-xl);
+
+  /* Square by default; themes may round rectangles to match text lines. */
+  --radius-skeleton-rectangle: var(--radius-none);
+}
+
+/* Component layer so consumer `rounded-*` utilities still override it. */
+@layer components {
+  .skeleton-rectangle {
+    border-radius: var(--radius-skeleton-rectangle);
+  }
 }
 
 @keyframes skeleton-pulse {
@@ -56,7 +68,6 @@
   .animate-skeleton-pulse-fast {
     @media (prefers-reduced-motion: reduce) {
       animation: none;
-      opacity: 0.7;
     }
   }
 }
@@ -64,6 +75,5 @@
 @layer utilities {
   .force-reduced-motion {
     animation: none;
-    opacity: 0.7;
   }
 }

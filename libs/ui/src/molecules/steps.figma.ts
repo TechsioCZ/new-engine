@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-33928
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/steps.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/steps.tsx
 // component=Steps
 
 import figma from "figma"
@@ -9,7 +9,8 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names the property variant; code reads appearance.
+const appearance = figma.selectedInstance.getEnum("variant", {
   subtle: "subtle",
   solid: "solid",
 })
@@ -20,7 +21,7 @@ export default {
   example: figma.code`<Steps count={3} defaultStep={0}${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("appearance", appearance)}>
         <Steps.List>
           <Steps.Item index={0}>
             <Steps.Trigger>Step 1</Steps.Trigger>

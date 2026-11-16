@@ -1,17 +1,21 @@
 ---
-component_version: "1.0.0"
 name: popover-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Popover for
   anchored non-blocking content using Zag.js compound parts, placement,
   portalling, close behavior, arrow, title, description, and close trigger.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/popover.tsx"
   - "libs/ui/src/tokens/components/molecules/_popover.css"
@@ -24,6 +28,55 @@ sources:
 
 Use Popover for anchored, dismissible content. Use Dialog for modal flows and
 Tooltip for tiny supplemental text.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Popover`.
+
+**Use it when**
+
+- Small interactive content anchored to its trigger: filter panels, colour pickers, quick edit of one value, share options.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A decision that must block the page | Dialog |
+| A read-only hint | Tooltip |
+| A list of commands | Menu |
+| Large forms | Dialog / drawer |
+
+**Do**
+
+- Keep content short; if it scrolls, it should be a dialog.
+- End filter popovers with `[Reset] [Apply]` bottom-right, or apply instantly — not both.
+- Return focus to the trigger on close; close on Escape and outside click.
+
+**Don't**
+
+- Put required information only in a popover.
+- Open popovers on hover.
+
+**Copy and states**
+
+- Trigger text says what opens (`Filters`, `Share`); count active filters in the trigger (`Filters (2)`).
+
+**Behaviour (from the UX spec)**
+
+- Closing (Escape, outside click, close button) never applies a half-made change; an unapplied filter draft is discarded.
+- Without a visible title, give `Popover.Content` an `aria-label`; without a close button, Escape and outside click must still close it.
+- `placement` is a preference: the kit flips on collision (`flip` defaults to `true`).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `showArrow` | `<Popover.Arrow />` |
+| Popover/Content `showTitle`, `showDescription`, `showCloseButton` | the `Title`, `Description`, `CloseTrigger` parts |
+| Popover/Placement set `placement=…` | `placement` on the root (reference set, not a component) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Popover → UX guidelines*.
 
 ## Setup
 
@@ -123,3 +176,32 @@ rg -n "absolute.*top-full|<Popover\\.Content[^>]*className=.*(bg-|p-|rounded-|sh
 rg -U -P -n "<Popover(?![\\s\\S]{0,500}<Popover\\.Positioner)" apps
 rg -U -n "<Popover[\\s\\S]{0,400}<Form(Input|Textarea|Checkbox)" apps
 ```
+
+## Floating surface and density
+
+Both Content and Positioner use popup-layer and preserve Zag’s layer index.
+The panel and arrow use the opaque shared popup surface and soft popup
+shadow. Panels are bounded to 32rem or the viewport minus edge spacing,
+wrap unbroken strings. Keep content short; use Dialog for content that
+needs scrolling rather than clipping the arrow on an overflowing panel.
+`size` sm/md/lg controls panel padding and body/title typography, not a
+fixed control height. Keep short forms local (prevent real submission),
+with secondary Cancel then primary Save at the end.
+
+Every panel is a dialog and needs its own accessible name, including panels
+with custom triggers. Render `Popover.Title` (or the template's `title` prop)
+for a visible heading. For intentionally heading-free content, pass
+`aria-label` to `Popover.Content` (template: `contentProps={{ "aria-label":
+"Delivery information" }}`). A named trigger does not automatically name
+the dialog.
+
+The template accepts `aria-label` for panels without a visible title. Prefer a
+specific task name; `contentProps["aria-label"]` / `aria-labelledby` can also
+supply it. A plain-text trigger is the fallback name, otherwise the fallback is
+“Additional details”. The icon-only close trigger preserves a caller's
+`aria-label` and `sm`/`md`/`lg` size. Long panels scroll their inner content
+viewport, not the whole surface. The close action and arrow stay outside that
+scroller; close remains visible at every scroll position, with inline clearance
+for its hit area. Content refs and ARIA props still target the dialog surface.
+A modal Popover owns descendant popup portals, including when nested inside
+Dialog or Drawer, so menus remain in its accessible tree and focus scope.

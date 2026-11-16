@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.0.0
+ * @componentVersion v1.2.1
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,19 +11,24 @@
  */
 import {
   type ComponentPropsWithoutRef,
+  type ComponentPropsWithRef,
   type CSSProperties,
   createContext,
   type ElementType,
   Fragment,
   type MouseEvent,
   type ReactNode,
+  type Ref,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
-import { Image } from "../atoms/image"
+import { Image, ImageWithFallback } from "../atoms/image"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import {
   Carousel,
   type CarouselRootProps,
@@ -45,15 +50,15 @@ type GalleryImageComponent<T extends ElementType = typeof Image> =
 const galleryVariants = tv({
   slots: {
     root: "w-full gap-gallery-root",
-    main: "relative flex min-w-0 h-fit",
+    main: "relative flex h-fit min-w-0",
     thumbnails: "shrink-0",
-    thumbnailsScrollArea: "scrollbar-thin",
+    thumbnailsScrollArea: "scrollbar-auto",
     thumbnailsList: "flex gap-gallery-sm",
     thumbnailTrigger: [
       "relative shrink-0",
       "size-(--gallery-thumbnail-size)",
       "aspect-square",
-      "overflow-hidden rounded-gallery-trigger border border-gallery-trigger-border bg-gallery-trigger-bg",
+      "min-w-0 overflow-clip rounded-gallery-trigger border border-gallery-trigger-border bg-gallery-trigger-bg",
       "cursor-pointer p-gallery-trigger",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-gallery-trigger-ring",
@@ -63,8 +68,8 @@ const galleryVariants = tv({
       "shadow-gallery-trigger",
       "brightness-gallery-trigger",
       "hover:brightness-gallery-trigger-active data-active:brightness-gallery-trigger-active",
-      "transition-all duration-200 motion-reduce:transition-none",
-      "*:h-full *:w-full *:object-cover",
+      "transition duration-200 motion-reduce:transition-none",
+      "*:size-full *:object-cover",
     ],
   },
   variants: {
@@ -81,7 +86,7 @@ const galleryVariants = tv({
         main: "order-1 md:col-start-1 md:row-start-1",
         thumbnails: "order-2 md:col-start-2 md:row-start-1",
         thumbnailsScrollArea:
-          "w-full overflow-x-auto overflow-y-hidden md:max-h-gallery md:overflow-x-hidden md:overflow-y-auto",
+          "w-full overflow-x-auto overflow-y-hidden md:max-h-gallery md:overflow-y-auto md:overflow-x-hidden",
         thumbnailsList:
           "flex-row items-center py-gallery-sm md:flex-col md:items-stretch md:px-gallery-xs md:py-0",
       },
@@ -118,13 +123,13 @@ export type GalleryRenderThumbnailParams = {
 
 type GalleryCarouselProps<T extends ElementType = typeof Image> = Omit<
   CarouselRootProps<T>,
-  "children" | "slideCount" | "page"
+  "children" | "slideCount" | "page" | "slidesPerPage" | "slidesPerMove"
 >
 
 export type GalleryProps<T extends ElementType = typeof Image> = VariantProps<
   typeof galleryVariants
 > &
-  Omit<ComponentPropsWithoutRef<"div">, "children"> & {
+  Omit<ComponentPropsWithRef<"div">, "children"> & {
     items: GalleryItem[]
     children?: ReactNode
     value?: number
@@ -162,22 +167,10 @@ function useGalleryContext() {
 }
 
 function clampPage(page: number, maxPage: number) {
-  if (Number.isNaN(page)) {
-    return 0
+  if (!Number.isFinite(page)) {
+    return page === Number.POSITIVE_INFINITY ? maxPage : 0
   }
-  if (page < 0) {
-    return 0
-  }
-  if (page > maxPage) {
-    return maxPage
-  }
-  return page
-}
-
-function getDefaultThumbnailAriaLabel({
-  index,
-}: GalleryThumbnailAriaLabelParams) {
-  return `Show slide ${index + 1}`
+  return Math.min(maxPage, Math.max(0, Math.trunc(page)))
 }
 
 export function Gallery<T extends ElementType = typeof Image>({
@@ -191,12 +184,17 @@ export function Gallery<T extends ElementType = typeof Image>({
   hideThumbnailsWhenSingle = true,
   thumbnailSize = 60,
   thumbnailImageAs,
-  getThumbnailAriaLabel = getDefaultThumbnailAriaLabel,
+  getThumbnailAriaLabel: thumbnailAriaLabelProp,
   carouselProps,
   emptyState,
   className,
   ...props
 }: GalleryProps<T>) {
+  const messages = useUiMessages()
+  const getThumbnailAriaLabel =
+    thumbnailAriaLabelProp ??
+    (({ index }: GalleryThumbnailAriaLabelParams) =>
+      messages.gallery.showSlide(index + 1))
   const maxPage = Math.max(items.length - 1, 0)
   const [internalPage, setInternalPage] = useState(defaultValue)
   const isControlled = value !== undefined
@@ -242,7 +240,7 @@ export function Gallery<T extends ElementType = typeof Image>({
   )
 }
 
-type GalleryMainProps = ComponentPropsWithoutRef<"div">
+type GalleryMainProps = ComponentPropsWithRef<"div">
 
 Gallery.Main = function GalleryMain({
   children,
@@ -258,13 +256,12 @@ Gallery.Main = function GalleryMain({
   )
 }
 
-type GalleryThumbnailsProps = Omit<
-  ComponentPropsWithoutRef<"div">,
-  "children"
-> & {
+type GalleryThumbnailsProps = Omit<ComponentPropsWithRef<"div">, "children"> & {
   children?: ReactNode
   scrollAreaClassName?: string
   listClassName?: string
+  listRef?: Ref<HTMLDivElement>
+  scrollAreaRef?: Ref<HTMLDivElement>
   thumbnailClassName?: string
   renderThumbnail?: (params: GalleryRenderThumbnailParams) => ReactNode
 }
@@ -273,12 +270,74 @@ Gallery.Thumbnails = function GalleryThumbnails({
   children,
   className,
   listClassName,
+  listRef,
+  scrollAreaRef: callerScrollAreaRef,
   scrollAreaClassName,
   thumbnailClassName,
   renderThumbnail,
   ...props
 }: GalleryThumbnailsProps) {
   const { items, page, setPage, showThumbnails, styles } = useGalleryContext()
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const mergedScrollAreaRef = useMemo(
+    () => (node: HTMLDivElement | null) => {
+      scrollAreaRef.current = node
+      const cleanup =
+        typeof callerScrollAreaRef === "function"
+          ? callerScrollAreaRef(node)
+          : undefined
+      if (callerScrollAreaRef && typeof callerScrollAreaRef !== "function") {
+        callerScrollAreaRef.current = node
+      }
+      return () => {
+        scrollAreaRef.current = null
+        if (typeof cleanup === "function") {
+          cleanup()
+        } else if (typeof callerScrollAreaRef === "function") {
+          callerScrollAreaRef(null)
+        } else if (callerScrollAreaRef) {
+          callerScrollAreaRef.current = null
+        }
+      }
+    },
+    [callerScrollAreaRef]
+  )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: selected state changes DOM aria-current before this visibility check.
+  useEffect(() => {
+    const rail = scrollAreaRef.current
+    const active = rail?.querySelector<HTMLElement>('[aria-current="true"]')
+    if (!(rail && active)) {
+      return
+    }
+    const reveal = () => {
+      const bounds = rail.getBoundingClientRect()
+      const item = active.getBoundingClientRect()
+      let left = 0
+      let top = 0
+      if (item.left < bounds.left) {
+        left = item.left - bounds.left
+      } else if (item.right > bounds.right) {
+        left = item.right - bounds.right
+      }
+      if (item.top < bounds.top) {
+        top = item.top - bounds.top
+      } else if (item.bottom > bounds.bottom) {
+        top = item.bottom - bounds.bottom
+      }
+      if (left || top) {
+        rail.scrollBy({ left, top, behavior: "instant" })
+      }
+    }
+    reveal()
+    // Test DOMs may lack ResizeObserver; the initial reveal still runs.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(reveal)
+    observer?.observe(rail)
+    return () => observer?.disconnect()
+  }, [page, showThumbnails])
 
   if (!showThumbnails) {
     return null
@@ -318,8 +377,12 @@ Gallery.Thumbnails = function GalleryThumbnails({
         className={styles.thumbnailsScrollArea({
           className: scrollAreaClassName,
         })}
+        ref={mergedScrollAreaRef}
       >
-        <div className={styles.thumbnailsList({ className: listClassName })}>
+        <div
+          className={styles.thumbnailsList({ className: listClassName })}
+          ref={listRef}
+        >
           {thumbnails}
         </div>
       </div>
@@ -328,7 +391,7 @@ Gallery.Thumbnails = function GalleryThumbnails({
 }
 
 type GalleryThumbnailProps<T extends ElementType = typeof Image> = Omit<
-  ComponentPropsWithoutRef<"button">,
+  ComponentPropsWithRef<"button">,
   "children"
 > & {
   index: number
@@ -366,15 +429,9 @@ Gallery.Thumbnail = function GalleryThumbnail<
 
   const isActive = page === index
   const thumbnailSource = item.thumbnailSrc || item.src || ""
-  const thumbnailAlt =
-    item.thumbnailAlt ?? item.alt ?? `Product image ${index + 1}`
-  const resolvedImageAs = (imageAs ||
-    thumbnailImageAs ||
-    Image) as GalleryImageComponent<T>
-  const hasCustomThumbnailComponent = resolvedImageAs !== Image
-  const CustomThumbnailComponent = hasCustomThumbnailComponent
-    ? (resolvedImageAs as ElementType)
-    : Image
+  const resolvedImageAs = imageAs ?? thumbnailImageAs
+  // Public wrappers retain adapter contracts; media records are resolved at runtime.
+  const Media: ElementType = ImageWithFallback
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event)
@@ -389,6 +446,21 @@ Gallery.Thumbnail = function GalleryThumbnail<
     ...style,
   } as CSSProperties
 
+  const fallbackThumbnail = (
+    <Media
+      {...item.thumbnailImageProps}
+      alt=""
+      aria-hidden="true"
+      as={
+        resolvedImageAs && resolvedImageAs !== Image ? resolvedImageAs : "img"
+      }
+      className={imageClassName ?? item.thumbnailImageProps?.className}
+      height={thumbnailSize}
+      src={thumbnailSource}
+      width={thumbnailSize}
+    />
+  )
+
   return (
     <Button
       aria-current={isActive ? "true" : undefined}
@@ -398,40 +470,18 @@ Gallery.Thumbnail = function GalleryThumbnail<
       onClick={handleClick}
       size="current"
       style={resolvedStyle}
-      theme="unstyled"
       type="button"
+      unstyled
       {...props}
     >
-      {children ??
-        item.thumbnailContent ??
-        (thumbnailSource ? (
-          hasCustomThumbnailComponent ? (
-            <CustomThumbnailComponent
-              alt={thumbnailAlt}
-              className={imageClassName}
-              height={thumbnailSize}
-              src={thumbnailSource}
-              width={thumbnailSize}
-              {...item.thumbnailImageProps}
-            />
-          ) : (
-            <Image
-              alt={thumbnailAlt}
-              className={imageClassName}
-              height={thumbnailSize}
-              src={thumbnailSource}
-              width={thumbnailSize}
-              {...item.thumbnailImageProps}
-            />
-          )
-        ) : null)}
+      {children ?? item.thumbnailContent ?? fallbackThumbnail}
     </Button>
   )
 }
 
 type GalleryCarouselComponentProps<T extends ElementType = typeof Image> = Omit<
   CarouselRootProps<T>,
-  "children" | "slideCount" | "page"
+  "children" | "slideCount" | "page" | "slidesPerPage" | "slidesPerMove"
 > & {
   children?: ReactNode
 }
@@ -439,6 +489,7 @@ type GalleryCarouselComponentProps<T extends ElementType = typeof Image> = Omit<
 Gallery.Carousel = function GalleryCarousel<
   T extends ElementType = typeof Image,
 >({ children, onPageChange, ...props }: GalleryCarouselComponentProps<T>) {
+  const messages = useUiMessages()
   const { items, page, setPage, carouselProps } = useGalleryContext()
   const inheritedProps = (carouselProps || {}) as GalleryCarouselProps<T>
   const mergedProps = { ...inheritedProps, ...props }
@@ -460,10 +511,13 @@ Gallery.Carousel = function GalleryCarousel<
 
   return (
     <Carousel
+      aria-label={messages.gallery.images}
       {...mergedProps}
       onPageChange={handlePageChange}
       page={page}
       slideCount={items.length}
+      slidesPerMove={1}
+      slidesPerPage={1}
     >
       {children ?? <Gallery.Slides />}
     </Carousel>
@@ -496,4 +550,5 @@ Gallery.Slides = function GallerySlides({
   )
 }
 
-Gallery.Root = Gallery
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Gallery.Root = Gallery satisfies typeof Gallery

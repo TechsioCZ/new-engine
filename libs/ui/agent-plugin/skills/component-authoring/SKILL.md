@@ -5,22 +5,18 @@ description: >
   including atoms, molecules, organisms, tv() variants, React 19 ref props,
   component token CSS, Storybook stories, package subpath exports, and Figma
   handoff reminders.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - tailwind-token-authoring
-  - storybook-authoring
-sources:
-  - "libs/ui/AGENTS.md"
-  - "libs/ui/README.md"
-  - "libs/ui/src/atoms/button.tsx"
-  - "libs/ui/src/molecules/carousel.tsx"
-  - "libs/ui/src/organisms/header.tsx"
-  - "libs/ui/src/tokens/components/components.css"
-  - "libs/ui/stories/atoms/button.stories.tsx"
-  - "https://github.com/TechsioCZ/new-engine/issues/295"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "tailwind-token-authoring storybook-authoring"
+  sources: "https://github.com/TechsioCZ/new-engine/issues/295"
+  contributor_sources: "libs/ui/AGENTS.md libs/ui/README.md libs/ui/src/atoms/button.tsx libs/ui/src/molecules/carousel.tsx libs/ui/src/organisms/header.tsx libs/ui/src/tokens/components/components.css libs/ui/stories/atoms/button.stories.tsx"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Component Authoring
 
@@ -34,21 +30,30 @@ Minimum atom shape for new component code:
 ```tsx
 import type { ButtonHTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const actionVariants = tv({
   base: "inline-flex items-center justify-center rounded-action text-action-fg",
   variants: {
-    variant: {
-      primary: "bg-action-bg-primary",
-      danger: "bg-action-bg-danger",
+    severity: {
+      primary: "",
+      danger: "",
+    },
+    appearance: {
+      solid: "",
+      outline: "border-(length:--border-width-action) bg-transparent",
     },
     size: {
       sm: "h-action-sm p-action-sm text-action-sm",
       md: "h-action-md p-action-md text-action-md",
     },
   },
-  defaultVariants: { variant: "primary", size: "md" },
+  compoundVariants: [
+    { severity: "primary", appearance: "solid", className: "bg-action-bg-primary" },
+    { severity: "danger", appearance: "solid", className: "bg-action-bg-danger" },
+  ],
+  defaultVariants: { severity: "primary", appearance: "solid", size: "md" },
 })
 
 type ActionProps = ButtonHTMLAttributes<HTMLButtonElement> &
@@ -56,16 +61,45 @@ type ActionProps = ButtonHTMLAttributes<HTMLButtonElement> &
     ref?: Ref<HTMLButtonElement>
   }
 
-export function Action({ variant, size, className, ref, ...props }: ActionProps) {
+export function Action({
+  severity,
+  appearance: appearanceProp,
+  size: sizeProp,
+  className,
+  ref,
+  ...props
+}: ActionProps) {
+  // Prop → nearest UIProvider → the component's own default.
+  const { size, appearance } = useUIDefaults(
+    "Action",
+    { size: sizeProp, appearance: appearanceProp },
+    actionVariants
+  )
   return (
     <button
-      className={actionVariants({ variant, size, className })}
+      className={actionVariants({ severity, appearance, size, className })}
       ref={ref}
       {...props}
     />
   )
 }
 ```
+
+### Style prop names (locked)
+
+One meaning per prop name, across every component:
+
+| Prop | Meaning | Values |
+|---|---|---|
+| `appearance` | fill style | `solid · subtle · outline · ghost · plain` (`ghost` = no frame for actions and containers alike; `plain` only where a surface, not a frame, is removed), plus structural extras a component owns (`line`, `underline`, `striped`) |
+| `severity` | color intent | `primary · secondary · tertiary · neutral · info · success · warning · danger · discount` |
+| `validateStatus` | validation state | `default · error · success · warning` |
+| `size` | size scale only | the component's subset of `xs · sm · md · lg · xl · 2xl`, plus `full` / `current` |
+
+- Never name a prop `variant`, `theme`, `tone` or `color` for these concepts; `theme` belongs to brand/mode theming.
+- Resolve `size` and `appearance` with `useUIDefaults` at the root (not in compound parts, which read the root's context), and add the component to `UIComponentName` in `src/theme/ui-provider.tsx`.
+- A non-scale size (Sidebar pane width) gets its own name, e.g. `paneSize`.
+- Pass `size="current"` explicitly when a component renders an `Icon` / `Label` inside itself, so a global size does not resize nested glyphs.
 
 Use `type` for new props. Existing `interface` declarations are legacy unless
 the task is a targeted cleanup.
@@ -186,7 +220,7 @@ Wrong:
 
 ```tsx
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: "success" | "danger"
+  severity?: "success" | "danger"
 }
 ```
 
@@ -194,7 +228,7 @@ Correct:
 
 ```tsx
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
-  variant?: "success" | "danger"
+  severity?: "success" | "danger"
 }
 ```
 
@@ -231,8 +265,67 @@ Source: libs/ui/skills/_artifacts/domain_map.yaml
 ```sh
 bunx biome check --write libs/ui/src/atoms/action.tsx libs/ui/stories/atoms/action.stories.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+pnpm --dir libs/ui build
 ```
 
 Add Storybook/a11y/component visual checks when visuals or interactions change.
 
+
+## Shared component contracts (required)
+
+The canonical requirements are in `../../references/component-contracts.md`.
+
+- Below-control messages use StatusText. Error/warning/success icons are on by
+  default; never disable them for validation. Neutral helper text has no default
+  icon. Give each message an ID; merge `aria-describedby` on the focusable part,
+  add `aria-invalid` and `aria-errormessage` for errors, and remove stale IDs.
+  Compound parts use `useDescribedBy`, `useRegisterDescription`, and
+  `joinDescribedBy` from `src/internal/described-by.ts`.
+- Every value-holding form control supports `readOnly`, including controlled
+  and uncontrolled usage. Preserve focus, selection/copy, full-contrast text
+  and visible focus. Set native `readOnly` or supported `aria-readonly`, plus
+  `data-readonly` on the value surface. Gate all mutation handlers/machine paths.
+- `form-control-base` includes `form-control-readonly`/`form-control-disabled`;
+  otherwise opt into the readonly utility or alias component tokens to
+  `--color-form-control-{bg,fg}-readonly`. Hide value-changing descendants with
+  `data-readonly-affordance` or omit them. CSS is not behavior enforcement.
+  No disabled cursor/dimming, no pointer-events:none on readonly text. Disabled
+  wins when both states apply and must remove all tab stops.
+- Interactive size variants are sm/md/lg, default md; preserve existing xs/current
+  compatibility escapes without teaching them as canonical. Use
+  `h-form-control-sm/md/lg` for single-line heights, `popup-size-sm/md/lg` for
+  option rows. Icon/Badge/Label and content-width exceptions are documented in
+  the contracts; do not shrink global typography to solve a dense UI.
+- Floating list panels use `popup-surface-base`; rich panels alias their surface
+  tokens to the opaque popup background/border/shadow. Apply `popup-layer` on
+  Content and Positioner, preserving `--layer-index`, not hard-coded z-50.
+- Do not use forwardRef or useCallback. Use type, not interface, for new props.
+  For stories, follow storybook-authoring and the shared documentation contract.
+
+## Callback compatibility policy
+
+Native input `onChange` remains a native React event. New custom controls use
+`onValueChange({ value, ...metadata })`, `onCheckedChange({ checked })` and
+`onOpenChange({ open })` details envelopes. Use component-specific value types;
+never erase multiple-selection arrays or numeric drafts to force a common type.
+
+Existing names/payloads are compatibility contracts, not candidates for silent
+normalization:
+
+| Controls | Value callback | Payload |
+| --- | --- | --- |
+| Select, CascadeSelect, PhoneInput | onValueChange | Zag details, including value |
+| RadioGroup, RadioCard, Tabs | onValueChange | raw value (including documented null) |
+| Combobox, Rating, Slider, Accordion | onChange | raw value |
+| NumericInput | onChange and onValueChange | number and details respectively |
+| Switch, FormCheckbox | checked-change callback | documented boolean contract |
+
+Combobox's `onOpenChange` is boolean; Menu/Popover/Drawer use details. Retain these
+signatures. A future opt-in details facade must use a distinct, unoccupied name;
+renaming an occupied callback requires a major release and migration examples.
+NumericInput intentionally invokes both supplied value callbacks for the same
+machine notification; do not subscribe both to the same state setter unless
+that duplicate work is intended. Controlled parents may accept or refuse a
+notification, and external prop updates must remain authoritative. Add consumer
+type tests plus callback-count/state assertions for single/multiple values,
+clearing and numeric drafts before changing any existing notification path.

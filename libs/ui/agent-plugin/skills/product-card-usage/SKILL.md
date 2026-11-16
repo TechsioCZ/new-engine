@@ -1,28 +1,77 @@
 ---
-component_version: "1.0.0"
 name: product-card-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit ProductCard
   for product summaries with image adapter, name, price, stock, badges,
   rating, actions, and card button variants.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - framework-consumer-integration
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/product-card.tsx"
-  - "libs/ui/src/tokens/components/molecules/_product-card.css"
-  - "libs/ui/stories/molecules/product-card.stories.tsx"
-  - "libs/ui/src/molecules/product-card.figma.ts"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux framework-consumer-integration app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/molecules/product-card.tsx libs/ui/src/tokens/components/molecules/_product-card.css libs/ui/stories/molecules/product-card.stories.tsx libs/ui/src/molecules/product-card.figma.ts"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit ProductCard Usage
 
 Use ProductCard for product listing and recommendation surfaces. It is a
 compound component; do not rebuild product card structure with generic divs.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `ProductCard`.
+
+**Use it when**
+
+- Products in listings, search results, recommendations and carousels.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Product detail page | the detail layout with Gallery |
+| Admin product rows | DataTable |
+
+**Do**
+
+- Show, in this order: image, name, key variant info, price (formatted, with the previous price when discounted), availability, one action.
+- Make the name the link to the product; keep one primary action (`Add to cart`).
+- Confirm `Add to cart` with a toast (`Added to cart`) and update the cart count.
+- Keep card heights consistent in a grid; clamp long names to two lines with the full name available.
+
+**Don't**
+
+- Stack more than two badges.
+- Hide the price until hover.
+
+**Copy and states**
+
+- Price via `Intl.NumberFormat` currency; discounts as `−20 %` badge plus struck-through old price.
+
+**Behaviour (from the UX spec)**
+
+- Image, name, price, stock and actions describe the same variant. A nested cart or wishlist action never also triggers the card's link, and stays its own tab stop.
+- `ProductCard.Stock` has three states; don't map the six `AvailabilityStatus` states onto it automatically — compose `AvailabilityStatus` for unknown, preorder or pending.
+- `cart` adds this offer (glyph `token-icon-cart-button`), `detail` opens the same product, `wishlist` (`token-icon-wishlist-button` / heart) changes interest and never shows "saved" before the app confirms. `token-icon-cart` alone means "open the cart", not "add".
+- A purely informational card shows no action button; an out-of-stock card never offers a purchase that can't succeed.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `layout=column` / `row` | `layout` |
+| ProductCardButton `buttonVariant=cart…wishlist` | `ProductCard.Button buttonVariant` (+ code-only `custom`) |
+| ProductCardStock `status=in-stock…out-of-stock` | `ProductCard.Stock status` |
+| ProductCardImage, Name, Price, Badges, Rating, Actions | `ProductCard.Image`, `.Name`, `.Price`, `.Badges`, `.Rating`, `.Actions` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/ProductCard → UX guidelines*.
 
 ## Setup
 
@@ -32,7 +81,7 @@ compound component; do not rebuild product card structure with generic divs.
   <ProductCard.Name>{product.title}</ProductCard.Name>
   <ProductCard.Price>{price}</ProductCard.Price>
   <ProductCard.Stock status="in-stock">In stock</ProductCard.Stock>
-  <ProductCard.Actions><ProductCard.Button buttonVariant="cart">Add</ProductCard.Button></ProductCard.Actions>
+  <ProductCard.Actions><ProductCard.Button action="cart">Add</ProductCard.Button></ProductCard.Actions>
 </ProductCard>
 ```
 
@@ -45,6 +94,10 @@ Stock status: in-stock | limited-stock | out-of-stock
 Button buttonVariant: cart | detail | wishlist | custom
 Badges, Rating, Actions, Name, Price
 ```
+
+`ProductCard.Name` is an `h3` by default; set `as` (or `nameAs` on
+`ProductCardTemplate`) so it follows the page outline, e.g. `as="h2"` for cards
+directly under the page `h1`.
 
 ## Core Patterns
 
@@ -75,7 +128,7 @@ Wrong:
 Correct:
 
 ```tsx
-<ProductCard><ProductCard.Image /><ProductCard.Name>{name}</ProductCard.Name></ProductCard>
+<ProductCard><ProductCard.Image src={product.image} alt={name} /><ProductCard.Name>{name}</ProductCard.Name></ProductCard>
 ```
 
 Source: libs/ui/src/molecules/product-card.tsx
@@ -119,3 +172,20 @@ rg -U -n "<img\\b[\\s\\S]{0,500}<h3|<ProductCard[^>]*className=.*(rounded-|borde
 rg -n "status=\"(available|sold-out|low-stock)\"|buttonVariant=\"(primary|danger)\"" apps
 rg -P -n "<ProductCard\\.Image(?![^>]*as=\\{?NextImage)" apps
 ```
+
+## Shared contracts
+
+Aggregate ratings in ProductCardTemplate and ProductCard.Rating with `rating.readOnly=true` are static accessible summaries, not editable controls or tab stops. An explicitly interactive ProductCard.Rating keeps the underlying Rating API; supply a meaningful label/name and use the standalone Rating story for form-capture guidance. Card images use a consistent 4:3 aspect ratio in column layouts. Detail and wishlist actions keep their own hover/pressed colors rather than inheriting primary Button pressed styling.
+
+ProductCard is a content layout, not a single interactive field: it has no root sm/md/lg axis. Its actions use Button's canonical sm height and explicit action-specific foreground/background tokens. Images reserve a consistent aspect ratio; names reserve two text lines for row-to-row comparison. Public media/layout changes need a Figma-sync follow-up.
+
+Keep custom row/grid demos responsive with standard grid utilities and constrain their parent width. Every demo action must update local state or give explicit local-only feedback; wishlist buttons expose their toggle through aria-pressed.
+
+## Template and adapter contracts
+
+ProductCard.Image preserves required `src`, `alt` and selected adapter props; select an adapter with `as`. Use `alt=""` only for deliberately decorative images. ProductCard.Button inherits Button loadingText/isLoading, native click events, disabled, type, ARIA and ref props; its size and visual variant are owned by the card.
+
+ProductCardTemplate accepts ReactNode names, `href`, `linkAs` and `linkProps` using the kit Link adapter pattern. A destination makes the name a link inside its heading, not a wrapper around cart/wishlist buttons. Without a destination it stays a nonlinked heading. Preserve normal modified-click behavior in applications; intercept navigation only in demos. Pass localized `originalPriceLabel` and `currentPriceLabel` (English defaults) for sale-price meaning. Previous amounts use deletion markup plus an actual visually hidden label. Badge objects are forwarded in full, including attributes, size, styles and passive handlers; give changing or duplicate-label badges stable `key` values.
+
+Row cards respond to their container width: narrow cards stack media and
+content so ratings and primary actions are not squeezed.

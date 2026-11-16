@@ -5,9 +5,10 @@ description: >
   Code Connect follow-up. Prepares a reminder and points to the
   component-to-figma skill; never edits Figma or runs Figma MCP tools
   automatically.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 sources:
   - "libs/ui/AGENTS.md"
   - "libs/ui/figma.config.json"
@@ -135,7 +136,7 @@ Source: libs/ui/AGENTS.md
 Wrong:
 
 ```tsx
-// Button adds theme="unstyled"; button.figma.ts still omits it.
+// Button adds unstyled; button.figma.ts still omits it.
 ```
 
 Correct:

@@ -2,63 +2,105 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v0.3.2
+ * @componentVersion v1.0.0
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the button-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
+import {
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
 export const buttonVariants = tv({
   base: [
-    "relative",
+    "button-disabled relative",
     "inline-flex cursor-pointer items-center justify-center",
-    "font-medium",
-    "transition-all duration-200 motion-reduce:transition-none",
+    "transition duration-200 motion-reduce:transition-none",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
     "focus-visible:outline-button-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:text-button-fg-disabled",
+    "not-disabled:data-loading:cursor-progress",
   ],
   variants: {
-    variant: {
+    // Internal composition escape hatch: navigation owns its typography/press treatment.
+    // Unlike `unstyled`, this deliberately omits Button-only visuals.
+    composition: {
+      true: "",
+      false: [
+        "font-button",
+        "motion-safe:not-disabled:not-data-disabled:not-data-loading:active:scale-97",
+      ],
+    },
+    // Density selects the fixed compact geometry; default keeps content-driven sizing.
+    density: {
+      default: "",
+      compact: "",
+    },
+    severity: {
       primary: "",
       secondary: "",
       tertiary: "",
       danger: "",
       warning: "",
     },
-    theme: {
+    // `unstyled` is internal: the public boolean `unstyled` prop selects it.
+    appearance: {
       solid: "disabled:bg-button-bg-disabled",
-      light: "disabled:bg-button-bg-disabled",
-      borderless:
-        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active disabled:hover:bg-button-bg-borderless-base",
-      outlined:
-        "border bg-button-bg-outlined disabled:border-0 disabled:bg-button-bg-disabled disabled:hover:bg-button-bg-disabled",
+      subtle: "disabled:bg-button-bg-disabled",
+      ghost:
+        "button-disabled-borderless bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting",
+      outline: "button-disabled-outlined border bg-button-bg-outlined",
       unstyled: "",
     },
     uppercase: {
       true: "uppercase",
     },
     size: {
-      sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
-      md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
-      lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
-      current: "gap-button-md text-inherit",
+      sm: "min-w-0 gap-button-sm rounded-button-sm text-button-sm",
+      md: "min-w-0 gap-button-md rounded-button-md text-button-md",
+      lg: "min-w-0 gap-button-lg rounded-button-lg text-button-lg",
+      current: "button-current-size gap-button-md",
     },
     block: {
       true: "w-full",
     },
   },
   compoundVariants: [
+    // Geometry lives in density compounds so compact never inherits the
+    // content-driven min-height of button-size-*.
+    { density: "default", size: "sm", className: "button-size-sm p-button-sm" },
+    { density: "default", size: "md", className: "button-size-md p-button-md" },
+    { density: "default", size: "lg", className: "button-size-lg p-button-lg" },
     {
-      variant: "primary",
-      theme: "solid",
+      density: "compact",
+      size: "sm",
+      className: "h-button-compact-sm p-button-compact-sm",
+    },
+    {
+      density: "compact",
+      size: "md",
+      className: "h-button-compact-md p-button-compact-md",
+    },
+    {
+      density: "compact",
+      size: "lg",
+      className: "h-button-compact-lg p-button-compact-lg",
+    },
+    {
+      severity: "primary",
+      appearance: "solid",
       className: [
         "bg-button-bg-primary-base",
         "hover:bg-button-bg-primary-hover",
@@ -67,8 +109,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "secondary",
-      theme: "solid",
+      severity: "secondary",
+      appearance: "solid",
       className: [
         "bg-button-bg-secondary-base",
         "hover:bg-button-bg-secondary-hover",
@@ -77,8 +119,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "tertiary",
-      theme: "solid",
+      severity: "tertiary",
+      appearance: "solid",
       className: [
         "bg-button-bg-tertiary-base",
         "hover:bg-button-bg-tertiary-hover",
@@ -87,8 +129,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "warning",
-      theme: "solid",
+      severity: "warning",
+      appearance: "solid",
       className: [
         "bg-button-bg-warning-base",
         "hover:bg-button-bg-warning-hover",
@@ -97,8 +139,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "danger",
-      theme: "solid",
+      severity: "danger",
+      appearance: "solid",
       className: [
         "bg-button-bg-danger-base",
         "hover:bg-button-bg-danger-hover",
@@ -107,8 +149,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "primary",
-      theme: "light",
+      severity: "primary",
+      appearance: "subtle",
       className: [
         "bg-button-bg-primary-light-base",
         "hover:bg-button-bg-primary-light-hover",
@@ -117,8 +159,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "secondary",
-      theme: "light",
+      severity: "secondary",
+      appearance: "subtle",
       className: [
         "bg-button-bg-secondary-light-base",
         "hover:bg-button-bg-secondary-light-hover",
@@ -127,8 +169,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "tertiary",
-      theme: "light",
+      severity: "tertiary",
+      appearance: "subtle",
       className: [
         "bg-button-bg-tertiary-light-base",
         "hover:bg-button-bg-tertiary-light-hover",
@@ -137,8 +179,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "warning",
-      theme: "light",
+      severity: "warning",
+      appearance: "subtle",
       className: [
         "bg-button-bg-warning-light-base",
         "hover:bg-button-bg-warning-light-hover",
@@ -147,8 +189,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "danger",
-      theme: "light",
+      severity: "danger",
+      appearance: "subtle",
       className: [
         "bg-button-bg-danger-light-base",
         "hover:bg-button-bg-danger-light-hover",
@@ -157,8 +199,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "primary",
-      theme: "outlined",
+      severity: "primary",
+      appearance: "outline",
       className: [
         "border-button-border-primary",
         "hover:bg-button-bg-outlined-primary-hover",
@@ -167,8 +209,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "secondary",
-      theme: "outlined",
+      severity: "secondary",
+      appearance: "outline",
       className: [
         "border-button-border-secondary",
         "hover:bg-button-bg-outlined-secondary-hover",
@@ -177,8 +219,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "tertiary",
-      theme: "outlined",
+      severity: "tertiary",
+      appearance: "outline",
       className: [
         "border-button-border-tertiary",
         "hover:bg-button-bg-outlined-tertiary-hover",
@@ -187,8 +229,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "warning",
-      theme: "outlined",
+      severity: "warning",
+      appearance: "outline",
       className: [
         "border-button-border-warning",
         "hover:bg-button-bg-outlined-warning-hover",
@@ -197,8 +239,8 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "danger",
-      theme: "outlined",
+      severity: "danger",
+      appearance: "outline",
       className: [
         "border-button-border-danger",
         "hover:bg-button-bg-outlined-danger-hover",
@@ -207,70 +249,105 @@ export const buttonVariants = tv({
       ],
     },
     {
-      variant: "primary",
-      theme: "borderless",
+      severity: "primary",
+      appearance: "ghost",
       className: ["text-button-fg-primary-borderless"],
     },
     {
-      variant: "secondary",
-      theme: "borderless",
+      severity: "secondary",
+      appearance: "ghost",
       className: ["text-button-fg-secondary-borderless"],
     },
     {
-      variant: "tertiary",
-      theme: "borderless",
+      severity: "tertiary",
+      appearance: "ghost",
       className: ["text-button-fg-tertiary-borderless"],
     },
     {
-      variant: "warning",
-      theme: "borderless",
-      className: ["text-button-fg-warning-borderless"],
+      severity: "warning",
+      appearance: "ghost",
+      className: ["text-button-fg-warning-readable"],
     },
     {
-      variant: "danger",
-      theme: "borderless",
+      severity: "danger",
+      appearance: "ghost",
       className: ["text-button-fg-danger-borderless"],
     },
     {
-      theme: "outlined",
+      appearance: "outline",
       size: "sm",
       className: "border-(length:--border-width-button-sm)",
     },
     {
-      theme: "outlined",
+      appearance: "outline",
       size: "md",
       className: "border-(length:--border-width-button-md)",
     },
     {
-      theme: "outlined",
+      appearance: "outline",
       size: "lg",
       className: "border-(length:--border-width-button-lg)",
     },
   ],
   defaultVariants: {
-    variant: "primary",
-    theme: "solid",
+    composition: false,
+    density: "default",
+    severity: "primary",
+    appearance: "solid",
     size: "md",
     light: false,
   },
 })
 
-export interface ButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children">,
-    VariantProps<typeof buttonVariants> {
-  icon?: IconType
-  iconPosition?: "left" | "right"
-  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
-  uppercase?: boolean
-  isLoading?: boolean
-  loadingText?: string
-  children?: ReactNode
+/** Values a `UIProvider` may set on Button-family components. */
+export const buttonStyleValues = {
+  size: ["sm", "md", "lg", "current"],
+  appearance: ["solid", "subtle", "outline", "ghost"],
 }
 
+// Glyphs follow the button size; `current` keeps inheriting the label.
+const buttonIconVariants = tv({
+  variants: {
+    size: {
+      sm: "text-button-icon-sm",
+      md: "text-button-icon-md",
+      lg: "text-button-icon-lg",
+      current: "",
+    },
+  },
+  defaultVariants: { size: "md" },
+})
+
+export type ButtonAppearance = "solid" | "subtle" | "outline" | "ghost"
+export type ButtonSeverity = NonNullable<
+  VariantProps<typeof buttonVariants>["severity"]
+>
+
+export type ButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children"
+> &
+  Omit<VariantProps<typeof buttonVariants>, "appearance"> & {
+    /** Fill style. Falls back to the nearest `UIProvider`, then `solid`. */
+    appearance?: ButtonAppearance
+    /** Drop every Button visual (fill, color, geometry stays with `size`). */
+    unstyled?: boolean
+    icon?: IconType
+    iconPosition?: "left" | "right"
+    iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
+    uppercase?: boolean
+    isLoading?: boolean
+    loadingText?: string
+    children?: ReactNode
+    ref?: Ref<HTMLButtonElement>
+  }
+
 export function Button({
-  variant,
-  theme,
-  size,
+  density,
+  severity,
+  appearance: appearanceProp,
+  unstyled = false,
+  size: sizeProp,
   block,
   isLoading,
   loadingText,
@@ -280,37 +357,98 @@ export function Button({
   uppercase = false,
   children,
   className,
-  disabled: disabledProp,
+  disabled,
+  composition,
+  ref,
+  onClick,
+  type = "button",
   ...props
-}: ButtonProps & { ref?: Ref<HTMLButtonElement> }) {
-  const disabled = isLoading || disabledProp
+}: ButtonProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  // Without deps, every render would detach and reattach consumer refs.
+  useImperativeHandle(ref, () => buttonRef.current as HTMLButtonElement, [])
+
+  // Click guards cover pointer, Enter/Space and implicit Enter submission.
+  // Also guard requestSubmit() paths that do not dispatch a click.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Rebind when the native form association changes.
+  useEffect(() => {
+    const button = buttonRef.current
+    const form = button?.form
+    if (!(isLoading && type === "submit" && form)) {
+      return
+    }
+    function preventPendingSubmit(event: SubmitEvent) {
+      if (!event.submitter || event.submitter === button) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+      }
+    }
+    form.addEventListener("submit", preventPendingSubmit, true)
+    return () => form.removeEventListener("submit", preventPendingSubmit, true)
+  }, [isLoading, type, props.form])
+
+  const { size, appearance } = useUIDefaults(
+    "Button",
+    { size: sizeProp, appearance: appearanceProp },
+    buttonStyleValues
+  )
+  const iconClassName = buttonIconVariants({ size })
 
   return (
     <button
+      {...props}
+      aria-busy={isLoading || undefined}
+      aria-disabled={
+        disabled || isLoading || props["aria-disabled"] || undefined
+      }
       className={buttonVariants({
-        variant,
-        theme,
+        density,
+        severity,
+        appearance: unstyled ? "unstyled" : appearance,
         size,
         block,
         uppercase,
+        composition,
         className,
       })}
+      data-loading={isLoading ? "" : undefined}
       disabled={disabled}
-      {...props}
+      onClick={(event) => {
+        if (isLoading) {
+          event.preventDefault()
+          event.stopPropagation()
+          return
+        }
+        onClick?.(event)
+      }}
+      ref={buttonRef}
+      type={type}
     >
       {isLoading ? (
         <>
-          <Icon className="mr-2" icon="token-icon-button-spinner" />
+          <Icon
+            className={iconClassName}
+            icon="token-icon-button-spinner"
+            size="current"
+          />
           {loadingText || children}
         </>
       ) : (
         <>
           {icon && iconPosition === "left" && (
-            <Icon icon={icon} size={iconSize} />
+            <Icon
+              className={iconSize ? undefined : iconClassName}
+              icon={icon}
+              size={iconSize ?? "current"}
+            />
           )}
           {children}
           {icon && iconPosition === "right" && (
-            <Icon icon={icon} size={iconSize} />
+            <Icon
+              className={iconSize ? undefined : iconClassName}
+              icon={icon}
+              size={iconSize ?? "current"}
+            />
           )}
         </>
       )}

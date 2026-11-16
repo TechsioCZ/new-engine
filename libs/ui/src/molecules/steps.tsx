@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,6 +13,7 @@ import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   connect as connectSteps,
   type Props as StepsMachineProps,
+  splitProps as splitStepsProps,
   machine as stepsMachine,
   type Api as ZagStepsApi,
   type ItemState as ZagStepsItemState,
@@ -23,37 +24,45 @@ import {
   type ReactNode,
   type Ref,
   useContext,
+  useEffect,
   useId,
+  useLayoutEffect,
+  useRef,
+  useState,
 } from "react"
+import { flushSync } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
 import { Icon } from "../atoms/icon"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const stepsVariants = tv({
   slots: {
     root: [
-      "flex w-full flex-col gap-steps-root",
+      "flex w-full min-w-0 max-w-full flex-col gap-steps-root",
       "text-steps-fg",
-      "data-[orientation=vertical]:flex-row data-[orientation=vertical]:items-start",
+      "sm:data-[orientation=vertical]:flex-row sm:data-[orientation=vertical]:items-start",
     ],
     list: [
-      "flex w-full gap-steps-list",
+      "flex w-full min-w-0 max-w-full gap-steps-list",
       "data-[orientation=horizontal]:items-start",
-      "data-[orientation=vertical]:w-auto data-[orientation=vertical]:min-w-steps-list-vertical data-[orientation=vertical]:flex-col",
+      "data-[orientation=vertical]:flex-col sm:data-[orientation=vertical]:w-auto sm:data-[orientation=vertical]:min-w-steps-list-vertical",
     ],
     panels: [
-      "flex w-full flex-col gap-steps-panels",
+      "flex w-full min-w-0 max-w-full flex-col gap-steps-panels",
       "data-[orientation=vertical]:min-w-0 data-[orientation=vertical]:flex-1",
     ],
     item: [
-      "relative flex min-w-0 gap-steps-item",
+      "steps-indicator-connectors relative flex min-w-0 gap-steps-item",
       "data-[orientation=horizontal]:flex-1 data-[orientation=horizontal]:items-center",
       "data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-start",
     ],
     trigger: [
-      "group relative flex min-w-0 items-center justify-start gap-steps-trigger",
-      "text-left",
+      "group relative flex min-w-0 max-w-full items-center justify-start gap-steps-trigger",
+      "data-[orientation=horizontal]:flex-col sm:data-[orientation=horizontal]:flex-row",
+      "text-start",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -62,7 +71,7 @@ const stepsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     itemText: [
-      "inline-flex min-w-0 flex-col gap-steps-text",
+      "inline-flex min-w-0 max-w-full flex-col gap-steps-text",
       "data-[orientation=vertical]:items-start",
     ],
     indicator: [
@@ -77,13 +86,13 @@ const stepsVariants = tv({
     indicatorIcon: "text-steps-icon",
     number: ["font-steps-number leading-none"],
     title: [
-      "truncate font-steps-title text-steps-title text-steps-title-fg",
+      "break-words font-steps-title text-steps-title text-steps-title-fg",
       "data-current:text-steps-title-fg-current",
       "data-complete:text-steps-title-fg-complete",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     description: [
-      "text-steps-description text-steps-description-fg",
+      "break-words text-steps-description text-steps-description-fg",
       "data-current:text-steps-description-fg-current",
       "data-complete:text-steps-description-fg-complete",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -98,14 +107,15 @@ const stepsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     progress: [
-      "relative overflow-hidden rounded-steps-progress bg-steps-progress-bg",
+      "relative min-w-0 overflow-clip rounded-steps-progress bg-steps-progress-bg",
       "data-[orientation=horizontal]:h-steps-progress data-[orientation=horizontal]:w-full",
-      "data-[orientation=vertical]:w-steps-progress data-[orientation=vertical]:self-stretch",
+      "data-[orientation=vertical]:h-steps-progress data-[orientation=vertical]:w-full data-[orientation=vertical]:self-stretch",
+      "sm:data-[orientation=vertical]:h-auto sm:data-[orientation=vertical]:w-steps-progress",
     ],
     progressRange: [
-      "absolute rounded-steps-progress bg-steps-progress-range-bg",
+      "steps-progress-range absolute rounded-steps-progress bg-steps-progress-range-bg",
       "transition-[width,height] duration-200 motion-reduce:transition-none",
-      "data-[orientation=horizontal]:inset-y-0 data-[orientation=horizontal]:start-0",
+      "data-[orientation=horizontal]:inset-s-0 data-[orientation=horizontal]:inset-y-0",
       "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
     ],
     content: [
@@ -131,15 +141,19 @@ const stepsVariants = tv({
     nextTrigger: "",
   },
   variants: {
-    variant: {
-      subtle: {},
+    appearance: {
+      subtle: { item: "steps-connector-subtle" },
       solid: {
+        item: "steps-connector-solid",
         trigger: [
           "rounded-steps-trigger px-steps-trigger-x py-steps-trigger-y",
           "hover:bg-steps-trigger-bg-hover",
           "data-current:bg-steps-trigger-bg-current",
           "data-complete:bg-steps-trigger-bg-complete",
         ],
+        // The current trigger sits on the primary tint, where the accent
+        // title colour would be accent-on-accent; use the neutral foreground.
+        title: "data-current:text-steps-title-fg-solid-current",
         indicator: [
           "border-transparent bg-steps-indicator-bg-solid text-steps-indicator-fg-solid",
           "group-hover:bg-steps-indicator-bg-solid-hover",
@@ -150,6 +164,7 @@ const stepsVariants = tv({
     },
     size: {
       sm: {
+        item: "steps-connector-sm",
         indicator: "size-steps-indicator-sm",
         indicatorIcon: "text-steps-icon-sm",
         number: "text-steps-number-sm",
@@ -159,6 +174,7 @@ const stepsVariants = tv({
         completedContent: "p-steps-content-padding-sm text-steps-content-sm",
       },
       md: {
+        item: "steps-connector-md",
         indicator: "size-steps-indicator-md",
         indicatorIcon: "text-steps-icon-md",
         number: "text-steps-number-md",
@@ -168,6 +184,7 @@ const stepsVariants = tv({
         completedContent: "p-steps-content-padding-md text-steps-content-md",
       },
       lg: {
+        item: "steps-connector-lg",
         indicator: "size-steps-indicator-lg",
         indicatorIcon: "text-steps-icon-lg",
         number: "text-steps-number-lg",
@@ -179,12 +196,12 @@ const stepsVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "subtle",
+    appearance: "subtle",
     size: "md",
   },
 })
 
-type StepsApi = ZagStepsApi
+type StepsApi = ZagStepsApi & { linear?: boolean }
 type StepsOrientation = "horizontal" | "vertical"
 type StepsSize = NonNullable<VariantProps<typeof stepsVariants>["size"]>
 type StepsItemState = ZagStepsItemState
@@ -194,6 +211,43 @@ type StepsContextValue = {
   orientation: StepsOrientation
   size?: StepsSize
   styles: ReturnType<typeof stepsVariants>
+  requestNavigationFocus: (
+    source: HTMLButtonElement,
+    navigate: () => void
+  ) => void
+} & StepsContentRegistry
+
+/*
+ * Zag points every trigger's aria-controls at its content panel, but Steps is
+ * often used as a progress indicator with no Steps.Content at all. Panels
+ * register their index while mounted so a trigger only references a panel
+ * that exists (axe aria-valid-attr-value).
+ */
+type StepsContentRegistry = {
+  contentIndexes: ReadonlySet<number>
+  setContentIndexes: (
+    update: (previous: ReadonlySet<number>) => ReadonlySet<number>
+  ) => void
+}
+
+function useStepsContentRegistry(): StepsContentRegistry {
+  const [contentIndexes, setContentIndexes] = useState<ReadonlySet<number>>(
+    () => new Set()
+  )
+  return { contentIndexes, setContentIndexes }
+}
+
+function useRegisterStepsContent(index: number) {
+  const { setContentIndexes } = useStepsContext()
+  useEffect(() => {
+    setContentIndexes((previous) => new Set(previous).add(index))
+    return () =>
+      setContentIndexes((previous) => {
+        const next = new Set(previous)
+        next.delete(index)
+        return next
+      })
+  }, [index, setContentIndexes])
 }
 
 const StepsContext = createContext<StepsContextValue | null>(null)
@@ -207,6 +261,7 @@ function useStepsContext() {
 }
 
 type StepsItemContextValue = {
+  ariaCurrent?: ComponentPropsWithoutRef<"div">["aria-current"]
   index: number
   state: StepsItemState
 }
@@ -253,15 +308,148 @@ export type StepsStoreProps = Omit<StepsMachineProps, "id"> & {
   id?: string
 }
 
-export function useSteps({ id, ...props }: StepsStoreProps) {
+export function useSteps({
+  id,
+  count = 1,
+  step,
+  defaultStep = 0,
+  onStepChange,
+  ...props
+}: StepsStoreProps): StepsApi {
   const generatedId = useId()
+  const safeCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0
+  const [local, setLocal] = useState({
+    value: defaultStep,
+    completed: defaultStep === safeCount,
+  })
+  const rawStep = step ?? local.value
+  const previous = useRef({
+    count: safeCount,
+    value: rawStep,
+    completed: rawStep === safeCount,
+  })
+  const correction = useRef<string | null>(null)
+  let completed = local.completed
+  if (step !== undefined) {
+    completed =
+      previous.current.value === rawStep
+        ? previous.current.completed
+        : rawStep === safeCount
+  }
+  const effectiveStep =
+    safeCount === 0 || completed
+      ? safeCount
+      : Math.min(
+          Math.max(0, Number.isFinite(rawStep) ? Math.floor(rawStep) : 0),
+          safeCount - 1
+        )
+
+  useEffect(() => {
+    previous.current = { count: safeCount, value: rawStep, completed }
+    if (rawStep === effectiveStep) {
+      correction.current = null
+      return
+    }
+    if (step === undefined) {
+      setLocal({ value: effectiveStep, completed })
+    }
+    const key = `${rawStep}:${effectiveStep}:${safeCount}`
+    if (correction.current !== key) {
+      correction.current = key
+      onStepChange?.({ step: effectiveStep })
+    }
+  }, [completed, effectiveStep, onStepChange, rawStep, safeCount, step])
 
   const service = useMachine(stepsMachine, {
-    id: id ?? generatedId,
     ...props,
+    id: id ?? generatedId,
+    count: safeCount,
+    step: effectiveStep,
+    onStepChange: (details) => {
+      if (step === undefined) {
+        setLocal({ value: details.step, completed: details.step === safeCount })
+      }
+      onStepChange?.(details)
+    },
   })
+  const api = connectSteps(service, normalizeProps)
+  const percent =
+    safeCount === 0
+      ? 100
+      : Math.min(100, Math.max(0, (effectiveStep / safeCount) * 100))
+  return {
+    ...api,
+    linear: props.linear ?? false,
+    percent,
+    getRootProps: () => ({
+      ...api.getRootProps(),
+      style: { ...api.getRootProps().style, "--percent": `${percent}%` },
+    }),
+    getProgressProps: () => ({
+      ...api.getProgressProps(),
+      "aria-valuemin": 0,
+      "aria-valuemax": 100,
+      "aria-valuenow": percent,
+      "aria-valuetext": `${Math.round(percent)}%`,
+    }),
+  }
+}
 
-  return connectSteps(service, normalizeProps)
+// Only an accepted navigation-button transition moves focus. Initial renders,
+// external updates and tab/step-header activation never steal focus.
+function useNavigationFocus(api: StepsApi) {
+  const pending = useRef<{ source: HTMLButtonElement; value: number } | null>(
+    null
+  )
+  const [, commitNavigation] = useState(0)
+  // Focus in the accepted commit, before the navigation transaction ends.
+  useLayoutEffect(() => {
+    const request = pending.current
+    if (!request || request.value === api.value) {
+      return
+    }
+    pending.current = null
+    const root = request.source.closest(
+      '[data-scope="steps"][data-part="root"]'
+    )
+    const active = request.source.ownerDocument.activeElement
+    if (
+      active !== request.source &&
+      active !== request.source.ownerDocument.body
+    ) {
+      return
+    }
+    root
+      ?.querySelector<HTMLElement>(
+        '[data-part="content"]:not([hidden]), [data-part="completed-content"]:not([hidden])'
+      )
+      ?.focus()
+  }, [api.value])
+  return (source: HTMLButtonElement, navigate: () => void) => {
+    const request = { source, value: api.value }
+    pending.current = request
+    try {
+      navigate()
+    } catch (error) {
+      pending.current = null
+      throw error
+    }
+    // Zag queues its transition in a microtask. Commit after that proposal, not
+    // before it, and never let a paint deadline discard an accepted update.
+    queueMicrotask(() => {
+      if (pending.current !== request) {
+        return
+      }
+      try {
+        flushSync(() => commitNavigation((value) => value + 1))
+      } finally {
+        // Rejected proposals must not survive into unrelated external updates.
+        if (pending.current === request) {
+          pending.current = null
+        }
+      }
+    })
+  }
 }
 
 type StepsRootSharedProps = VariantProps<typeof stepsVariants> &
@@ -275,38 +463,43 @@ export type StepsProps = StepsRootSharedProps &
   }
 
 export function Steps({
-  id,
-  count = 1,
-  defaultStep,
-  dir = "ltr",
-  linear = false,
-  onStepChange,
-  onStepComplete,
-  orientation = "horizontal",
-  size,
-  step,
-  variant,
+  size: sizeProp,
+  appearance: appearanceProp,
   children,
   className,
   ref,
   ...props
 }: StepsProps) {
+  const { size, appearance } = useUIDefaults(
+    "Steps",
+    { size: sizeProp, appearance: appearanceProp },
+    stepsVariants
+  )
+  const [machineProps, elementProps] = splitStepsProps(props)
   const api = useSteps({
-    count,
-    defaultStep,
-    dir,
-    id,
-    linear,
-    onStepChange,
-    onStepComplete,
-    orientation,
-    step,
+    count: 1,
+    dir: "ltr",
+    linear: false,
+    orientation: "horizontal",
+    ...machineProps,
   })
-  const styles = stepsVariants({ size, variant })
-  const rootProps = mergeProps(props, api.getRootProps())
+  const orientation = machineProps.orientation ?? "horizontal"
+  const requestNavigationFocus = useNavigationFocus(api)
+  const styles = stepsVariants({ size, appearance })
+  const rootProps = mergeProps(elementProps, api.getRootProps())
+  const contentRegistry = useStepsContentRegistry()
 
   return (
-    <StepsContext.Provider value={{ api, orientation, size, styles }}>
+    <StepsContext.Provider
+      value={{
+        api,
+        orientation,
+        size,
+        styles,
+        requestNavigationFocus,
+        ...contentRegistry,
+      }}
+    >
       <div className={styles.root({ className })} ref={ref} {...rootProps}>
         {children}
       </div>
@@ -320,24 +513,33 @@ type StepsRootProviderProps = StepsRootSharedProps & {
 
 Steps.RootProvider = function StepsRootProvider({
   value,
-  size,
-  variant,
+  size: sizeProp,
+  appearance: appearanceProp,
   children,
   className,
   ref,
   ...props
 }: StepsRootProviderProps) {
-  const styles = stepsVariants({ size, variant })
+  const { size, appearance } = useUIDefaults(
+    "Steps",
+    { size: sizeProp, appearance: appearanceProp },
+    stepsVariants
+  )
+  const styles = stepsVariants({ size, appearance })
+  const requestNavigationFocus = useNavigationFocus(value)
   const resolvedOrientation = getOrientationFromApi(value)
   const rootProps = mergeProps(props, value.getRootProps())
+  const contentRegistry = useStepsContentRegistry()
 
   return (
     <StepsContext.Provider
       value={{
         api: value,
+        requestNavigationFocus,
         orientation: resolvedOrientation,
         size,
         styles,
+        ...contentRegistry,
       }}
     >
       <div className={styles.root({ className })} ref={ref} {...rootProps}>
@@ -347,8 +549,8 @@ Steps.RootProvider = function StepsRootProvider({
   )
 }
 
-type StepsListProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+type StepsListProps = ComponentPropsWithoutRef<"ol"> & {
+  ref?: Ref<HTMLOListElement>
 }
 
 Steps.List = function StepsList({
@@ -358,12 +560,19 @@ Steps.List = function StepsList({
   ...props
 }: StepsListProps) {
   const { api, styles } = useStepsContext()
-  const listProps = mergeProps(props, api.getListProps())
+  const {
+    role: _tablistRole,
+    "aria-owns": _owns,
+    "aria-orientation": _orientation,
+    ...machineListProps
+  } = api.getListProps()
+  // Safari needs an explicit list role when the reset removes list styling.
+  const listProps = mergeProps(props, machineListProps, { role: "list" })
 
   return (
-    <div className={styles.list({ className })} ref={ref} {...listProps}>
+    <ol className={styles.list({ className })} ref={ref} {...listProps}>
       {children}
-    </div>
+    </ol>
   )
 }
 
@@ -415,9 +624,9 @@ Steps.Navigation = function StepsNavigation({
   )
 }
 
-type StepsItemProps = ComponentPropsWithoutRef<"div"> & {
+type StepsItemProps = ComponentPropsWithoutRef<"li"> & {
   index: number
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLLIElement>
 }
 
 Steps.Item = function StepsItem({
@@ -429,13 +638,24 @@ Steps.Item = function StepsItem({
 }: StepsItemProps) {
   const { api, styles } = useStepsContext()
   const state = api.getItemState({ index })
-  const itemProps = mergeProps(props, api.getItemProps({ index }))
+  // Zag puts aria-current on the item, inside its role="tablist", where a
+  // tablist may not own it (axe aria-required-children). The item is layout
+  // only (role="presentation" below); the trigger carries the step state.
+  const { "aria-current": ariaCurrent, ...itemProps } = mergeProps(
+    props,
+    api.getItemProps({ index })
+  )
 
   return (
-    <StepsItemContext.Provider value={{ index, state }}>
-      <div className={styles.item({ className })} ref={ref} {...itemProps}>
+    <StepsItemContext.Provider value={{ ariaCurrent, index, state }}>
+      <li
+        className={styles.item({ className })}
+        ref={ref}
+        {...itemProps}
+        role={props.role ?? "listitem"}
+      >
         {children}
-      </div>
+      </li>
     </StepsItemContext.Provider>
   )
 }
@@ -455,12 +675,14 @@ Steps.Trigger = function StepsTrigger({
   ref,
   ...props
 }: StepsTriggerProps) {
-  const { api, styles } = useStepsContext()
-  const { index } = useStepsItemContext()
+  const { api, contentIndexes, styles } = useStepsContext()
+  const { ariaCurrent, index } = useStepsItemContext()
   const triggerProps = api.getTriggerProps({ index })
   const {
     onClick: onTriggerClick,
     disabled: machineDisabled,
+    role: _tabRole,
+    "aria-selected": _selected,
     ...restTriggerProps
   } = triggerProps as typeof triggerProps & {
     disabled?: boolean
@@ -468,16 +690,20 @@ Steps.Trigger = function StepsTrigger({
   }
   const { onClick, ...restProps } = props
   const buttonProps = mergeProps(restProps, restTriggerProps)
-  const isDisabled = Boolean(machineDisabled || disabled)
+  const isDisabled = Boolean(machineDisabled || disabled || api.linear)
 
   return (
     <Button
       className={styles.trigger({ className })}
       ref={ref}
       size="current"
-      theme="unstyled"
       type="button"
+      unstyled
       {...buttonProps}
+      aria-controls={
+        contentIndexes.has(index) ? buttonProps["aria-controls"] : undefined
+      }
+      aria-current={props["aria-current"] ?? ariaCurrent}
       data-disabled={isDisabled || undefined}
       disabled={isDisabled}
       onClick={(event) => {
@@ -486,6 +712,7 @@ Steps.Trigger = function StepsTrigger({
           onTriggerClick?.(event)
         }
       }}
+      tabIndex={isDisabled ? -1 : 0}
     >
       {children}
     </Button>
@@ -542,6 +769,7 @@ Steps.Indicator = function StepsIndicator({
             <Icon
               className={styles.indicatorIcon()}
               icon="token-icon-steps-check"
+              size="current"
             />
           }
           current={<Steps.Number />}
@@ -657,6 +885,7 @@ Steps.Separator = function StepsSeparator({
   const { api, styles } = useStepsContext()
   const { index, state } = useStepsItemContext()
   const separatorProps = mergeProps(props, api.getSeparatorProps({ index }), {
+    "aria-hidden": true,
     "data-last": state.last || undefined,
   })
 
@@ -682,10 +911,21 @@ Steps.Content = function StepsContent({
   ...props
 }: StepsContentProps) {
   const { api, styles } = useStepsContext()
-  const contentProps = mergeProps(props, api.getContentProps({ index }))
+  const { role: _tabpanelRole, ...machineContentProps } = api.getContentProps({
+    index,
+  })
+  const contentProps = mergeProps(machineContentProps, props)
+  useRegisterStepsContent(index)
 
   return (
-    <div className={styles.content({ className })} ref={ref} {...contentProps}>
+    // biome-ignore lint/a11y/useSemanticElements: A workflow panel can contain more than form controls, so it is a group rather than a fieldset.
+    <div
+      className={styles.content({ className })}
+      ref={ref}
+      role="group"
+      {...contentProps}
+      tabIndex={-1}
+    >
       {children}
     </div>
   )
@@ -696,31 +936,31 @@ type StepsProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
 }
 
 Steps.Progress = function StepsProgress({
+  "aria-label": ariaLabel,
   className,
   ref,
   style,
   ...props
 }: StepsProgressProps) {
   const { api, orientation, styles } = useStepsContext()
+  const messages = useUiMessages()
+  // A progressbar needs an accessible name (axe aria-progressbar-name).
   const progressProps = mergeProps(props, api.getProgressProps())
-  const progressRangeStyle =
-    orientation === "horizontal"
-      ? { width: "var(--percent)" }
-      : { height: "var(--percent)" }
 
   return (
     <div
       className={styles.progress({ className })}
       ref={ref}
       {...progressProps}
+      aria-label={ariaLabel ?? messages.steps.progress}
       data-orientation={orientation}
+      role="progressbar"
       style={style}
     >
       <span
         aria-hidden="true"
         className={styles.progressRange()}
         data-orientation={orientation}
-        style={progressRangeStyle}
       />
     </div>
   )
@@ -737,17 +977,28 @@ Steps.CompletedContent = function StepsCompletedContent({
   ...props
 }: StepsCompletedContentProps) {
   const { api, styles } = useStepsContext()
-  const contentProps = mergeProps(
-    props,
-    api.getContentProps({ index: api.count })
-  )
+  const messages = useUiMessages()
+  const {
+    "aria-labelledby": _triggerLabel,
+    role: _tabPanelRole,
+    ...machineContentProps
+  } = api.getContentProps({ index: api.count })
+  const contentProps = mergeProps(machineContentProps, props)
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: Completion content is a named group, not a group of form controls.
     <div
       className={styles.completedContent({ className })}
       ref={ref}
+      role="group"
       {...contentProps}
+      aria-label={
+        props["aria-label"] ??
+        (props["aria-labelledby"] ? undefined : messages.steps.complete)
+      }
       data-complete={api.isCompleted || undefined}
+      data-part="completed-content"
+      tabIndex={-1}
     >
       {children}
     </div>
@@ -762,11 +1013,16 @@ Steps.PrevTrigger = function StepsPrevTrigger({
   className,
   ref,
   size,
-  theme = "outlined",
-  variant = "secondary",
+  appearance = "outline",
+  severity = "secondary",
   ...props
 }: StepsControlProps) {
-  const { api, styles, size: rootSize } = useStepsContext()
+  const {
+    api,
+    styles,
+    size: rootSize,
+    requestNavigationFocus,
+  } = useStepsContext()
   const {
     onClick: onPrevTriggerClick,
     disabled: prevTriggerDisabled,
@@ -778,17 +1034,19 @@ Steps.PrevTrigger = function StepsPrevTrigger({
 
   return (
     <Button
+      appearance={appearance}
       className={styles.prevTrigger({ className })}
       ref={ref}
+      severity={severity}
       size={size ?? getControlSize(rootSize)}
-      theme={theme}
-      variant={variant}
       {...buttonProps}
       disabled={isDisabled}
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {
-          onPrevTriggerClick?.(event)
+          requestNavigationFocus(event.currentTarget, () => {
+            onPrevTriggerClick?.(event)
+          })
         }
       }}
     />
@@ -799,11 +1057,16 @@ Steps.NextTrigger = function StepsNextTrigger({
   className,
   ref,
   size,
-  theme = "solid",
-  variant = "primary",
+  appearance = "solid",
+  severity = "primary",
   ...props
 }: StepsControlProps) {
-  const { api, styles, size: rootSize } = useStepsContext()
+  const {
+    api,
+    styles,
+    size: rootSize,
+    requestNavigationFocus,
+  } = useStepsContext()
   const {
     onClick: onNextTriggerClick,
     disabled: nextTriggerDisabled,
@@ -815,22 +1078,32 @@ Steps.NextTrigger = function StepsNextTrigger({
 
   return (
     <Button
+      appearance={appearance}
       className={styles.nextTrigger({ className })}
       ref={ref}
+      severity={severity}
       size={size ?? getControlSize(rootSize)}
-      theme={theme}
-      variant={variant}
       {...buttonProps}
       disabled={isDisabled}
       onClick={(event) => {
         onClick?.(event)
         if (!event.defaultPrevented) {
-          onNextTriggerClick?.(event)
+          requestNavigationFocus(event.currentTarget, () => {
+            onNextTriggerClick?.(event)
+          })
         }
       }}
     />
   )
 }
 
-Steps.Root = Steps
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Steps.Root = Steps satisfies typeof Steps
 Steps.displayName = "Steps"
+
+// Declare colliding member names explicitly so native TypeScript emits no synthetic public aliases.
+// biome-ignore lint/style/noNamespace: Ambient merging preserves compound functions without emitting runtime code.
+export declare namespace Steps {
+  // biome-ignore lint/suspicious/noShadowRestrictedNames: This ambient member describes the existing writable compound API.
+  export let Number: (props: StepsNumberProps) => import("react").JSX.Element
+}

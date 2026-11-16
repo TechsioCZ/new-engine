@@ -1,10 +1,11 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-16695
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/skeleton.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/skeleton.tsx
 // component=Skeleton.Circle
 
 import figma from "figma"
 
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names the property variant; code reads severity.
+const severity = figma.selectedInstance.getEnum("variant", {
   primary: "primary",
   secondary: "secondary",
 })
@@ -33,7 +34,7 @@ export default {
   )}${figma.helpers.react.renderProp(
     "speed",
     speed
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("severity", severity)}>
           <div className="size-16 rounded-full ${placeholderBgClass}"/>
         </Skeleton.Circle>`,
   metadata: { nestable: false },

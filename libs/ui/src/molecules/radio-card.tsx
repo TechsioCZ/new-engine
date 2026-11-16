@@ -2,7 +2,7 @@
  * RadioCard — @techsio/ui-kit molecule.
  *
  * @component RadioCard
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill radio-card-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,7 +12,6 @@
 import {
   connect,
   type ItemProps,
-  machine,
   type ValueChangeDetails,
   type Props as ZagRadioGroupProps,
 } from "@zag-js/radio-group"
@@ -27,14 +26,37 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
+import {
+  commitRadioClick,
+  getControlledChoiceInputProps,
+  handleChoiceArrowKey,
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  useChoiceFocusRecovery,
+} from "../internal/choice-control"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
+import { radioChoiceMachine } from "./radio-group"
 
 const radioCardVariants = tv({
   slots: {
-    root: ["flex w-full flex-col"],
+    root: [
+      "flex w-full flex-col",
+      "focus-visible:outline-(style:--default-ring-style)",
+      "focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-radio-card-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
     item: [
-      "relative flex min-w-0 flex-col overflow-hidden",
+      "radio-card-readonly relative flex min-w-0 flex-col overflow-clip",
+      "cursor-pointer data-readonly:not-data-disabled:cursor-default",
       "rounded-radio-card-item",
       "border-(length:--border-width-radio-card)",
       "border-radio-card-item-border",
@@ -78,7 +100,7 @@ const radioCardVariants = tv({
       "inline-grid shrink-0 place-items-center",
       "rounded-radio-card-indicator",
       "border-(length:--border-width-radio-card-indicator)",
-      "border-radio-card-item-indicator-border",
+      "border-radio-card-indicator-border-base",
       "bg-radio-card-item-indicator-bg",
       "transition-colors duration-200 motion-reduce:transition-none",
       "data-disabled:border-radio-card-item-indicator-border-disabled",
@@ -93,10 +115,7 @@ const radioCardVariants = tv({
       "data-[state=checked]:opacity-100",
       "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-fg-disabled",
     ],
-    itemIndicatorMark: [
-      "block leading-none",
-      "token-icon-radio-card-checked",
-    ],
+    itemIndicatorMark: ["block leading-none", "token-icon-radio-card-checked"],
     itemAddon: [
       "border-t-(length:--border-width-radio-card-addon)",
       "border-radio-card-addon-border",
@@ -113,19 +132,20 @@ const radioCardVariants = tv({
     hiddenInput: "sr-only",
   },
   variants: {
-    variant: {
+    appearance: {
       outline: {
         item: [
+          "radio-card-outline-readable",
           "data-[state=checked]:bg-radio-card-item-bg-outline-checked",
           "data-[state=checked]:border-radio-card-item-border-outline-checked",
           "data-hover:data-[state=checked]:bg-radio-card-item-bg-outline-checked-hover",
           "data-hover:data-[state=checked]:border-radio-card-item-border-outline-checked-hover",
         ],
         itemIndicator: [
-          "data-[state=checked]:border-radio-card-item-indicator-border-outline-checked",
+          "data-[state=checked]:border-radio-card-indicator-border-selected",
         ],
         itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-fg-outline-checked",
+          "data-[state=checked]:text-radio-card-fg-choice-selected",
         ],
       },
       subtle: {
@@ -142,14 +162,14 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-description-fg-subtle-checked",
         ],
         itemIndicator: [
-          "data-[state=checked]:border-radio-card-item-indicator-border-subtle-checked",
+          "data-[state=checked]:border-radio-card-indicator-border-selected",
         ],
         itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-fg-subtle-checked",
+          "data-[state=checked]:text-radio-card-fg-choice-selected",
         ],
         itemAddon: [
           "data-[state=checked]:border-radio-card-addon-border-subtle-checked",
-          "data-[state=checked]:text-radio-card-addon-fg-subtle-checked",
+          "data-[state=checked]:text-radio-card-fg-choice-selected",
         ],
       },
       solid: {
@@ -166,15 +186,15 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-description-fg-solid-checked",
         ],
         itemIndicator: [
-          "data-[state=checked]:border-radio-card-item-indicator-border-solid-checked",
-          "data-[state=checked]:bg-radio-card-item-indicator-bg-solid-checked",
+          "data-[state=checked]:border-radio-card-indicator-border-on-selected",
+          "data-[state=checked]:bg-radio-card-indicator-bg-selected",
         ],
         itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-fg-solid-checked",
+          "data-[state=checked]:text-radio-card-fg-on-selected",
         ],
         itemAddon: [
           "data-[state=checked]:border-radio-card-addon-border-solid-checked",
-          "data-[state=checked]:text-radio-card-addon-fg-solid-checked",
+          "data-[state=checked]:text-radio-card-item-fg-solid-checked",
         ],
       },
     },
@@ -190,10 +210,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-sm",
         itemIndicator: "size-radio-card-indicator-sm",
         itemIndicatorMark: "size-radio-card-indicator-mark-sm",
-        itemAddon: [
-          "p-radio-card-addon-sm",
-          "text-radio-card-addon-sm",
-        ],
+        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
       },
       md: {
         root: "gap-radio-card-stack-md",
@@ -206,10 +223,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-md",
         itemIndicator: "size-radio-card-indicator-md",
         itemIndicatorMark: "size-radio-card-indicator-mark-md",
-        itemAddon: [
-          "p-radio-card-addon-md",
-          "text-radio-card-addon-md",
-        ],
+        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
       },
       lg: {
         root: "gap-radio-card-stack-lg",
@@ -222,10 +236,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-lg",
         itemIndicator: "size-radio-card-indicator-lg",
         itemIndicatorMark: "size-radio-card-indicator-mark-lg",
-        itemAddon: [
-          "p-radio-card-addon-lg",
-          "text-radio-card-addon-lg",
-        ],
+        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
       },
     },
     itemOrientation: {
@@ -242,9 +253,9 @@ const radioCardVariants = tv({
       start: {
         itemControl: "items-start",
         itemContent: "items-start",
-        itemText: "text-left",
-        itemDescription: "text-left",
-        itemAddon: "text-left",
+        itemText: "text-start",
+        itemDescription: "text-start",
+        itemAddon: "text-start",
       },
       center: {
         itemControl: "items-center",
@@ -256,9 +267,9 @@ const radioCardVariants = tv({
       end: {
         itemControl: "items-end",
         itemContent: "items-end",
-        itemText: "text-right",
-        itemDescription: "text-right",
-        itemAddon: "text-right",
+        itemText: "text-end",
+        itemDescription: "text-end",
+        itemAddon: "text-end",
       },
     },
     justify: {
@@ -277,7 +288,7 @@ const radioCardVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "outline",
+    appearance: "outline",
     size: "md",
     itemOrientation: "horizontal",
     align: "start",
@@ -285,8 +296,8 @@ const radioCardVariants = tv({
   },
 })
 
-type RadioCardVariant = NonNullable<
-  VariantProps<typeof radioCardVariants>["variant"]
+type RadioCardAppearance = NonNullable<
+  VariantProps<typeof radioCardVariants>["appearance"]
 >
 type RadioCardSize = NonNullable<VariantProps<typeof radioCardVariants>["size"]>
 type RadioCardItemOrientation = NonNullable<
@@ -301,8 +312,13 @@ type RadioCardJustify = NonNullable<
 type RadioCardValidateStatus = "default" | "error" | "success" | "warning"
 
 type RadioCardContextValue = {
+  readOnly: boolean
+  callerDescribedBy?: string
+  errorMessageId?: string
+  registerError: DescribedBy["registerDescription"]
   api: ReturnType<typeof connect>
-  variant: RadioCardVariant
+  selectValue: (value: string) => void
+  appearance: RadioCardAppearance
   size: RadioCardSize
   itemOrientation: RadioCardItemOrientation
   align: RadioCardAlign
@@ -310,7 +326,9 @@ type RadioCardContextValue = {
   disabled: boolean
   required: boolean
   validateStatus: RadioCardValidateStatus
-}
+} & DescribedBy
+
+const ignoreDescription = () => () => undefined
 
 const RadioCardContext = createContext<RadioCardContextValue | null>(null)
 
@@ -324,7 +342,7 @@ function useRadioCardContext() {
 
 type RadioCardItemContextValue = {
   itemProps: ItemProps
-}
+} & DescribedBy
 
 const RadioCardItemContext = createContext<RadioCardItemContextValue | null>(
   null
@@ -347,6 +365,8 @@ type RadioCardMachineProps = Omit<
 
 export type RadioCardProps = VariantProps<typeof radioCardVariants> &
   RadioCardMachineProps & {
+    "aria-label"?: string
+    "aria-labelledby"?: string
     "aria-describedby"?: string
     id?: string
     children: ReactNode
@@ -357,9 +377,12 @@ export type RadioCardProps = VariantProps<typeof radioCardVariants> &
   }
 
 export function RadioCard({
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedByProp,
   id: providedId,
   disabled = false,
+  readOnly = false,
   required = false,
   orientation = "horizontal",
   itemOrientation = "horizontal",
@@ -367,49 +390,60 @@ export function RadioCard({
   justify = "between",
   validateStatus = "default",
   onValueChange,
-  variant = "outline",
-  size = "md",
+  appearance: appearanceProp,
+  size: sizeProp,
   children,
   className,
   ref,
   ...machineProps
 }: RadioCardProps) {
+  const { size = "md", appearance = "outline" } = useUIDefaults(
+    "RadioCard",
+    { size: sizeProp, appearance: appearanceProp },
+    radioCardVariants
+  )
   const generatedId = useId()
   const id = providedId || generatedId
   const invalid = validateStatus === "error"
 
-  const service = useMachine(machine, {
+  const service = useMachine(radioChoiceMachine, {
     ...machineProps,
     id,
     disabled,
+    readOnly: readOnly && !disabled,
     required,
     orientation,
     invalid,
     onValueChange: ({ value: nextValue }: ValueChangeDetails) => {
-      onValueChange?.(nextValue)
+      if (!(readOnly || disabled || isSilentChoiceReset(service.context))) {
+        onValueChange?.(nextValue)
+      }
     },
   })
 
   const api = connect(service, normalizeProps)
+  const focusRef = useChoiceFocusRecovery()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
     justify,
   })
-  const rootProps = mergeProps(
-    {
-      "aria-describedby": ariaDescribedByProp,
-    },
-    api.getRootProps(),
-  )
+  const describedBy = useDescribedBy()
+  const errors = useDescribedBy()
 
   return (
     <RadioCardContext.Provider
       value={{
         api,
-        variant,
+        selectValue: (value) => service.context.set("value", value),
+        readOnly: readOnly && !disabled,
+        callerDescribedBy: ariaDescribedByProp,
+        errorMessageId: errors.describedById,
+        registerError: errors.registerDescription,
+        ...describedBy,
+        appearance,
         size,
         itemOrientation,
         align,
@@ -419,7 +453,32 @@ export function RadioCard({
         validateStatus,
       }}
     >
-      <div className={styles.root({ className })} ref={ref} {...rootProps}>
+      <div
+        className={styles.root({ className })}
+        ref={(node) => {
+          focusRef.current = node
+          if (typeof ref === "function") {
+            return ref(node)
+          }
+          if (ref) {
+            ref.current = node
+          }
+        }}
+        {...api.getRootProps()}
+        aria-describedby={joinDescribedBy(
+          ariaDescribedByProp,
+          describedBy.describedById
+        )}
+        aria-errormessage={errors.describedById}
+        aria-invalid={invalid || !!errors.describedById || undefined}
+        aria-label={ariaLabel}
+        aria-labelledby={
+          ariaLabelledBy ??
+          (ariaLabel ? undefined : api.getRootProps()["aria-labelledby"])
+        }
+        role="radiogroup"
+        tabIndex={-1}
+      >
         {children}
       </div>
     </RadioCardContext.Provider>
@@ -479,13 +538,15 @@ RadioCard.Item = function RadioCardItem({
   ref,
   ...props
 }: RadioCardItemProps) {
-  const { api, size, variant } = useRadioCardContext()
-  const styles = radioCardVariants({ size, variant })
+  const { api, size, appearance } = useRadioCardContext()
+  const styles = radioCardVariants({ size, appearance })
   const itemProps = { value, disabled, invalid }
+  const descriptions = useDescribedBy()
   const mergedItemProps = mergeProps(props, api.getItemProps(itemProps))
 
   return (
-    <RadioCardItemContext.Provider value={{ itemProps }}>
+    <RadioCardItemContext.Provider value={{ itemProps, ...descriptions }}>
+      {/* biome-ignore lint/a11y/noLabelWithoutControl: The compound hidden input is rendered by children and shares these Zag item props. */}
       <label
         className={styles.item({ className })}
         ref={ref}
@@ -509,16 +570,75 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   ref,
   ...props
 }: RadioCardItemHiddenInputProps) {
-  const { api, size, variant } = useRadioCardContext()
-  const { itemProps } = useRadioCardItemContext()
-  const styles = radioCardVariants({ size, variant })
-  const hiddenInputProps = mergeProps(props, api.getItemHiddenInputProps(itemProps))
+  const {
+    api,
+    selectValue,
+    size,
+    appearance,
+    readOnly,
+    callerDescribedBy,
+    describedById,
+    errorMessageId,
+    validateStatus,
+  } = useRadioCardContext()
+  const { itemProps, describedById: itemDescriptionId } =
+    useRadioCardItemContext()
+  const styles = radioCardVariants({ size, appearance })
+  const hiddenInputProps = getControlledChoiceInputProps(
+    mergeChoiceInputProps(
+      props,
+      commitRadioClick(api.getItemHiddenInputProps(itemProps), readOnly, () =>
+        selectValue(itemProps.value)
+      )
+    ),
+    api.getItemState(itemProps).checked
+  )
 
   return (
     <input
       className={styles.hiddenInput({ className })}
       ref={ref}
       {...hiddenInputProps}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        callerDescribedBy,
+        describedById,
+        itemDescriptionId
+      )}
+      aria-errormessage={
+        validateStatus === "error" || errorMessageId
+          ? errorMessageId
+          : undefined
+      }
+      aria-invalid={
+        api.getItemState(itemProps).invalid || !!errorMessageId || undefined
+      }
+      disabled={api.getItemState(itemProps).disabled}
+      onKeyDown={(event) => {
+        hiddenInputProps.onKeyDown?.(event)
+        if (!readOnly) {
+          handleChoiceArrowKey(event)
+        }
+      }}
+      onKeyDownCapture={(event) => {
+        props.onKeyDownCapture?.(event)
+        if (
+          readOnly &&
+          [
+            " ",
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowUp",
+            "ArrowDown",
+            "Home",
+            "End",
+          ].includes(event.key)
+        ) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      }}
+      readOnly={readOnly}
     />
   )
 }
@@ -533,12 +653,12 @@ RadioCard.ItemControl = function RadioCardItemControl({
   ref,
   ...props
 }: RadioCardItemControlProps) {
-  const { api, size, variant, itemOrientation, align, justify } =
+  const { api, size, appearance, itemOrientation, align, justify } =
     useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
     justify,
@@ -550,6 +670,7 @@ RadioCard.ItemControl = function RadioCardItemControl({
       className={styles.itemControl({ className })}
       ref={ref}
       {...itemControlProps}
+      aria-hidden={undefined}
     >
       {children}
     </div>
@@ -566,10 +687,10 @@ RadioCard.ItemContent = function RadioCardItemContent({
   ref,
   ...props
 }: RadioCardItemContentProps) {
-  const { size, variant, itemOrientation, align } = useRadioCardContext()
+  const { size, appearance, itemOrientation, align } = useRadioCardContext()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
   })
@@ -591,11 +712,12 @@ RadioCard.ItemText = function RadioCardItemText({
   ref,
   ...props
 }: RadioCardItemTextProps) {
-  const { api, size, variant, itemOrientation, align } = useRadioCardContext()
+  const { api, size, appearance, itemOrientation, align } =
+    useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     itemOrientation,
     align,
   })
@@ -622,11 +744,14 @@ RadioCard.ItemDescription = function RadioCardItemDescription({
   ref,
   ...props
 }: RadioCardItemDescriptionProps) {
-  const { api, size, variant, align } = useRadioCardContext()
-  const { itemProps } = useRadioCardItemContext()
+  const { api, size, appearance, align } = useRadioCardContext()
+  const { itemProps, registerDescription } = useRadioCardItemContext()
+  const generatedId = useId()
+  const id = props.id ?? generatedId
+  useRegisterDescription(id, registerDescription)
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     align,
   })
   const itemState = api.getItemState(itemProps)
@@ -635,9 +760,11 @@ RadioCard.ItemDescription = function RadioCardItemDescription({
     <div
       className={styles.itemDescription({ className })}
       data-disabled={itemState.disabled || undefined}
+      data-part="item-description"
       data-state={itemState.checked ? "checked" : "unchecked"}
       ref={ref}
       {...props}
+      id={id}
     >
       {children}
     </div>
@@ -656,9 +783,9 @@ RadioCard.ItemIndicator = function RadioCardItemIndicator({
   ref,
   ...props
 }: RadioCardItemIndicatorProps) {
-  const { api, size, variant } = useRadioCardContext()
+  const { api, size, appearance } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
-  const styles = radioCardVariants({ size, variant })
+  const styles = radioCardVariants({ size, appearance })
   const itemState = api.getItemState(itemProps)
 
   return (
@@ -666,6 +793,8 @@ RadioCard.ItemIndicator = function RadioCardItemIndicator({
       aria-hidden="true"
       className={styles.itemIndicator()}
       data-disabled={itemState.disabled || undefined}
+      data-part="item-indicator"
+      data-scope="radio-group"
       data-state={itemState.checked ? "checked" : "unchecked"}
       ref={ref}
       {...props}
@@ -691,11 +820,14 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
   ref,
   ...props
 }: RadioCardItemAddonProps) {
-  const { api, size, variant, align } = useRadioCardContext()
-  const { itemProps } = useRadioCardItemContext()
+  const { api, size, appearance, align } = useRadioCardContext()
+  const { itemProps, registerDescription } = useRadioCardItemContext()
+  const generatedId = useId()
+  const id = props.id ?? generatedId
+  useRegisterDescription(id, registerDescription)
   const styles = radioCardVariants({
     size,
-    variant,
+    appearance,
     align,
   })
   const itemState = api.getItemState(itemProps)
@@ -704,9 +836,11 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
     <div
       className={styles.itemAddon({ className })}
       data-disabled={itemState.disabled || undefined}
+      data-part="item-addon"
       data-state={itemState.checked ? "checked" : "unchecked"}
       ref={ref}
       {...props}
+      id={id}
     >
       {children}
     </div>
@@ -714,7 +848,7 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
 }
 
 type RadioCardStatusTextProps = Omit<
-  ComponentPropsWithoutRef<typeof StatusText>,
+  ComponentPropsWithoutRef<typeof StatusTextComponent>,
   "status" | "size"
 > & {
   status?: RadioCardValidateStatus
@@ -729,19 +863,28 @@ RadioCard.StatusText = function RadioCardStatusText({
   children,
   ...props
 }: RadioCardStatusTextProps) {
-  const { size, validateStatus } = useRadioCardContext()
+  const { size, validateStatus, registerDescription, registerError } =
+    useRadioCardContext()
+  const generatedId = useId()
+  const id = props.id ?? generatedId
   const effectiveSize = sizeProp ?? size
   const effectiveStatus = status ?? validateStatus
+  useRegisterDescription(id, registerDescription)
+  useRegisterDescription(
+    id,
+    effectiveStatus === "error" ? registerError : ignoreDescription
+  )
 
   return (
-    <StatusText
-      showIcon={showIcon ?? effectiveStatus !== "default"}
+    <StatusTextComponent
+      showIcon={effectiveStatus !== "default" || showIcon}
       size={effectiveSize}
       status={effectiveStatus}
       {...props}
+      id={id}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 

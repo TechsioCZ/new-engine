@@ -7,7 +7,6 @@
 
 # Build caches (prevent stale builds!)
 .nx
-**/.medusa
 **/dist
 **/.next
 **/storybook-static

@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/tabs-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as TabsStories from "./tabs.stories"
+
+<Meta of={TabsStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

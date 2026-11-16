@@ -1,0 +1,111 @@
+/**
+ * Hotkeys — @techsio/ui-kit atom.
+ *
+ * @component Hotkeys
+ * @componentVersion v1.2.0
+ * @skill hotkeys-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ */
+import type { ComponentPropsWithoutRef, Ref } from "react"
+import { type HotkeyFormatOptions, useFormatHotkey } from "../hotkeys"
+import { useUIDefaults } from "../theme/ui-provider"
+import { tv } from "../utils"
+
+const hotkeysStyles = tv({
+  slots: {
+    root: "inline-flex items-center gap-hotkeys whitespace-nowrap font-hotkeys",
+    key: "hotkeys-key-border-width inline-flex shrink-0 items-center justify-center rounded-hotkeys-key border-hotkeys-key-border bg-hotkeys-key-bg px-hotkeys-key-x py-hotkeys-key-y text-hotkeys-key-fg",
+    separator: "shrink-0 text-hotkeys-separator-fg",
+  },
+  variants: {
+    size: {
+      sm: { root: "text-hotkeys-sm" },
+      md: { root: "text-hotkeys-md" },
+      lg: { root: "text-hotkeys-lg" },
+    },
+  },
+  defaultVariants: { size: "md" },
+})
+
+export type HotkeysProps = ComponentPropsWithoutRef<"span"> & {
+  size?: "sm" | "md" | "lg"
+  hotkey?: string
+  formatOptions?: HotkeyFormatOptions
+  ref?: Ref<HTMLSpanElement>
+}
+
+export function Hotkeys({
+  hotkey,
+  size: sizeProp,
+  formatOptions,
+  children,
+  className,
+  ref,
+  ...props
+}: HotkeysProps) {
+  const { size } = useUIDefaults("Hotkeys", { size: sizeProp }, hotkeysStyles)
+  const format = useFormatHotkey()
+  return (
+    <span
+      {...props}
+      className={hotkeysStyles({ size }).root({ className })}
+      data-part="root"
+      data-scope="hotkeys"
+      ref={ref}
+    >
+      {children ??
+        (hotkey === undefined ? null : (
+          <Hotkeys.Key>{format(hotkey, formatOptions)}</Hotkeys.Key>
+        ))}
+    </span>
+  )
+}
+
+// Assign Root first so native declaration emit exports every compound member.
+Hotkeys.Root = Hotkeys
+
+export type HotkeysKeyProps = ComponentPropsWithoutRef<"kbd"> & {
+  ref?: Ref<HTMLElement>
+}
+
+Hotkeys.Key = function HotkeysKey({
+  className,
+  ref,
+  ...props
+}: HotkeysKeyProps) {
+  return (
+    <kbd
+      {...props}
+      className={hotkeysStyles().key({ className })}
+      data-part="key"
+      data-scope="hotkeys"
+      ref={ref}
+    />
+  )
+}
+
+export type HotkeysSeparatorProps = ComponentPropsWithoutRef<"span"> & {
+  ref?: Ref<HTMLSpanElement>
+}
+
+Hotkeys.Separator = function HotkeysSeparator({
+  children = "+",
+  className,
+  ref,
+  ...props
+}: HotkeysSeparatorProps) {
+  return (
+    <span
+      {...props}
+      aria-hidden="true"
+      className={hotkeysStyles().separator({ className })}
+      data-part="separator"
+      data-scope="hotkeys"
+      ref={ref}
+    >
+      {children}
+    </span>
+  )
+}
+
+Hotkeys.displayName = "Hotkeys"

@@ -1,38 +1,88 @@
 ---
-component_version: "1.2.0"
 name: table-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Table for
   semantic tabular data with caption, header, body, footer, rows, column
   headers, numeric cells, selected rows, variants, interactive rows, sticky
   header/first column, column borders, and size props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/organisms/table.tsx"
-  - "libs/ui/src/tokens/components/organisms/_table.css"
-  - "libs/ui/stories/organisms/table.stories.tsx"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/table.tsx libs/ui/src/tokens/components/organisms/_table.css libs/ui/stories/organisms/table.stories.tsx"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Table Usage
 
 Use Table for semantic tabular data. Do not use div grids for data tables when
 table semantics are needed.
 
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Table`.
+
+**Use it when**
+
+- Static or lightly interactive tabular data: invoice lines, order items, spec sheets, comparison tables.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Sorting, filtering, selection, paging, inline edit | DataTable |
+| Layout of non-tabular content | grid/flex layout |
+| Trends | Chart |
+
+**Do**
+
+- Use `numeric` on number/money cells and their headers so they end-align; add `tabular-nums` (ux-guidelines/formatting#alignment-in-tables).
+- Keep precision equal within a column; totals row repeats alignment with a top border.
+- Render missing values as `—`; format dates/numbers with `Intl`.
+- Add a caption or heading that names the data.
+
+**Don't**
+
+- Use `$` + `toFixed(2)` or raw ISO dates in cells.
+- Center numeric columns or mix alignments between header and cells.
+
+**Copy and states**
+
+- Column headers short nouns with units (`Qty`, `Unit price (€)`).
+
+**Behaviour (from the UX spec)**
+
+- Links or buttons in cells don't make a Table a grid; keep normal tab order and no `role="grid"`.
+- If the data isn't comparable by column, use cards or a list, not Table.
+- One click never both selects a row and opens its detail; no data, no matches and a failed load get different messages.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant=line\|outline\|striped`, `size=sm…lg` | `appearance` (same values), `size` |
+| — | `interactive`, `stickyHeader`, `stickyFirstColumn`, `showColumnBorder`, `captionPlacement`, `Row selected` (code only) |
+| Toolbar, FilterRow, PaginationBar in the Table doc | `DataTable`, not Table |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Table → UX guidelines*.
+
 ## Setup
 
 ```tsx
-<Table variant="line" size="md" stickyHeader>
+<Table appearance="line" size="md" stickyHeader>
   <Table.Caption>Orders</Table.Caption>
   <Table.Header>
     <Table.Row><Table.ColumnHeader>Order</Table.ColumnHeader><Table.ColumnHeader numeric>Total</Table.ColumnHeader></Table.Row>
   </Table.Header>
   <Table.Body>
-    <Table.Row selected={isSelected}><Table.Cell>#1001</Table.Cell><Table.Cell numeric>129 EUR</Table.Cell></Table.Row>
+    <Table.Row selected={isSelected}><Table.Cell>#1001</Table.Cell><Table.Cell numeric className="tabular-nums">{money.format(129)}</Table.Cell></Table.Row>
   </Table.Body>
 </Table>
 ```
@@ -40,7 +90,7 @@ table semantics are needed.
 Supported props:
 
 ```text
-variant: line | outline | striped
+appearance: line | outline | striped
 size: sm | md | lg
 interactive, stickyHeader, stickyFirstColumn, showColumnBorder
 captionPlacement: top | bottom
@@ -134,6 +184,16 @@ Source: libs/ui/src/organisms/table.tsx
 ```sh
 rg -n "grid-cols.*(Order|Total|Price)|<table\\b|<Table\\.(Row|Cell|ColumnHeader)[^>]*className=.*(hover:|border-|text-right|p-)" apps
 rg -n "<Table\\.Cell[^>]*className=\"[^\"]*text-right|<Table\\.ColumnHeader[^>]*className=\"[^\"]*text-right" apps
-rg -n "<Table[^>]*variant=\"(default|bordered)\"|captionPlacement=\"(left|right)\"" apps
+rg -n "<Table[^>]*(variant=|appearance=\"(default|bordered)\")|captionPlacement=\"(left|right)\"" apps
 ```
 
+
+## Wave 2 contracts
+
+All Table ref props accept React Ref<T>, including createRef<T>() objects and callback refs. With interactive=true, rows that supply onClick join the tab order and activate with Enter or Space; keyboard events from nested controls do not activate the row. Provide a visible destination/action label and do not rely on row hover alone. A caller may override tabIndex/onKeyDown; preventDefault cancels built-in activation. Canonical sizes are sm/md/lg (default md).
+
+Wrap wide tables in a labelled, keyboard-focusable `overflow-x-auto` region. Keep native table semantics; do not force block layout on rows or allow the entire page to overflow on mobile.
+
+Table.Row selected exposes aria-selected as well as the visual data-selected state. Keep selection in application state and supply selected on each selectable row, including false for rows that are not selected.
+
+Frozen first cells composite the row stripe/hover/selection tint over an opaque table surface; other body cells remain transparent so row-level styling is preserved.

@@ -1,16 +1,20 @@
 ---
-component_version: "1.1.0"
 name: menu-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Menu for
   action, radio, checkbox, separator, or submenu items using the Zag.js menu
   wrapper, Button trigger, icons, and supported open/highlight/select props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.5.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/menu.tsx"
   - "libs/ui/src/tokens/components/molecules/_menu.css"
@@ -23,6 +27,55 @@ sources:
 
 Use Menu for contextual command lists. Use Select for choosing a value in a
 form, Tabs for switching panels, and Popover for custom content.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Menu`.
+
+**Use it when**
+
+- A list of commands for one object or context: row `More actions`, account menu, overflow of page actions.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Choosing a value in a form | Select |
+| Switching views | Tabs |
+| Custom content (forms, pickers) | Popover |
+| Searching many commands | Command |
+
+**Do**
+
+- Order items by frequency; group with separators; destructive items last, with a label that names the consequence (menu items have no danger tone).
+- Label items as verbs (`Duplicate`, `Archive`, `Delete…`); `…` when the item opens a dialog asking for more input.
+- Show shortcuts with Hotkeys when they exist.
+- Disable an unavailable item only if the reason is obvious; otherwise hide it.
+
+**Don't**
+
+- Put navigation and commands in one flat list without grouping.
+- Nest menus more than one level.
+
+**Copy and states**
+
+- Trigger for overflow: ActionIcon with `aria-label="More actions"`.
+
+**Behaviour (from the UX spec)**
+
+- Opening the menu or highlighting an item runs nothing; only activation does. Closing without choosing changes nothing.
+- The app confirms the result on the object or with a toast, never inside the menu.
+- Use `link` items for navigation and `action` items for commands, in separate groups.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm\|md\|lg` | `size` (`xs` is legacy, DataTable only) |
+| menu-trigger / submenu / check glyphs | `triggerIcon`, `submenu` items, `checkbox`/`radio` items |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Menu → UX guidelines*.
 
 ## Setup
 
@@ -42,6 +95,7 @@ Supported item types:
 
 ```text
 action: value, label, icon, disabled
+link: value, label, href, target, rel, icon, disabled
 radio: value, label, name, checked
 checkbox: value, label, checked
 separator: id
@@ -122,3 +176,35 @@ rg -n "<Menu[^>]*className=.*(bg-|text-|rounded-|p-|shadow-)" apps
 rg -n "customTrigger=|type: \"submenu\"|onCheckedChange" apps
 ```
 
+## Popup and trigger contracts
+
+Canonical sizes are sm/md/lg (default md). Legacy xs is retained only for
+compatibility. The trigger and popup rows follow the root size. Popup Content and
+Positioner use the shared opaque popup surface and managed elevation.
+
+`contextMenu` uses right-click/long press or Shift+F10/ContextMenu on the focusable
+trigger, not left-click. A custom trigger must be a named interactive element;
+its event handlers are composed with Zag behavior, including preventDefault.
+Boolean customTrigger values fall back to the named built-in trigger rather than
+producing an empty button. className is applied to the trigger. Disabled submenus
+remain unavailable commands and do not mount a child machine. RTL direction
+propagates to nested menus and mirrors their directional glyphs.
+
+Checkbox/radio items are controlled: update the items array in onCheckedChange.
+For radio commands, clear the previous checked item in the same name group.
+
+Nested popups may overlap their parent when necessary on narrow viewports; their
+positioning is capped to the available viewport so flipped submenus do not clip
+commands off-screen.
+
+Navigation items use `{ type: "link", value, label, href, target?, rel?, disabled? }`.
+They render native anchors so keyboard navigation and the optional `navigate`
+callback work; `navigate` receives the item value. Checkboxes and radio items
+also accept `disabled`. Submenus inherit direction, focus looping, typeahead,
+and navigation from the root. Escape or selection restores context-menu focus
+to its invoker; clicking or focusing outside does not steal focus back.
+
+Menus size to their content (bounded by the available viewport width) instead
+of inheriting the trigger width, so icon-only triggers open readable menus.
+
+Construct native MouseEvents explicitly so the dismissal path is unambiguous to readers and static analysis; no behaviour change.

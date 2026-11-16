@@ -2,7 +2,6 @@
 
 /* Primitive tokens */
 @import "./_base.css";
-@import "./_colors.css";
 @import "./_spacing.css";
 @import "./_typography.css";
 @import "./_layout.css";
@@ -21,60 +20,72 @@
 @import "./figma/variables.css";
 
 /* Brand theme overrides ([data-theme="…"]). Imported AFTER variables.css so
- * the unlayered selectors win over the @theme base values, while their
- * light-dark() halves still follow `color-scheme`. Only non-base brands
- * (e.g. neo) emit tokens here; base is the default @theme above. */
+ * the unlayered selectors win over the @theme foundation values, while their
+ * light-dark() halves still follow `color-scheme`. Every selectable brand
+ * (business, akros, n1) is a data-theme block here; the attribute-less @theme
+ * above is the shared foundation, not a brand. */
 @import "./figma/brand-overrides.css";
+@import "./_foundation-overrides.css";
+@import "./_business-atoms.css";
+@import "./_scheme-scopes.css";
 
-/* Base styles */
+/* Colour formulas Figma cannot express (color-mix). Imported after the Figma
+ * layer so they win over its baked snapshots. */
+@import "./components/molecules/_vertical-navigation.derived.css";
+
+/* Element defaults, the hover variant and the mobile input-size floor. */
+@import "./_reset.css";
+
+/* Scheme switches use the nearest parent's computed theme sign. A style
+ * query does not require a size container and handles nested reverse scopes. */
 :root {
   color-scheme: light dark;
 }
-
-.light {
+:is(.light, .always-light) {
   color-scheme: light;
+  --theme-sign: 1;
 }
-
-.dark {
+:is(.dark, .always-dark) {
   color-scheme: dark;
+  --theme-sign: -1;
 }
-
-.always-light {
-  color-scheme: light;
-}
-
-.always-dark {
-  color-scheme: dark;
-}
-
 @media (prefers-color-scheme: light) {
-  .reverse {
+  :root.reverse:not(.light, .always-light, .dark, .always-dark) {
     color-scheme: dark;
+    --theme-sign: -1;
   }
 }
-
 @media (prefers-color-scheme: dark) {
-  .reverse {
+  :root.reverse:not(.light, .always-light, .dark, .always-dark) {
     color-scheme: light;
+    --theme-sign: 1;
+  }
+}
+@container style(--theme-sign: 1) {
+  .reverse:not(.light, .always-light, .dark, .always-dark) {
+    color-scheme: dark;
+    --theme-sign: -1;
+  }
+}
+@container style(--theme-sign: -1) {
+  .reverse:not(.light, .always-light, .dark, .always-dark) {
+    color-scheme: light;
+    --theme-sign: 1;
   }
 }
 
-.light .reverse {
-  color-scheme: dark;
-}
-
-.dark .reverse {
-  color-scheme: light;
-}
-
-body {
-  background-color: var(--color-base);
-  color: var(--color-fg-primary);
-
-  font-family: system-ui, sans-serif;
+@layer base {
+  body {
+    background-color: var(--color-base);
+    color: var(--color-fg-primary);
+    font-family: var(--font-sans);
+  }
 }
 
 .sbdocs-preview {
   background-color: var(--color-base) !important;
   color: var(--color-fg-primary) !important;
 }
+
+/* Tailwind excludes node_modules by default. Register shipped component utilities relative to this CSS. */
+@source "../../dist/**/*.js";

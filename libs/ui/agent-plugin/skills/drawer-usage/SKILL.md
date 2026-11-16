@@ -1,0 +1,277 @@
+---
+name: drawer-usage
+description: >
+  Use after component-usage-ux when an app needs @techsio/ui-kit Drawer for
+  transient edge panels, modal or non-modal behavior, snap points, swipe
+  gestures, multiple triggers, custom portals, controlled state, and stacks.
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux zag-compound-components app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: "https://zagjs.com/components/react/drawer"
+  contributor_sources: "libs/ui/src/molecules/drawer.tsx libs/ui/src/internal/molecules/drawer.context.tsx libs/ui/src/internal/molecules/drawer.styles.ts libs/ui/src/tokens/components/molecules/_drawer.css libs/ui/stories/molecules/drawer.stories.tsx"
+  audience: "consumer"
+---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
+
+# @techsio/ui-kit Drawer Usage
+
+Use Drawer for transient panels that enter from a viewport or container edge.
+Use Sidebar for persistent application navigation, Dialog for centered focused
+flows, and Popover for anchored contextual content.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Drawer`.
+
+**Use it when**
+
+- Transient panels that slide from an edge: cart, mobile filters, mobile navigation, quick views.
+- Content that relates to the page behind it and should keep that context visible.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Persistent desktop navigation | Sidebar |
+| Record create/edit/read in admin | Dialog placement="right" (the CRUD reference pattern) |
+| Focused blocking decision | Dialog |
+| Anchored small content | Popover |
+
+**Do**
+
+- Open from the edge that matches the content's origin: navigation start, cart/filters/details end.
+- Keep a visible title and close button; footer actions bottom-right like dialogs. Footer actions wrap on narrow screens so fixed-height buttons retain legible, single-line labels.
+- Return focus to the trigger on close; preserve page scroll.
+
+**Don't**
+
+- Stack drawers.
+- Use a drawer for long multi-step flows — use a page with Steps.
+
+**Copy and states**
+
+- Title names the content (`Cart (3)`, `Filters`); filter drawers end with `[Reset] [Show 24 results]`.
+
+**Behaviour (from the UX spec)**
+
+- Moving, snapping or closing the panel never saves. Closing with unsaved changes asks first.
+- Every drag outcome (snap, dismiss) has a non-drag equivalent: close button, footer action or Escape.
+- With `snapPoints`, keep the footer actions and close reachable at the lowest snap point.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `Drawer.Side` set, `placement=start\|end` | `<Drawer placement="start" \| "end">` |
+| `Drawer.Sheet` set, `placement=top\|bottom` | `<Drawer placement="top" \| "bottom">` |
+| `backdrop`, `showHeader`, `showFooter`, `showGrabber` | the `Backdrop`, `Header`, `Footer`, `Grabber` parts |
+| Grabber `orientation` | not a prop; follows `placement` |
+| — | `snapPoints`, `modal={false}`, `Drawer.Stack` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Drawer → UX guidelines*.
+
+## Setup
+
+```tsx
+import { Drawer } from "@techsio/ui-kit/molecules/drawer"
+
+<Drawer placement="end" size="md">
+  <Drawer.Trigger>Open cart</Drawer.Trigger>
+  <Drawer.Portal>
+    <Drawer.Backdrop />
+    <Drawer.Positioner>
+      <Drawer.Content>
+        <Drawer.Grabber><Drawer.GrabberIndicator /></Drawer.Grabber>
+        <Drawer.Header>
+          <Drawer.Title>Cart</Drawer.Title>
+          <Drawer.Description>Review items before checkout.</Drawer.Description>
+        </Drawer.Header>
+        <Drawer.Body>{/* cart content */}</Drawer.Body>
+        <Drawer.Footer><Drawer.CloseTrigger>Close</Drawer.CloseTrigger></Drawer.Footer>
+      </Drawer.Content>
+    </Drawer.Positioner>
+  </Drawer.Portal>
+</Drawer>
+```
+
+Supported root props:
+
+```text
+placement: start | end | top | bottom
+size: xs | sm | md | lg | xl | full
+open/defaultOpen, onOpenChange
+triggerValue/defaultTriggerValue, onTriggerValueChange
+snapPoints, snapPoint/defaultSnapPoint, onSnapPointChange
+snapToSequentialPoints, swipeVelocityThreshold, closeThreshold
+modal, trapFocus, preventScroll, restoreFocus
+closeOnEscape, closeOnInteractOutside, role
+ids, dir, getRootNode, initialFocusEl, finalFocusEl
+onEscapeKeyDown, onFocusOutside, onInteractOutside, onPointerDownOutside
+preventDragOnScroll, swipeVelocityThreshold, closeThreshold
+lazyMount, unmountOnExit, immediate, skipAnimationOnMount
+onEnterComplete, onExitComplete
+```
+
+## Core Patterns
+
+### Preserve the compound anatomy
+
+Keep Backdrop and Positioner inside Portal, then place Content inside
+Positioner. Title and Description supply the accessible dialog name and
+description. Do not conditionally remove the portal based on `open`; Drawer
+coordinates exit presence itself.
+
+### Use placement instead of swipeDirection
+
+`placement` owns both the rendered edge and the closing gesture. `start` and
+`end` follow text direction. Root intentionally does not expose
+`swipeDirection`; `Drawer.SwipeArea` accepts an optional opening direction.
+For a machine-level integration, call the exported `useDrawer` hook with raw
+Zag props and provide its result to `Drawer.RootProvider`. This is also the
+escape hatch for a custom `swipeDirection` or externally shared machine API.
+This advanced surface tracks the exact pinned Zag 1.43.3 machine contract;
+prefer the compound root API when raw machine access is unnecessary.
+
+```tsx
+const drawer = useDrawer({ swipeDirection: "end", open, onOpenChange })
+
+<Drawer.RootProvider value={drawer} size="sm">
+  {/* standard anatomy */}
+</Drawer.RootProvider>
+```
+
+### Add snap points for draggable sheets
+
+Use numeric viewport ratios or CSS lengths such as `"320px"` and `"24rem"`.
+Pair snap points with Grabber and GrabberIndicator. Set
+`draggable={false}` on Content when dragging should start only from the
+grabber.
+
+```tsx
+<Drawer placement="bottom" snapPoints={[0.25, 0.5, 1]} defaultSnapPoint={0.5}>
+  {/* standard anatomy */}
+</Drawer>
+```
+
+### Select content with multiple triggers
+
+Give each `Drawer.Trigger` a stable `value`. Read `api.triggerValue` through
+`Drawer.Context` or control it with `triggerValue` and
+`onTriggerValueChange`.
+
+An Edit trigger must open labelled editable fields, not a read-only summary.
+Keep a draft per open session, persist it only after valid submission, and reset
+it when reopening after Cancel. Put a neutral
+`<Drawer.CloseTrigger size="md" appearance="outline" severity="tertiary">Cancel</Drawer.CloseTrigger>`
+before the primary Save changes action; a footer submit button can target the
+body form with `form={formId}`. Use `draggable={false}` on editable content to
+avoid competing with text selection, and show a persistent saved confirmation
+outside the panel.
+
+### Coordinate nested drawers with Stack
+
+Wrap related roots in `Drawer.Stack`. Nested roots inherit the stack store;
+`Drawer.Indent` and `Drawer.IndentBackground` expose optional app-shell depth
+effects.
+
+### Scope rendering with Portal
+
+Pass a mounted element ref to `Drawer.Portal container={ref}`. A custom mount
+target does not change fixed positioning by itself. Container-scoped panels
+must provide an appropriate positioned containing block and override Backdrop
+and Positioner positioning together.
+
+### Configure non-modal panels completely
+
+For a panel that permits background interaction, use `modal={false}` together
+with `trapFocus={false}` and `preventScroll={false}`. Omit Backdrop when the
+background should remain directly interactive.
+
+## Common Mistakes
+
+### HIGH Custom edge panel state
+
+Wrong:
+
+```tsx
+{open && <aside className="fixed right-0 top-0 h-full" />}
+```
+
+Correct:
+
+```tsx
+<Drawer placement="end"><Drawer.Trigger>Open</Drawer.Trigger>{/* anatomy */}</Drawer>
+```
+
+Source: libs/ui/src/molecules/drawer.tsx
+
+### HIGH Conditional unmount bypasses presence
+
+Wrong:
+
+```tsx
+{open ? <Drawer.Portal>{/* content */}</Drawer.Portal> : null}
+```
+
+Correct: render the anatomy continuously and use `lazyMount` and
+`unmountOnExit` on Drawer.Root.
+
+### HIGH Physical placement in application code
+
+Wrong:
+
+```tsx
+<Drawer swipeDirection="left" />
+```
+
+Correct:
+
+```tsx
+<Drawer placement="start" />
+```
+
+Source: libs/ui/src/molecules/drawer.tsx
+
+### MEDIUM Non-modal root with modal focus behavior
+
+Wrong:
+
+```tsx
+<Drawer modal={false}>{/* background should remain interactive */}</Drawer>
+```
+
+Correct:
+
+```tsx
+<Drawer modal={false} trapFocus={false} preventScroll={false}>
+  {/* omit Backdrop when appropriate */}
+</Drawer>
+```
+
+## Validation Commands
+
+```sh
+rg -n "fixed.*(left|right|top|bottom)-0|<aside[^>]*className=.*fixed" apps
+rg -n "<Drawer[^>]*swipeDirection=|modal=\{false\}" apps
+rg -U -n "open[\s\S]{0,120}<Drawer\.Portal" apps
+rg -n "<Drawer\.Content[^>]*className=.*(bg-|w-|h-|rounded-|shadow-)" apps
+```
+
+At partial snap points, the panel retains its full machine-measured size while
+an inner visible viewport keeps Header and Footer onscreen. Body owns scrolling.
+Nested kit Menu, Popover and Tooltip portals remain inside the drawer's focus
+and accessibility scope.
+
+## Nested-popup focus return
+
+Deferred focus-trap activation preserves focus already inside the drawer or its
+nested popup. Closing restores the opener only after content and focus-trap
+teardown, without overriding intentional outside focus. Explicit `initialFocusEl`
+and `finalFocusEl` remain authoritative; `restoreFocus={false}` opts out of return.
+Do not add a separate timeout-based focus repair in the app.

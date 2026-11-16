@@ -3,3 +3,21 @@
  * Figma exports --size-image-{sm,md,lg} at identical resolved values
  * (5rem / 10rem / 15rem) so no overrides needed here.
  */
+
+/* Opt-in media fallback preserves an image box without exposing broken alt copy. */
+@theme static {
+  --color-image-placeholder: var(--color-fill-highlight);
+  --color-image-placeholder-text: var(--color-fg-secondary);
+  --color-image-bg-fallback: var(--color-image-placeholder);
+  --color-image-fg-fallback: var(--color-image-placeholder-text);
+  --text-image-fallback-icon: var(--text-icon-lg);
+}
+
+/* Follow the box's preferred ratio, including a caller's aspect-* override. */
+@utility image-reservation {
+  aspect-ratio: inherit;
+}
+
+@utility token-icon-image-unavailable {
+  @apply icon-[mdi--image-off-outline];
+}

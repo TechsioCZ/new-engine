@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/file-upload-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as FileUploadStories from "./file-upload.stories"
+
+<Meta of={FileUploadStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

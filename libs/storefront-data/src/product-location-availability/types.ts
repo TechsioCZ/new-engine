@@ -22,10 +22,7 @@ export type ProductLocationAvailabilityInputBase = {
   enabled?: boolean
 }
 
-export type ProductLocationAvailabilityService<
-  TResponse,
-  TParams,
-> = {
+export type ProductLocationAvailabilityService<TResponse, TParams> = {
   getProductLocationAvailability: (
     params: TParams,
     signal?: AbortSignal
@@ -36,7 +33,8 @@ export type ProductLocationAvailabilityQueryKeys<TParams> = {
   detail: (params: TParams) => QueryKey
 }
 
-export type UseProductLocationAvailabilityResult<TResponse> =
-  ReadResultBase<QueryResult<TResponse>> & {
-    productLocationAvailability: null | TResponse
-  }
+export type UseProductLocationAvailabilityResult<TResponse> = ReadResultBase<
+  QueryResult<TResponse>
+> & {
+  productLocationAvailability: null | TResponse
+}

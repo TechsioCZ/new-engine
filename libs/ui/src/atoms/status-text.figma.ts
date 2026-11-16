@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-19238
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/status-text.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/status-text.tsx
 // component=StatusText
 
 import figma from "figma"

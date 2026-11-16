@@ -2,7 +2,7 @@
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,32 +10,40 @@
  * the link-button-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type {
-  ComponentPropsWithoutRef,
+  ComponentPropsWithRef,
   ElementType,
   MouseEvent,
   ReactNode,
-  Ref,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
-import { buttonVariants } from "./button"
+import {
+  type ButtonAppearance,
+  buttonStyleValues,
+  buttonVariants,
+} from "./button"
 import { Icon, type IconProps, type IconType } from "./icon"
-import { Link } from "./link"
 
 const linkButton = tv({
   extend: buttonVariants,
-  base: "data-disabled:cursor-not-allowed",
+  base: "no-underline data-disabled:cursor-not-allowed",
   defaultVariants: {
-    size: "current",
+    size: "md",
   },
 })
 
 type LinkButtonHref<T extends ElementType> =
-  ComponentPropsWithoutRef<T> extends { href?: infer H } ? H : string
+  ComponentPropsWithRef<T> extends { href?: infer H } ? H : string
 
-export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
-  typeof linkButton
+export type LinkButtonProps<T extends ElementType = "a"> = Omit<
+  VariantProps<typeof linkButton>,
+  "appearance"
 > & {
+  /** Fill style. Falls back to the nearest `UIProvider`, then `solid`. */
+  appearance?: ButtonAppearance
+  /** Drop every Button visual (fill and color). */
+  unstyled?: boolean
   href?: LinkButtonHref<T>
   icon?: IconType
   iconPosition?: "left" | "right"
@@ -44,26 +52,28 @@ export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   disabled?: boolean
   uppercase?: boolean
   as?: T
-  ref?: Ref<HTMLAnchorElement>
 } & Omit<
-    ComponentPropsWithoutRef<T>,
-    "as" | "ref" | "children" | keyof VariantProps<typeof linkButton>
+    ComponentPropsWithRef<T>,
+    "as" | "children" | "unstyled" | keyof VariantProps<typeof linkButton>
   >
 
 export function LinkButton<T extends ElementType = "a">({
+  density,
   href,
   icon,
   as,
   iconPosition = "left",
   iconSize,
   children,
-  variant,
-  theme,
-  size,
+  severity,
+  appearance: appearanceProp,
+  unstyled = false,
+  size: sizeProp,
   block,
   uppercase,
   className,
   disabled,
+  composition,
   ref,
   onClick,
   tabIndex,
@@ -73,21 +83,29 @@ export function LinkButton<T extends ElementType = "a">({
     | ((event: MouseEvent<Element>) => void)
     | undefined
 
+  const { size, appearance } = useUIDefaults(
+    "LinkButton",
+    { size: sizeProp, appearance: appearanceProp },
+    buttonStyleValues
+  )
+  const Component = (disabled ? "span" : as || "a") as ElementType
+
   return (
-    <Link
+    <Component
       {...props}
-      aria-disabled={disabled}
-      as={as as ElementType}
+      aria-disabled={disabled === true ? true : props["aria-disabled"]}
       className={linkButton({
-        variant,
-        theme,
+        density,
+        severity,
+        appearance: unstyled ? "unstyled" : appearance,
         size,
         block,
         uppercase,
+        composition,
         className,
       })}
-      data-disabled={disabled || undefined}
-      href={href}
+      data-disabled={disabled ? "" : undefined}
+      href={disabled ? undefined : href}
       onClick={(e: MouseEvent) => {
         if (disabled) {
           e.preventDefault()
@@ -97,16 +115,17 @@ export function LinkButton<T extends ElementType = "a">({
 
         handleClick?.(e)
       }}
-      ref={ref}
+      ref={disabled ? undefined : ref}
+      role={disabled ? "link" : props.role}
       tabIndex={disabled ? -1 : tabIndex}
     >
       {icon && iconPosition === "left" && (
-        <Icon icon={icon} size={iconSize ?? size} />
+        <Icon icon={icon} size={iconSize ?? "current"} />
       )}
       {children}
       {icon && iconPosition === "right" && (
-        <Icon icon={icon} size={iconSize ?? size} />
+        <Icon icon={icon} size={iconSize ?? "current"} />
       )}
-    </Link>
+    </Component>
   )
 }

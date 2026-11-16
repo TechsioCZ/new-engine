@@ -1,0 +1,20 @@
+/*
+ * TechSio Design System layer (@techsio/ui-kit).
+ *
+ * index.css compiles the shell's own `shell:`-prefixed utilities and the base
+ * styles. This file is a second, unprefixed Tailwind build for the UI-kit
+ * component classes and for app code that uses kit tokens (`bg-base`,
+ * `p-300`, …). It adds no preflight, so base styles are not duplicated.
+ */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import 'tw-animate-css';
+@import '@techsio/ui-kit/tokens';
+
+/* Classes used inside the published kit components. */
+@source '../../node_modules/@techsio/ui-kit/dist';
+/* App code written against kit tokens. */
+@source '../components';
+@source '.';

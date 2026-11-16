@@ -1,398 +1,423 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode } from 'react'
-import { Badge } from '../../src/atoms/badge'
-import { StatusText } from '../../src/atoms/status-text'
-import { Gallery, type GalleryItem } from '../../src/organisms/gallery'
-import { GalleryTemplate } from '../../src/templates/gallery'
+import { type ComponentPropsWithRef, useRef, useState } from "react"
+import { Button } from "../../src/atoms/button"
+import { StatusText } from "../../src/atoms/status-text"
+import type { Meta, StoryObj } from "@storybook/react"
+import { expect, userEvent, waitFor, within } from "storybook/test"
+import { Gallery, type GalleryItem } from "../../src/organisms/gallery"
+import { Carousel } from "../../src/molecules/carousel"
 
-const shoes1 = new URL('../../assets/gallery/shoes-1.avif', import.meta.url).href
-const shoes2 = new URL('../../assets/gallery/shoes-2.avif', import.meta.url).href
-const shoes3 = new URL('../../assets/gallery/shoes-3.avif', import.meta.url).href
-const shoes4 = new URL('../../assets/gallery/shoes-4.avif', import.meta.url).href
-const watch1 = new URL('../../assets/gallery/watch-1.avif', import.meta.url).href
-const watch2 = new URL('../../assets/gallery/watch-2.avif', import.meta.url).href
-const watch3 = new URL('../../assets/gallery/watch-3.avif', import.meta.url).href
-const watch4 = new URL('../../assets/gallery/watch-4.avif', import.meta.url).href
-
-const sneakerItems: GalleryItem[] = [
+const items: GalleryItem[] = [
   {
-    id: 'sneaker-1',
-    src: shoes1,
-    alt: 'Pastel sneaker hero shot',
+    id: "front",
+    src: new URL("../../assets/gallery/shoes-1.avif", import.meta.url).href,
+    alt: "Pastel sneaker, front view",
   },
   {
-    id: 'sneaker-2',
-    src: shoes2,
-    alt: 'Sneaker detail side profile',
+    id: "side",
+    src: new URL("../../assets/gallery/shoes-2.avif", import.meta.url).href,
+    alt: "Pastel sneaker, side view",
   },
   {
-    id: 'sneaker-3',
-    src: shoes3,
-    alt: 'Red sneaker product variant',
+    id: "red",
+    src: new URL("../../assets/gallery/shoes-3.avif", import.meta.url).href,
+    alt: "Red sneaker, side view",
   },
   {
-    id: 'sneaker-4',
-    src: shoes4,
-    alt: 'Sneaker lifestyle frame',
+    id: "detail",
+    src: new URL("../../assets/gallery/shoes-4.avif", import.meta.url).href,
+    alt: "Sneaker sole detail",
   },
 ]
-
-const watchItems: GalleryItem[] = [
-  {
-    id: 'watch-1',
-    src: watch1,
-    alt: 'Watch front product shot',
-  },
-  {
-    id: 'watch-2',
-    src: watch2,
-    alt: 'Watch on wrist',
-  },
-  {
-    id: 'watch-3',
-    src: watch3,
-    alt: 'Macro watch close-up',
-  },
-  {
-    id: 'watch-4',
-    src: watch4,
-    alt: 'Watch flatlay',
-  },
-]
-
-const chakraItems: GalleryItem[] = [
-  ...sneakerItems,
-  ...watchItems,
-  {
-    id: 'chakra-9',
-    src: shoes2,
-    alt: 'Sneaker sole detail',
-  },
-  {
-    id: 'chakra-10',
-    src: shoes3,
-    alt: 'Sneaker side detail',
-  },
-]
-
-const overlayControlsClassName =
-  'pointer-events-none absolute inset-x-100 top-1/2 z-20 flex -translate-y-1/2 items-center justify-between bg-transparent p-0'
-const overlayArrowClassName =
-  'pointer-events-auto rounded-full border border-border-primary bg-base text-fg-primary shadow-sm hover:bg-overlay'
-
-type StoryFrameProps = {
-  children: ReactNode
-  mobile?: boolean
-}
-
-function StoryFrame({ children, mobile = false }: StoryFrameProps) {
-  return (
-    <div className="w-full bg-base p-400">
-      <div
-        className={
-          mobile
-            ? 'mx-auto w-full max-w-sm'
-            : 'mx-auto w-full max-w-lg'
-        }
-      >
-        <div className="rounded-lg border border-border-primary bg-surface p-250">
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-type StoryHeaderProps = {
-  label: string
-  title: string
-  note: string
-}
-
-function StoryHeader({ label, title, note }: StoryHeaderProps) {
-  return (
-    <div className="mb-250 flex flex-col gap-100">
-      <div className="flex flex-wrap items-center gap-100">
-        <Badge variant="outline">{label}</Badge>
-        <StatusText size="sm" status="default">
-          {note}
-        </StatusText>
-      </div>
-      <div className="text-md font-semibold text-fg-primary">{title}</div>
-    </div>
-  )
-}
-
-const meta = {
-  title: 'Organisms/Gallery',
-  component: GalleryTemplate,
-  tags: ['autodocs'],
+const meta: Meta<typeof Gallery> = {
+  title: "Organisms/Gallery",
+  component: Gallery,
+  tags: ["autodocs"],
   parameters: {
-    layout: 'fullscreen',
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "Gallery is a compound product-media viewer that synchronizes a main carousel and thumbnail rail. Compose Gallery.Main, Gallery.Carousel and Gallery.Thumbnails for custom layouts; choose GalleryTemplate for a ready-made props-only layout, or Carousel for slides without thumbnails. thumbnailSize is a media dimension in pixels, not a form-control size; carouselProps configures the nested carousel's media sizing.",
+      },
+    },
   },
   argTypes: {
-    orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-    },
-    aspectRatio: {
-      control: 'select',
-      options: ['square', 'portrait', 'landscape', 'wide', 'none'],
-    },
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'full'],
-    },
-    objectFit: {
-      control: 'select',
-      options: ['cover', 'contain', 'fill', 'none'],
-    },
-    carouselWidth: {
-      control: 'number',
-    },
-    carouselHeight: {
-      control: 'number',
-    },
-    fitParent: {
-      control: 'boolean',
-    },
-    thumbnailSize: {
-      control: 'number',
-    },
-    showThumbnails: {
-      control: 'boolean',
-    },
-    showControls: {
-      control: 'boolean',
-    },
-    showIndicators: {
-      control: 'boolean',
-    },
-    showAutoplay: {
-      control: 'boolean',
-    },
+    items: { control: "object" },
+    orientation: { control: "select", options: ["horizontal", "vertical"] },
+    thumbnailSize: { control: { type: "number", min: 32, max: 120, step: 4 } },
+    showThumbnails: { control: "boolean" },
+    hideThumbnailsWhenSingle: { control: "boolean" },
+    carouselProps: { control: "object" },
+    value: { control: false },
+    children: { control: false, table: { disable: true } },
+    onValueChange: { control: false },
   },
   args: {
-    items: sneakerItems,
-    orientation: 'horizontal',
-    aspectRatio: 'square',
-    size: 'full',
-    objectFit: 'cover',
-    fitParent: true,
-    thumbnailSize: 72,
+    items,
+    orientation: "horizontal",
+    thumbnailSize: 64,
     showThumbnails: true,
+    hideThumbnailsWhenSingle: true,
+    carouselProps: {
+      width: "100%",
+      size: "full",
+      aspectRatio: "square",
+      objectFit: "contain",
+      "aria-label": "Workshop sneaker views",
+    },
   },
-} satisfies Meta<typeof GalleryTemplate>
-
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full max-w-lg">
+        <Story />
+      </div>
+    ),
+  ],
+  render: (args) => (
+    <Gallery {...args}>
+      <Gallery.Main>
+        <Gallery.Carousel>
+          <Gallery.Slides />
+        </Gallery.Carousel>
+      </Gallery.Main>
+      <Gallery.Thumbnails />
+    </Gallery>
+  ),
+} satisfies Meta<typeof Gallery>
 export default meta
-
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Change the real Gallery props and select a thumbnail to keep the main product view in sync.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(
+      canvas.getByRole("region", { name: "Workshop sneaker views" })
+    ).toBeInTheDocument()
+    const thumbnail = canvas.getByRole("button", { name: "Show slide 2" })
+    await userEvent.click(thumbnail)
+    await expect(thumbnail).toHaveAttribute("aria-current", "true")
+  },
+}
+export const VerticalRail: Story = {
+  args: { orientation: "vertical" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A vertical thumbnail rail saves horizontal space on desktop and reflows below the image on mobile.",
+      },
+    },
+  },
+}
+export const WithControls: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Add carousel controls inside the main viewer when thumbnails alone are not enough for sequential browsing.",
+      },
+    },
+  },
   render: (args) => (
-    <StoryFrame>
-      <GalleryTemplate
-        {...args}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base px-100"
-        thumbnailsListClassName="gap-100 py-100"
-      />
-    </StoryFrame>
+    <Gallery {...args}>
+      <Gallery.Main>
+        <Gallery.Carousel>
+          <Gallery.Slides />
+          <Carousel.Control>
+            <Carousel.Previous />
+            <Carousel.Indicators />
+            <Carousel.Next />
+          </Carousel.Control>
+        </Gallery.Carousel>
+      </Gallery.Main>
+      <Gallery.Thumbnails />
+    </Gallery>
   ),
 }
-
-export const SimpleHorizontal: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Simple"
-        note="Desktop default"
-        title="Horizontal thumbnail rail under main image"
-      />
-      <GalleryTemplate
-        items={sneakerItems}
-        orientation="horizontal"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={72}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base px-100"
-        thumbnailsListClassName="gap-100 py-100"
-      />
-    </StoryFrame>
-  ),
+export const SingleImage: Story = {
+  args: { items: items.slice(0, 1) },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A single product image hides the redundant thumbnail rail while preserving a named media region.",
+      },
+    },
+  },
 }
 
-export const SimpleVertical: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Simple"
-        note="Thumb rail on side"
-        title="Vertical rail for fast image scanning"
-      />
-      <Gallery
-        items={watchItems}
-        orientation="vertical"
-        thumbnailSize={68}
-        carouselProps={{
-          aspectRatio: 'square',
-          objectFit: 'cover',
-          size: 'full',
-          width: 384,
-          height: 384,
-        }}
-      >
-        <Gallery.Thumbnails
-          className="rounded-md border border-border-primary bg-base p-100"
-          listClassName="gap-100"
-        />
-        <Gallery.Main className="overflow-hidden rounded-md border border-border-primary bg-base">
-          <Gallery.Carousel className="flex flex-row overflow-visible" orientation="vertical">
-            <Gallery.Slides />
-          </Gallery.Carousel>
-        </Gallery.Main>
-      </Gallery>
-    </StoryFrame>
+export const OverflowingRail: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Sequential carousel navigation keeps the active thumbnail visible in a long rail without scrolling the whole page.",
+      },
+    },
+  },
+  args: {
+    items: Array.from({ length: 16 }, (_, index) => ({
+      ...items[index % items.length]!,
+      id: `view-${index}`,
+      alt: `Sneaker view ${index + 1}`,
+    })),
+  },
+  render: (args) => (
+    <Gallery {...args}>
+      <Gallery.Main>
+        <Gallery.Carousel>
+          <Gallery.Slides />
+          <Carousel.Control>
+            <Carousel.Previous />
+            <Carousel.Next />
+          </Carousel.Control>
+        </Gallery.Carousel>
+      </Gallery.Main>
+      <Gallery.Thumbnails />
+    </Gallery>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const next = canvas.getByRole("button", { name: /next/i })
+    for (let index = 0; index < 12; index++) await userEvent.click(next)
+    await waitFor(() => {
+      const active = canvasElement.querySelector('[aria-current="true"]')!
+      const rail = active.parentElement!.parentElement!
+      const item = active.getBoundingClientRect()
+      const bounds = rail.getBoundingClientRect()
+      expect(item.left).toBeGreaterThanOrEqual(bounds.left - 1)
+      expect(item.right).toBeLessThanOrEqual(bounds.right + 1)
+    })
+  },
 }
 
-export const CompoundPattern: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Compound"
-        note="Custom thumbnail renderer"
-        title="Custom active thumbnail chrome with unchanged gallery behavior"
-      />
-      <Gallery
-        className="rounded-md bg-base"
-        items={sneakerItems}
-        orientation="vertical"
-        thumbnailSize={74}
-        carouselProps={{
-          aspectRatio: 'square',
-          objectFit: 'cover',
-          size: 'full', 
-        }}
-      >
-        <Gallery.Thumbnails
-          listClassName="gap-100"
-          renderThumbnail={({ defaultThumbnail, isActive, index }) => (
-            <div
-              className={
-                isActive
-                  ? 'relative rounded-sm border border-info p-50'
-                  : 'relative rounded-sm border border-border-primary p-50'
-              }
-            >
-              {defaultThumbnail}
-              <Badge
-                className="pointer-events-none absolute right-50 bottom-50"
-                variant={isActive ? 'info' : 'outline'}
-              >
-                {String(index + 1)}
-              </Badge>
-            </div>
-          )}
-        />
-        <Gallery.Main className="overflow-hidden rounded-md border border-border-primary bg-base">
-          <Gallery.Carousel>
-            <Gallery.Slides />
-          </Gallery.Carousel>
-        </Gallery.Main>
-      </Gallery>
-    </StoryFrame>
-  ),
+// The test adapter deliberately waits for explicit load/error events: no network race.
+function LifecycleMedia({ src, ...props }: ComponentPropsWithRef<"img">) {
+  return <img {...props} data-requested-src={src} data-adapter="shared" />
 }
-
-export const MobileSimple: Story = {
-  render: () => (
-    <StoryFrame mobile>
-      <StoryHeader
-        label="Mobile"
-        note="Compact layout"
-        title="Vertical gallery tuned for mobile product card"
-      />
-      <GalleryTemplate
-        items={sneakerItems}
-        orientation="vertical"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={60}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base p-100"
-        thumbnailsListClassName="gap-100"
-      />
-    </StoryFrame>
-  ),
+function ThumbnailMedia({ src, ...props }: ComponentPropsWithRef<"img">) {
+  return <img {...props} data-requested-src={src} data-adapter="thumbnail" />
 }
-
-export const VerticalWithArrows: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Chakra style"
-        note="Vertical rail"
-        title="Classic product gallery with side thumbnails"
-      />
-      <GalleryTemplate
-        items={chakraItems}
-        orientation="vertical"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={64}
-        showControls
-        controlsClassName={overlayControlsClassName}
-        previousTriggerClassName={overlayArrowClassName}
-        nextTriggerClassName={overlayArrowClassName}
-        mainClassName="overflow-hidden rounded-md border border-border-primary bg-base"
-        thumbnailsClassName="rounded-md border border-border-primary bg-base p-100"
-        thumbnailsListClassName="gap-100"
-      />
-    </StoryFrame>
-  ),
-}
-
-export const HorizontalWithArrows: Story = {
-  render: () => (
-    <StoryFrame>
-      <StoryHeader
-        label="Chakra style"
-        note="Horizontal rail"
-        title="Focus-first gallery with highlighted active thumbnail"
-      />
-      <GalleryTemplate
-        items={chakraItems}
-        orientation="horizontal"
-        aspectRatio="square"
-        objectFit="cover"
-        fitParent
-        thumbnailSize={72}
-        showControls
-        controlsClassName={overlayControlsClassName}
-        previousTriggerClassName={overlayArrowClassName}
-        nextTriggerClassName={overlayArrowClassName}
-        thumbnailsClassName="rounded-md border border-border-primary bg-base px-100"
-        thumbnailsListClassName="gap-100 py-100"
-        renderThumbnail={({ defaultThumbnail, isActive, index }) => (
-          <div
-            className={
-              isActive
-                ? 'rounded-sm border border-info bg-info-light p-50'
-                : 'rounded-sm border border-border-primary bg-base p-50'
+function MediaLifecycleExample() {
+  const [mounted, setMounted] = useState(true)
+  const [source, setSource] = useState("controlled-pending")
+  const [objectScrollRef, setObjectScrollRef] = useState(false)
+  const scroll = useRef<HTMLDivElement>(null)
+  const [report, setReport] = useState(
+    "Refs attach to their actual DOM targets."
+  )
+  const root = useRef<HTMLDivElement>(null)
+  const main = useRef<HTMLDivElement>(null)
+  const rail = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  const button = useRef<HTMLButtonElement>(null)
+  const media = useRef<HTMLImageElement>(null)
+  const calls = useRef({ attached: 0, cleaned: 0, loaded: 0, failed: 0 })
+  return (
+    <div className="flex flex-col gap-200">
+      {mounted && (
+        <Gallery
+          ref={root}
+          items={[
+            {
+              id: "controlled",
+              src: source,
+              alt: "Workshop sneaker full view",
+              imageProps: {
+                width: 400,
+                height: 300,
+                ref: media,
+                onLoad: () => {
+                  calls.current.loaded++
+                },
+                onError: () => {
+                  calls.current.failed++
+                },
+                "data-media-prop": "preserved",
+              },
+            },
+            { id: "missing", src: "", alt: "Missing sneaker full view" },
+          ]}
+          thumbnailImageAs={LifecycleMedia}
+          carouselProps={{
+            imageAs: LifecycleMedia,
+            aspectRatio: "landscape",
+            width: "100%",
+          }}
+        >
+          <Gallery.Main ref={main}>
+            <Gallery.Carousel />
+          </Gallery.Main>
+          <Gallery.Thumbnails
+            ref={rail}
+            listRef={list}
+            scrollAreaRef={
+              objectScrollRef
+                ? scroll
+                : (node) => {
+                    if (!node)
+                      throw new Error(
+                        "Cleanup callback must replace the legacy null callback"
+                      )
+                    calls.current.attached++
+                    return () => {
+                      calls.current.cleaned++
+                    }
+                  }
             }
           >
-            {defaultThumbnail}
-            <div className="mt-50 text-center text-xs text-fg-secondary">
-              {index + 1}
-            </div>
-          </div>
-        )}
-      />
-    </StoryFrame>
-  ),
+            <Gallery.Thumbnail
+              index={0}
+              ref={button}
+              imageAs={ThumbnailMedia}
+            />
+            <Gallery.Thumbnail index={1} />
+          </Gallery.Thumbnails>
+        </Gallery>
+      )}
+      <div className="flex flex-wrap gap-200">
+        <Button
+          onClick={() => {
+            const valid =
+              root.current?.contains(main.current) &&
+              rail.current?.contains(list.current) &&
+              list.current?.contains(button.current) &&
+              main.current?.contains(media.current) &&
+              (!objectScrollRef ||
+                (scroll.current?.contains(list.current) &&
+                  scroll.current !== rail.current))
+            setReport(
+              valid
+                ? "Root, main, rail, list, button and image refs verified."
+                : "Incorrect ref target"
+            )
+          }}
+        >
+          Check refs
+        </Button>
+        <Button onClick={() => setObjectScrollRef(true)}>
+          Use object scroll ref
+        </Button>
+        <Button onClick={() => setSource("controlled-recovery")}>
+          Change source
+        </Button>
+        <Button
+          onClick={() =>
+            setReport(
+              `Load events: ${calls.current.loaded}; error events: ${calls.current.failed}`
+            )
+          }
+        >
+          Check events
+        </Button>
+        <Button onClick={() => setMounted(false)}>Unmount gallery</Button>
+        <Button
+          onClick={() =>
+            setReport(
+              !root.current &&
+                !main.current &&
+                !rail.current &&
+                !list.current &&
+                !button.current &&
+                !media.current &&
+                !scroll.current &&
+                calls.current.attached === calls.current.cleaned
+                ? "All refs cleaned."
+                : "Refs leaked"
+            )
+          }
+        >
+          Check cleanup
+        </Button>
+      </div>
+      <StatusText role="status">{report}</StatusText>
+    </div>
+  )
+}
+export const MediaLifecycleAndRefs: Story = {
+  render: () => <MediaLifecycleExample />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Deterministic adapter loading, failure and source recovery with full-image alternatives, decorative thumbnails, and React 19 ref cleanup. Native adapters use the same fallback composition.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Check refs" }))
+    await expect(canvas.getByRole("status")).toHaveTextContent("refs verified")
+    let image = canvasElement.querySelector<HTMLImageElement>(
+      '[data-media-prop="preserved"]'
+    )!
+    const box = image.closest<HTMLElement>("[data-image-state]")!
+    const bounds = box.getBoundingClientRect()
+    await expect(box).toHaveAttribute("data-image-state", "loading")
+    image.dispatchEvent(new Event("error"))
+    await waitFor(() =>
+      expect(box).toHaveAttribute("data-image-state", "error")
+    )
+    await expect(
+      canvas.getByRole("img", { name: "Workshop sneaker full view" })
+    ).toBeVisible()
+    const buttons = canvasElement.querySelectorAll(
+      'button[aria-label^="Show slide"]'
+    )
+    for (const thumbnail of buttons) {
+      await expect(thumbnail.querySelector("img")).toHaveAttribute("alt", "")
+      await expect(thumbnail.querySelector("img")).toHaveAttribute(
+        "aria-hidden",
+        "true"
+      )
+    }
+    await expect(buttons[0]?.querySelector("img")).toHaveAttribute(
+      "data-adapter",
+      "thumbnail"
+    )
+    await expect(buttons[1]?.querySelector("img")).toHaveAttribute(
+      "data-adapter",
+      "shared"
+    )
+    await expect(
+      buttons[1]?.querySelector("[data-image-fallback]")
+    ).toHaveAttribute("aria-hidden", "true")
+    await userEvent.click(canvas.getByRole("button", { name: "Change source" }))
+    image = canvasElement.querySelector<HTMLImageElement>(
+      '[data-media-prop="preserved"]'
+    )!
+    const recovered = image.closest<HTMLElement>("[data-image-state]")!
+    await expect(recovered).toHaveAttribute("data-image-state", "loading")
+    image.dispatchEvent(new Event("load"))
+    await waitFor(() =>
+      expect(recovered).toHaveAttribute("data-image-state", "loaded")
+    )
+    await expect(recovered.getBoundingClientRect().height).toBe(bounds.height)
+    await expect(recovered.getBoundingClientRect().width).toBe(bounds.width)
+    await userEvent.click(canvas.getByRole("button", { name: "Check events" }))
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "Load events: 1; error events: 1"
+    )
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Use object scroll ref" })
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Check refs" }))
+    await expect(canvas.getByRole("status")).toHaveTextContent("refs verified")
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Unmount gallery" })
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Check cleanup" }))
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "All refs cleaned."
+    )
+  },
 }

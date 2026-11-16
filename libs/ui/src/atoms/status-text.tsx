@@ -2,7 +2,7 @@
  * StatusText — @techsio/ui-kit atom.
  *
  * @component StatusText
- * @componentVersion v1.0.0
+ * @componentVersion v1.2.0
  * @skill status-text-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,45 +11,43 @@
  */
 import type { HTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
 const statusTextVariants = tv({
   slots: {
-    base: "flex items-center",
-    icon: "",
+    base: "flex",
+    icon: "inline-flex h-status-text-icon-line shrink-0 items-center",
+    message: "min-w-0 break-words",
   },
   variants: {
     status: {
       error: "text-status-text-fg-error",
       success: "text-status-text-fg-success",
       warning: "text-status-text-fg-warning",
-      default: "text-status-text-fg",
+      default: "status-text-neutral-prefix text-status-text-fg",
     },
-    /* for long text */
     align: {
-      start: {
-        icon: "mt-status-text-icon-offset-long-text self-start",
-      },
-      center: {},
+      start: { base: "items-start" },
+      center: { base: "items-center" },
     },
     size: {
       sm: {
-        base: "gap-status-text-sm text-status-text-sm",
+        base: "status-text-leading-sm gap-status-text-sm text-status-text-sm",
       },
       md: {
-        base: "gap-status-text-md text-status-text-md",
+        base: "status-text-leading-md gap-status-text-md text-status-text-md",
       },
       lg: {
-        base: "items-start gap-status-text-lg text-status-text-lg",
-        icon: "mt-status-text-icon-offset",
+        base: "status-text-leading-lg gap-status-text-lg text-status-text-lg",
       },
     },
   },
   defaultVariants: {
     status: "default",
     size: "md",
-    align: "center",
+    align: "start",
   },
 })
 
@@ -60,32 +58,53 @@ const ICON_MAP = {
   default: undefined,
 } as const
 
+const LIVE_ROLE_MAP = {
+  error: "alert",
+  success: "status",
+  warning: "status",
+  default: undefined,
+} as const
+
 export type StatusTextProps = HTMLAttributes<HTMLDivElement> &
   VariantProps<typeof statusTextVariants> & {
     ref?: Ref<HTMLDivElement>
+    /** Decorative override; neutral helper text has no default icon. */
     icon?: IconType
+    /** Defaults to true. Keep enabled for error/warning/success field feedback. */
     showIcon?: boolean
     children: ReactNode
   }
 
 export function StatusText({
   className,
-  showIcon = false,
+  showIcon = true,
   status = "default",
-  size = "md",
-  align = "center",
+  size: sizeProp,
+  align = "start",
   icon,
   children,
   ref,
   ...props
 }: StatusTextProps) {
+  const { size = "md" } = useUIDefaults(
+    "StatusText",
+    { size: sizeProp },
+    statusTextVariants
+  )
   const resolvedIcon = icon ?? ICON_MAP[status]
+  // Validation feedback must reach assistive tech when it appears: errors
+  // interrupt (alert), warning/success are polite (status). Plain helper text
+  // stays silent — it is read through the control's aria-describedby.
+  const liveRole = LIVE_ROLE_MAP[status]
 
-  const { base, icon: iconSlot } = statusTextVariants({
+  const {
+    base,
+    icon: iconSlot,
+    message,
+  } = statusTextVariants({
     status,
     size,
     align,
-    className,
   })
 
   return (
@@ -95,13 +114,17 @@ export function StatusText({
         size,
         className,
       })}
+      data-status={status}
       ref={ref}
+      role={liveRole}
       {...props}
     >
       {showIcon && resolvedIcon && (
-        <Icon className={iconSlot()} icon={resolvedIcon} size={size} />
+        <span aria-hidden="true" className={iconSlot()}>
+          <Icon aria-hidden="true" icon={resolvedIcon} size="current" />
+        </span>
       )}
-      <span>{children}</span>
+      <span className={message()}>{children}</span>
     </div>
   )
 }

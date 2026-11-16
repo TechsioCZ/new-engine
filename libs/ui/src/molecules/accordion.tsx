@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit molecule.
  *
  * @component Accordion
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,43 +17,55 @@ import {
   type Ref,
   useContext,
   useId,
+  useMemo,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Button } from "../atoms/button"
 import { Icon, type IconProps, type IconType } from "../atoms/icon"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const accordionVariants = tv({
   slots: {
     root: [
-      "flex w-full flex-col",
+      "flex w-full min-w-0 max-w-full flex-col",
       "rounded-accordion bg-accordion-bg",
-      "transition-all duration-200",
-      "transition-all duration-200 motion-reduce:transition-none",
+      "transition duration-200 motion-reduce:transition-none",
     ],
-    item: "",
-    title: "grid place-items-start",
+    item: "min-w-0 max-w-full",
+    heading: "min-w-0 max-w-full",
+    indicator: "shrink-0",
+    title: "wrap-anywhere grid min-w-0 max-w-full place-items-start text-start",
     titleTrigger: [
-      "relative flex w-full cursor-pointer items-center justify-between",
+      "wrap-anywhere relative flex w-full min-w-0 max-w-full cursor-pointer items-center justify-between",
       "rounded-none",
-      "font-accordion-title",
+      "gap-accordion-trigger font-accordion-trigger",
       "bg-accordion-title-bg text-accordion-title-fg",
-      "hover:bg-accordion-title-bg-hover",
-      "pr-accordion-icon-right",
-      "data-[disabled=true]:cursor-not-allowed",
+      "not-data-disabled:hover:bg-accordion-title-bg-hover",
+      "transition-colors duration-200 motion-reduce:transition-none",
+      "focus-visible:accordion-focus-outline",
+      "data-disabled:cursor-not-allowed data-disabled:text-accordion-trigger-fg-disabled",
     ],
-    subtitle: ["text-accordion-subtitle-fg"],
-    content: ["bg-accordion-content-bg text-accordion-content-fg"],
-    icon: ["data-[state=expanded]:rotate-180"],
+    subtitle: ["font-accordion-panel text-accordion-subtitle-fg"],
+    content: [
+      "bg-accordion-content-bg font-accordion-panel text-accordion-panel-fg",
+      "border-t-(length:--border-width-accordion) border-accordion-panel-border",
+      "leading-accordion-panel",
+    ],
+    icon: [
+      "shrink-0 transition-transform data-[state=expanded]:rotate-180 motion-reduce:transition-none",
+    ],
   },
   variants: {
-    variant: {
-      default: {
+    appearance: {
+      outline: {
         root: "border-(length:--border-width-accordion) border-accordion-border",
-        item: "border-b-(length:--border-width-accordion) border-accordion-border",
+        item: "border-b-(length:--border-width-accordion) border-accordion-border last:border-b-0",
       },
-      borderless: {},
-      child: {},
+      ghost: {},
+    },
+    // A nested accordion inherits its parent's panel surface.
+    nested: {
+      true: {},
     },
     shadow: {
       sm: {
@@ -68,20 +80,20 @@ const accordionVariants = tv({
     },
     size: {
       sm: {
-        title: "p-accordion-title-sm text-accordion-title-sm",
-        content: "px-accordion-content-x-sm text-accordion-content-sm",
+        titleTrigger: "p-accordion-title-sm text-accordion-title-sm",
+        content: "p-accordion-panel-sm text-accordion-panel-sm",
         subtitle: "text-accordion-subtitle-sm",
         icon: "text-icon-control-sm",
       },
       md: {
-        title: "p-accordion-title-md text-accordion-title-md",
-        content: "p-accordion-content-md text-accordion-content-md",
+        titleTrigger: "p-accordion-title-md text-accordion-title-md",
+        content: "p-accordion-panel-md text-accordion-panel-md",
         subtitle: "text-accordion-subtitle-md",
         icon: "text-icon-control-md",
       },
       lg: {
-        title: "p-accordion-title-lg text-accordion-title-lg",
-        content: "p-accordion-content-lg text-accordion-content-lg",
+        titleTrigger: "p-accordion-title-lg text-accordion-title-lg",
+        content: "p-accordion-panel-lg text-accordion-panel-lg",
         subtitle: "text-accordion-subtitle-lg",
         icon: "text-icon-control-lg",
       },
@@ -89,27 +101,26 @@ const accordionVariants = tv({
   },
   compoundVariants: [
     {
-      variant: "child",
+      nested: true,
       size: ["sm", "md", "lg"],
       className: {
-        content: "bg-inherit py-0 text-inherit",
+        content: "bg-inherit",
       },
     },
   ],
   defaultVariants: {
     size: "md",
     shadow: "none",
-    variant: "default",
+    appearance: "outline",
   },
 })
 
 // Context for sharing state between sub-components
-interface AccordionContextValue {
+type AccordionContextValue = {
   api: ReturnType<typeof accordion.connect>
   size?: "sm" | "md" | "lg"
   shadow?: "sm" | "md" | "none"
   styles: ReturnType<typeof accordionVariants>
-  variant?: "default" | "borderless" | "child"
 }
 
 const AccordionContext = createContext<AccordionContextValue | null>(null)
@@ -123,10 +134,9 @@ function useAccordionContext() {
 }
 
 // Context for sharing item state
-interface AccordionItemContextValue {
+type AccordionItemContextValue = {
   value: string
   disabled?: boolean
-  variant?: "default" | "borderless" | "child"
 }
 
 const AccordionItemContext = createContext<AccordionItemContextValue | null>(
@@ -144,19 +154,27 @@ function useAccordionItemContext() {
 }
 
 // Root component
-export interface AccordionProps
-  extends VariantProps<typeof accordionVariants>,
-    Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
-  id?: string
-  defaultValue?: string[]
-  value?: string[]
-  collapsible?: boolean
-  multiple?: boolean
-  disabled?: boolean
-  dir?: "ltr" | "rtl"
-  onChange?: (value: string[]) => void
-  ref?: Ref<HTMLDivElement>
-}
+export type AccordionProps = Omit<
+  VariantProps<typeof accordionVariants>,
+  "appearance" | "nested"
+> &
+  Omit<ComponentPropsWithoutRef<"div">, "onChange"> & {
+    id?: string
+    defaultValue?: string[]
+    value?: string[]
+    collapsible?: boolean
+    multiple?: boolean
+    disabled?: boolean
+    dir?: "ltr" | "rtl"
+    onChange?: (value: string[]) => void
+    ref?: Ref<HTMLDivElement>
+    /** Frame style. Falls back to the nearest `UIProvider`, then `outline`. */
+    appearance?: AccordionAppearance
+    /** Nested inside another accordion's panel: inherits its surface. */
+    nested?: boolean
+  }
+
+export type AccordionAppearance = "outline" | "ghost"
 
 export function Accordion({
   id,
@@ -166,15 +184,21 @@ export function Accordion({
   multiple = false,
   dir = "ltr",
   onChange,
-  size,
+  size: sizeProp,
   shadow,
   disabled = false,
   children,
   ref,
   className,
-  variant,
+  appearance: appearanceProp,
+  nested = false,
   ...props
 }: AccordionProps) {
+  const { size, appearance } = useUIDefaults(
+    "Accordion",
+    { size: sizeProp, appearance: appearanceProp },
+    accordionVariants
+  )
   const generatedId = useId()
   const uniqueId = id || generatedId
 
@@ -193,10 +217,10 @@ export function Accordion({
   })
 
   const api = accordion.connect(service, normalizeProps)
-  const styles = accordionVariants({ size, shadow, variant })
+  const styles = accordionVariants({ size, shadow, appearance, nested })
 
   return (
-    <AccordionContext.Provider value={{ api, size, shadow, styles, variant }}>
+    <AccordionContext.Provider value={{ api, size, shadow, styles }}>
       <div
         className={styles.root({ className })}
         ref={ref}
@@ -210,7 +234,7 @@ export function Accordion({
 }
 
 // Item component
-interface AccordionItemProps extends ComponentPropsWithoutRef<"div"> {
+type AccordionItemProps = ComponentPropsWithoutRef<"div"> & {
   value: string
   disabled?: boolean
   ref?: Ref<HTMLDivElement>
@@ -224,14 +248,14 @@ Accordion.Item = function AccordionItem({
   className,
   ...props
 }: AccordionItemProps) {
-  const { api, styles, variant } = useAccordionContext()
+  const { api, styles } = useAccordionContext()
 
   return (
-    <AccordionItemContext.Provider value={{ value, disabled, variant }}>
+    <AccordionItemContext.Provider value={{ value, disabled }}>
       <div
         ref={ref}
         {...props}
-        {...api.getItemProps({ value })}
+        {...api.getItemProps({ value, disabled })}
         className={styles.item({ className })}
       >
         {children}
@@ -240,11 +264,13 @@ Accordion.Item = function AccordionItem({
   )
 }
 
-// Header component (trigger wrapper)
-interface AccordionHeaderProps extends ComponentPropsWithoutRef<"header"> {
+// Header component (heading wrapper for the trigger)
+type AccordionHeaderProps = ComponentPropsWithoutRef<"h3"> & {
   ref?: Ref<HTMLElement>
 }
 
+// APG accordion: each trigger sits in a heading. A bare <header> would be a
+// banner landmark, one per item. Pass aria-level to fit the page outline.
 Accordion.Header = function AccordionHeader({
   children,
   ref,
@@ -253,25 +279,33 @@ Accordion.Header = function AccordionHeader({
 }: AccordionHeaderProps) {
   const { api, styles } = useAccordionContext()
   const { value, disabled } = useAccordionItemContext()
+  const headingRef = useMemo(() => {
+    if (typeof ref === "function" || !ref) {
+      return ref
+    }
+    return (node: HTMLHeadingElement | null) => {
+      ref.current = node
+    }
+  }, [ref])
 
   return (
-    <header className={className} ref={ref} {...props}>
-      <Button
+    <h3 className={styles.heading({ className })} ref={headingRef} {...props}>
+      <button
         className={styles.titleTrigger()}
-        size="current"
-        theme="unstyled"
         type="button"
         {...api.getItemTriggerProps({ value, disabled })}
-        data-disabled={disabled}
+        data-disabled={
+          api.getItemState({ value, disabled }).disabled || undefined
+        }
       >
         {children}
-      </Button>
-    </header>
+      </button>
+    </h3>
   )
 }
 
 // Content component
-interface AccordionContentProps extends ComponentPropsWithoutRef<"div"> {
+type AccordionContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -283,14 +317,21 @@ Accordion.Content = function AccordionContent({
 }: AccordionContentProps) {
   const { api, styles } = useAccordionContext()
   const { value } = useAccordionItemContext()
+  const contentProps = api.getItemContentProps({ value })
 
   return (
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: Zag supplies a region; consumers can choose another named grouping role.
     <div
       className={styles.content({ className })}
       ref={ref}
       {...props}
-      {...api.getItemContentProps({ value })}
+      {...contentProps}
+      aria-labelledby={
+        props["aria-labelledby"] ??
+        (props["aria-label"] ? undefined : contentProps["aria-labelledby"])
+      }
       data-state={api.value.includes(value) ? "expanded" : "collapsed"}
+      role={props.role ?? contentProps.role}
     >
       {children}
     </div>
@@ -317,19 +358,19 @@ Accordion.Indicator = function AccordionIndicator({
   const isExpanded = api.value.includes(value)
 
   return (
-    <span className={className} ref={ref} {...props}>
+    <span className={styles.indicator({ className })} ref={ref} {...props}>
       <Icon
         className={styles.icon()}
         data-state={isExpanded ? "expanded" : "collapsed"}
         icon={icon}
-        size={iconSize}
+        size={iconSize ?? "current"}
       />
     </span>
   )
 }
 
 // Title component (optional structured title)
-interface AccordionTitleProps extends ComponentPropsWithoutRef<"span"> {
+type AccordionTitleProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement>
 }
 
@@ -349,7 +390,7 @@ Accordion.Title = function AccordionTitle({
 }
 
 // Subtitle component (optional structured subtitle)
-interface AccordionSubtitleProps extends ComponentPropsWithoutRef<"span"> {
+type AccordionSubtitleProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement>
 }
 

@@ -1,19 +1,23 @@
 ---
-component_version: "1.0.0"
 name: chart-usage
 description: >
   Use after component-usage-ux when an app needs the @techsio/ui-kit Chart —
   a declarative data-visualization molecule built on TanStack Charts
-  (@tanstack/charts + @tanstack/react-charts). One `type` prop covers line,
+  (@tanstack/charts/react). One `type` prop covers line,
   area, bar, horizontal bar, scatter, pie and donut charts from the same
   data/x/y/series channels, with token-driven series colors, legend, tooltip,
   value formatting and selection callbacks.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.3.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/chart.tsx"
   - "libs/ui/src/tokens/components/molecules/_chart.css"
@@ -28,6 +32,55 @@ definition internally: you hand it rows plus `x`/`y` (and optionally `series`)
 channels and pick a `type`; it picks the right marks and scales, wires the
 tooltip and legend, and paints every series from the
 `--color-chart-series-*` design tokens in fixed order.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Chart`.
+
+**Use it when**
+
+- Trends over time (line/area), comparisons between categories (bar), composition of a small whole (≤ 5 parts).
+- Dashboards and reports where the shape of the data matters more than exact values.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Exact values the user looks up or copies | Table / DataTable |
+| A single KPI | a stat tile with the formatted number |
+| More than 5 slices of a whole | a bar chart, not a pie/donut |
+
+**Do**
+
+- Pick the chart type by the question (ux-guidelines/component-selection); keep series colours from `--color-chart-series-*` in fixed order.
+- Format axis ticks and tooltips with the app locale (`Intl.NumberFormat`, `Intl.DateTimeFormat`) and label units.
+- Provide a text summary or a table alternative for screen readers.
+- Show loading (Skeleton), empty (`No orders in this period`) and error (`Try again`) states instead of empty axes.
+
+**Don't**
+
+- Rely on colour alone to distinguish series — keep the legend and labels.
+- Use 3D, gradients or heavy grid lines.
+- Animate the entrance when the user prefers reduced motion.
+
+**Copy and states**
+
+- Title says the insight or metric and period: `Revenue, last 30 days`; axis labels include the unit.
+
+**Behaviour (from the UX spec)**
+
+- Chart has no loading or error prop: show a Skeleton while loading and the app's own error with `Try again`; empty and invalid data get the built-in status (`emptyLabel`, `invalidLabel`).
+- `onSelect` reports a chosen mark; the app decides what follows. The chart itself never changes data.
+- Never tell series apart by colour alone; keep the legend, the dash patterns and the data table.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| no Figma component | code is the only source; series colours come from `--color-chart-series-1…6` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Chart → UX guidelines*.
 
 ## Setup
 
@@ -93,7 +146,7 @@ Never combine two value scales in one chart — render two charts instead.
 - `xLabel`, `yLabel`, `formatValue` — axis labels and value tick formatting.
 - `height` or `aspectRatio` (default 16/9) — fixed or proportional sizing;
   `initialWidth` is the SSR/first-frame fallback.
-- `animate` (default true), `tooltip` (default true).
+- `animate` (default true, or false when the user prefers reduced motion), `tooltip` (default true).
 - `ariaLabel` (required), `ariaDescription` — accessibility naming.
 - `onSelect(datum | null)` — click/keyboard selection of a mark.
 
@@ -127,3 +180,26 @@ Never combine two value scales in one chart — render two charts instead.
   centroid within the library's fixed 48px radius, so parts of a large slice
   are not interactive — another reason to prefer `bar-horizontal` when the
   chart needs `onSelect`.
+
+## Wave 2 contracts
+
+Chart height/aspectRatio describe the visualization canvas, not sm/md/lg form-control sizes. Use a table when readers need exact records rather than a visual pattern, and keep the plot’s accessible label and multi-series legend meaningful.
+
+Inspection tooltips use opaque shared popup surface/border/shadow aliases and the managed popup layer. The library creates a single positioned tooltip element, so that element carries popup-layer; its important utility overrides the upstream inline z-index.
+
+## Data, identity and keyboard inspection
+
+Chart always includes a keyboard-operable “View chart data” disclosure with a
+captioned table of the same finite data and formatted values, even when tooltip
+is disabled. Localize `dataTableLabel`, `emptyLabel` and `invalidLabel` and give
+accessor-function channels `xLabel`, `yLabel` and `legendLabel`.
+Empty/nonfinite-only input shows a status instead of empty axes. Pie/donut reject
+negative or nonfinite input and zero-total data; use a bar chart for signed values.
+Lines use distinct dash patterns and matching legend samples; singleton series
+always have a point. Escape dismisses inspection without moving chart focus;
+arrow navigation or a new pointer movement resumes it.
+Pass `seriesDomain` in the full, fixed identity order when filtering data or
+comparing multiple charts; pie/donut use the x category as color identity.
+Polar domains accept numeric categories (for example, `seriesDomain={[1, 2]}`)
+with numeric x values; both are normalized to the same display-label identity.
+Without it, identities retain their first-seen slots for this mounted instance.

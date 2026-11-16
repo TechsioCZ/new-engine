@@ -2,29 +2,82 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.1.0
+ * @componentVersion v1.5.0
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the select-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as select from "@zag-js/select"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
+import {
+  connect as connectSelect,
+  collection as createSelectCollection,
+  machine as selectMachine,
+  type Props as ZagSelectProps,
+} from "@zag-js/select"
 import {
   type ComponentPropsWithoutRef,
   createContext,
   type ReactNode,
   type Ref,
   useContext,
+  useEffect,
   useId,
+  useMemo,
+  useRef,
+  useState,
 } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText as StatusTextComponent } from "../atoms/status-text"
+import {
+  type DescribedBy,
+  joinDescribedBy,
+  useDescribedBy,
+  useRegisterDescription,
+} from "../internal/described-by"
+import { subscribeOwnerFormReset } from "../internal/form-control-lifecycle"
+import { OverlayPortal as Portal } from "../internal/overlay-portal"
+import { useEffectiveDisabled } from "../internal/use-effective-disabled"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
+import { tv } from "../utils"
+
+// Drops undefined entries so a prop left unset does not hide the catalog's translation.
+// Zag dispatches a native change event from a watcher that runs after React
+// commits, outside the synchronous reset callback. Remember the reset projection.
+const selectResetValues = new WeakMap<object, string>()
+
+// Wrapper-owned state and native projections share one cancellation-safe lifecycle.
+const nativeSelectMachine: typeof selectMachine = {
+  ...selectMachine,
+  implementations: {
+    ...selectMachine.implementations,
+    actions: {
+      ...selectMachine.implementations?.actions,
+      dispatchChangeEvent(params) {
+        const resetValue = selectResetValues.get(params.context)
+        selectResetValues.delete(params.context)
+        // Native form reset is silent; only user-driven values announce events.
+        if (resetValue === params.context.get("value").toString()) {
+          return
+        }
+        selectMachine.implementations?.actions?.dispatchChangeEvent?.(params)
+      },
+    },
+    effects: {
+      ...selectMachine.implementations?.effects,
+      trackFormControlState() {
+        /* Shared lifecycle below owns disabled and reset behavior. */
+      },
+    },
+  },
+}
 
 export type SelectSize = "xs" | "sm" | "md" | "lg"
 
@@ -48,18 +101,21 @@ export type SelectItem = {
 const selectVariants = tv({
   slots: {
     root: ["relative", "flex flex-col gap-select", "w-full"],
-    control: ["relative flex items-center justify-between", "w-full"],
+    control: [
+      "select-clear-gutter relative flex items-center justify-between",
+      "w-full",
+    ],
     // Zag sets `min-width: max-content` inline, so this resolves to
     // max(trigger width, content width) — the panel is never narrower than
     // the control that opened it.
-    positioner: ["isolate w-(--reference-width)"],
+    positioner: ["popup-layer isolate w-(--reference-width)"],
     trigger: [
       "form-control-base w-full",
       "border-select-trigger-border",
       "group",
       "flex items-center justify-between gap-0",
       "font-normal",
-      "text-left",
+      "text-start",
       "hover:bg-select-trigger-bg-hover",
       "hover:border-select-trigger-border-hover",
       "focus:border-select-trigger-border-focus",
@@ -71,26 +127,20 @@ const selectVariants = tv({
       "data-[disabled]:text-select-fg-disabled",
       "data-[disabled]:border-select-border-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
-      "data-[validation=error]:border-select-border-error data-[validation=error]:outline-select-border-error",
-      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
-      "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=error]:border-select-border-error",
       "data-[validation=success]:border-(length:--border-width-validation)",
-      "data-[validation=success]:border-select-border-success data-[validation=success]:outline-select-border-success",
-      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
-      "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=success]:border-select-border-success",
       "data-[validation=warning]:border-(length:--border-width-validation)",
-      "data-[validation=warning]:border-select-border-warning data-[validation=warning]:outline-select-border-warning",
-      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
-      "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=warning]:border-select-border-warning",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
     // its own size, glyph and neutral hover pill.
-    clearTrigger: ["-translate-y-1/2 absolute top-1/2 right-select-right"],
+    clearTrigger: ["absolute end-select-right top-1/2 -translate-y-1/2"],
     content: [
-      "popup-surface-base",
+      "popup-surface-base popup-layer",
       "w-full",
-      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale]",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate,scale] motion-reduce:transition-none motion-reduce:duration-0",
       "transition-discrete",
       "starting:scale-98 starting:opacity-0",
       "data-[state=open]:starting:scale-98 data-[state=open]:starting:opacity-0",
@@ -109,7 +159,7 @@ const selectVariants = tv({
     // Absolutely positioned inside the reserved end gutter so the label never
     // shifts when the selection changes.
     itemIndicator: [
-      "-translate-y-1/2 absolute end-(--popup-item-x) top-1/2",
+      "absolute end-(--popup-item-x) top-1/2 -translate-y-1/2",
       "flex items-center justify-center",
       "size-(--size-popup-indicator) text-popup-item-fg-selected",
     ],
@@ -120,34 +170,36 @@ const selectVariants = tv({
       "font-medium text-popup-item-fg-muted",
     ],
     valueText: [
-      "flex-grow truncate font-normal",
+      "min-w-0 flex-1 truncate font-normal",
       "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
     ],
   },
   variants: {
     size: {
       xs: {
-        trigger: "p-select-trigger-sm text-select-trigger-xs",
+        trigger:
+          "form-control-size-sm rounded-select-sm px-select-trigger-sm text-select-trigger-xs",
         content: "popup-size-xs text-select-item-xs",
         valueText: "text-select-value-xs",
         itemGroupLabel: "text-select-item-group-label-xs",
       },
       sm: {
         trigger:
-          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-sm",
+          "form-control-size-sm rounded-select-sm px-select-trigger-sm text-select-trigger-sm",
         content: "popup-size-sm text-select-item-sm",
         valueText: "text-select-value-sm",
         itemGroupLabel: "text-select-item-group-label-sm",
       },
       md: {
         trigger:
-          "h-form-control-md rounded-select-md p-select-trigger-md text-select-trigger-md",
+          "form-control-size-md rounded-select-md px-select-trigger-md text-select-trigger-md",
         content: "popup-size-md text-select-item-md",
         valueText: "text-select-value-md",
         itemGroupLabel: "text-select-item-group-label-md",
       },
       lg: {
-        trigger: "p-select-trigger-md text-select-trigger-lg",
+        trigger:
+          "form-control-size-lg rounded-select-lg px-select-trigger-md text-select-trigger-lg",
         content: "popup-size-lg text-select-item-lg",
         valueText: "text-select-value-lg",
         itemGroupLabel: "text-select-item-group-label-lg",
@@ -160,18 +212,22 @@ const selectVariants = tv({
 })
 
 type SelectContextValue = {
-  api: ReturnType<typeof select.connect>
+  api: ReturnType<typeof connectSelect>
   size: SelectSize
   items: SelectItem[]
   validateStatus: "default" | "error" | "success" | "warning"
-}
+  readOnly: boolean
+  disabled: boolean
+  readOnlyId: string
+  errors: DescribedBy
+} & DescribedBy
 
 const SelectContext = createContext<SelectContextValue | null>(null)
 
 function useSelectContext() {
   const context = useContext(SelectContext)
   if (!context) {
-    throw new Error("Select components must be used within Select.Root")
+    throw new Error("Select components must be used within Select")
   }
   return context
 }
@@ -192,26 +248,26 @@ function useSelectItemContext() {
 }
 
 // === ROOT COMPONENT ===
-export interface SelectProps
-  extends VariantProps<typeof selectVariants>,
-    Omit<select.Props, "collection" | "id" | "invalid"> {
-  items: SelectItem[]
-  id?: string
-  className?: string
-  children: ReactNode
-  ref?: Ref<HTMLDivElement>
-  validateStatus?: "default" | "error" | "success" | "warning"
-}
+export type SelectProps = VariantProps<typeof selectVariants> &
+  Omit<ZagSelectProps, "collection" | "id" | "invalid"> & {
+    /** Authoritative options; removed values are cleared, not replaced implicitly. */
+    items: SelectItem[]
+    id?: string
+    className?: string
+    children: ReactNode
+    ref?: Ref<HTMLDivElement>
+    validateStatus?: "default" | "error" | "success" | "warning"
+  }
 
 export function Select({
   items,
   id: providedId,
-  size = "md",
+  size: sizeProp,
   // Zag.js props
   value,
   defaultValue,
   multiple = false,
-  disabled = false,
+  disabled: explicitDisabled = false,
   validateStatus = "default",
   required = false,
   readOnly = false,
@@ -226,22 +282,53 @@ export function Select({
   className,
   children,
   ref,
+  translations,
+  ...machineProps
 }: SelectProps) {
+  const { size = "md" } = useUIDefaults(
+    "Select",
+    { size: sizeProp },
+    selectVariants
+  )
+  const messages = useUiMessages()
   const generatedId = useId()
+  const [disabledElement, setDisabledElement] =
+    useState<HTMLInputElement | null>(null)
+  const disabled = useEffectiveDisabled(disabledElement, explicitDisabled)
+  const hiddenSelectRef = useRef<HTMLSelectElement>(null)
+  const initialValue = useRef(defaultValue ?? [])
   const id = providedId || generatedId
 
   // Derive invalid from validateStatus for Zag.js accessibility
   const invalid = validateStatus === "error"
 
-  const collection = select.collection({
-    items,
-    itemToString: (item) => item.displayValue || item.value,
-    itemToValue: (item) => item.value,
-    isItemDisabled: (item) => !!item.disabled,
-  })
+  const [internalValue, setInternalValue] = useState(defaultValue ?? [])
+  const requestedValue = value ?? internalValue
+  const effectiveValue = requestedValue.filter((selected) =>
+    items.some((item) => item.value === selected)
+  )
+  const reconciliation = useRef<string | null>(null)
 
-  const service = useMachine(select.machine, {
+  const collection = useMemo(
+    () =>
+      createSelectCollection({
+        items,
+        itemToString: (item) =>
+          item.displayValue ??
+          (typeof item.label === "string" || typeof item.label === "number"
+            ? String(item.label)
+            : item.value),
+        itemToValue: (item) => item.value,
+        isItemDisabled: (item) => !!item.disabled,
+      }),
+    [items]
+  )
+
+  const service = useMachine(nativeSelectMachine, {
+    ...machineProps,
     id,
+    open: readOnly || disabled ? false : machineProps.open,
+    defaultOpen: readOnly || disabled ? false : machineProps.defaultOpen,
     collection,
     name,
     form,
@@ -253,22 +340,162 @@ export function Select({
     closeOnSelect,
     loopFocus,
     defaultValue,
-    value,
-    onValueChange,
+    value: effectiveValue,
+    highlightedValue:
+      machineProps.highlightedValue &&
+      (!collection.has(machineProps.highlightedValue) ||
+        collection.getItemDisabled(
+          collection.find(machineProps.highlightedValue)
+        ))
+        ? null
+        : machineProps.highlightedValue,
+    onValueChange: (details) => {
+      if (!(readOnly || disabled)) {
+        if (value === undefined) {
+          setInternalValue(details.value)
+        }
+        onValueChange?.(details)
+      }
+    },
     onOpenChange,
     onHighlightChange,
+    translations: {
+      clearTriggerLabel: messages.select.clear,
+      ...messages.select.translations,
+      ...definedEntries(translations),
+    },
   })
 
-  const api = select.connect(service as select.Service, normalizeProps)
+  // Collection updates are parent-owned changes, including while read-only.
+  // Request controlled correction once; never select an arbitrary replacement.
+  useEffect(() => {
+    if (effectiveValue.length === requestedValue.length) {
+      reconciliation.current = null
+      return
+    }
+    const key = JSON.stringify([requestedValue, effectiveValue])
+    if (reconciliation.current === key) {
+      return
+    }
+    reconciliation.current = key
+    if (value === undefined) {
+      setInternalValue(effectiveValue)
+    }
+    onValueChange?.({
+      value: effectiveValue,
+      items: collection.findMany(effectiveValue),
+    })
+  }, [collection, effectiveValue, requestedValue, value, onValueChange])
+
+  const api = connectSelect(service, normalizeProps)
+  useEffect(() => {
+    const highlighted = service.context.get("highlightedValue")
+    if (
+      highlighted &&
+      (!collection.has(highlighted) ||
+        collection.getItemDisabled(collection.find(highlighted)))
+    ) {
+      service.send({ type: "HIGHLIGHTED_VALUE.CLEAR" })
+    }
+  }, [collection, service])
+  const { defaultValue: _nativeDefaultValue, ...hiddenSelectProps } =
+    api.getHiddenSelectProps()
+  const reset = useRef<() => void>(() => undefined)
+  reset.current = () => {
+    if (value === undefined) {
+      const restoredValue = initialValue.current.filter((selected) =>
+        collection.has(selected)
+      )
+      if (
+        restoredValue.toString() !== service.context.get("value").toString()
+      ) {
+        selectResetValues.set(service.context, restoredValue.toString())
+      }
+      setInternalValue(restoredValue)
+    }
+    const restored =
+      value === undefined
+        ? initialValue.current.filter((selected) => collection.has(selected))
+        : effectiveValue
+    for (const option of hiddenSelectRef.current?.options ?? []) {
+      option.selected = restored.includes(option.value)
+    }
+    if (!(multiple || restored.length) && hiddenSelectRef.current) {
+      hiddenSelectRef.current.value = ""
+    }
+    api.setOpen(false)
+    api.clearHighlightValue()
+  }
+  useEffect(() => {
+    const input = hiddenSelectRef.current
+    return input
+      ? subscribeOwnerFormReset(input, () => reset.current())
+      : undefined
+  }, [])
   const styles = selectVariants({ size })
+  const describedBy = useDescribedBy()
+  const errors = useDescribedBy()
 
   return (
-    <SelectContext.Provider value={{ api, size, items, validateStatus }}>
+    <SelectContext.Provider
+      value={{
+        api,
+        size,
+        items,
+        validateStatus,
+        readOnly,
+        disabled,
+        readOnlyId: `${id}-readonly`,
+        errors,
+        ...describedBy,
+      }}
+    >
+      <input ref={setDisabledElement} type="hidden" />
       {/* Hidden form select for native form submission */}
-      <select {...api.getHiddenSelectProps()}>
+      <select
+        {...hiddenSelectProps}
+        onChange={(event) => {
+          if (readOnly || disabled) {
+            event.preventDefault()
+            for (const option of event.currentTarget.options) {
+              option.selected = api.value.includes(option.value)
+            }
+            return
+          }
+          if (!multiple && event.currentTarget.value === "") {
+            api.setValue([])
+          } else {
+            api.getHiddenSelectProps().onChange?.(event)
+          }
+        }}
+        onInput={(event) => {
+          if (readOnly || disabled) {
+            event.preventDefault()
+            for (const option of event.currentTarget.options) {
+              option.selected = api.value.includes(option.value)
+            }
+            return
+          }
+          if (!multiple && event.currentTarget.value === "") {
+            api.setValue([])
+          } else {
+            api.getHiddenSelectProps().onInput?.(event)
+          }
+        }}
+        ref={hiddenSelectRef}
+        value={multiple ? effectiveValue : (effectiveValue[0] ?? "")}
+      >
+        {!multiple && <option value="" />}
         {items.map((item) => (
-          <option disabled={item.disabled} key={item.value} value={item.value}>
-            {item.displayValue || item.value}
+          <option
+            disabled={item.disabled && !effectiveValue.includes(item.value)}
+            key={item.value}
+            value={item.value}
+          >
+            {item.displayValue ??
+              (typeof item.label === "string" || typeof item.label === "number"
+                ? String(item.label)
+                : item.value)}
           </option>
         ))}
       </select>
@@ -279,26 +506,34 @@ export function Select({
         {...api.getRootProps()}
       >
         {children}
+        {readOnly && !disabled && (
+          <span className="sr-only" id={`${id}-readonly`}>
+            {messages.select.readOnly}
+          </span>
+        )}
       </div>
     </SelectContext.Provider>
   )
 }
 
-interface SelectLabelProps extends ComponentPropsWithoutRef<"label"> {
+type SelectLabelProps = ComponentPropsWithoutRef<"label"> & {
   ref?: Ref<HTMLLabelElement>
 }
 
 Select.Label = function SelectLabel({ children, ...props }: SelectLabelProps) {
-  const { api } = useSelectContext()
+  const { api, size } = useSelectContext()
 
   return (
-    <Label {...api.getLabelProps()} {...props}>
+    <Label
+      size={toControlSize(size)}
+      {...mergeProps(api.getLabelProps(), props)}
+    >
       {children}
     </Label>
   )
 }
 
-interface SelectControlProps extends ComponentPropsWithoutRef<"div"> {
+type SelectControlProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
@@ -314,9 +549,9 @@ Select.Control = function SelectControl({
   return (
     <div
       className={styles.control({ className })}
+      data-size={toControlSize(size)}
       ref={ref}
-      {...api.getControlProps()}
-      {...props}
+      {...mergeProps(api.getControlProps(), props)}
     >
       {children}
     </div>
@@ -337,38 +572,70 @@ Select.Trigger = function SelectTrigger({
   ref,
   ...props
 }: SelectTriggerProps) {
-  const { api, size: contextSize, validateStatus } = useSelectContext()
+  const {
+    api,
+    size: contextSize,
+    validateStatus,
+    describedById,
+    errors,
+    readOnly,
+    disabled,
+    readOnlyId,
+  } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
 
   // Map validateStatus to unified data-validation attribute
   const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+    validateStatus === "default" ? {} : { "data-validation": validateStatus }
 
   return (
     <Button
       className={styles.trigger({ className })}
       ref={ref}
       size="current"
-      theme="unstyled"
-      {...api.getTriggerProps()}
+      unstyled
+      {...mergeProps(api.getTriggerProps(), props)}
+      aria-labelledby={
+        props["aria-labelledby"] ??
+        (props["aria-label"]
+          ? undefined
+          : api.getTriggerProps()["aria-labelledby"])
+      }
+      disabled={disabled || props.disabled}
       {...validationDataAttrs}
-      {...props}
+      aria-describedby={joinDescribedBy(
+        props["aria-describedby"],
+        describedById,
+        readOnly && !disabled ? readOnlyId : undefined
+      )}
+      aria-errormessage={joinDescribedBy(
+        props["aria-errormessage"],
+        validateStatus === "error" ? errors.describedById : undefined
+      )}
+      aria-invalid={
+        validateStatus === "error" || props["aria-invalid"] || undefined
+      }
+      aria-readonly={(readOnly && !disabled) || undefined}
     >
       {children}
-      <Icon
-        className={`${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
-          api.open ? "rotate-180" : "rotate-0"
-        }`}
-        icon="token-icon-select-indicator"
-        size={iconSize ?? "current"}
-      />
+      {!readOnly && (
+        <Icon
+          className={`shrink-0 ${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+            api.open ? "rotate-180" : "rotate-none"
+          }`}
+          icon="token-icon-select-indicator"
+          size={iconSize ?? "current"}
+        />
+      )}
     </Button>
   )
 }
 
-interface SelectValueTextProps
-  extends Omit<ComponentPropsWithoutRef<"span">, "children"> {
+type SelectValueTextProps = Omit<
+  ComponentPropsWithoutRef<"span">,
+  "children"
+> & {
   placeholder?: string
   size?: SelectSize
   ref?: Ref<HTMLSpanElement>
@@ -376,13 +643,14 @@ interface SelectValueTextProps
 }
 
 Select.ValueText = function SelectValueText({
-  placeholder = "Select an option",
+  placeholder,
   className,
   size: sizeProp,
   ref,
   children,
   ...props
 }: SelectValueTextProps) {
+  const messages = useUiMessages()
   const { api, size: contextSize, items } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
@@ -390,22 +658,32 @@ Select.ValueText = function SelectValueText({
   const hasValue = api.value.length > 0
   const selectedItems = api.value
     .map((v) => items.find((item) => item.value === v))
-    .filter(Boolean) as SelectItem[]
+    .filter((item) => item !== undefined)
 
   const renderContent = () => {
     if (!hasValue) {
-      return placeholder
+      return placeholder ?? messages.select.placeholder
     }
 
     if (typeof children === "function") {
       return children(selectedItems)
     }
 
-    return selectedItems[0]?.label
+    if (children !== undefined) {
+      return children
+    }
+
+    return selectedItems.map((item, index) => (
+      <span key={item.value}>
+        {index > 0 ? ", " : ""}
+        {item.label}
+      </span>
+    ))
   }
 
   return (
     <span
+      {...api.getValueTextProps()}
       className={styles.valueText({ className })}
       data-placeholder={!hasValue || undefined}
       ref={ref}
@@ -425,28 +703,35 @@ Select.ClearTrigger = function SelectClearTrigger({
   ref,
   ...props
 }: SelectClearTriggerProps) {
-  const { api, size } = useSelectContext()
+  const messages = useUiMessages()
+  const { api, size, readOnly, disabled } = useSelectContext()
   const styles = selectVariants({ size })
+  if (readOnly) {
+    return null
+  }
 
   return (
     <ActionIcon
       className={styles.clearTrigger({ className })}
       icon="token-icon-select-clear"
       ref={ref}
+      severity="neutral"
       size={toControlSize(size)}
-      tone="neutral"
-      {...api.getClearTriggerProps()}
-      aria-label="Clear selection"
-      {...props}
+      {...mergeProps(api.getClearTriggerProps(), props)}
+      aria-label={props["aria-label"] ?? messages.select.clear}
+      disabled={disabled || props.disabled}
+      type="button"
     />
   )
 }
 
-interface SelectPositionerProps extends ComponentPropsWithoutRef<"div"> {
+type SelectPositionerProps = ComponentPropsWithoutRef<"div"> & {
+  portalled?: boolean
   ref?: Ref<HTMLDivElement>
 }
 
 Select.Positioner = function SelectPositioner({
+  portalled = true,
   children,
   className,
   ref,
@@ -456,7 +741,7 @@ Select.Positioner = function SelectPositioner({
   const styles = selectVariants({ size })
 
   return (
-    <Portal>
+    <Portal disabled={!portalled}>
       <div
         className={styles.positioner({ className })}
         ref={ref}
@@ -469,7 +754,7 @@ Select.Positioner = function SelectPositioner({
   )
 }
 
-interface SelectContentProps extends ComponentPropsWithoutRef<"ul"> {
+type SelectContentProps = ComponentPropsWithoutRef<"ul"> & {
   ref?: Ref<HTMLUListElement>
 }
 
@@ -483,18 +768,24 @@ Select.Content = function SelectContent({
   const styles = selectVariants({ size })
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Zag supplies role=listbox and tabIndex; the consumer handler must run before its keyboard action.
     <ul
       className={styles.content({ className })}
       ref={ref}
-      {...api.getContentProps()}
-      {...props}
+      {...mergeProps(api.getContentProps(), props)}
+      onKeyDown={(event) => {
+        props.onKeyDown?.(event)
+        if (!event.defaultPrevented) {
+          api.getContentProps().onKeyDown?.(event)
+        }
+      }}
     >
       {children}
     </ul>
   )
 }
 
-interface SelectItemGroupProps extends ComponentPropsWithoutRef<"div"> {
+type SelectItemGroupProps = ComponentPropsWithoutRef<"div"> & {
   id: string
   ref?: Ref<HTMLDivElement>
 }
@@ -513,15 +804,14 @@ Select.ItemGroup = function SelectItemGroup({
     <div
       className={styles.itemGroup({ className })}
       ref={ref}
-      {...api.getItemGroupProps({ id })}
-      {...props}
+      {...mergeProps(api.getItemGroupProps({ id }), props)}
     >
       {children}
     </div>
   )
 }
 
-interface SelectItemGroupLabelProps extends ComponentPropsWithoutRef<"div"> {
+type SelectItemGroupLabelProps = ComponentPropsWithoutRef<"div"> & {
   htmlFor: string
   ref?: Ref<HTMLDivElement>
 }
@@ -540,15 +830,14 @@ Select.ItemGroupLabel = function SelectItemGroupLabel({
     <div
       className={styles.itemGroupLabel({ className })}
       ref={ref}
-      {...api.getItemGroupLabelProps({ htmlFor })}
-      {...props}
+      {...mergeProps(api.getItemGroupLabelProps({ htmlFor }), props)}
     >
       {children}
     </div>
   )
 }
 
-interface SelectItemProps extends ComponentPropsWithoutRef<"li"> {
+type SelectItemProps = ComponentPropsWithoutRef<"li"> & {
   item: SelectItem
   size?: SelectSize
   ref?: Ref<HTMLLIElement>
@@ -571,8 +860,7 @@ Select.Item = function SelectItem({
       <li
         className={styles.item({ className })}
         ref={ref}
-        {...api.getItemProps({ item })}
-        {...props}
+        {...mergeProps(api.getItemProps({ item }), props)}
       >
         {children}
       </li>
@@ -580,7 +868,7 @@ Select.Item = function SelectItem({
   )
 }
 
-interface SelectItemTextProps extends ComponentPropsWithoutRef<"span"> {
+type SelectItemTextProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement>
 }
 
@@ -598,8 +886,7 @@ Select.ItemText = function SelectItemText({
     <span
       className={styles.itemText({ className })}
       ref={ref}
-      {...api.getItemTextProps({ item })}
-      {...props}
+      {...mergeProps(api.getItemTextProps({ item }), props)}
     >
       {children || item.label}
     </span>
@@ -625,15 +912,14 @@ Select.ItemIndicator = function SelectItemIndicator({
     <span
       className={styles.itemIndicator({ className })}
       ref={ref}
-      {...api.getItemIndicatorProps({ item })}
-      {...props}
+      {...mergeProps(api.getItemIndicatorProps({ item }), props)}
     >
-      <Icon icon="token-icon-select-check" size={iconSize} />
+      <Icon icon="token-icon-select-check" size={iconSize ?? "current"} />
     </span>
   )
 }
 
-interface SelectStatusTextProps extends ComponentPropsWithoutRef<"div"> {
+type SelectStatusTextProps = ComponentPropsWithoutRef<"div"> & {
   status?: "default" | "error" | "success" | "warning"
   size?: SelectSize
   showIcon?: boolean
@@ -647,25 +933,38 @@ Select.StatusText = function SelectStatusText({
   children,
   ...props
 }: SelectStatusTextProps) {
-  const { size: contextSize, validateStatus: contextValidateStatus } =
-    useSelectContext()
+  const {
+    size: contextSize,
+    validateStatus: contextValidateStatus,
+    errors,
+    registerDescription,
+  } = useSelectContext()
+  const generatedId = useId()
+  const id = props.id ?? `${generatedId}-status`
+  useRegisterDescription(id, registerDescription)
 
   const effectiveSize = sizeProp ?? contextSize
 
   const effectiveStatus = statusProp ?? contextValidateStatus
+  useEffect(
+    () =>
+      effectiveStatus === "error" ? errors.registerDescription(id) : undefined,
+    [effectiveStatus, errors.registerDescription, id]
+  )
 
   return (
-    <StatusText
+    <StatusTextComponent
       showIcon={showIcon}
       size={effectiveSize === "xs" ? "sm" : effectiveSize}
       status={effectiveStatus}
       {...props}
+      id={id}
     >
       {children}
-    </StatusText>
+    </StatusTextComponent>
   )
 }
 
-export { useSelectContext, selectVariants }
+export { selectVariants, useSelectContext }
 
 Select.displayName = "Select"

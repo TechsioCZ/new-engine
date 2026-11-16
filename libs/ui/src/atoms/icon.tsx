@@ -2,15 +2,16 @@
  * Icon — @techsio/ui-kit atom.
  *
  * @component Icon
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the icon-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { HTMLAttributes } from "react"
+import type { HTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 export type IconType = `token-icon-${string}` | `icon-[${string}]`
@@ -27,33 +28,50 @@ const iconVariants = tv({
       xl: "text-icon-xl",
       "2xl": "text-icon-2xl",
     },
-    color: {
+    severity: {
       current: "text-current",
-      primary: "text-primary",
-      secondary: "text-secondary",
-      danger: "text-danger",
-      success: "text-success",
-      warning: "text-warning",
+      primary: "text-icon-fg-accent-safe",
+      secondary: "text-icon-fg-secondary-safe",
+      danger: "text-icon-fg-danger-safe",
+      success: "text-icon-fg-success-safe",
+      warning: "text-icon-fg-warning-safe",
     },
   },
   defaultVariants: {
     size: "current",
-    color: "current",
+    severity: "current",
   },
 })
 
-export interface IconProps
-  extends Omit<HTMLAttributes<HTMLSpanElement>, "color">,
-    VariantProps<typeof iconVariants> {
-  icon: IconType
-  className?: string
-}
+export type IconProps = Omit<HTMLAttributes<HTMLSpanElement>, "color"> &
+  VariantProps<typeof iconVariants> & {
+    ref?: Ref<HTMLSpanElement>
+    icon: IconType
+    className?: string
+    /**
+     * Accessible name for a meaningful standalone icon (rendered as `role="img"`).
+     * Omit it for decorative icons and icons next to text: they stay `aria-hidden`.
+     */
+    label?: string
+  }
 
-export function Icon({ icon, size, color, className, ...props }: IconProps) {
+export function Icon({
+  icon,
+  size: sizeProp,
+  severity,
+  className,
+  label,
+  ...props
+}: IconProps) {
+  const { size } = useUIDefaults("Icon", { size: sizeProp }, iconVariants)
+  const a11yProps = label
+    ? { role: "img", "aria-label": label }
+    : { "aria-hidden": true }
+
   return (
     <span
-      aria-hidden="true"
-      className={`${iconVariants({ size, color, className })} ${icon}`}
+      {...a11yProps}
+      className={`${iconVariants({ size, severity, className })} ${icon}`}
       {...props}
     />
   )

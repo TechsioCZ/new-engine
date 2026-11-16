@@ -1,17 +1,21 @@
 ---
-component_version: "1.0.0"
 name: form-input-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit FormInput for
   labeled single-line fields with Label, Input, StatusText, validation status,
   help text, required, disabled, and size props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - input-usage
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/form-input.tsx"
   - "libs/ui/src/atoms/input.tsx"
@@ -23,6 +27,63 @@ sources:
 
 Use FormInput for labeled text-like inputs. Prefer this over manually composing
 Label, Input, and StatusText in apps.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `FormInput`.
+
+**Use it when**
+
+- Every labelled single-line text field in app forms: name, email, SKU, URL, search inside a form.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Multi-line text | FormTextarea |
+| Numbers, prices, quantities | FormNumericInput |
+| Phone numbers | PhoneInput |
+| Dates | DatePicker |
+| Choosing from options | Select / Combobox / RadioGroup |
+| Global/site search | SearchForm |
+
+**Do**
+
+- Label = noun, no colon (`Email`); placeholder only as an example (`e.g. TS-0042`).
+- Use `helpText` for format rules and consequences; it stays visible.
+- Validate on blur/submit; show the error through `validateStatus="error"` with a message saying how to fix it.
+- Set the right `type`, `autoComplete` and `inputMode` so browsers and mobile keyboards help.
+- Size the field to the expected value length within the form grid.
+
+**Don't**
+
+- Use the placeholder as the label.
+- Disable fields to show read-only data — render text or use read-only (ux-guidelines/states#read-only-vs-disabled).
+- Block paste or password managers.
+
+**Copy and states**
+
+- Error messages: what's wrong + how to fix (`Enter an email like name@example.com.`), never `Invalid input`.
+- Mark required fields with the component's `required`, not a typed asterisk.
+
+**Behaviour (from the UX spec)**
+
+- `success` means this value was checked, never that the form was saved; confirm saves on the form or with a toast.
+- On a validation or server error keep the whole text in the field; never truncate it silently.
+- Never mark an untouched empty field as an error (or an empty initial value as success) on load.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | `size` |
+| `state=error` / `success` / `warning` | `validateStatus` |
+| `state=disabled` | `disabled` |
+| `state=readonly` | `readOnly` |
+| `required=true` | `required` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/FormInput → UX guidelines*.
 
 ## Setup
 
@@ -41,14 +102,22 @@ import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 Supported props:
 
 ```text
-id: required
+id: optional (stable unique ID generated when omitted or empty)
 label: ReactNode
 validateStatus: default | error | success | warning
 helpText, showHelpTextIcon
+requiredLabel: screen-reader text for the required state; pass a translation, "" omits it (default "(required)")
 all Input props except where FormInput sets label/status behavior
 ```
 
 ## Core Patterns
+
+### Input classes and wrapper layout
+
+`FormInput` and `FormInputRaw` merge `className` into the native Input after
+its selected sm/md/lg size classes. Padding follows size, never the viewport;
+sm remains compact at desktop widths. The wrapper does not receive this class.
+Put field-to-field layout on a parent; prefer Input tokens for visuals.
 
 ### Use for complete field rows
 
@@ -56,7 +125,7 @@ If the field needs label, help, or validation text, start with FormInput.
 
 ### Use validateStatus instead of Input variant
 
-FormInput maps `validateStatus` to the underlying Input `variant` and
+FormInput forwards `validateStatus` to the underlying Input and
 StatusText status.
 
 ### Keep field spacing token-owned
@@ -86,7 +155,7 @@ Source: libs/ui/src/molecules/form-input.tsx
 Wrong:
 
 ```tsx
-<FormInput id="email" label="Email" variant="error" />
+<FormInput id="email" label="Email" validateStatus="error" />
 ```
 
 Correct:
@@ -117,6 +186,48 @@ Source: libs/ui/src/molecules/form-input.tsx
 
 ```sh
 rg -U -n "<Label[\\s\\S]{0,240}<Input|<FormInput[^>]*variant=|<FormInput[^>]*className=.*(mb-|mt-|gap-|border-|text-)" apps
-rg -P -n "<FormInput(?![^>]*id=)|<FormInput(?![^>]*label=)" apps
+rg -P -n "<FormInput(?![^>]*label=)" apps
 rg -n "<FormInput[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
+
+## Read-only and feedback contracts
+
+Use `readOnly` for visible, focusable, copyable values that must not change.
+The value keeps full contrast and a subtle surface; disabled wins when both
+are set. Canonical sizes are sm/md/lg, default md, including labels and feedback.
+
+`helpText` renders StatusText with a stable unique ID, merged with caller
+`aria-describedby`. Errors also set `aria-invalid` and `aria-errormessage`;
+the internally generated error reference disappears when wrapper validation clears. Error/warning/success
+icons always remain enabled; `showHelpTextIcon` only customizes neutral help.
+Validate on blur/submit and use actionable copy rather than color alone.
+
+The legacy Raw export also associates plain helper copy and precomposed
+StatusText elements. Existing StatusText IDs are retained; plain copy receives
+the same default status icons and ARIA wiring as the standard entry point.
+
+
+Caller-supplied `aria-errormessage` IDs are preserved independently of
+`validateStatus`, including when the caller supplies the invalid state. Clear
+caller-owned error IDs and invalid state together when removing that message;
+the wrapper only manages the lifecycle of its own generated error reference.
+
+### Generated IDs
+
+Omitting `id` generates a stable, unique control ID and associates the label
+and feedback automatically. Supply a unique explicit ID only when an external
+error summary or another consumer must reference the control.
+
+```tsx
+<FormInput label="Email" name="email" type="email" />
+```
+
+## Silent native form reset
+
+Native form reset calls no value-change callbacks and dispatches no native
+`input` or `change` events. Uncontrolled controls silently restore their default;
+controlled controls keep the latest parent value and re-sync visible text, native
+value and FormData. Handle the form's `onReset` to intentionally change parent
+state. Canceled resets change nothing. React's value tracker is re-synced after
+restoration, so the next identical user edit notifies exactly once. Reset does
+not move focus.

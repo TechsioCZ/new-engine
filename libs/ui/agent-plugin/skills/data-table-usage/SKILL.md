@@ -1,5 +1,4 @@
 ---
-component_version: "1.0.0"
 name: data-table-usage
 description: >
   Use after component-usage-ux when an app needs the @techsio/ui-kit DataTable —
@@ -8,18 +7,19 @@ description: >
   column filters, global search, row selection, column visibility/pinning/reorder,
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
   infinite scroll and pagination — every feature behind a flag with a callback.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-  - table-usage
-sources:
-  - "libs/ui/src/organisms/data-table.tsx"
-  - "libs/ui/src/organisms/data-table.helpers.ts"
-  - "libs/ui/stories/organisms/data-table.stories.tsx"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides table-usage ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/organisms/data-table.tsx libs/ui/src/organisms/data-table.helpers.ts libs/ui/stories/organisms/data-table.stories.tsx"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit DataTable Usage
 
@@ -28,6 +28,60 @@ renders into the presentational `Table` organism, so it inherits every
 `--color-table-*` / `--padding-table-cell-*` token. Reach for the plain `Table`
 when you only need static markup; reach for `DataTable` when you need
 sorting/filtering/selection/pagination and friends.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `DataTable`.
+
+**Use it when**
+
+- Collections users search, sort, filter, select, edit inline and page through — the default for admin lists.
+- Any list that is the main content of a page (orders, products, customers, pages).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A small static table (spec sheet, invoice lines) | Table |
+| Browsing products visually | a ProductCard grid |
+| Showing a trend | Chart |
+| Editing a whole record with validation across fields | the drawer/full form, not inline edit |
+
+**Do**
+
+- Align numeric columns (money, counts, percentages) with `meta: { align: "end" }` and render them with `tabular-nums`; text and dates stay start-aligned (ux-guidelines/formatting#alignment-in-tables).
+- Format cells with the app's `Intl` formatters; render missing values as `—`.
+- Row click = read (detail drawer); edit and delete live in `rowActions`, delete last with `severity: "danger"`.
+- Show bulk actions only while rows are selected; confirm destructive bulk actions with the count.
+- Design all three empty states (first use, no results, load error). `translations.emptyTitle` / `emptyDescription` hold one message, so pick it from the app's state on each render, or use `renderEmpty` to render a different state (with `Clear filters` / `Try again`) per case — never let a failed load read as `No records`.
+
+**Don't**
+
+- Build a separate filter bar when column filters (`enableColumnFilters` + `meta.type`) fit.
+- Blank the table while refreshing — keep rows and show progress in the toolbar.
+- Put more than one primary action in the toolbar (the page's primary lives in the page header) or more than three own actions (the rest go into a `Menu`).
+
+**Copy and states**
+
+- Column headers are short nouns in sentence case, with units when shared (`Price (€)`).
+- Inline edit success → toast `<Object> saved`; errors stay on the cell editor. Search placeholder `Search <objects>…`.
+
+**Behaviour (from the UX spec)**
+
+- Inline edit: Cancel restores the last saved value, and moving focus never silently commits another row's edit.
+- If a sort, filter or page request fails, revert the indicator and keep the previous rows; `sort=none` means sortable but unsorted.
+- Expand toggles use a chevron (never ×) and expanding never selects the row. The page-size select needs an accessible name; cell links and buttons don't make it an ARIA grid (no `role="grid"`).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| toolbar / filter row / pagination `size=md` | `size="sm" \| "md" \| "lg"` (shared by nested controls; `sm` for scanning, `md` when rows are edited inline) |
+| `Table.IconButton` | `ActionIcon` with `aria-label` (no Table.IconButton exists) |
+| `state=loading` | `loading` / `loadingMore` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/DataTable → UX guidelines*.
 
 ## Setup
 
@@ -105,8 +159,8 @@ stays on one line. The active condition is in the button's `aria-label`, and for
 `Is empty` / `Is not empty` the input is disabled and shows the condition as its
 placeholder.
 
-Row actions use the `Button` atom icon-only at `size="sm"`, `theme="borderless"`,
-with `variant` carrying the semantics (`danger` for destructive actions).
+Row actions use the `Button` atom icon-only at `size="sm"`, `appearance="ghost"`,
+with `severity` carrying the semantics (`danger` for destructive actions).
 
 Escape hatches, in precedence order: `meta.renderFilter` / `meta.renderEditor`
 per column → the table-wide `renderHeaderFilter` slot → `filterRenderers` /
@@ -190,7 +244,7 @@ custom actions sit at the trailing edge in a flex group.
   enableGlobalFilter
   toolbarActions={[
     { id: "refresh", "aria-label": "Refresh", icon: "icon-[mdi--refresh]", onClick: refetch },
-    { id: "export", label: "Export", icon: "icon-[mdi--tray-arrow-down]", variant: "warning", onClick: exportCsv },
+    { id: "export", label: "Export", icon: "icon-[mdi--tray-arrow-down]", severity: "warning", onClick: exportCsv },
     { id: "filters", label: "Filters", icon: "token-icon-chevron-down", iconPosition: "right", onClick: openFilters },
   ]}
 />
@@ -258,7 +312,7 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
 - `enableSorting` (default `true`) — click header to sort; `meta.align: "end"` right-aligns numeric columns.
 - `enableGlobalFilter` — renders the toolbar search (`DataTable.GlobalSearch`).
 - `enableColumnFilters` — renders a per-column filter row. Pick the control with `meta.type` (`"string" | "int" | "number" | "boolean" | "enum" | "multiEnum" | "date" | "datetime" | "dateRange" | "time" | "custom"`), plus `meta.options` for the enum types. Columns get `filterFn: "typed"` by default, which dispatches on that same `meta.type`; set `filterFn: "conditional"` for the operator-based ("with conditions") comparator instead, or override the whole UI with `meta.renderFilter` / `renderHeaderFilter`. `meta.filterVariant` and `meta.filterOptions` are deprecated aliases kept for older columns: both still work — `filterVariant` is resolved to a `meta.type` (`text`→`string`, `number`/`range`→`number`, `select`→`enum`) and selects that type's control and matcher, and `filterOptions` is used when `options` is absent. Prefer `meta.type` / `meta.options` in new code.
-- `enableRowSelection` — injects a leading checkbox column; header checkbox toggles all.
+- `enableRowSelection` — injects a leading checkbox column; header checkbox toggles eligible loaded records (all client pages, but only the loaded response in manual server paging). Always supply stable `getRowId`.
   Constrain it with `selectionMode: "single" | "multiple"` (single replaces the
   selection), `maxSelectedRows: N` (a hard cap — unselected rows disable once it
   is reached, selected ones stay deselectable, and `onSelectionLimitReached`
@@ -274,13 +328,13 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
 - `enableExpanding` — the expand toggle lives in the trailing actions cell, so it never collides with the selection checkbox. Pair with `getSubRows` for tree rows, or with `renderExpandedRow` alone for master-detail (every row becomes expandable; narrow it with `getRowCanExpand`). The detail renders as one full-width cell spanning every column, containing a plain `div` — put any layout inside, no nested table cells.
 - `enablePagination` — renders `DataTable.Pagination` ("start–end of total" + page-size select + pager). Configure `pageSizeOptions`.
 - `enableVirtualization` + `maxHeight` — windowed rendering for large datasets (keeps native column alignment). Set `estimateRowHeight`.
-- `enableColumnResizing` — draggable column widths (`columnResizeMode: "onChange"`); widths are applied inline per cell.
+- `enableColumnResizing` — draggable column widths (`columnResizeMode: "onChange"`); the leaf colgroup carries inline widths, and only leaf headers offer resize/reset handles. Pointer/touch drags start from the rendered leaf width, including CSS-string widths such as `"20rem"`, and follow the table's RTL direction.
 - `enableInlineEdit` — type-driven row editing with an edit/save/cancel actions cell (see above).
 - `stickyActions` (default `true`) — pin the row-actions cell to the right edge.
 - `hideHeader` — render without the column header row(s).
 - `onReachEnd` + `maxHeight` — infinite scroll; called once when scrolled near the bottom.
 
-Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct. Prefer `rowCount` — it makes the "start–end of total" label exact. With only `pageCount`, the total is derived as `pageCount * pageSize`, so every page is reachable but the figure is an upper bound on the last page.
+Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct. Prefer `rowCount` — it makes the "start–end of total" label exact. With only `pageCount`, capacity is derived as `pageCount * pageSize` to keep every page reachable, but user-facing copy reports pages rather than an invented exact record total. Use `pageCount=-1` for unknown-total Previous/Next navigation. A settled `pageCount=0` response reports the exact empty range (`0–0 of 0`) through `rangeLabel`, not “Page 1 of 0”. During loading/refetch, pager destinations stay mounted and unavailable for activation; transient empty totals do not remove keyboard focus. If the settled response removes the focused page, focus moves to the new current page (or the remaining page-size control when no pages remain), unless the user has moved it elsewhere.
 
 ## Callbacks (for interaction tests + app wiring)
 
@@ -321,23 +375,23 @@ forwards it to `onCellEditCommit`.
 
 ## Presentation
 
-`variant` (`line | outline | striped`), `size` (`sm | md | lg`), `stickyHeader`,
+`appearance` (`line | outline | striped`), `size` (`sm | md | lg`), `stickyHeader`,
 `showColumnBorder`, `hideHeader`, `caption` — all forwarded to the underlying
 `Table`. Use `stickyHeader` with `maxHeight` for a scrolling body and
 `hideHeader` for headerless layouts.
 
 The whole grid is one rounded card: the wrapper carries `rounded-table` and
 clips its children, so the corners are correct with a toolbar, a pagination
-footer, both, or neither — including the empty state. `variant="outline"` draws
+footer, both, or neither — including the empty state. `appearance="outline"` draws
 its border on that wrapper rather than on the `<table>`, so the toolbar and
 footer sit inside the outline instead of beside it.
 
 The wrapper always draws a border in `--color-table-border`, the same colour as
-the row separators, so the grid reads as one bounded block. `variant="outline"`
+the row separators, so the grid reads as one bounded block. `appearance="outline"`
 adds the outline shadow on top of it.
 
 `striped` is a standalone boolean, so zebra rows compose with any variant —
-prefer it over `variant="striped"`, which cannot be combined with `outline`.
+prefer it over `appearance="striped"`, which cannot be combined with `outline`.
 A striped row drops its own bottom border (the alternating background is
 already a separator; drawing both looked doubled-up), so an unstriped table
 still has the row-divider border and a striped one doesn't.
@@ -356,3 +410,86 @@ clicks, so rows never look clickable when they are not.
 - Do not hardcode colors/padding — the grid is fully tokenised via `Table`.
 - Do not reach for a canvas grid (VTable/S2): they cannot use our Tailwind tokens.
 - Do not mutate `data` in place for row reorder — apply the `onRowReorder` `data` result to your state.
+
+## Wave 2 contracts
+
+With enableColumnResizing, focus a Resize <column> edge and press Left/Right to change its width by 10px (Shift: 50px), clamped to column minSize/maxSize. Enter or Home resets its width; pointer double-click also resets. Keep destructive bulk actions behind an alertdialog naming the affected records, or provide a real undo path. Skeleton fill uses a table-specific token so it remains distinct in dark mode. Canonical sizes are sm/md/lg (default md).
+
+The bounded scroll surface is a keyboard-focusable named region. Its caption supplies the name; without a caption, localize `translations.scrollLabel` (default “Scrollable records”). Virtual padding rows are hidden from the accessibility tree while real rows retain absolute `aria-rowindex` and the table reports the full `aria-rowcount`.
+
+Default inline editors render sized StatusText errors with icons, aria-invalid and aria-errormessage on the actual control. Choice editors own their feedback through the widget API; custom editors receive error/errorId and must associate their focus target. Built-in editors reserve a size-dependent minimum value width so numeric values remain readable beside steppers; constrained fixed-layout cells scroll locally instead of covering adjacent fields.
+
+Sticky actions pin only when the table scroll container is at least 48rem wide. In narrower containers they scroll with the row, so Save/Cancel cannot cover a focused value editor. This is container-responsive, including narrow panels on desktop.
+
+## Record identity and selection scope
+
+Always provide a stable `getRowId={(record) => record.id}` for selection,
+editing and server paging. Never key identity by the returned page index.
+Select-all affects all eligible **loaded records** in the client row model,
+not only the current client-side page. In manual server paging it affects only
+the loaded response, not unseen server records. Cross-page selected IDs may be
+retained by a controlled owner. Already-selected records remain deselectable
+when `canSelectRow` changes; new ineligible selections are refused. Revalidate
+all bulk-action permissions on the server before execution, including unloaded IDs.
+
+## Widths, direction and windowing
+
+The leaf colgroup is the sizing authority, including grouped fixed layouts.
+Only leaf headers expose resize handles: resize/reset each leaf rather than a
+group. Pointer and keyboard resizing both follow the table's effective inherited
+direction. Frozen offsets use measured rendered widths, including CSS-string
+widths, and end-pinned leaves reserve the actual sticky actions width.
+Virtualization uses stable record/detail keys and measures every mounted row,
+including expanded detail rows; `estimateRowHeight` is an initial estimate only.
+Detail rows and footers are included in the accessible sequence. Client-paginated detail tables count expanded details on preceding pages.
+Manual-paginated detail tables use page-local structural indexes because prior
+pages' detail counts are unknown; flat paginated tables use absolute record indexes. Manual pages
+without `rowCount` report unknown `aria-rowcount=-1`.
+
+## Persistence and validation
+
+`onEditCommit` may return `void` or `Promise<void>`. Return/await persistence
+before applying local rows. The editor stays mounted while saving, duplicate
+submissions are blocked, and rejection keeps the draft with an error and retry.
+Localize `savePendingLabel` and `saveErrorLabel`; custom row actions receive
+`pending` and `error` alongside `commitEdit`. Do not close a controlled editor
+before its promise succeeds. Required date ranges need at least one endpoint
+(open-ended ranges are supported); completely empty optional ranges are valid.
+Populated bounds must be valid dates and the start must not follow the end.
+Both Save and Enter perform these checks. Localize `invalidRangeLabel`.
+
+## Server pagination ownership
+
+`rowCount` is an exact total; `pageCount` alone is capacity, never an exact record
+count. Without `rowCount`, default copy uses localized `pageLabel({page,pageCount})`
+rather than the exact `rangeLabel` contract. With `pageCount=-1`, the pager shows
+Previous/Next without fabricated last-page links; optionally set `hasNextPage`
+from the response. Localize `previousPageLabel` and `nextPageLabel`.
+Settled totals that invalidate a page request the last valid page once through
+`onPaginationChange` (or update uncontrolled state); page-size changes atomically
+reset to page zero. The parent owns fetching: mark transient responses `loading`
+and cancel/ignore stale requests so rowCount belongs to the current request.
+An invalid response shows a correction message, not a false empty-success state.
+`loadingMore` announces loading even when the first response has no rows.
+`renderEmpty` owns its own accessible feedback; the default empty live announcement
+is suppressed when custom content is supplied.
+
+If the combined frozen bands cannot fit their scroll container, pinning temporarily yields to horizontal scrolling so every column stays reachable; the requested pins resume when there is room.
+
+On narrow screens, pinned columns that fit stay frozen (start-side identity
+columns first); pins that would leave no scrollable room scroll with the data
+and freeze again when space permits. Resized widths are kept under auto table
+layout, and virtualized measurement is frame-batched so resizing never
+triggers ResizeObserver loops.
+
+The toolbar wraps search and actions on narrow screens, fixed-layout cells clip
+their content to the column, and empty or loading feedback centers in the
+visible scrollport. When start and end pins would leave no room for middle
+columns, end pins scroll with the data.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.
+
+Omit interactive sort controls from grouped-header alignment placeholders.
+
+Fixed-layout column filters scroll within their cell instead of overlapping neighbouring filters; auto layout keeps the full control width.

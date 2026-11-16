@@ -4,11 +4,35 @@
  * This file only declares what Figma does not export:
  *   - `--spacing-form-field-gap` — used by the FormField molecule to space
  *     label, control, and helper text.
+ *   - `--font-weight-input` and `--font-weight-input-placeholder`.
+ *     Code-owned until the shared Figma library exports the same aliases.
  *
  * Color, border-width, padding, radius, text, ring, validation, and the
  * `--padding-input-with-button*` family are all owned by Figma.
  */
 
 @theme static {
+  /* Read-only reference and public component aliases. */
+  --color-input-readonly: var(--color-form-control-readonly);
+  --color-input-text-readonly: var(--color-form-control-text);
+  --color-input-bg-readonly: var(--color-input-readonly);
+  --color-input-fg-readonly: var(--color-input-text-readonly);
+  /* Read-only hover/focus border; defaults keep the editable response. */
+  --color-input-border-readonly-hover: var(--color-input-border-hover);
+  --color-input-border-readonly-focus: var(--color-input-border-focus);
+
+  --font-weight-input: var(--font-weight-normal);
+  --font-weight-input-placeholder: var(--font-weight-normal);
   --spacing-form-field-gap: var(--spacing-form-field);
+
+  /* Independent inline padding preserves field height and embedded controls. */
+  --padding-input-inline-sm: var(--padding-input-x-sm);
+  --padding-input-inline-md: var(--padding-input-md);
+  --padding-input-inline-lg: var(--padding-input-lg);
+}
+
+/* Feed component overrides into the shared state utility on this surface. */
+@utility input-readonly {
+  --color-form-control-bg-readonly: var(--color-input-bg-readonly);
+  --color-form-control-fg-readonly: var(--color-input-fg-readonly);
 }

@@ -1,0 +1,235 @@
+---
+name: command-usage
+description: >
+  Use after component-usage-ux when an app needs @techsio/ui-kit Command for a
+  searchable action list or a Dialog-based command palette with compound parts,
+  grouped results, disabled actions, and optional shortcut hints.
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+requires:
+  - component-usage-ux
+  - zag-compound-components
+  - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
+sources:
+  - "libs/ui/src/molecules/command.tsx"
+  - "libs/ui/src/internal/molecules/command.context.ts"
+  - "libs/ui/src/tokens/components/molecules/_command.css"
+  - "libs/ui/stories/molecules/command.stories.tsx"
+  - "libs/ui/src/molecules/dialog.tsx"
+  - "libs/ui/test/command.spec.ts"
+  - "https://zagjs.com/components/react/combobox"
+---
+
+# @techsio/ui-kit Command Usage
+
+Command is a **command palette**: a searchable, keyboard-first list of actions
+and destinations, often opened with ⌘K (Ctrl+K on Windows/Linux). It runs an
+action on Enter or click; highlighting does not execute anything. It can live
+inline or inside a Dialog.
+
+Use Combobox for a searchable form value, Select for fixed form choices, Menu
+for a short action list without search, and Dialog for the modal shell. Command
+does not register ⌘K automatically: compose it with the hotkey store only when
+you need an application-wide shortcut.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Command`.
+
+**Use it when**
+
+- A keyboard-first palette for searching and running application actions and navigation (⌘K).
+- Power-user workflows in admin tools where many commands exist.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Choosing a form value | Combobox |
+| A short list of actions for one object | Menu |
+| Catalog search for shoppers | SearchSuggestions |
+
+**Do**
+
+- Group results (Navigation, Actions, Recent) with clear headings; put the most likely result first.
+- Show each command's shortcut with Hotkeys.
+- Name commands as verbs + objects (`Create product`, `Go to orders`).
+- Confirm destructive commands the same way the UI does (alertdialog or Undo).
+
+**Don't**
+
+- Make the palette the only way to reach a feature.
+- Execute on highlight; execute on Enter/click only.
+
+**Copy and states**
+
+- Placeholder `Type a command or search…`; empty state `No results for “exprt”`.
+
+**Behaviour (from the UX spec)**
+
+- An unavailable command (`disabled`) looks and reads different from "no match"; zero matches is not an outage, and remote loading or load errors are not shown as "no results".
+- Closing without choosing changes nothing; the app confirms results where the object lives.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=disabled-item` | item `disabled: true` |
+| `state=disabled` | `disabled` on the root |
+| `state=grouped` | items with `group` + `Command.ItemGroup` / `ItemGroupLabel` |
+| `state=empty` | `Command.Empty` |
+| `state=highlighted` | not a prop (kit highlight state) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Command → UX guidelines*.
+
+## Setup
+
+```tsx
+import { Command, type CommandItem } from "@techsio/ui-kit/molecules/command"
+
+const items: CommandItem[] = [
+  { value: "orders", label: "Orders", keywords: ["invoice"] },
+  { value: "settings", label: "Settings", disabled: true },
+]
+
+<Command items={items} onSelect={({ itemValue }) => runAction(itemValue)}>
+  <Command.Label>Actions</Command.Label>
+  <Command.Control>
+    <Command.Input placeholder="Search actions…" />
+  </Command.Control>
+  <Command.List>
+    <Command.Context>
+      {(api) => api.collection.items.map((item) => (
+        <Command.Item key={item.value} item={item}>
+          <Command.ItemText />
+        </Command.Item>
+      ))}
+    </Command.Context>
+  </Command.List>
+  <Command.Empty>No matching actions</Command.Empty>
+</Command>
+```
+
+Callable `Command` and `Command.Root` are the same root. It accepts `items`,
+`disabled`, `loopFocus`, `locale`, `inputValue`, `defaultInputValue`,
+`onInputValueChange`, `onSelect`, `onEscape`, `id`, `className` and `ref`.
+It does not expose form selection or multi-selection flags.
+
+The internal React contexts live outside the hot-reloaded component module so
+compound parts keep the same provider identity during Storybook development.
+This is an implementation detail and does not add another public component.
+
+## Keep one result collection
+
+Items have a stable string `value`, string `label`, optional `keywords`,
+`disabled` and `group`. Values identify actions independently of translated
+labels. Matching uses Zag's locale-aware substring filter across label and
+keywords, preserving input order; it is not fuzzy ranking.
+
+Render results from `Command.Context`'s `api.collection.items`, not the original
+unfiltered array. Derive visible groups from these results and pair
+`Command.ItemGroup id="navigation"` with
+`Command.ItemGroupLabel htmlFor="navigation"`. Omit groups with no results.
+Place `Command.Empty` outside the listbox; its status follows the same collection.
+
+## Activate actions deliberately
+
+Use `onSelect={({ itemValue }) => runAction(itemValue)}`, not highlight changes
+or selected-value changes. Focusing and navigating must not run application
+actions. Repeated activation of the same available action is supported.
+
+An item is one listbox option. Icons, text and shortcut hints can decorate it;
+do not put buttons, inputs or independently interactive links inside the option.
+`Command.ItemText` defaults to the item's label.
+
+The application owns callbacks and availability. No shortcut is required.
+Command does not register hotkeys or dispatch synthetic keyboard events.
+Keyboard scopes are not permissions: apply application availability to all
+activation paths, including buttons, palette actions and registered shortcuts.
+
+## Compose the existing Dialog
+
+The kit's current Dialog is a single component, not `Dialog.Root` parts:
+
+```tsx
+<Button ref={triggerRef} onClick={() => setOpen(true)}>
+  Open command palette
+</Button>
+<Dialog
+  customTrigger
+  open={open}
+  onOpenChange={({ open }) => setOpen(open)}
+  title="Command palette"
+  description="Search and run an action."
+  initialFocusEl={() => inputRef.current}
+  finalFocusEl={() => triggerRef.current}
+>
+  <Command
+    items={items}
+    onSelect={({ itemValue }) => runAction(itemValue)}
+    onEscape={() => setOpen(false)}
+  >
+    <Command.Label>Actions</Command.Label>
+    <Command.Control><Command.Input ref={inputRef} /></Command.Control>
+    {/* The same List, Context, Item and Empty composition shown above. */}
+  </Command>
+</Dialog>
+```
+
+Import Button and Dialog from their normal `@techsio/ui-kit/atoms/button` and
+`@techsio/ui-kit/molecules/dialog` paths. The caller owns open state and stable
+React refs. Always provide a visible opener; a keyboard shortcut is optional.
+
+Wire `onEscape` for the modal palette: it forwards Zag's native escape-close
+request. No second keydown listener or custom focus trap is needed. Inline Tab
+keeps ordinary page traversal; Dialog owns modal focus containment and restoration.
+The caller decides whether successful selection closes the palette.
+
+The persistently open native Combobox focuses its input when Command mounts,
+including inline use. Mount it deliberately; do not assume an unsupported
+`autoFocus={false}` prop suppresses this upstream behavior.
+
+## Query ownership and presentation
+
+Use `defaultInputValue` for an initial query, or the
+`inputValue`/`onInputValueChange` pair for an app-controlled query. Do not
+attach a second `value`/`onChange` query state to `Command.Input`.
+
+Input and Label reuse kit atoms. Other parts use `--*-command-*` tokens;
+override those in the app token layer instead of repeating appearance classes.
+Highlighted actions use both a background and semibold text, so the active
+result is not indicated by color alone. The inline list does not require a
+floating positioner, portal or selected-item indicator gutter. Root introduces
+no breakpoint-specific behavior.
+
+Native Zag owns navigation and composition handling. Synthetic IME event tests
+are not proof of every OS input method or physical keyboard layout. Do not claim
+screen-reader certification or universal keyboard support from these examples.
+
+## Storybook examples
+
+Playground starts on `Overview`; type `invoice` and press Enter or click
+`Orders` to change the visible demo view to `Orders`. Grouped shows the same
+selection feedback while groups follow the query. ChangingItems demonstrates
+availability and removal with a reset button. Localized demonstrates Czech
+accent-insensitive matching. InDialog opens the palette with the input focused,
+keeps the dialog open after a selection, and restores focus to the opener on
+Escape. `Command/With Hotkey/Playground` adds one integrated palette where
+`mod+K`, the Save button, `mod+S`, and a palette selection update the visible
+workspace state. Its inline Docs canvases scope shortcuts to the preview with
+keyboard focus or its open dialog, so only one palette opens and only that
+workspace receives Save. Focus a preview button before using a Docs shortcut.
+Standalone stories keep application-wide shortcuts. When embedding independent
+palettes in one document, use focus-based enabled predicates (including portaled
+dialogs) or separate documents rather than registering competing global handlers.
+
+Only Playground exposes relevant Controls. Technical regression fixtures and
+the already-open visual fixture use `!dev` and `!autodocs`; their direct story
+ids remain available to the browser tests.

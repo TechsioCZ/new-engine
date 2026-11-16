@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-22805
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/form-textarea.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/form-textarea.tsx
 // component=FormTextarea
 
 import figma from "figma"
@@ -32,13 +32,13 @@ export default {
   ],
   example: figma.code`<FormTextarea${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} id="field" label="Label"${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}/>`,
   metadata: { nestable: true },
 }

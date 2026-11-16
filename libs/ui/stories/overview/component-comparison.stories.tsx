@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useId, useState } from 'react'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { Badge } from '../../src/atoms/badge'
 import { Button } from '../../src/atoms/button'
 import { Checkbox } from '../../src/atoms/checkbox'
@@ -42,13 +43,19 @@ import { TreeView, type TreeNode } from '../../src/molecules/tree-view'
 import { Footer } from '../../src/organisms/footer'
 import { Header } from '../../src/organisms/header'
 import { Table } from '../../src/organisms/table'
+import {
+  type UIAppearance,
+  UIProvider,
+  type UISize,
+} from '../../src/theme/ui-provider'
 
 const meta: Meta = {
   title: 'Overview/Component Comparison',
   parameters: {
     layout: 'fullscreen',
+    docs: { description: { component: 'Compare the same active-brand tokens across representative kit components. Use individual component Docs for API guidance and interaction details.' } },
   },
-  tags: ['comparison'],
+  tags: ['autodocs', 'comparison'],
 }
 
 export default meta
@@ -69,7 +76,7 @@ function ComponentCard({
 }: ComponentCardProps) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-300 ${className ?? ''}`}
+      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-200 sm:p-300 ${className ?? ''}`}
     >
       <div className="text-fg-secondary text-sm font-semibold">{title}</div>
       <div className={bodyClassName ?? 'flex flex-wrap items-center gap-200'}>
@@ -245,6 +252,11 @@ const treeData: TreeNode[] = [
   { id: 'package.json', name: 'package.json' },
 ]
 
+const usd = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+})
+
 const tableRows = [
   { id: 1, name: 'Laptop', category: 'Electronics', price: 999.99, stock: 24 },
   { id: 2, name: 'Coffee Maker', category: 'Appliances', price: 49.99, stock: 98 },
@@ -271,29 +283,69 @@ function ToastPreview() {
 
 function ComponentComparison() {
   const [currentStep, setCurrentStep] = useState(1)
+  const id = useId()
 
   return (
     <div className="min-h-screen bg-base text-fg-primary">
-      <div className="mx-auto flex max-w-5xl flex-col gap-700 p-600">
+      <div className="mx-auto flex max-w-5xl flex-col gap-700 p-200 md:p-600">
         <header className="flex flex-col gap-100">
           <h1 className="text-xl font-semibold">Component Comparison</h1>
           <p className="text-fg-secondary text-sm">
-            Side-by-side snapshots of UI primitives and composites for visual
-            consistency checks.
+            Representative snapshots, not an exhaustive component inventory.
+            Use the linked companion checks below for omitted families and open/selected states.
           </p>
         </header>
+
+        <nav aria-label="Companion comparison coverage" className="space-y-200">
+          <h2 className="font-semibold text-md">Companion checks</h2>
+          <p className="text-fg-secondary text-sm">Use the toolbar to check Business/light, Akros/light and N1/light on each linked story. These focused stories cover the families intentionally omitted from this compact overview.</p>
+          <ul className="grid gap-100 sm:grid-cols-2">
+            <li><Link href="./?path=/story/molecules-player--playground" target="_top">Player</Link> — custom media controls</li>
+            <li><Link href="./?path=/story/molecules-audioplayer--with-title-and-cover" target="_top">AudioPlayer</Link> — audio playback with title and cover</li>
+            <li><Link href="./?path=/story/molecules-videoplayer--playground" target="_top">VideoPlayer</Link> — video playback and fullscreen</li>
+            <li><Link href="./?path=/story/overview-component-comparison--nested-form-popup" target="_top">Dialog with an editable popup</Link> — popup surface and Escape order</li>
+            <li><Link href="./?path=/story/atoms-linkbutton--playground" target="_top">LinkButton</Link> — link focus and disabled state</li>
+            <li><Link href="./?path=/story/molecules-priceblock--playground" target="_top">PriceBlock</Link> — price and currency</li>
+            <li><Link href="./?path=/story/molecules-totalssummary--playground" target="_top">TotalsSummary</Link> — order totals</li>
+            <li><Link href="./?path=/story/molecules-chart--playground" target="_top">Chart</Link> — selected series and tooltip</li>
+            <li><Link href="./?path=/story/molecules-formerrorsummary--playground" target="_top">FormErrorSummary</Link> — error links and focus</li>
+            <li><Link href="./?path=/story/molecules-availabilitystatus--playground" target="_top">AvailabilityStatus</Link> — stock feedback</li>
+            <li><Link href="./?path=/story/molecules-quantityfield--playground" target="_top">QuantityField</Link> — stepper states</li>
+            <li><Link href="./?path=/story/organisms-gallery--playground" target="_top">Gallery</Link> — selected media</li>
+            <li><Link href="./?path=/story/organisms-lineitem--playground" target="_top">LineItem</Link> — quantity and remove actions</li>
+            <li><Link href="./?path=/story/templates-facetfilterpanel--playground" target="_top">FacetFilterPanel</Link> — active filters</li>
+            <li><Link href="./?path=/story/templates-searchsuggestions--playground" target="_top">SearchSuggestions</Link> — query results</li>
+            <li><Link href="./?path=/story/molecules-dialog--controlled-escape" target="_top">Controlled dialog Escape</Link> — popup-first dismissal</li>
+
+            <li><a className="underline" href="./?path=/story/atoms-actionicon--playground" target="_top">ActionIcon</a> — keyboard focus</li>
+            <li><a className="underline" href="./?path=/story/molecules-radiogroup--playground" target="_top">RadioGroup</a> — checked choice</li>
+            <li><a className="underline" href="./?path=/story/molecules-radiocard--playground" target="_top">RadioCard</a> — checked choice</li>
+            <li><a className="underline" href="./?path=/story/molecules-datepicker--playground" target="_top">DatePicker</a> — open calendar</li>
+            <li><a className="underline" href="./?path=/story/molecules-phoneinput--playground" target="_top">PhoneInput</a> — country popup</li>
+            <li><a className="underline" href="./?path=/story/molecules-cascadeselect--playground" target="_top">CascadeSelect</a> — nested selection</li>
+            <li><a className="underline" href="./?path=/story/molecules-drawer--playground" target="_top">Drawer</a> — open surface</li>
+            <li><a className="underline" href="./?path=/story/molecules-fileupload--playground" target="_top">FileUpload</a> — selected files</li>
+            <li><a className="underline" href="./?path=/story/molecules-command--playground" target="_top">Command</a> — open search</li>
+            <li><a className="underline" href="./?path=/story/organisms-sidebar--playground" target="_top">Sidebar</a> — active navigation</li>
+            <li><a className="underline" href="./?path=/story/organisms-datatable--playground" target="_top">DataTable</a> — selection and column popup</li>
+            <li><a className="underline" href="./?path=/story/molecules-verticalnavigation--playground" target="_top">VerticalNavigation</a> — selected branch</li>
+            <li><a className="underline" href="./?path=/story/molecules-tour--playground" target="_top">Tour</a> — active step</li>
+            <li><a className="underline" href="./?path=/story/molecules-popover--nested-popovers" target="_top">Nested popovers</a> — nested opaque surfaces</li>
+            <li><a className="underline" href="./?path=/story/molecules-dialog--nested-overlays" target="_top">Dialog with nested overlays</a> — stacking, Escape and focus restoration</li>
+          </ul>
+        </nav>
 
         <Section
           title="Atoms"
           gridClassName="grid grid-cols-1 gap-300  lg:grid-cols-2 xl:grid-cols-3"
         >
           <ComponentCard title="Badge">
-            <Badge variant="primary">New</Badge>
-            <Badge variant="secondary">Beta</Badge>
+            <Badge severity="primary">New</Badge>
+            <Badge severity="secondary">Beta</Badge>
           </ComponentCard>
           <ComponentCard title="Button">
-            <Button size="md">Primary</Button>
-            <Button size="md" variant="secondary">
+            <Button>Primary</Button>
+            <Button severity="secondary">
               Secondary
             </Button>
           </ComponentCard>
@@ -315,7 +367,7 @@ function ComponentComparison() {
             />
           </ComponentCard>
           <ComponentCard title="Input" bodyClassName="w-full max-w-xs">
-            <Input placeholder="Email address" size="md" />
+            <Input placeholder="Email address" />
           </ComponentCard>
           <ComponentCard title="Label">
             <Label required size="md">
@@ -323,9 +375,10 @@ function ComponentComparison() {
             </Label>
           </ComponentCard>
           <ComponentCard title="NumericInput" bodyClassName="w-full max-w-xs">
-            <NumericInput defaultValue={12} size="md">
+            <Label htmlFor={`${id}-quantity`} size="md">Order quantity</Label>
+            <NumericInput defaultValue={12}>
               <NumericInput.Control>
-                <NumericInput.Input />
+                <NumericInput.Input id={`${id}-quantity`} />
                 <NumericInput.TriggerContainer>
                   <NumericInput.IncrementTrigger />
                   <NumericInput.DecrementTrigger />
@@ -334,26 +387,26 @@ function ComponentComparison() {
             </NumericInput>
           </ComponentCard>
           <ComponentCard title="Rating">
-            <Rating defaultValue={4} size="md" />
+            <Rating defaultValue={4} />
           </ComponentCard>
           <ComponentCard title="Skeleton" bodyClassName="flex items-center gap-200">
-            <Skeleton.Circle size="md" />
+            <Skeleton.Circle />
             <Skeleton.Text
               containerClassName="w-full max-w-xs"
               noOfLines={2}
             />
           </ComponentCard>
           <ComponentCard title="StatusText">
-            <StatusText showIcon size="md" status="success">
+            <StatusText showIcon status="success">
               Saved successfully.
             </StatusText>
           </ComponentCard>
           <ComponentCard title="Textarea" bodyClassName="w-full max-w-xs">
-            <Textarea placeholder="Notes..." size="md" />
+            <Textarea placeholder="Notes..." />
           </ComponentCard>
           <ComponentCard title="Tooltip">
-            <Tooltip content="Tooltip content" size="md">
-              <Button size="md" theme="borderless">
+            <Tooltip content="Tooltip content">
+              <Button appearance="ghost">
                 Hover
               </Button>
             </Tooltip>
@@ -381,9 +434,10 @@ function ComponentComparison() {
               title={`NumericInput — ${size}`}
               bodyClassName="flex flex-wrap items-center gap-50"
             >
+              <Label htmlFor={`${id}-quantity-${size}`} size={size}>Quantity ({size})</Label>
               <NumericInput defaultValue={1} size={size}>
                 <NumericInput.Control>
-                  <NumericInput.Input />
+                  <NumericInput.Input id={`${id}-quantity-${size}`} />
                   <NumericInput.TriggerContainer>
                     <NumericInput.IncrementTrigger />
                     <NumericInput.DecrementTrigger />
@@ -414,7 +468,7 @@ function ComponentComparison() {
               <div className="w-48">
                 <Select items={selectItems} size={size}>
                   <Select.Control>
-                    <Select.Trigger>
+                    <Select.Trigger aria-label={`Country (${size})`}>
                       <Select.ValueText placeholder="Choose country" />
                     </Select.Trigger>
                   </Select.Control>
@@ -478,7 +532,7 @@ function ComponentComparison() {
           gridClassName="grid grid-cols-1 gap-300 md:grid-cols-2 2xl:grid-cols-3"
         >
           <ComponentCard title="Accordion" bodyClassName="w-full max-w-sm">
-            <Accordion defaultValue={['item-1']} size="md">
+            <Accordion defaultValue={['item-1']}>
               <Accordion.Item value="item-1">
                 <Accordion.Header>
                   <Accordion.Title>First</Accordion.Title>
@@ -496,22 +550,22 @@ function ComponentComparison() {
             </Accordion>
           </ComponentCard>
           <ComponentCard title="Breadcrumb" bodyClassName="w-full">
-            <BreadcrumbTemplate items={breadcrumbItems} size="md" />
+            <BreadcrumbTemplate items={breadcrumbItems} />
           </ComponentCard>
           <ComponentCard
             title="Carousel"
             className="md:col-span-2"
-            bodyClassName="w-fit"
+            bodyClassName="min-w-0 w-full"
           >
-            <div className="mx-auto w-fit">
+            <div className="mx-auto w-full max-w-md">
               <Carousel
+                aria-label="Landscape photos"
                 aspectRatio="landscape"
-                className="w-md"
-                size="md"
+                className="w-full min-w-0"
                 slideCount={carouselSlides.length}
               >
                 <Carousel.Slides
-                  className="w-md"
+                  className="w-full"
                   slides={carouselSlides}
                 />
                 <Carousel.Control
@@ -526,7 +580,7 @@ function ComponentComparison() {
             </div>
           </ComponentCard>
           <ComponentCard title="ColorSelect">
-            <ColorSelect colors={colorOptions} layout="grid" size="md" />
+            <ColorSelect colors={colorOptions} layout="grid" />
           </ComponentCard>
           <ComponentCard title="Combobox" bodyClassName="w-full max-w-xs">
             <Combobox
@@ -534,14 +588,14 @@ function ComponentComparison() {
               items={comboboxItems}
               label="Fruit"
               placeholder="Pick a fruit"
+              // Combobox hands its own size to the label; keep md explicit.
               size="md"
             />
           </ComponentCard>
           <ComponentCard title="Dialog">
             <Dialog
-              actions={<Button size="md">Done</Button>}
+              actions={<Button>Done</Button>}
               description="Short dialog description."
-              size="md"
               title="Dialog title"
               triggerText="Open dialog"
             >
@@ -551,14 +605,13 @@ function ComponentComparison() {
             </Dialog>
           </ComponentCard>
           <ComponentCard title="FormCheckbox">
-            <FormCheckbox label="Accept terms" size="md" />
+            <FormCheckbox label="Accept terms" />
           </ComponentCard>
           <ComponentCard title="FormInput" bodyClassName="w-full max-w-xs">
             <FormInput
               id="audit-form-input"
               label="Email"
               placeholder="name@domain.com"
-              size="md"
             />
           </ComponentCard>
           <ComponentCard
@@ -569,7 +622,6 @@ function ComponentComparison() {
               defaultValue={2}
               id="audit-form-numeric"
               label="Quantity"
-              size="md"
             >
               <NumericInput.Control>
                 <NumericInput.Input />
@@ -588,11 +640,10 @@ function ComponentComparison() {
               id="audit-form-textarea"
               label="Message"
               placeholder="Write a short note..."
-              size="md"
             />
           </ComponentCard>
           <ComponentCard title="Menu">
-            <Menu items={menuItems} size="md" triggerText="Actions" />
+            <Menu items={menuItems} triggerText="Actions" />
           </ComponentCard>
           <ComponentCard title="Pagination" bodyClassName="w-full overflow-x-auto">
             <Pagination
@@ -602,11 +653,10 @@ function ComponentComparison() {
                 `#component-pagination?page=${page}&pageSize=${pageSize}`
               }
               pageSize={1}
-              size="md"
             />
           </ComponentCard>
           <ComponentCard title="Popover">
-            <Popover.Root id="popover" size="md">
+            <Popover.Root id="popover">
               <Popover.Trigger>Details</Popover.Trigger>
               <Popover.Positioner>
                 <Popover.Content>
@@ -627,8 +677,8 @@ function ComponentComparison() {
               <ProductCard layout="column">
                 <ProductCard.Image alt="Sample product" src="https://images.unsplash.com/photo-1540206395-68808572332f?w=600&h=600&fit=crop" className="w-full"/>
                 <ProductCard.Badges>
-                  <Badge variant="secondary">Limited</Badge>
-                  <Badge variant="info">New</Badge>
+                  <Badge severity="secondary">Limited</Badge>
+                  <Badge severity="info">New</Badge>
                 </ProductCard.Badges>
                 <ProductCard.Name>Canvas Backpack</ProductCard.Name>
                 <ProductCard.Price>$79.00</ProductCard.Price>
@@ -638,7 +688,7 @@ function ComponentComparison() {
                 </ProductCard.Stock>
                 <ProductCard.Actions>
                   <ProductCard.Button
-                    buttonVariant="cart"
+                    action="cart"
                     icon="token-icon-cart-button"
                   >
                     Add to cart
@@ -648,7 +698,7 @@ function ComponentComparison() {
             </div>
           </ComponentCard>
           <ComponentCard title="SearchForm" bodyClassName="w-full max-w-sm">
-            <SearchForm defaultValue="Query" size="md">
+            <SearchForm defaultValue="Query">
               <SearchForm.Label>Search</SearchForm.Label>
               <SearchForm.Control>
                 <SearchForm.Input placeholder="Search..." />
@@ -658,7 +708,7 @@ function ComponentComparison() {
             </SearchForm>
           </ComponentCard>
           <ComponentCard title="Select" bodyClassName="w-full max-w-xs">
-            <Select defaultValue={['us']} items={selectItems} size="md">
+            <Select defaultValue={['us']} items={selectItems}>
               <Select.Label>Country</Select.Label>
               <Select.Control>
                 <Select.Trigger>
@@ -686,7 +736,6 @@ function ComponentComparison() {
                 id="audit-slider"
                 label="Volume"
                 showValueText
-                size="md"
               />
             </div>
           </ComponentCard>
@@ -699,9 +748,7 @@ function ComponentComparison() {
               <Steps
                 count={stepsItems.length}
                 onStepChange={(details) => setCurrentStep(details.step)}
-                size="md"
                 step={currentStep}
-                variant="subtle"
               >
                 <Steps.List>
                   {stepsItems.map((item, index) => (
@@ -738,7 +785,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Tabs" className="md:col-span-2" bodyClassName="w-full">
             <div className="w-full max-w-md">
-              <Tabs defaultValue="overview" size="md" variant="line" fitted>
+              <Tabs defaultValue="overview" appearance="line" fitted>
                 <Tabs.List>
                   {tabsItems.map((tab) => (
                     <Tabs.Trigger key={tab.value} value={tab.value}>
@@ -759,7 +806,7 @@ function ComponentComparison() {
             <ToastPreview />
           </ComponentCard>
           <ComponentCard title="TreeView" bodyClassName="w-full">
-            <TreeView className="w-full max-w-sm p-200" data={treeData} size="md">
+            <TreeView className="w-full max-w-sm p-200" data={treeData}>
               <TreeView.Label>Project Files</TreeView.Label>
               <TreeView.Tree>
                 {treeData.map((node, index) => (
@@ -773,21 +820,21 @@ function ComponentComparison() {
         <Section title="Organisms" gridClassName="grid grid-cols-1 gap-300">
           <ComponentCard title="Header" bodyClassName="w-full">
             <div className="mx-auto w-full max-w-5xl">
-              <Header>
-                <Header.Nav>
+              <Header className="flex-wrap">
+                <Header.Nav className="flex-wrap">
                   <Header.NavItem active>
-                    <Link href="#">Home</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Home</Link>
                   </Header.NavItem>
                   <Header.NavItem>
-                    <Link href="#">Docs</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Docs</Link>
                   </Header.NavItem>
                   <Header.NavItem>
-                    <Link href="#">Pricing</Link>
+                    <Link href="#" onClick={(event) => event.preventDefault()}>Pricing</Link>
                   </Header.NavItem>
                 </Header.Nav>
                 <Header.Actions>
                   <Header.ActionItem>
-                    <Button size="md" theme="unstyled">
+                    <Button unstyled>
                       Sign in
                     </Button>
                   </Header.ActionItem>
@@ -801,17 +848,17 @@ function ComponentComparison() {
                 <Footer.Container>
                   <Footer.Section>
                     <Footer.Title>Company</Footer.Title>
-                    <Footer.Link href="#">About</Footer.Link>
-                    <Footer.Link href="#">Team</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>About</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Team</Footer.Link>
                   </Footer.Section>
                   <Footer.Section>
                     <Footer.Title>Resources</Footer.Title>
-                    <Footer.Link href="#">Docs</Footer.Link>
-                    <Footer.Link href="#">Support</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Docs</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Support</Footer.Link>
                   </Footer.Section>
                   <Footer.Section>
                     <Footer.Title>Legal</Footer.Title>
-                    <Footer.Link href="#">Privacy</Footer.Link>
+                    <Footer.Link href="#" onClick={(event) => event.preventDefault()}>Privacy</Footer.Link>
                     <Footer.Text>2026 Company</Footer.Text>
                   </Footer.Section>
                 </Footer.Container>
@@ -820,7 +867,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Table" bodyClassName="w-full">
             <div className="w-full overflow-x-auto">
-              <Table variant="line">
+              <Table>
                 <Table.Caption>Product Inventory</Table.Caption>
                 <Table.Header>
                   <Table.Row>
@@ -835,7 +882,7 @@ function ComponentComparison() {
                     <Table.Row key={row.id}>
                       <Table.Cell>{row.name}</Table.Cell>
                       <Table.Cell>{row.category}</Table.Cell>
-                      <Table.Cell numeric>${row.price.toFixed(2)}</Table.Cell>
+                      <Table.Cell numeric>{usd.format(row.price)}</Table.Cell>
                       <Table.Cell numeric>{row.stock}</Table.Cell>
                     </Table.Row>
                   ))}
@@ -851,5 +898,164 @@ function ComponentComparison() {
 }
 
 export const SideBySide: Story = {
+  parameters: { docs: { description: { story: "Compare control proportions, surfaces and feedback in the selected brand and mode without leaving the preview." } } },
   render: () => <ComponentComparison />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    for (const name of ["Order quantity", "Quantity (sm)", "Quantity (md)"]) {
+      const input = canvas.getByRole("spinbutton", { name })
+      await expect(input).toHaveAccessibleName(name)
+      const control = input.closest('[data-scope="number-input"][data-part="root"]')
+      if (!control) throw new Error("Missing numeric input root")
+      for (const trigger of within(control as HTMLElement).getAllByRole("button")) {
+        await expect(trigger).toHaveAttribute("aria-controls", input.id)
+      }
+    }
+    for (const size of ["sm", "md"]) {
+      await expect(canvas.getByRole("combobox", { name: `Country (${size})` })).toHaveAccessibleName(`Country (${size})`)
+    }
+    const carousel = canvas.getByRole("region", { name: "Landscape photos" })
+    const rect = carousel.getBoundingClientRect()
+    const viewport = canvasElement.ownerDocument.documentElement.clientWidth
+    await expect(rect.left).toBeGreaterThanOrEqual(0)
+    await expect(rect.right).toBeLessThanOrEqual(viewport)
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(viewport)
+  },
+}
+
+
+const PLAYGROUND_SIZES = ['default', 'sm', 'md', 'lg'] as const
+const PLAYGROUND_APPEARANCES = [
+  'default',
+  'solid',
+  'subtle',
+  'outline',
+  'ghost',
+  'plain',
+] as const
+
+function PlaygroundChoice<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: readonly T[]
+  value: T
+  onChange: (value: T) => void
+}) {
+  return (
+    <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-100 border-0 p-0">
+      <legend className="float-left w-2xs text-fg-secondary text-sm">
+        {label}
+      </legend>
+      {options.map((option) => (
+        <Button
+          appearance={option === value ? 'solid' : 'outline'}
+          aria-pressed={option === value}
+          key={option}
+          onClick={() => onChange(option)}
+          severity="secondary"
+          size="sm"
+        >
+          {option === 'default' ? 'Component default' : option}
+        </Button>
+      ))}
+    </fieldset>
+  )
+}
+
+/** Every component on one page under a UIProvider you control from the bar. */
+function UIProviderPlayground() {
+  const [size, setSize] =
+    useState<(typeof PLAYGROUND_SIZES)[number]>('default')
+  const [appearance, setAppearance] =
+    useState<(typeof PLAYGROUND_APPEARANCES)[number]>('default')
+  return (
+    <>
+      <section
+        aria-label="UIProvider settings"
+        className="sticky top-0 z-10 flex flex-col gap-200 border-border-secondary border-b bg-surface p-300"
+      >
+        <p className="text-fg-secondary text-sm">
+          <strong className="text-fg-primary">UIProvider</strong> — every
+          component below follows these values. Props set explicitly in the
+          page (Icon, Label, Image, Tabs line, Tooltip trigger, the fixed sm / md rows) still win;
+          unsupported values fall back to each component&apos;s default.
+        </p>
+        <PlaygroundChoice
+          label="Size"
+          onChange={setSize}
+          options={PLAYGROUND_SIZES}
+          value={size}
+        />
+        <PlaygroundChoice
+          label="Appearance"
+          onChange={setAppearance}
+          options={PLAYGROUND_APPEARANCES}
+          value={appearance}
+        />
+      </section>
+      <UIProvider
+        appearance={
+          appearance === 'default' ? undefined : (appearance as UIAppearance)
+        }
+        size={size === 'default' ? undefined : (size as UISize)}
+      >
+        <ComponentComparison />
+      </UIProvider>
+    </>
+  )
+}
+
+export const UIProviderSettings: Story = {
+  name: 'UIProvider Playground',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'All components on one page inside a UIProvider. Switch the global size and appearance in the bar to see which components follow and which keep their own default.',
+      },
+    },
+  },
+  render: () => <UIProviderPlayground />,
+}
+
+export const NestedFormPopup: Story = {
+  parameters: { docs: { description: { story: "An editable delivery reference inside a nested popover checks opaque surfaces, managed stacking, popup-first Escape dismissal and focus restoration in the active brand." } } },
+  render: () => <Dialog triggerText="Review delivery" title="Delivery preferences" description="Review the reference used by the delivery team.">
+    <Popover>
+      <Popover.Trigger>Edit delivery reference</Popover.Trigger>
+      <Popover.Positioner><Popover.Content>
+        <Popover.Title>Delivery reference</Popover.Title>
+        <Label htmlFor="comparison-delivery-reference">Reference for driver</Label>
+        <Input id="comparison-delivery-reference" defaultValue="Receiving desk, order PO-2048" />
+        <Popover.CloseTrigger aria-label="Close delivery reference" />
+      </Popover.Content></Popover.Positioner>
+    </Popover>
+  </Dialog>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const body = within(canvasElement.ownerDocument.body)
+    const opener = canvas.getByRole("button", { name: "Review delivery" })
+    await userEvent.click(opener)
+    const dialog = await body.findByRole("dialog", { name: "Delivery preferences" })
+    const trigger = within(dialog).getByRole("button", { name: "Edit delivery reference" })
+    await userEvent.click(trigger)
+    const popup = await body.findByRole("dialog", { name: "Delivery reference" })
+    await expect(popup).toBeVisible()
+    await expect(within(popup).getByRole("textbox", { name: "Reference for driver" })).toHaveValue("Receiving desk, order PO-2048")
+    const view = canvasElement.ownerDocument.defaultView
+    const modalLayer = dialog.closest('[data-scope="dialog"][data-part="positioner"]')
+    if (!view || !modalLayer) throw new Error("Composition checks need a rendered modal layer")
+    await expect(Number(view.getComputedStyle(popup).zIndex)).toBeGreaterThan(Number(view.getComputedStyle(modalLayer).zIndex))
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(body.queryByRole("dialog", { name: "Delivery reference" })).toBeNull())
+    await expect(dialog).toBeVisible()
+    await waitFor(() => expect(trigger).toHaveFocus())
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(body.queryByRole("dialog", { name: "Delivery preferences" })).toBeNull())
+    await waitFor(() => expect(opener).toHaveFocus())
+  },
 }

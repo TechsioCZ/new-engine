@@ -13,6 +13,7 @@
   --color-player-fg: var(--color-player-content);
   --color-player-border: var(--color-border-primary);
   --color-player-control-fg: var(--color-player-content);
+  --color-player-control-bg: var(--color-transparent);
   --color-player-control-bg-hover: var(--color-fill-hover);
   --color-player-control-bg-active: var(--color-fill-active);
   --color-player-overlay-control-fg: var(--color-player-media-content);
@@ -134,6 +135,10 @@
 @utility player-volume-slider {
   --media-slider-width: var(--spacing-player-volume);
   width: var(--spacing-player-volume);
+}
+
+@utility player-video-timeline {
+  --media-slider-width: auto;
 }
 
 /* Vidstack's unlayered slider display rule outranks normal Tailwind display

@@ -1,22 +1,27 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
+import { createRef, useState } from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 import { Table } from '../../src/organisms/table'
 import { Checkbox } from '../../src/atoms/checkbox'
 import { Button } from '../../src/atoms/button'
+import { StatusText } from '../../src/atoms/status-text'
 import { VariantContainer } from '../../.storybook/decorator'
 
 const meta = {
   title: 'Organisms/Table',
   component: Table,
   parameters: {
+    controls: { exclude: ["ref", "id", "children", "ids", "getRootNode"] },
+    docs: { description: { component: "Table displays a small structured data set using native table semantics, shared density and optional row activation. Use interactive rows only with an activation handler; use DataTable for filtering, sorting, virtualization or editing, and a list for unstructured content." } },
     layout: 'padded',
   },
   tags: ['autodocs'],
+  decorators: [(Story) => <div className="w-full min-w-0 overflow-x-auto" role="region" aria-label="Scrollable table preview" tabIndex={0}><Story /></div>],
   argTypes: {
-    variant: {
+    appearance: {
       control: 'select',
       options: ['line', 'outline', 'striped'],
-      description: 'Visual style variant of the table',
+      description: 'Visual style appearance of the table',
     },
     size: {
       control: 'select',
@@ -47,6 +52,9 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 // Sample data for stories
+// Money goes through Intl, never `$` + toFixed (ux-guidelines, formatting.md).
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+
 const sampleProducts = [
   {
     id: 1,
@@ -85,15 +93,47 @@ const sampleProducts = [
   },
 ]
 
+// Fixed rows keep screenshots deterministic.
+const productStock: [price: number, stock: number][] = [
+  [678.19, 175],
+  [652.69, 44],
+  [731.46, 96],
+  [295.39, 120],
+  [320.47, 72],
+  [384.96, 54],
+  [39.75, 110],
+  [717.24, 145],
+  [90.1, 83],
+  [515.58, 126],
+  [340.45, 181],
+  [426.23, 109],
+  [357.22, 98],
+  [351.38, 139],
+  [583.28, 117],
+  [857.23, 70],
+  [447.15, 40],
+  [452.79, 158],
+  [987.42, 157],
+  [738.12, 141],
+]
+const manyProducts = productStock.map(([price, stock], i) => ({
+  id: i + 1,
+  name: `Product ${i + 1}`,
+  category: ['Electronics', 'Furniture', 'Accessories'][i % 3],
+  price,
+  stock,
+}))
+
 // === BASIC VARIANTS ===
 
-export const Basic: Story = {
+export const Playground: Story = {
+  parameters: { docs: { description: { story: "A native inventory table keeps text labels and numeric values aligned for quick comparison." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => (
-    <Table {...args}>
+    <Table {...args} ref={createRef<HTMLTableElement>()}>
       <Table.Caption>Product Inventory</Table.Caption>
       <Table.Header>
         <Table.Row>
@@ -108,101 +148,7 @@ export const Basic: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
-            <Table.Cell numeric>{product.stock}</Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table>
-  ),
-}
-
-export const Outline: Story = {
-  args: {
-    variant: 'outline',
-    size: 'md',
-  },
-  render: (args) => (
-    <Table {...args}>
-      <Table.Caption>Product Inventory</Table.Caption>
-      <Table.Header>
-        <Table.Row>
-          <Table.ColumnHeader>Product</Table.ColumnHeader>
-          <Table.ColumnHeader>Category</Table.ColumnHeader>
-          <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
-          <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {sampleProducts.map((product) => (
-          <Table.Row key={product.id}>
-            <Table.Cell>{product.name}</Table.Cell>
-            <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
-            <Table.Cell numeric>{product.stock}</Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table>
-  ),
-}
-
-export const Interactive: Story = {
-  args: {
-    variant: 'line',
-    size: 'md',
-    interactive: true,
-  },
-  render: (args) => (
-    <Table {...args}>
-      <Table.Caption>Click on any row to select</Table.Caption>
-      <Table.Header>
-        <Table.Row>
-          <Table.ColumnHeader>Product</Table.ColumnHeader>
-          <Table.ColumnHeader>Category</Table.ColumnHeader>
-          <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
-          <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {sampleProducts.map((product) => (
-          <Table.Row
-            key={product.id}
-            onClick={() => alert(`Selected: ${product.name}`)}
-          >
-            <Table.Cell>{product.name}</Table.Cell>
-            <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
-            <Table.Cell numeric>{product.stock}</Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table>
-  ),
-}
-
-export const Striped: Story = {
-  args: {
-    variant: 'striped',
-    size: 'md',
-  },
-  render: (args) => (
-    <Table {...args}>
-      <Table.Caption>Product Inventory</Table.Caption>
-      <Table.Header>
-        <Table.Row>
-          <Table.ColumnHeader>Product</Table.ColumnHeader>
-          <Table.ColumnHeader>Category</Table.ColumnHeader>
-          <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
-          <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {sampleProducts.map((product) => (
-          <Table.Row key={product.id}>
-            <Table.Cell>{product.name}</Table.Cell>
-            <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
             <Table.Cell numeric>{product.stock}</Table.Cell>
           </Table.Row>
         ))}
@@ -214,6 +160,8 @@ export const Striped: Story = {
 // === SIZE VARIANTS ===
 
 export const Sizes: Story = {
+  parameters: {
+    controls: { disable: true }, docs: { description: { story: "Compare Small (sm), Medium (md) and Large (lg) with identical content to choose the appropriate interface density." } } },
 
   render: () => {
 
@@ -225,7 +173,7 @@ export const Sizes: Story = {
     <VariantContainer>
       {sizes.map((size) => (
         <Table key={size} size={size}>
-          <Table.Caption>Compact table with small size</Table.Caption>
+          <Table.Caption>{{ sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]} — Product inventory</Table.Caption>
           <Table.Header>
             <Table.Row>
               {attributes.map((attribute) => (
@@ -238,7 +186,7 @@ export const Sizes: Story = {
               <Table.Row key={product.id}>
                 <Table.Cell>{product.name}</Table.Cell>
                 <Table.Cell>{product.category}</Table.Cell>
-                <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>
@@ -248,12 +196,119 @@ export const Sizes: Story = {
   )},
 }
 
+export const Outline: Story = {
+  parameters: { docs: { description: { story: "An outlined table defines a standalone comparison surface without adding heavy cell borders." } } },
+  args: {
+    appearance: 'outline',
+    size: 'md',
+  },
+  render: (args) => (
+    <Table {...args}>
+      <Table.Caption>Product Inventory</Table.Caption>
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader>Product</Table.ColumnHeader>
+          <Table.ColumnHeader>Category</Table.ColumnHeader>
+          <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
+          <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {sampleProducts.map((product) => (
+          <Table.Row key={product.id}>
+            <Table.Cell>{product.name}</Table.Cell>
+            <Table.Cell>{product.category}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
+            <Table.Cell numeric>{product.stock}</Table.Cell>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
+  ),
+}
+
+export const Interactive: Story = {
+  parameters: { docs: { description: { story: "Activate a product row with Enter, Space or a click; the selected row retains focus and exposes its selection to assistive technology." } } },
+  args: {
+    appearance: 'line',
+    size: 'md',
+    interactive: true,
+  },
+  render: function InteractiveInventory(args) {
+    const [selected, setSelected] = useState<number | null>(null)
+    return <Table {...args} ref={(table) => { table?.setAttribute("data-ref-attached", "true") }}>
+      <Table.Caption>Choose a product with Enter, Space or a click</Table.Caption>
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader>Product</Table.ColumnHeader>
+          <Table.ColumnHeader>Category</Table.ColumnHeader>
+          <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
+          <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {sampleProducts.map((product) => (
+          <Table.Row
+            key={product.id}
+            onClick={() => setSelected(product.id)}
+            selected={selected === product.id}
+          >
+            <Table.Cell>{product.name}</Table.Cell>
+            <Table.Cell>{product.category}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
+            <Table.Cell numeric>{product.stock}</Table.Cell>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
+  },
+  play: async ({ canvasElement }) => {
+    const row = within(canvasElement).getByRole("row", { name: /Laptop/ })
+    row.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(row).toHaveAttribute("data-selected", "true")
+    await expect(row).toHaveAttribute("aria-selected", "true")
+    await expect(row).toHaveFocus()
+  },
+}
+
+export const Striped: Story = {
+  parameters: { docs: { description: { story: "Alternating inventory rows make it easier to track values across the table." } } },
+  args: {
+    appearance: 'striped',
+    size: 'md',
+  },
+  render: (args) => (
+    <Table {...args}>
+      <Table.Caption>Product Inventory</Table.Caption>
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader>Product</Table.ColumnHeader>
+          <Table.ColumnHeader>Category</Table.ColumnHeader>
+          <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
+          <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {sampleProducts.map((product) => (
+          <Table.Row key={product.id}>
+            <Table.Cell>{product.name}</Table.Cell>
+            <Table.Cell>{product.category}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
+            <Table.Cell numeric>{product.stock}</Table.Cell>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
+  ),
+}
 
 // === ADVANCED FEATURES ===
 
 export const WithFooter: Story = {
+  parameters: { docs: { description: { story: "A totals footer summarizes numeric columns without disguising totals as another product." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => {
@@ -276,7 +331,7 @@ export const WithFooter: Story = {
             <Table.Row key={product.id}>
               <Table.Cell>{product.name}</Table.Cell>
               <Table.Cell>{product.category}</Table.Cell>
-              <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+              <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
               <Table.Cell numeric>{product.stock}</Table.Cell>
             </Table.Row>
           ))}
@@ -287,7 +342,7 @@ export const WithFooter: Story = {
               <strong>Total</strong>
             </Table.Cell>
             <Table.Cell numeric>
-              <strong>${total.toFixed(2)}</strong>
+              <strong>{usd.format(total)}</strong>
             </Table.Cell>
             <Table.Cell numeric>
               <strong>{totalStock}</strong>
@@ -300,23 +355,21 @@ export const WithFooter: Story = {
 }
 
 export const StickyHeader: Story = {
+  parameters: { docs: { description: { story: "A sticky header preserves column context while records scroll within a bounded region." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
     stickyHeader: true,
   },
   render: (args) => {
-    // Generate more rows for scrolling demo
-    const manyProducts = Array.from({ length: 20 }, (_, i) => ({
-      id: i + 1,
-      name: `Product ${i + 1}`,
-      category: ['Electronics', 'Furniture', 'Accessories'][i % 3],
-      price: Math.random() * 1000,
-      stock: Math.floor(Math.random() * 200),
-    }))
-
     return (
-      <div className='h-[400px] overflow-auto'>
+      // h-100 resolves to the theme's --spacing-100 token, not 400px.
+      <div
+        aria-label="Products, sticky header"
+        className="h-[400px] overflow-auto"
+        role="region"
+        tabIndex={0}
+      >
         <Table {...args}>
           <Table.Caption>Scroll to see sticky header effect</Table.Caption>
           <Table.Header>
@@ -332,7 +385,7 @@ export const StickyHeader: Story = {
               <Table.Row key={product.id}>
                 <Table.Cell>{product.name}</Table.Cell>
                 <Table.Cell>{product.category}</Table.Cell>
-                <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
                 <Table.Cell numeric>{product.stock}</Table.Cell>
               </Table.Row>
             ))}
@@ -346,8 +399,9 @@ export const StickyHeader: Story = {
 // === COMPLEX EXAMPLES ===
 
 export const ComplexTable: Story = {
+  parameters: { docs: { description: { story: "A richer inventory combines supporting labels and quantities within the same native table structure." } } },
   args: {
-    variant: 'outline',
+    appearance: 'outline',
     size: 'md',
   },
   render: (args) => (
@@ -422,8 +476,9 @@ export const ComplexTable: Story = {
 }
 
 export const MinimalTable: Story = {
+  parameters: { docs: { description: { story: "A small comparison omits unnecessary decoration while retaining meaningful column headings." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => (
@@ -445,8 +500,9 @@ export const MinimalTable: Story = {
 // === NEW FEATURES ===
 
 export const WithColumnBorders: Story = {
+  parameters: { docs: { description: { story: "Column boundaries help separate closely related values in a dense comparison." } } },
   args: {
-    variant: 'outline',
+    appearance: 'outline',
     size: 'md',
     showColumnBorder: true,
   },
@@ -466,7 +522,7 @@ export const WithColumnBorders: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
             <Table.Cell numeric>{product.stock}</Table.Cell>
           </Table.Row>
         ))}
@@ -476,8 +532,9 @@ export const WithColumnBorders: Story = {
 }
 
 export const CaptionBottom: Story = {
+  parameters: { docs: { description: { story: "A trailing caption provides context without pushing the column headings farther from the records." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
     captionPlacement: 'bottom',
   },
@@ -496,7 +553,7 @@ export const CaptionBottom: Story = {
           <Table.Row key={product.id}>
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
-            <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+            <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
           </Table.Row>
         ))}
       </Table.Body>
@@ -505,12 +562,19 @@ export const CaptionBottom: Story = {
 }
 
 export const WithStickyColumn: Story = {
+  parameters: { docs: { description: { story: "A sticky identity column keeps products recognizable while additional attributes scroll." } } },
   args: {
-    variant: 'line',
+    appearance: 'striped',
     size: 'md',
+    interactive: true,
   },
   render: (args) => (
-    <div className="max-w-[600px] overflow-auto">
+    <div
+      aria-label="Products, sticky first column"
+      className="max-w-lg overflow-auto"
+      role="region"
+      tabIndex={0}
+    >
       <Table {...args} stickyFirstColumn>
         <Table.Caption>
           Scroll horizontally - first column stays fixed
@@ -538,7 +602,7 @@ export const WithStickyColumn: Story = {
               <Table.Cell>{product.category}</Table.Cell>
               <Table.Cell>Tech Corp</Table.Cell>
               <Table.Cell>SKU-{product.id}23456</Table.Cell>
-              <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+              <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
               <Table.Cell numeric>{product.stock}</Table.Cell>
               <Table.Cell>Warehouse A</Table.Cell>
               <Table.Cell>In Stock</Table.Cell>
@@ -553,8 +617,9 @@ export const WithStickyColumn: Story = {
 // === SELECTION EXAMPLES ===
 
 export const WithSelection: Story = {
+  parameters: { docs: { description: { story: "Checkbox selection models a temporary set of inventory records without changing their values." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => {
@@ -619,7 +684,7 @@ export const WithSelection: Story = {
                   </Table.Cell>
                   <Table.Cell>{product.name}</Table.Cell>
                   <Table.Cell>{product.category}</Table.Cell>
-                  <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                  <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
                   <Table.Cell numeric>{product.stock}</Table.Cell>
                 </Table.Row>
               )
@@ -638,13 +703,15 @@ export const WithSelection: Story = {
 }
 
 export const WithSelectionAndActions: Story = {
+  parameters: { docs: { description: { story: "A local reversible delete demonstrates a safe action on selected inventory records." } } },
   args: {
-    variant: 'line',
+    appearance: 'line',
     size: 'md',
   },
   render: (args) => {
     const [selection, setSelection] = useState<number[]>([])
     const [products, setProducts] = useState(sampleProducts)
+    const [undoProducts, setUndoProducts] = useState<typeof sampleProducts | null>(null)
 
     const handleSelectAll = () => {
       if (selection.length === products.length) {
@@ -663,6 +730,7 @@ export const WithSelectionAndActions: Story = {
     }
 
     const handleDelete = () => {
+      setUndoProducts(products)
       setProducts((prev) => prev.filter((p) => !selection.includes(p.id)))
       setSelection([])
     }
@@ -674,27 +742,34 @@ export const WithSelectionAndActions: Story = {
 
     return (
       <div>
+        {undoProducts && <div className="mb-200 flex flex-wrap items-center justify-between gap-200 rounded-md bg-surface p-200">
+          <StatusText status="success" size="sm">Selected products deleted from this demo.</StatusText>
+          <Button appearance="outline" severity="secondary" size="sm" onClick={() => {
+            setProducts(undoProducts)
+            setUndoProducts(null)
+          }}>Undo delete</Button>
+        </div>}
         {selection.length > 0 && (
           <div className="mb-200 p-200 bg-surface rounded-md flex justify-between items-center">
             <span>
-              <strong>{selection.length}</strong> item(s) selected
+              <strong>{selection.length}</strong> products selected
             </span>
             <div className="flex gap-200">
               <Button
-                variant="danger"
-                theme="solid"
+                severity="danger"
+                appearance="solid"
                 size="sm"
                 onClick={handleDelete}
               >
-                Delete Selected
+                Delete selected products
               </Button>
               <Button
-                variant="secondary"
-                theme="outlined"
+                severity="secondary"
+                appearance="outline"
                 size="sm"
                 onClick={() => setSelection([])}
               >
-                Clear Selection
+                Clear selection
               </Button>
             </div>
           </div>
@@ -732,7 +807,7 @@ export const WithSelectionAndActions: Story = {
                   </Table.Cell>
                   <Table.Cell>{product.name}</Table.Cell>
                   <Table.Cell>{product.category}</Table.Cell>
-                  <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                  <Table.Cell numeric>{usd.format(product.price)}</Table.Cell>
                   <Table.Cell numeric>{product.stock}</Table.Cell>
                 </Table.Row>
               )
@@ -741,6 +816,14 @@ export const WithSelectionAndActions: Story = {
         </Table>
       </div>
     )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("checkbox", { name: "Select Laptop" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Delete selected products" }))
+    await expect(canvas.queryByRole("checkbox", { name: "Select Laptop" })).not.toBeInTheDocument()
+    await userEvent.click(canvas.getByRole("button", { name: "Undo delete" }))
+    await expect(canvas.getByRole("checkbox", { name: "Select Laptop" })).toBeInTheDocument()
   },
 }
 
@@ -751,8 +834,9 @@ export const WithSelectionAndActions: Story = {
  * claiming to be numeric.
  */
 export const Alignment: Story = {
+  parameters: { docs: { description: { story: "Start-aligned text and end-aligned quantities make mixed inventory columns easier to scan." } } },
   args: {
-    variant: 'outline',
+    appearance: 'outline',
     size: 'md',
   },
   render: (args) => (
@@ -772,7 +856,7 @@ export const Alignment: Story = {
               {product.stock > 0 ? 'Yes' : 'No'}
             </Table.Cell>
             <Table.Cell data-align="end">
-              ${product.price.toFixed(2)}
+              {usd.format(product.price)}
             </Table.Cell>
           </Table.Row>
         ))}

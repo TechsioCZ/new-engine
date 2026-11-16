@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit molecule.
  *
  * @component Popover
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,36 +16,50 @@ import {
   type Props as PopoverMachineProps,
   type Placement as PopoverPlacement,
   type PositioningOptions as PopoverPositioningOptions,
-  type Service as PopoverService,
 } from "@zag-js/popover"
-import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
+  type Dispatch,
   type MouseEvent,
   type ReactNode,
   type Ref,
+  type SetStateAction,
   useContext,
   useId,
+  useLayoutEffect,
+  useState,
 } from "react"
+import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
+import {
+  OverlayContainerProvider,
+  OverlayPortal as Portal,
+} from "../internal/overlay-portal"
+import { definedEntries } from "../messages/ui-messages"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const popoverVariants = tv({
   slots: {
     trigger: ["p-popover-trigger"],
     indicator: ["data-[state=open]:rotate-180"],
-    positioner: ["absolute"],
+    positioner: ["absolute", "popup-layer"],
     content: [
       "bg-popover-bg",
       "text-popover-fg",
       "rounded-popover",
-      "outline-none",
-      "z-50",
-      "relative",
+      "outline-hidden",
+      "popup-layer",
+      "popover-viewport",
+      "relative flex flex-col",
     ],
+    scrollViewport: "popover-scroll-viewport",
+    chrome: "contents",
     arrow: "",
     arrowTip: "",
     title: ["font-popover-title", "leading-none", "mb-popover-title"],
@@ -53,7 +67,7 @@ const popoverVariants = tv({
       "text-popover-description text-popover-description-fg",
       "leading-normal",
     ],
-    closeTrigger: ["absolute top-2 right-2"],
+    closeTrigger: ["absolute end-popover-close top-popover-close"],
   },
   variants: {
     shadow: {
@@ -69,15 +83,15 @@ const popoverVariants = tv({
     },
     size: {
       sm: {
-        content: "p-popover-sm text-sm",
+        content: "p-popover-sm text-popover-body-sm",
         title: "text-popover-title-sm",
       },
       md: {
-        content: "p-popover-md",
+        content: "p-popover-md text-popover-body-md",
         title: "text-popover-title-md",
       },
       lg: {
-        content: "p-popover-lg text-lg",
+        content: "p-popover-lg text-popover-body-lg",
         title: "text-popover-title-lg",
       },
     },
@@ -91,11 +105,17 @@ const popoverVariants = tv({
 
 type PopoverContextValue = {
   api: PopoverApi
+  titleId: string | null | undefined
+  descriptionId: string | null | undefined
+  setTitleId: Dispatch<SetStateAction<string | null | undefined>>
+  setDescriptionId: Dispatch<SetStateAction<string | null | undefined>>
   placement: PopoverPlacement
   styles: ReturnType<typeof popoverVariants>
 }
 
 const PopoverContext = createContext<PopoverContextValue | null>(null)
+// Chrome stays outside the content scroller even when composed through wrappers.
+const PopoverChromeContext = createContext<HTMLElement | null>(null)
 
 function usePopoverContext() {
   const context = useContext(PopoverContext)
@@ -141,15 +161,23 @@ export function Popover({
   portalled = true,
   sameWidth = false,
   shadow,
-  size,
+  size: sizeProp,
   slide = true,
   ...props
 }: PopoverRootProps) {
+  const { size } = useUIDefaults("Popover", { size: sizeProp }, popoverVariants)
+  const messages = useUiMessages()
   const generatedId = useId()
   const uniqueId = id || generatedId
+  const [titleId, setTitleId] = useState<string | null>()
+  const [descriptionId, setDescriptionId] = useState<string | null>()
 
   const service = useMachine(machine, {
     ...props,
+    translations: {
+      ...messages.popover.translations,
+      ...definedEntries(props.translations),
+    },
     autoFocus,
     closeOnEscape,
     closeOnInteractOutside,
@@ -172,13 +200,17 @@ export function Popover({
     },
   })
 
-  const api = connect(service as PopoverService, normalizeProps)
+  const api = connect(service, normalizeProps)
   const styles = popoverVariants({ border, shadow, size })
 
   return (
     <PopoverContext.Provider
       value={{
         api,
+        titleId,
+        descriptionId,
+        setTitleId,
+        setDescriptionId,
         placement,
         styles,
       }}
@@ -216,7 +248,7 @@ Popover.Trigger = function PopoverTrigger({
   onClick,
   ref,
   size = "current",
-  theme = "borderless",
+  appearance = "ghost",
   type = "button",
   ...props
 }: PopoverTriggerProps) {
@@ -232,6 +264,7 @@ Popover.Trigger = function PopoverTrigger({
   return (
     <Button
       {...buttonProps}
+      appearance={appearance}
       className={styles.trigger({ className })}
       data-state={api.open ? "open" : "closed"}
       disabled={isDisabled}
@@ -244,7 +277,6 @@ Popover.Trigger = function PopoverTrigger({
       }}
       ref={ref}
       size={size}
-      theme={theme}
       type={type}
     >
       {children}
@@ -320,13 +352,29 @@ Popover.Content = function PopoverContent({
   ref,
   ...props
 }: PopoverContentProps) {
-  const { api, placement, styles } = usePopoverContext()
+  const { api, descriptionId, placement, styles, titleId } = usePopoverContext()
+  const [chromeContainer, setChromeContainer] = useState<HTMLDivElement | null>(
+    null
+  )
   const machineContentProps =
     api.getContentProps() as ComponentPropsWithoutRef<"div">
   const contentProps = mergeProps(
     props,
     machineContentProps
   ) as PopoverContentMergedProps
+  const fallbackTitleId =
+    titleId === undefined
+      ? machineContentProps["aria-labelledby"]
+      : (titleId ?? undefined)
+  // Zag checks labels before lazy content mounts; registered IDs follow the mounted parts.
+  contentProps["aria-labelledby"] =
+    props["aria-labelledby"] ??
+    (props["aria-label"] === undefined ? fallbackTitleId : undefined)
+  contentProps["aria-describedby"] =
+    props["aria-describedby"] ??
+    (descriptionId === undefined
+      ? machineContentProps["aria-describedby"]
+      : (descriptionId ?? undefined))
   const contentPlacement = contentProps["data-placement"]
   // Derive data-side from Zag's computed placement so flipped positions animate from the actual side.
   const contentSide =
@@ -342,7 +390,20 @@ Popover.Content = function PopoverContent({
       data-state={api.open ? "open" : "closed"}
       ref={ref}
     >
-      {children}
+      <OverlayContainerProvider
+        container={
+          (contentProps["aria-modal"] === true ||
+            contentProps["aria-modal"] === "true") &&
+          api.open
+            ? chromeContainer
+            : null
+        }
+      >
+        <PopoverChromeContext.Provider value={chromeContainer}>
+          <div className={styles.scrollViewport()}>{children}</div>
+        </PopoverChromeContext.Provider>
+      </OverlayContainerProvider>
+      <div className={styles.chrome()} ref={setChromeContainer} />
     </div>
   )
 }
@@ -358,13 +419,15 @@ Popover.Arrow = function PopoverArrow({
   ...props
 }: PopoverArrowProps) {
   const { api, styles } = usePopoverContext()
+  const chromeContainer = useContext(PopoverChromeContext)
   const arrowProps = mergeProps(props, api.getArrowProps())
-
-  return (
+  const arrow = (
     <div {...arrowProps} className={styles.arrow({ className })} ref={ref}>
       {children ?? <Popover.ArrowTip />}
     </div>
   )
+
+  return chromeContainer ? createPortal(arrow, chromeContainer) : arrow
 }
 
 export type PopoverArrowTipProps = ComponentPropsWithoutRef<"div"> & {
@@ -397,8 +460,14 @@ Popover.Title = function PopoverTitle({
   ref,
   ...props
 }: PopoverTitleProps) {
-  const { api, styles } = usePopoverContext()
+  const { api, setTitleId, styles } = usePopoverContext()
   const titleProps = mergeProps(props, api.getTitleProps())
+  const titleId = titleProps.id
+
+  useLayoutEffect(() => {
+    setTitleId(titleId ?? null)
+    return () => setTitleId(null)
+  }, [setTitleId, titleId])
 
   return (
     <div {...titleProps} className={styles.title({ className })} ref={ref} />
@@ -414,8 +483,14 @@ Popover.Description = function PopoverDescription({
   ref,
   ...props
 }: PopoverDescriptionProps) {
-  const { api, styles } = usePopoverContext()
+  const { api, setDescriptionId, styles } = usePopoverContext()
   const descriptionProps = mergeProps(props, api.getDescriptionProps())
+  const descriptionId = descriptionProps.id
+
+  useLayoutEffect(() => {
+    setDescriptionId(descriptionId ?? null)
+    return () => setDescriptionId(null)
+  }, [descriptionId, setDescriptionId])
 
   return (
     <div
@@ -437,11 +512,13 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   onClick,
   ref,
   size = "current",
-  theme = "unstyled",
+  unstyled,
   type = "button",
   ...props
 }: PopoverCloseTriggerProps) {
+  const messages = useUiMessages()
   const { api, styles } = usePopoverContext()
+  const chromeContainer = useContext(PopoverChromeContext)
   const { onClick: onMachineClick, ...machineCloseTriggerProps } =
     api.getCloseTriggerProps() as ComponentPropsWithoutRef<"button">
   const buttonProps = mergeProps(props, machineCloseTriggerProps)
@@ -453,23 +530,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   }
 
   // Icon-only close → shared ActionIcon (neutral pill). Labeled close keeps Button.
-  if (!children) {
-    return (
-      <ActionIcon
-        {...buttonProps}
-        aria-label="Close popover"
-        className={styles.closeTrigger({ className })}
-        icon={icon ?? "token-icon-close"}
-        onClick={handleClick}
-        ref={ref}
-        size="md"
-        tone="neutral"
-        type={type}
-      />
-    )
-  }
-
-  return (
+  const closeTrigger = children ? (
     <Button
       {...buttonProps}
       className={styles.closeTrigger({ className })}
@@ -477,12 +538,32 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
       onClick={handleClick}
       ref={ref}
       size={size}
-      theme={theme}
       type={type}
+      unstyled={
+        // Unstyled by default; an explicit look opts back into Button visuals.
+        unstyled ??
+        (props.appearance === undefined && props.severity === undefined)
+      }
     >
       {children}
     </Button>
+  ) : (
+    <ActionIcon
+      {...buttonProps}
+      aria-label={props["aria-label"] ?? messages.popover.close}
+      className={styles.closeTrigger({ className })}
+      icon={icon ?? "token-icon-close"}
+      onClick={handleClick}
+      ref={ref}
+      severity="neutral"
+      size={size === "current" ? "md" : size}
+      type={type}
+    />
   )
+
+  return chromeContainer
+    ? createPortal(closeTrigger, chromeContainer)
+    : closeTrigger
 }
 
 export type PopoverContextProps = {
@@ -497,5 +578,6 @@ Popover.Context = function PopoverApiContext({
   return children(api)
 }
 
-Popover.Root = Popover
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Popover.Root = Popover satisfies typeof Popover
 Popover.displayName = "Popover"

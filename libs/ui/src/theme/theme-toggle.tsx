@@ -7,6 +7,7 @@
  */
 
 import { Button } from "../atoms/button"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 import { getBrand, type ModeSetting } from "./theme-config"
 import { useAppTheme } from "./theme-provider"
@@ -14,61 +15,70 @@ import { useAppTheme } from "./theme-provider"
 const themeToggle = tv({
   slots: {
     root: "",
-    group: "flex flex-col gap-100",
-    modeGroup: "mt-150 flex flex-col gap-100",
-    label: "text-sm",
-    row: "flex gap-50",
+    group: "flex min-w-0 flex-col gap-theme-toggle-group",
+    modeGroup:
+      "mt-theme-toggle-mode flex min-w-0 flex-col gap-theme-toggle-group",
+    label: "text-theme-toggle-label-size",
+    row: "flex flex-wrap gap-theme-toggle-choice",
+    choice:
+      "h-auto min-h-form-control-sm min-w-0 whitespace-normal break-words",
   },
 })
-
-const MODE_LABELS: Record<ModeSetting, string> = {
-  light: "Light",
-  dark: "Dark",
-  system: "System",
-}
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { brand, brands, setBrand, mode, setMode, availableModes, mounted } =
     useAppTheme()
-  const showModes = availableModes.length > 1
-  const { root, group, modeGroup, label, row } = themeToggle()
+  const messages = useUiMessages()
+  const modeLabels: Record<ModeSetting, string> = {
+    light: messages.themeToggle.light,
+    dark: messages.themeToggle.dark,
+    system: messages.themeToggle.system,
+  }
+  const showModes = mounted && availableModes.length > 1
+  const { root, group, modeGroup, label, row, choice } = themeToggle()
 
   return (
     <div className={root({ className })}>
-      <div className={group()}>
-        <span className={label()}>Brand</span>
+      <fieldset className={group()}>
+        <legend className={label()}>{messages.themeToggle.brand}</legend>
         <div className={row()}>
           {brands.map((key) => (
             <Button
+              appearance={mounted && key === brand ? "solid" : "outline"}
+              aria-pressed={mounted && key === brand}
+              className={choice()}
               key={key}
               onClick={() => setBrand(key)}
+              severity="primary"
               size="sm"
-              theme={mounted && key === brand ? "solid" : "outlined"}
-              variant="primary"
+              type="button"
             >
               {getBrand(key).label}
             </Button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       {showModes && (
-        <div className={modeGroup()}>
-          <span className={label()}>Mode</span>
+        <fieldset className={modeGroup()}>
+          <legend className={label()}>{messages.themeToggle.mode}</legend>
           <div className={row()}>
             {availableModes.map((value) => (
               <Button
+                appearance={mounted && value === mode ? "solid" : "outline"}
+                aria-pressed={mounted && value === mode}
+                className={choice()}
                 key={value}
                 onClick={() => setMode(value)}
+                severity="secondary"
                 size="sm"
-                theme={mounted && value === mode ? "solid" : "outlined"}
-                variant="secondary"
+                type="button"
               >
-                {MODE_LABELS[value]}
+                {modeLabels[value]}
               </Button>
             ))}
           </div>
-        </div>
+        </fieldset>
       )}
     </div>
   )

@@ -2,7 +2,7 @@
  * Popover — @techsio/ui-kit template.
  *
  * @component Popover
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,6 +10,7 @@
  * the popover-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ReactNode, Ref } from "react"
+import { PopoverTemplateContent } from "../internal/popover-template-content"
 import {
   Popover,
   type PopoverContentProps,
@@ -19,6 +20,8 @@ import {
 
 export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {
   children: ReactNode
+  /** Accessible name when no visible title is supplied. */
+  "aria-label"?: string
   contentClassName?: string
   contentProps?: Omit<PopoverContentProps, "children" | "className" | "ref">
   contentRef?: Ref<HTMLDivElement>
@@ -37,6 +40,7 @@ export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {
 }
 
 export function PopoverTemplate({
+  "aria-label": ariaLabel,
   children,
   contentClassName,
   contentProps,
@@ -52,6 +56,7 @@ export function PopoverTemplate({
   triggerRef,
   ...rootProps
 }: PopoverTemplateProps) {
+  const unnamed = !(title || contentProps?.["aria-labelledby"])
   return (
     <Popover.Root {...rootProps}>
       <Popover.Trigger
@@ -63,10 +68,13 @@ export function PopoverTemplate({
         {trigger}
       </Popover.Trigger>
       <Popover.Positioner>
-        <Popover.Content
+        <PopoverTemplateContent
           {...contentProps}
+          aria-label={contentProps?.["aria-label"] ?? ariaLabel}
           className={contentClassName}
+          fallbackName={typeof trigger === "string" ? trigger : undefined}
           ref={contentRef}
+          unnamed={unnamed}
         >
           {showCloseButton && <Popover.CloseTrigger />}
           {showArrow && <Popover.Arrow />}
@@ -75,7 +83,7 @@ export function PopoverTemplate({
             <Popover.Description>{description}</Popover.Description>
           )}
           {children}
-        </Popover.Content>
+        </PopoverTemplateContent>
       </Popover.Positioner>
     </Popover.Root>
   )

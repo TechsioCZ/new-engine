@@ -2,15 +2,15 @@
  * Chart — @techsio/ui-kit molecule.
  *
  * @component Chart
- * @componentVersion v1.0.0
+ * @componentVersion v1.3.0
  * @skill chart-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the chart-usage skill's component_version and a changelog entry. Bump all three together.
  *
- * Declarative charting built on TanStack Charts (`@tanstack/charts` +
- * `@tanstack/react-charts`). One `type` prop switches between the popular
+ * Declarative charting built on TanStack Charts (`@tanstack/charts/react`).
+ * One `type` prop switches between the popular
  * chart forms — line, area, bar, horizontal bar, scatter, pie and donut —
  * from the same `data`/`x`/`y`/`series` channels. Series colors flow from
  * the `--color-chart-series-*` design tokens (bridged onto TanStack's
@@ -18,13 +18,8 @@
  * grid chrome inherit `--color-chart-fg` via `currentColor`, and the native
  * tooltip surface is styled by the `chart-tooltip` utility.
  *
- * @stability TanStack Charts (`@tanstack/charts`, `@tanstack/charts-scales`,
- * `@tanstack/react-charts`) is pre-alpha upstream (its own README/MARKETING.md
- * disclaim production readiness pending https://github.com/TanStack/charts
- * PLAN.md gates). This molecule is a deliberate, explicit exception to
- * `@techsio/ui-kit`'s otherwise-stable public API while that upstream library
- * matures — expect breaking changes here to track upstream, independent of
- * this package's semantic-release versioning for its other exports.
+ * @stability TanStack Charts follows semantic versioning from 1.0. This
+ * molecule follows `@techsio/ui-kit`'s public API versioning.
  */
 import {
   areaY,
@@ -32,27 +27,38 @@ import {
   barY,
   type ChartAxisOptions,
   type ChartColorOptions,
-  type ChartDefinition,
-  type ChartMark,
+  type ChartFocusPreset,
   type ChartPoint,
+  type ChartScene,
+  type ChartTooltipAnchorContext,
+  type ChartTooltipContent,
   type ChartTooltipInput,
+  type ChartTooltipPosition,
+  type ChartTooltipRow,
+  type ChartValue,
   colorLegend,
+  colorLegendItems,
+  type DomChartDefinition,
   d3Curve,
-  defineChart,
   dot,
   group,
   lineY,
+  type RenderChartSvgOptions,
+  type SceneNode,
   stack,
 } from "@tanstack/charts"
 import { polar, radialArc } from "@tanstack/charts/polar"
+import { Chart as TanstackChart } from "@tanstack/charts/react"
+import { scaleBand } from "@tanstack/charts/scales/band"
+import { scaleLinear } from "@tanstack/charts/scales/linear"
+import { scalePoint } from "@tanstack/charts/scales/point"
+import { renderChartSvg } from "@tanstack/charts/svg"
 import { tooltip as chartTooltip } from "@tanstack/charts/tooltip"
-import { scaleBand } from "@tanstack/charts-scales/band"
-import { scaleLinear } from "@tanstack/charts-scales/linear"
-import { scalePoint } from "@tanstack/charts-scales/point"
-import { Chart as TanstackChart } from "@tanstack/react-charts"
 import { scaleUtc } from "d3-scale"
 import { curveMonotoneX, type PieArcDatum, pie } from "d3-shape"
-import { useMemo } from "react"
+import { useMemo, useRef, useState } from "react"
+import { usePrefersReducedMotion } from "../internal/reduced-motion"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 export type { ChartPoint } from "@tanstack/charts"
@@ -87,6 +93,8 @@ export type ChartProps<TDatum> = {
    * order. Without it the chart renders a single series in series-1.
    */
   series?: ChartAccessor<TDatum, string | number>
+  /** Stable identity order across filters and remounts; use the full unfiltered domain. */
+  seriesDomain?: readonly (string | number)[]
   /**
    * Multi-series layout: stacked (true) or side-by-side/overlapping (false).
    * Defaults to true for "area" and false for "bar"/"bar-horizontal".
@@ -111,13 +119,27 @@ export type ChartProps<TDatum> = {
   yLabel?: string
   /** Formats value-axis tick labels (e.g. currency). */
   formatValue?: (value: number) => string
+  /**
+   * Human series name shown in the tooltip row of a single-series chart and pie (e.g. "Tržby"). Falls back to
+   * `yLabel`; the raw `y` field name is never shown. Multi-series rows use the `series` values.
+   */
+  valueLabel?: string
+  /** Formats the tooltip title from the category / x value. Numbers are plain `String`; dates use a fixed `en-US` medium format unless `locale` is set. */
+  formatCategory?: (value: string | number | Date) => string
+  /** Formats values in the tooltip. Defaults to `formatValue`, then locale number formatting. */
+  formatTooltipValue?: (value: number) => string
+  /** BCP 47 locale for the default tooltip number and date formatting (e.g. "cs-CZ"). Unset: numbers are plain `String` and dates use a fixed `en-US` medium format. */
+  locale?: string
   /** Fixed pixel height. When omitted, `aspectRatio` controls sizing. */
   height?: number
   /** Width/height ratio used when `height` is omitted. Defaults to 16/9. */
   aspectRatio?: number
   /** Deterministic first-frame width for SSR and hidden containers. */
   initialWidth?: number
-  /** Animate mark transitions. Defaults to true. */
+  /**
+   * Animate mark transitions. Defaults to true, or false when the user prefers
+   * reduced motion.
+   */
   animate?: boolean
   /** Show the built-in tooltip on hover/focus. Defaults to true. */
   tooltip?: boolean
@@ -126,6 +148,10 @@ export type ChartProps<TDatum> = {
   /** Longer accessible description. */
   ariaDescription?: string
   className?: string
+  /** Localized labels for the always-available data alternative and fallback states. */
+  dataTableLabel?: string
+  emptyLabel?: string
+  invalidLabel?: string
   /** Fires with the source row of the selected point, or null on deselect. */
   onSelect?: (datum: TDatum | null) => void
 }
@@ -133,7 +159,14 @@ export type ChartProps<TDatum> = {
 const chartVariants = tv({
   slots: {
     root: "chart-base block w-full text-chart-fg",
-    tooltip: "chart-tooltip",
+    tooltip: "chart-tooltip popup-layer!",
+    alternative: "overflow-auto text-chart-data text-chart-fg",
+    summary:
+      "cursor-pointer rounded-chart-tooltip focus-visible:outline-chart-fg",
+    cell: "border-chart-tooltip-border border-b p-chart-cell text-start",
+    legend: "flex flex-wrap gap-chart-legend text-chart-data text-chart-fg",
+    legendItem: "inline-flex items-center gap-chart-item",
+    fallback: "p-chart-fallback text-chart-data text-chart-fg",
   },
 })
 
@@ -163,34 +196,14 @@ function toAccessor<TDatum, TValue>(
   return (datum) => datum[accessor] as TValue
 }
 
-/**
- * defineChart's const-generic overloads infer the axis option types from the
- * marks' channel outputs. With an unresolved generic TDatum those conditional
- * types never collapse, so every spec fails overload resolution even though
- * the runtime shape is a plain static chart spec. This loosened alias keeps
- * the mark constructors (lineY, barY, …) fully typed and only relaxes the
- * final spec assembly.
- */
-type ChartSpecInput<TDatum> = {
-  marks: readonly ChartMark<unknown, any, any>[]
-  x?: ChartAxisOptions<any> | null
-  y?: ChartAxisOptions<any> | null
-  color?: ChartColorOptions
-  animate?: boolean
-  tooltip?: false | ChartTooltipInput<TDatum, any, any>
-  maxFocusDistance?: number
-}
-
-const defineChartSpec = defineChart as unknown as <TDatum>(
-  spec: ChartSpecInput<TDatum>
-) => ChartDefinition<TDatum>
-
 type BuildConfig<TDatum> = {
   type: ChartType
   data: readonly TDatum[]
   x: ChartAccessor<TDatum, string | number | Date>
   y: ChartAccessor<TDatum, number>
   series?: ChartAccessor<TDatum, string | number>
+  /** Stable identity order across filters and remounts; use the full unfiltered domain. */
+  seriesDomain?: readonly (string | number)[]
   stacked?: boolean
   points: boolean
   smooth: boolean
@@ -200,6 +213,11 @@ type BuildConfig<TDatum> = {
   xLabel?: string
   yLabel?: string
   formatValue?: (value: number) => string
+  valueLabel?: string
+  formatCategory?: (value: string | number | Date) => string
+  formatTooltipValue?: (value: number) => string
+  /** Unset: the UiMessagesProvider locale; without one, numbers are plain `String` and dates use a fixed `en-US` medium format. */
+  locale?: string
   animate: boolean
   showTooltip: boolean
   tooltipClassName: string
@@ -210,40 +228,139 @@ type ResolvedBuild<TDatum> = {
   getX: (datum: TDatum) => string | number | Date
   getY: (datum: TDatum) => number
   getSeries?: (datum: TDatum) => string | number
+  seriesDomain?: readonly (string | number)[]
   stacked?: boolean
   points: boolean
   curve?: ReturnType<typeof d3Curve>
   grid: boolean
   xLabel?: string
   yLabel?: string
-  valueTicks?: { format: (value: number) => string }
-  valueAxis: ChartAxisOptions<any>
-  xAxis: ChartAxisOptions<any>
-  bandAxis: ChartAxisOptions<any>
+  valueTicks?: { format?: (value: number) => string }
+  valueAxis: ChartAxisOptions<number>
+  xAxis: ChartAxisOptions<ChartValue>
+  bandAxis: ChartAxisOptions<ChartValue>
   /**
    * Tooltip config for a cartesian chart, told which channel carries the value
-   * so `formatValue` lands on the same number the axis ticks format.
+   * so the value formatter lands on the same number the axis ticks format.
    */
   tooltipFor: (
-    valueChannel: "x" | "y",
-    swapped?: boolean
-  ) => false | ChartTooltipInput<TDatum, any, any>
+    valueChannel: "x" | "y"
+  ) => false | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom">
   /** Tooltip config for pie/donut, which read the value off the source row. */
-  polarTooltip: () => false | ChartTooltipInput<TDatum, any, any>
+  polarTooltip: () =>
+    | false
+    | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom">
   shared: {
     color?: ChartColorOptions
-    animate: boolean
+    svgAnimation: boolean
+    focus?: ChartFocusPreset
   }
 }
 
 /** TanStack's categorical palette is six entries wide and indexes it modulo its
  * length, so a 7th distinct series silently repaints as series-1. */
+const READABLE_TICK_LABELS = { fontSize: 14, opacity: 1 }
 const MAX_SERIES = 6
+const LINE_DASHES = ["", "8 4", "2 4", "8 4 2 4", "12 4", "4 4"]
 
-type TooltipPoint = {
-  xValue: unknown
-  yValue: unknown
-  datum: unknown
+const TOOLTIP_GAP = 12
+const TOOLTIP_EDGE = 8
+let tooltipMeasureContext: CanvasRenderingContext2D | false | undefined
+
+/** A BCP 47 tag the runtime accepts; anything else (e.g. "cs_CZ") is treated as no locale instead of throwing. */
+function validLocale(locale: string | undefined): string | undefined {
+  if (locale == null) {
+    return undefined
+  }
+  try {
+    Intl.getCanonicalLocales(locale)
+    return locale
+  } catch {
+    return undefined
+  }
+}
+
+/** Text width in px for the tooltip font; falls back to a generous per-character estimate without canvas. */
+function tooltipTextWidth(text: string, weight: number) {
+  if (tooltipMeasureContext == null && typeof document !== "undefined") {
+    // `getContext` is absent in some DOM shims, so guard the call as well.
+    tooltipMeasureContext =
+      document.createElement("canvas").getContext?.("2d") ?? false
+  }
+  if (!tooltipMeasureContext) {
+    return 8.5 * text.length
+  }
+  tooltipMeasureContext.font = `${weight} 15px system-ui, sans-serif`
+  return 1.08 * tooltipMeasureContext.measureText(text).width
+}
+
+/** Upper-bound size of the structured tooltip, so the anchor can keep it clear of the hovered mark. */
+function estimateTooltipSize(content: ChartTooltipContent) {
+  const titleWidth = content.title ? tooltipTextWidth(content.title, 650) : 0
+  const rowWidth = Math.max(
+    0,
+    ...content.rows.map(
+      (row) =>
+        40 + tooltipTextWidth(row.label, 500) + tooltipTextWidth(row.value, 600)
+    )
+  )
+  return {
+    width: Math.ceil(Math.max(titleWidth, rowWidth) + 34),
+    height: Math.ceil(30 + (content.title ? 26 : 0) + 24 * content.rows.length),
+  }
+}
+
+/**
+ * Top-left corner for the tooltip (used with placement "bottom-right" and offset 0): above the hovered column when it
+ * fits, otherwise beside it on the side with room, never on top of the mark. The host clamps it inside the chart.
+ */
+function chartTooltipCorner<TDatum>(
+  content: ChartTooltipContent,
+  points: readonly ChartPoint<TDatum, ChartValue, ChartValue>[],
+  context: ChartTooltipAnchorContext<TDatum, ChartValue, ChartValue>,
+  horizontal: boolean
+): ChartTooltipPosition | null {
+  const first = points[0]
+  if (!first) {
+    return null
+  }
+  const { width, height } = estimateTooltipSize(content)
+  const { surface } = context
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
+  const categoryScale = context.scales[horizontal ? "y" : "x"]
+  const band = categoryScale?.bandwidth ?? 0
+  const bandStart =
+    categoryScale && band > 0
+      ? categoryScale.map(horizontal ? first.yValue : first.xValue)
+      : Number.NaN
+  const hasBand = Number.isFinite(bandStart)
+
+  if (horizontal) {
+    const top = hasBand ? bandStart : Math.min(...ys)
+    const bottom = hasBand ? bandStart + band : Math.max(...ys)
+    const end = Math.max(...xs)
+    if (end + TOOLTIP_GAP + width + TOOLTIP_EDGE <= surface.width) {
+      return { x: end + TOOLTIP_GAP, y: (top + bottom - height) / 2 }
+    }
+    if (top - TOOLTIP_GAP - height >= TOOLTIP_EDGE) {
+      return { x: end - width, y: top - TOOLTIP_GAP - height }
+    }
+    return { x: end - width, y: bottom + TOOLTIP_GAP }
+  }
+
+  const left = hasBand ? bandStart : Math.min(...xs)
+  const right = hasBand ? bandStart + band : Math.max(...xs)
+  const top = Math.min(...ys)
+  const center = (left + right) / 2
+  if (top - TOOLTIP_GAP - height >= TOOLTIP_EDGE) {
+    return { x: center - width / 2, y: top - TOOLTIP_GAP - height }
+  }
+  const y = Math.max(TOOLTIP_EDGE, top)
+  if (right + TOOLTIP_GAP + width + TOOLTIP_EDGE <= surface.width) {
+    return { x: right + TOOLTIP_GAP, y }
+  }
+  return { x: left - TOOLTIP_GAP - width, y }
 }
 
 /**
@@ -262,17 +379,25 @@ function resolveXAxis<TDatum>(
   data: readonly TDatum[],
   getX: (datum: TDatum) => string | number | Date,
   xLabel?: string
-): ChartAxisOptions<any> {
+): ChartAxisOptions<ChartValue> {
   const values = data.map(getX)
   if (values.length > 0 && values.every((value) => value instanceof Date)) {
-    return { scale: () => scaleUtc(), nice: true, axis: { label: xLabel } }
+    return {
+      scale: () => scaleUtc(),
+      nice: true,
+      axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
+    }
   }
   if (values.length > 0 && values.every((value) => typeof value === "number")) {
-    return { scale: scaleLinear, nice: true, axis: { label: xLabel } }
+    return {
+      scale: scaleLinear,
+      nice: true,
+      axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
+    }
   }
   return {
     scale: () => scalePoint<string | number | Date>().padding(0.1),
-    axis: { label: xLabel },
+    axis: { label: xLabel, tickLabels: READABLE_TICK_LABELS },
   }
 }
 
@@ -286,7 +411,7 @@ function resolveBuild<TDatum>(
   const isPolar = config.type === "pie" || config.type === "donut"
   const showLegend = config.legend ?? (config.series != null || isPolar)
   const { formatValue } = config
-  const valueTicks = formatValue ? { format: formatValue } : undefined
+  const valueTicks = { format: formatValue }
 
   warnOnSeriesOverflow(config.data, isPolar ? getX : getSeries)
 
@@ -294,86 +419,131 @@ function resolveBuild<TDatum>(
     use: chartTooltip,
     className: config.tooltipClassName,
   }
-  // Axis labels are optional, but the library falls back to the literal
-  // strings "x" and "y" when they are unset — so an unlabelled chart shows a
-  // tooltip row called "x". Borrow the caller's own field name instead, which
-  // is at least their vocabulary and their language. Undefined (never "") so
-  // the library's own fallback stays reachable when the channel is a function.
-  const channelName = (
-    accessor: ChartAccessor<TDatum, unknown>,
-    label?: string
-  ) => label ?? (typeof accessor === "string" ? accessor : undefined)
-  const xName = channelName(config.x, config.xLabel)
-  const yName = channelName(config.y, config.yLabel)
-  // The tooltip formats values with its own locale formatter and never
-  // consults the axis tick formatter, so `formatValue` has to be handed to it
-  // separately — otherwise the axis reads "81k €" and the tooltip "81,000".
-  const formatChannel = (point: TooltipPoint, channel: "x" | "y") => {
-    const value = channel === "x" ? point.xValue : point.yValue
-    if (typeof value === "number" && formatValue) {
-      return formatValue(value)
+  // Tooltips never show raw field names. Values use the caller's formatters,
+  // then the caller's locale when one is given. Without a locale, numbers are
+  // plain String and dates fall back to a fixed en-US medium date, so the
+  // default output does not depend on the viewer's browser locale.
+  const locale = validLocale(config.locale)
+  const numberFormat = locale ? new Intl.NumberFormat(locale) : undefined
+  const dateFormat = new Intl.DateTimeFormat(locale ?? "en-US", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  })
+  const formatCategory = (value: string | number | Date) => {
+    if (config.formatCategory) {
+      return config.formatCategory(value)
     }
-    return String(value ?? "")
+    if (value instanceof Date) {
+      return dateFormat.format(value)
+    }
+    if (typeof value === "number") {
+      return numberFormat ? numberFormat.format(value) : String(value)
+    }
+    return String(value)
   }
-
-  // `swapped` covers horizontal bars: barX passes { x: getY, y: getX }, so the
-  // spatial x/y channels carry the opposite data than every other chart form.
-  // Labels have to follow the data channel (xName/yName), not the spatial one
-  // — resolve which data channel actually holds the value before naming rows.
-  const tooltipFor = (valueChannel: "x" | "y", swapped = false) => {
-    if (!config.showTooltip) {
-      return false as const
+  // The tooltip never consults the axis tick formatter, so the value formatter
+  // is handed over separately; otherwise the axis reads "81k €" and the
+  // tooltip "81,000".
+  const formatTooltipValue = (value: number) => {
+    const format = config.formatTooltipValue ?? formatValue
+    if (format) {
+      return format(value)
     }
-    const dataValueChannel: "x" | "y" = swapped ? "y" : valueChannel
-    const valueName = dataValueChannel === "x" ? xName : yName
-    const categoryName = dataValueChannel === "x" ? yName : xName
-    const valueItem = {
-      channel: valueChannel,
-      label: valueName,
-      // Only override the text when there is a formatter; otherwise leave it
-      // undefined so the library formats the value itself.
-      text: formatValue
-        ? (point: TooltipPoint) => formatChannel(point, valueChannel)
-        : undefined,
-    }
-    const categoryChannel: "x" | "y" = valueChannel === "x" ? "y" : "x"
-    const categoryItem = {
-      channel: categoryChannel,
-      label: categoryName,
+    return numberFormat ? numberFormat.format(value) : String(value)
+  }
+  // The value row is named by the series (multi-series) or by `valueLabel`,
+  // falling back to `yLabel`. The raw `y` field name is never shown.
+  const valueName = config.valueLabel ?? config.yLabel ?? ""
+  const rowFor = (
+    row: TDatum,
+    point: ChartPoint,
+    active: boolean
+  ): ChartTooltipRow => ({
+    label: getSeries ? String(getSeries(row)) : valueName,
+    value: formatTooltipValue(getY(row)),
+    color: point.color || SERIES_1_PAINT,
+    active,
+  })
+  const cartesianContent = (
+    points: readonly ChartPoint<TDatum, ChartValue, ChartValue>[],
+    primaryPoint: ChartPoint | undefined
+  ): ChartTooltipContent => {
+    const first = points[0]
+    if (!first) {
+      return { rows: [] }
     }
     return {
-      ...tooltipBase,
-      items:
-        valueChannel === "x"
-          ? [valueItem, categoryItem]
-          : [categoryItem, valueItem],
+      title: formatCategory(getX(first.datum)),
+      rows: points.map((point) =>
+        rowFor(point.datum, point, points.length > 1 && point === primaryPoint)
+      ),
     }
   }
-
-  const polarTooltip = () => {
-    if (!config.showTooltip) {
-      return false as const
+  const polarContent = (
+    points: readonly ChartPoint<unknown, ChartValue, ChartValue>[]
+  ): ChartTooltipContent => {
+    const first = points[0]
+    if (!first) {
+      return { rows: [] }
     }
     // Polar points carry the d3 pie interval, and their x/y values are the
     // slice mid-angle in radians and mid-radius in pixels — meaningless to a
     // reader. Read the value straight off the source row instead.
+    const row = (first.datum as PieArcDatum<TDatum>).data
     return {
-      ...tooltipBase,
-      items: [
+      title: formatCategory(getX(row)),
+      rows: [
         {
-          id: "value",
-          // No hardcoded English fallback — this string ships to storefronts
-          // in other languages. `yLabel` is the localized name when given;
-          // otherwise borrow the caller's own field name, which they control.
-          label: yName,
-          text: (point: TooltipPoint) => {
-            const row = (point.datum as PieArcDatum<TDatum>).data
-            const value = getY(row)
-            return formatValue ? formatValue(value) : String(value)
-          },
+          label: valueName,
+          value: formatTooltipValue(getY(row)),
+          color: first.color || SERIES_1_PAINT,
         },
       ],
     }
+  }
+  // Cartesian tooltips sit beside or above the hovered mark, never on top of it.
+  const tooltipFor = (
+    valueChannel: "x" | "y"
+  ): false | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom"> => {
+    if (!config.showTooltip) {
+      return false
+    }
+    const horizontal = valueChannel === "x"
+    return {
+      ...tooltipBase,
+      content: (points, context) =>
+        cartesianContent(points, context.primaryPoint),
+      anchor: (points, context) =>
+        chartTooltipCorner(
+          cartesianContent(points, context.focus.primary),
+          points,
+          context,
+          horizontal
+        ),
+      placement: "bottom-right",
+      offset: 0,
+    }
+  }
+
+  const polarTooltip = ():
+    | false
+    | ChartTooltipInput<TDatum, ChartValue, ChartValue, "dom"> => {
+    if (!config.showTooltip) {
+      return false
+    }
+    return {
+      ...tooltipBase,
+      content: polarContent,
+      anchor: "pointer",
+      placement: ["right", "left", "bottom", "top"],
+      offset: 16,
+    }
+  }
+  // Hovering a series focuses the whole group along the category axis, so
+  // the tooltip lists every series at that category.
+  let focus: ChartFocusPreset | undefined
+  if (getSeries != null && !isPolar) {
+    focus = config.type === "bar-horizontal" ? "group-y" : "group-x"
   }
 
   // Value axis: linear, niced, carrying the grid — chart chrome stays
@@ -383,7 +553,11 @@ function resolveBuild<TDatum>(
     scale: scaleLinear,
     nice: true,
     grid: config.grid,
-    axis: { label: config.yLabel, ticks: valueTicks },
+    axis: {
+      label: config.yLabel,
+      ticks: valueTicks,
+      tickLabels: READABLE_TICK_LABELS,
+    },
   }
 
   const xAxis = resolveXAxis(config.data, getX, config.xLabel)
@@ -393,6 +567,7 @@ function resolveBuild<TDatum>(
     getX,
     getY,
     getSeries,
+    seriesDomain: config.seriesDomain,
     stacked: config.stacked,
     points: config.points,
     curve: config.smooth ? d3Curve(curveMonotoneX) : undefined,
@@ -404,15 +579,28 @@ function resolveBuild<TDatum>(
     xAxis,
     bandAxis: {
       scale: () => scaleBand<string | number | Date>().padding(0.3),
-      axis: { label: config.xLabel },
+      axis: {
+        label: config.xLabel,
+        tickLabels: READABLE_TICK_LABELS,
+      },
     },
     tooltipFor,
     polarTooltip,
     shared: {
-      color: showLegend
-        ? { legend: colorLegend({ label: config.legendLabel }) }
-        : undefined,
-      animate: config.animate,
+      color: {
+        domain: config.seriesDomain,
+        legend:
+          showLegend && config.type !== "line"
+            ? colorLegend({
+                label: config.legendLabel,
+                items: colorLegendItems({
+                  label: { fontSize: 14, fillOpacity: 1 },
+                }),
+              })
+            : undefined,
+      },
+      svgAnimation: config.animate,
+      ...(focus ? { focus } : {}),
     },
   }
 }
@@ -452,33 +640,39 @@ function warnOnSeriesOverflow<TDatum>(
 
 function buildLine<TDatum>(
   build: ResolvedBuild<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
-  return defineChartSpec<TDatum>({
-    marks: [
-      lineY(data, {
+  const identities = getSeries ? [...new Set(data.map(getSeries))] : [undefined]
+  return {
+    marks: identities.map((identity) => {
+      const rows = getSeries
+        ? data.filter((row) => getSeries(row) === identity)
+        : data
+      const index =
+        identity == null ? 0 : (build.seriesDomain?.indexOf(identity) ?? 0)
+      return lineY(rows, {
         x: getX,
         y: getY,
         z: getSeries,
         color: getSeries,
-        points: build.points,
+        points: build.points || rows.length === 1,
         curve: build.curve,
+        strokeDasharray: LINE_DASHES[index % LINE_DASHES.length],
         stroke: getSeries == null ? SERIES_1_PAINT : undefined,
-      }),
-    ],
-    x: build.xAxis,
-    y: build.valueAxis,
+      })
+    }),
+    scales: { x: build.xAxis, y: build.valueAxis },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function buildArea<TDatum>(
   build: ResolvedBuild<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
   const isStacked = build.stacked ?? true
-  return defineChartSpec<TDatum>({
+  return {
     marks: [
       areaY(data, {
         x: getX,
@@ -500,11 +694,10 @@ function buildArea<TDatum>(
         strokeWidth: 2,
       }),
     ],
-    x: build.xAxis,
-    y: build.valueAxis,
+    scales: { x: build.xAxis, y: build.valueAxis },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function barLayout(hasSeries: boolean, isStacked: boolean) {
@@ -517,7 +710,7 @@ function barLayout(hasSeries: boolean, isStacked: boolean) {
 function buildBars<TDatum>(
   build: ResolvedBuild<TDatum>,
   horizontal: boolean
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
   const isStacked = build.stacked ?? false
   const barOptions = {
@@ -529,34 +722,39 @@ function buildBars<TDatum>(
     radius: getSeries != null && isStacked ? 0 : 4,
   }
   if (horizontal) {
-    return defineChartSpec<TDatum>({
+    return {
       marks: [barX(data, { x: getY, y: getX, ...barOptions })],
       // The value channel runs along x here, so it carries grid and format.
-      x: {
-        scale: scaleLinear,
-        nice: true,
-        grid: build.grid,
-        axis: { label: build.yLabel, ticks: build.valueTicks },
+      scales: {
+        x: {
+          scale: scaleLinear,
+          nice: true,
+          grid: build.grid,
+          axis: {
+            label: build.yLabel,
+            ticks: build.valueTicks,
+            tickLabels: READABLE_TICK_LABELS,
+          },
+        },
+        y: build.bandAxis,
       },
-      y: build.bandAxis,
       ...build.shared,
-      tooltip: build.tooltipFor("x", true),
-    })
+      tooltip: build.tooltipFor("x"),
+    }
   }
-  return defineChartSpec<TDatum>({
+  return {
     marks: [barY(data, { x: getX, y: getY, ...barOptions })],
-    x: build.bandAxis,
-    y: build.valueAxis,
+    scales: { x: build.bandAxis, y: build.valueAxis },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function buildScatter<TDatum>(
   build: ResolvedBuild<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY, getSeries } = build
-  return defineChartSpec<TDatum>({
+  return {
     marks: [
       dot(data, {
         x: getX,
@@ -568,29 +766,32 @@ function buildScatter<TDatum>(
         fill: getSeries == null ? SERIES_1_PAINT : undefined,
       }),
     ],
-    x: { ...build.xAxis, grid: build.grid },
-    y: build.valueAxis,
+    scales: {
+      x: { ...build.xAxis, grid: build.grid },
+      y: build.valueAxis,
+    },
     ...build.shared,
     tooltip: build.tooltipFor("y"),
-  })
+  }
 }
 
 function buildPolar<TDatum>(
   build: ResolvedBuild<TDatum>,
   donut: boolean
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const { data, getX, getY } = build
   const sliceLabel = (slice: PieArcDatum<TDatum>) => String(getX(slice.data))
   const slices = pie<TDatum>()
     .sort(null)
     .padAngle(0.02)
     .value((datum) => getY(datum))([...data])
-  return defineChartSpec<TDatum>({
-    x: null,
-    y: null,
+  return {
+    scales: { x: null, y: null },
     marks: [
       polar({
         inset: POLAR_INSET,
+        // radialArc uses explicit angles and radii, so disable both scales.
+        scales: { angle: null, radius: null },
         marks: [
           radialArc(slices, {
             startAngle: "startAngle",
@@ -617,21 +818,13 @@ function buildPolar<TDatum>(
     ],
     ...build.shared,
     tooltip: build.polarTooltip(),
-    // Deliberately NOT setting maxFocusDistance. Arc focus points sit at the
-    // slice centroid, so the library's 48px default leaves parts of a large pie
-    // hard to hover — but the value is fixed at spec time while the chart
-    // renders responsively, and the same distance also gates clicks. Any
-    // constant is therefore wrong at some width: too small and a big slice is
-    // unreachable, too large and `onSelect(null)` can never fire because every
-    // click resolves to a slice. Widening this needs a `focus` strategy that
-    // hit-tests the arc against the measured layout, not a guess from
-    // `initialWidth`. Tracked; the default at least keeps deselect correct.
-  })
+    // Upstream radialArc provides geometry-based focus across each slice.
+  }
 }
 
 function buildChartDefinition<TDatum>(
   config: BuildConfig<TDatum>
-): ChartDefinition<TDatum> {
+): DomChartDefinition<TDatum> {
   const build = resolveBuild(config)
   switch (config.type) {
     case "area":
@@ -651,12 +844,232 @@ function buildChartDefinition<TDatum>(
   }
 }
 
+const CARTESIAN_GRID_PAINT_ORDER = ["y-grid", "x-grid"]
+const CARTESIAN_AXIS_PAINT_ORDER = [
+  "x-axis",
+  "y-axis",
+  "x-tick-rule",
+  "x-tick-label",
+  "y-tick-rule",
+  "y-tick-label",
+  "x-label",
+  "y-label",
+]
+
+function cartesianGuidePaintOrder(key: string, order: readonly string[]) {
+  const index = order.findIndex(
+    (prefix) => key === prefix || key.startsWith(`${prefix}:`)
+  )
+  return index < 0 ? order.length : index
+}
+
+/** Preserve the previous Cartesian rasterization at overlapping translucent guides. */
+function renderCartesianChartSvg(
+  scene: ChartScene,
+  options: RenderChartSvgOptions
+) {
+  const nodes = scene.nodes.map((node) => {
+    if (node.kind !== "group" || (node.key !== "grid" && node.key !== "axes")) {
+      return node
+    }
+    const order =
+      node.key === "grid"
+        ? CARTESIAN_GRID_PAINT_ORDER
+        : CARTESIAN_AXIS_PAINT_ORDER
+    const children = node.children.map((child) => {
+      // The old y ticks ran left to right. Reversing the same segment changes
+      // antialiasing at some intersections, even with identical bounds/paint.
+      if (
+        node.key === "axes" &&
+        child.kind === "rule" &&
+        child.key.startsWith("y-tick-rule:") &&
+        child.x1 > child.x2
+      ) {
+        return { ...child, x1: child.x2, x2: child.x1 }
+      }
+      return child
+    })
+    children.sort(
+      (left, right) =>
+        cartesianGuidePaintOrder(left.key, order) -
+        cartesianGuidePaintOrder(right.key, order)
+    )
+    return { ...node, children }
+  })
+  return renderReadableChartSvg({ ...scene, nodes }, options)
+}
+
+function renderReadableChartSvg(
+  scene: ChartScene,
+  options: RenderChartSvgOptions
+) {
+  const readable = (node: SceneNode): SceneNode => {
+    if (node.kind === "group") {
+      return { ...node, children: node.children.map(readable) }
+    }
+    if (node.kind === "label") {
+      return {
+        ...node,
+        fontSize: Math.max(READABLE_TICK_LABELS.fontSize, node.fontSize ?? 0),
+        style: { ...node.style, fillOpacity: 1, opacity: 1 },
+      }
+    }
+    return node
+  }
+  return renderChartSvg({ ...scene, nodes: scene.nodes.map(readable) }, options)
+}
+
+function useStableSeriesDomain<TDatum>(
+  data: readonly TDatum[],
+  getIdentity: ((datum: TDatum) => string | number) | undefined,
+  domain?: readonly (string | number)[]
+) {
+  const seenIdentities = useRef<(string | number)[]>([])
+  for (const datum of data) {
+    const identity = getIdentity?.(datum)
+    if (identity != null && !seenIdentities.current.includes(identity)) {
+      seenIdentities.current.push(identity)
+    }
+  }
+  return domain ?? seenIdentities.current
+}
+
+function filterChartData<TDatum>(
+  data: readonly TDatum[],
+  x: ChartProps<TDatum>["x"],
+  y: ChartProps<TDatum>["y"]
+) {
+  const getX = toAccessor(x)
+  const getY = toAccessor(y)
+  return data.filter((datum) => {
+    const category = getX(datum)
+    return (
+      Number.isFinite(getY(datum)) &&
+      (typeof category !== "number" || Number.isFinite(category)) &&
+      (!(category instanceof Date) || Number.isFinite(category.getTime()))
+    )
+  })
+}
+function invalidPolarData<TDatum>(
+  data: readonly TDatum[],
+  validData: readonly TDatum[],
+  getY: (datum: TDatum) => number
+) {
+  const total = validData.reduce((sum, datum) => sum + getY(datum), 0)
+  return (
+    validData.length !== data.length ||
+    validData.some((datum) => getY(datum) < 0) ||
+    (validData.length > 0 && (!Number.isFinite(total) || total <= 0))
+  )
+}
+
+function ChartDataAlternative<TDatum>({
+  data,
+  x,
+  y,
+  series,
+  xLabel,
+  yLabel,
+  legendLabel,
+  formatValue,
+  ariaLabel,
+  dataTableLabel,
+}: ChartProps<TDatum>) {
+  const messages = useUiMessages()
+  const { alternative, summary, cell } = chartVariants()
+  const getX = toAccessor(x)
+  const getY = toAccessor(y)
+  const getSeries = series == null ? undefined : toAccessor(series)
+  const occurrences = new Map<string, number>()
+  return (
+    <details className={alternative()}>
+      <summary className={summary()}>{dataTableLabel}</summary>
+      <table>
+        <caption>{ariaLabel}</caption>
+        <thead>
+          <tr>
+            {getSeries && (
+              <th className={cell()} scope="col">
+                {legendLabel ??
+                  (typeof series === "string"
+                    ? series
+                    : messages.chart.seriesHeader)}
+              </th>
+            )}
+            <th className={cell()} scope="col">
+              {xLabel ??
+                (typeof x === "string" ? x : messages.chart.categoryHeader)}
+            </th>
+            <th className={cell()} scope="col">
+              {yLabel ??
+                (typeof y === "string" ? y : messages.chart.valueHeader)}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((datum) => {
+            const identity = `${String(getX(datum))}:${getSeries?.(datum) ?? ""}`
+            const occurrence = occurrences.get(identity) ?? 0
+            occurrences.set(identity, occurrence + 1)
+            return (
+              <tr key={`${identity}:${occurrence}`}>
+                {getSeries && <td className={cell()}>{getSeries(datum)}</td>}
+                <td className={cell()}>{String(getX(datum))}</td>
+                <td className={cell()}>
+                  {formatValue ? formatValue(getY(datum)) : String(getY(datum))}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </details>
+  )
+}
+
+function ChartLineLegend({
+  identities,
+  domain,
+  label,
+}: {
+  identities: (string | number)[]
+  domain: readonly (string | number)[]
+  label?: string
+}) {
+  const { legend, legendItem } = chartVariants()
+  return (
+    <ul aria-label={label} className={legend()}>
+      {identities.map((identity) => {
+        const index = Math.max(0, domain.indexOf(identity))
+        return (
+          <li className={legendItem()} key={identity}>
+            <svg aria-hidden="true" height="12" viewBox="0 0 32 12" width="32">
+              <line
+                stroke={`var(--color-chart-series-${(index % MAX_SERIES) + 1})`}
+                strokeDasharray={LINE_DASHES[index % LINE_DASHES.length]}
+                strokeWidth="2"
+                x1="0"
+                x2="32"
+                y1="6"
+                y2="6"
+              />
+            </svg>
+            {identity}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: each fallback text (catalog entry) adds one branch to the public Chart root.
 export function Chart<TDatum>({
   type = "line",
   data,
   x,
   y,
   series,
+  seriesDomain,
   stacked,
   points = false,
   smooth = false,
@@ -666,27 +1079,54 @@ export function Chart<TDatum>({
   xLabel,
   yLabel,
   formatValue,
+  valueLabel,
+  formatCategory,
+  formatTooltipValue,
+  locale,
   height,
   aspectRatio,
   initialWidth = 640,
-  animate = true,
+  animate,
   tooltip = true,
   ariaLabel,
   ariaDescription,
   className,
+  dataTableLabel,
+  emptyLabel,
+  invalidLabel,
   onSelect,
 }: ChartProps<TDatum>) {
-  const { root, tooltip: tooltipSlot } = chartVariants()
+  const messages = useUiMessages()
+  const resolvedLocale = locale ?? messages.locale
+  const { root, tooltip: tooltipSlot, fallback } = chartVariants()
   const tooltipClassName = tooltipSlot()
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const shouldAnimate = animate ?? !prefersReducedMotion
 
+  const [dismissed, setDismissed] = useState(false)
+  const getX = toAccessor(x)
+  const getY = toAccessor(y)
+  const getSeries = series == null ? undefined : toAccessor(series)
+  const isPolar = type === "pie" || type === "donut"
+  const validData = useMemo(() => filterChartData(data, x, y), [data, x, y])
+  const invalidPolar = isPolar && invalidPolarData(data, validData, getY)
+  const stableDomain = useStableSeriesDomain(
+    validData,
+    isPolar ? (datum) => String(getX(datum)) : getSeries,
+    // Polar marks use display labels as identities; normalize the explicit
+    // domain too so numeric categories keep their slots after filtering.
+    isPolar ? seriesDomain?.map(String) : seriesDomain
+  )
+  const domainKey = JSON.stringify(stableDomain)
   const definition = useMemo(
     () =>
       buildChartDefinition({
         type,
-        data,
+        data: invalidPolar ? [] : validData,
         x,
         y,
         series,
+        seriesDomain: JSON.parse(domainKey) as (string | number)[],
         stacked,
         points,
         smooth,
@@ -696,13 +1136,20 @@ export function Chart<TDatum>({
         xLabel,
         yLabel,
         formatValue,
-        animate,
-        showTooltip: tooltip,
+        valueLabel,
+        formatCategory,
+        formatTooltipValue,
+        locale: resolvedLocale,
+        animate: shouldAnimate,
+        showTooltip: tooltip && !dismissed,
         tooltipClassName,
       }),
     [
       type,
-      data,
+      validData,
+      invalidPolar,
+      domainKey,
+      dismissed,
       x,
       y,
       series,
@@ -715,13 +1162,15 @@ export function Chart<TDatum>({
       xLabel,
       yLabel,
       formatValue,
-      animate,
+      valueLabel,
+      formatCategory,
+      formatTooltipValue,
+      resolvedLocale,
+      shouldAnimate,
       tooltip,
       tooltipClassName,
     ]
   )
-
-  const isPolar = type === "pie" || type === "donut"
 
   const handleSelect = onSelect
     ? (point: ChartPoint<TDatum> | null) => {
@@ -739,15 +1188,69 @@ export function Chart<TDatum>({
     : undefined
 
   return (
-    <TanstackChart
-      ariaDescription={ariaDescription}
-      ariaLabel={ariaLabel}
-      aspectRatio={height == null ? (aspectRatio ?? 16 / 9) : undefined}
+    <div
       className={root({ className })}
-      definition={definition}
-      height={height}
-      initialWidth={initialWidth}
-      onSelect={handleSelect}
-    />
+      onKeyDownCapture={(event) => {
+        if (event.key === "Escape") {
+          setDismissed(true)
+        } else if (
+          [
+            "ArrowLeft",
+            "ArrowRight",
+            "ArrowUp",
+            "ArrowDown",
+            "Home",
+            "End",
+          ].includes(event.key)
+        ) {
+          setDismissed(false)
+        }
+      }}
+      onPointerMoveCapture={() => {
+        if (dismissed) {
+          setDismissed(false)
+        }
+      }}
+    >
+      {invalidPolar || validData.length === 0 ? (
+        <p className={fallback()} role="status">
+          {invalidPolar
+            ? (invalidLabel ?? messages.chart.invalidLabel)
+            : (emptyLabel ?? messages.chart.emptyLabel)}
+        </p>
+      ) : (
+        <TanstackChart
+          ariaDescription={ariaDescription}
+          ariaLabel={ariaLabel}
+          aspectRatio={height == null ? (aspectRatio ?? 16 / 9) : undefined}
+          definition={definition}
+          height={height}
+          initialWidth={initialWidth}
+          onSelect={handleSelect}
+          renderSvg={isPolar ? renderReadableChartSvg : renderCartesianChartSvg}
+        />
+      )}
+      {type === "line" && getSeries && legend !== false && !invalidPolar && (
+        <ChartLineLegend
+          domain={stableDomain}
+          identities={[...new Set(validData.map(getSeries))]}
+          label={legendLabel}
+        />
+      )}
+      {validData.length > 0 && !invalidPolar && (
+        <ChartDataAlternative
+          ariaLabel={ariaLabel}
+          data={validData}
+          dataTableLabel={dataTableLabel ?? messages.chart.dataTableLabel}
+          formatValue={formatValue}
+          legendLabel={legendLabel}
+          series={series}
+          x={x}
+          xLabel={xLabel}
+          y={y}
+          yLabel={yLabel}
+        />
+      )}
+    </div>
   )
 }

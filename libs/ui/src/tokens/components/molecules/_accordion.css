@@ -8,12 +8,53 @@
  */
 
 @theme static {
-  --padding-accordion-title-sm: var(--padding-accordion-title-y-sm) var(--padding-accordion-title-x-sm);
-  --padding-accordion-title-md: var(--padding-accordion-title-y-md) var(--padding-accordion-title-x-md);
-  --padding-accordion-title-lg: var(--padding-accordion-title-y-lg) var(--padding-accordion-title-x-lg);
+  /* Reference layer: use independent aliases so generated Figma snapshots
+   * cannot flatten the trigger/panel hierarchy in any theme. */
+  --color-accordion-panel: var(--color-fg-secondary);
+  --color-accordion-divider: var(--color-border-secondary);
+  --color-accordion-focus: var(--color-ring-default);
+  --color-accordion-disabled: var(--color-fg-disabled);
+  --font-weight-accordion-heading: var(--font-weight-semibold);
+  --font-weight-accordion-body: var(--font-weight-normal);
+  --spacing-accordion-inset: var(--spacing-150);
 
-  --padding-accordion-content-md: var(--padding-accordion-content-y-md) var(--padding-accordion-content-x-md);
-  --padding-accordion-content-lg: var(--padding-accordion-content-y-lg) var(--padding-accordion-content-x-lg);
+  /* Derived layer */
+  --color-accordion-panel-fg: var(--color-accordion-panel);
+  --color-accordion-panel-border: var(--color-accordion-divider);
+  --color-accordion-ring-focus: var(--color-accordion-focus);
+  --color-accordion-trigger-fg-disabled: var(--color-accordion-disabled);
+  --font-weight-accordion-trigger: var(--font-weight-accordion-heading);
+  --font-weight-accordion-panel: var(--font-weight-accordion-body);
+  --gap-accordion-trigger: var(--spacing-accordion-inset);
+  --leading-accordion-panel: var(--leading-relaxed);
+  --text-accordion-panel-sm: var(--text-sm);
+  --text-accordion-panel-md: var(--text-sm);
+  --text-accordion-panel-lg: var(--text-md);
+  --padding-accordion-panel-sm: var(--spacing-accordion-inset)
+    calc(var(--padding-accordion-title-x-sm) + var(--spacing-accordion-inset));
+  --padding-accordion-panel-md: var(--spacing-200)
+    calc(var(--padding-accordion-title-x-md) + var(--spacing-accordion-inset));
+  --padding-accordion-panel-lg: var(--spacing-250)
+    calc(var(--padding-accordion-title-x-lg) + var(--spacing-accordion-inset));
+
+  --padding-accordion-title-sm: var(--padding-accordion-title-y-sm)
+    var(--padding-accordion-title-x-sm);
+  --padding-accordion-title-md: var(--padding-accordion-title-y-md)
+    var(--padding-accordion-title-x-md);
+  --padding-accordion-title-lg: var(--padding-accordion-title-y-lg)
+    var(--padding-accordion-title-x-lg);
+
+  --padding-accordion-content-md: var(--padding-accordion-content-y-md)
+    var(--padding-accordion-content-x-md);
+  --padding-accordion-content-lg: var(--padding-accordion-content-y-lg)
+    var(--padding-accordion-content-x-lg);
+}
+
+/* Keep keyboard focus visible without inheriting Button typography or motion. */
+@utility accordion-focus-outline {
+  outline: var(--default-ring-width) var(--default-ring-style)
+    var(--color-accordion-ring-focus);
+  outline-offset: var(--default-ring-offset);
 }
 
 /* Semantic tokens for accordion icons */

@@ -2,85 +2,119 @@
  * FormTextarea — @techsio/ui-kit molecule.
  *
  * @component FormTextarea
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill form-textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the form-textarea-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import type { ReactNode } from "react"
+import { cloneElement, isValidElement, type ReactNode, useId } from "react"
 import { Label } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { StatusText, type StatusTextProps } from "../atoms/status-text"
 import { Textarea, type TextareaProps } from "../atoms/textarea"
+import { joinDescribedBy } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
-interface FormTextareaRawProps extends TextareaProps {
-  id: string
+type FormTextareaProps = TextareaProps & {
+  /** Links the label to the control; generated when omitted or empty. */
+  id?: string
   label: ReactNode
   validateStatus?: ValidateStatus
   helpText?: ReactNode
+  /** Validation state icons always remain enabled. */
+  showHelpTextIcon?: boolean
+  /** Screen-reader text for the required state. Pass a translation; "" omits it. Defaults to "(required)". */
+  requiredLabel?: string
 }
 
+// The legacy Raw export accepts precomposed StatusText as well as plain copy.
+// Both entry points keep the same label and feedback accessibility guarantees.
 export function FormTextareaRaw({
   id,
   label,
   validateStatus = "default",
   helpText,
-  size = "md",
+  showHelpTextIcon,
+  size: sizeProp,
   required,
+  requiredLabel,
   disabled,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
+  "aria-errormessage": ariaErrorMessage,
   ...props
-}: FormTextareaRawProps) {
+}: FormTextareaProps) {
+  const { size = "md" } = useUIDefaults(
+    "Textarea",
+    { size: sizeProp },
+    { size: ["sm", "md", "lg"] }
+  )
+  const generatedId = useId()
+  const generatedMessageId = useId()
+  const controlId = id || generatedId
+  const hasHelpText =
+    helpText !== undefined &&
+    helpText !== null &&
+    helpText !== false &&
+    helpText !== ""
+  const suppliedMessage =
+    isValidElement<StatusTextProps>(helpText) && helpText.type === StatusText
+      ? helpText
+      : undefined
+  const messageId = suppliedMessage?.props.id || generatedMessageId
+  const status =
+    validateStatus === "default"
+      ? (suppliedMessage?.props.status ?? validateStatus)
+      : validateStatus
+  const invalid = status === "error"
+  const messageProps = {
+    id: messageId,
+    status,
+    size,
+    showIcon: status !== "default" || showHelpTextIcon,
+  }
+
   return (
     <div className="flex flex-col gap-form-field-gap">
-      <Label disabled={disabled} htmlFor={id} required={required} size={size}>
+      <Label
+        disabled={disabled}
+        htmlFor={controlId}
+        required={required}
+        requiredLabel={requiredLabel}
+        size={size}
+      >
         {label}
       </Label>
       <Textarea
+        {...props}
+        aria-describedby={joinDescribedBy(
+          ariaDescribedBy,
+          hasHelpText ? messageId : undefined
+        )}
+        aria-errormessage={joinDescribedBy(
+          ariaErrorMessage,
+          invalid && hasHelpText ? messageId : undefined
+        )}
+        aria-invalid={invalid ? true : ariaInvalid}
         disabled={disabled}
-        id={id}
+        id={controlId}
         required={required}
         size={size}
-        variant={validateStatus}
-        {...props}
+        validateStatus={status}
       />
-
-      {helpText}
+      {hasHelpText &&
+        (suppliedMessage ? (
+          cloneElement(suppliedMessage, messageProps)
+        ) : (
+          <StatusText {...messageProps}>{helpText}</StatusText>
+        ))}
     </div>
   )
 }
 
-type FormTextareaProps = FormTextareaRawProps & {
-  showHelpTextIcon?: boolean
-}
-
-export function FormTextarea({
-  helpText,
-  id,
-  validateStatus = "default",
-  showHelpTextIcon = validateStatus !== "default",
-  size = "md",
-  ...props
-}: FormTextareaProps) {
-  return (
-    <FormTextareaRaw
-      helpText={
-        helpText && (
-          <StatusText
-            status={validateStatus}
-            showIcon={showHelpTextIcon}
-            size={size}
-          >
-            {helpText}
-          </StatusText>
-        )
-      }
-      id={id}
-      size={size}
-      validateStatus={validateStatus}
-      {...props}
-    />
-  )
+export function FormTextarea(props: FormTextareaProps) {
+  return <FormTextareaRaw {...props} />
 }

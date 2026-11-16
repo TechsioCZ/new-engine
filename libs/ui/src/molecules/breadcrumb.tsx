@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,49 +10,55 @@
  * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
-  createContext,
   type ComponentPropsWithoutRef,
+  createContext,
   type ElementType,
   type Ref,
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Icon, type IconProps, type IconType } from "../atoms/icon"
+import {
+  Icon as IconComponent,
+  type IconProps,
+  type IconType,
+} from "../atoms/icon"
 import { Link, type LinkProps } from "../atoms/link"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const BreadcrumbVariants = tv({
   slots: {
-    root: ["inline-flex flex-wrap items-center", "bg-breadcrumb-bg"],
+    root: [
+      "inline-flex min-w-0 max-w-full flex-wrap items-center",
+      "bg-breadcrumb-bg",
+    ],
     list: [
-      "flex flex-wrap items-center",
-      "break-words",
+      "flex min-w-0 max-w-full flex-wrap items-center",
+      "wrap-anywhere",
       "list-none",
       "text-breadcrumb-item",
     ],
     item: [
-      "inline-flex min-w-0 items-center",
+      "wrap-anywhere inline-flex min-w-0 max-w-full items-center",
       "text-breadcrumb-item",
     ],
     link: [
-      "inline-flex min-w-0 items-center",
+      "wrap-anywhere inline-flex min-w-0 max-w-full items-center",
       "rounded-breadcrumb-link",
       "text-breadcrumb-item",
       "no-underline",
       "cursor-pointer",
       "hover:text-breadcrumb-item-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-breadcrumb-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "focus-visible:breadcrumb-focus",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     currentLink: [
-      "inline-flex min-w-0 items-center",
+      "wrap-anywhere inline-flex min-w-0 max-w-full items-center",
       "rounded-breadcrumb-link",
       "text-breadcrumb-item-current",
       "cursor-default",
     ],
-    icon: ["inline-flex items-center justify-center"],
+    icon: ["inline-flex shrink-0 items-center justify-center"],
     iconSize: "",
     separator: [
       "inline-flex shrink-0 items-center justify-center",
@@ -69,7 +75,7 @@ const BreadcrumbVariants = tv({
     ellipsisIconSize: "",
   },
   variants: {
-    variant: {
+    appearance: {
       plain: {},
       underline: {
         link: "underline",
@@ -111,7 +117,7 @@ const BreadcrumbVariants = tv({
   },
   defaultVariants: {
     size: "md",
-    variant: "plain",
+    appearance: "plain",
   },
 })
 
@@ -120,23 +126,20 @@ export type BreadcrumbSize = NonNullable<
 >
 
 export type BreadcrumbVariant = NonNullable<
-  VariantProps<typeof BreadcrumbVariants>["variant"]
+  VariantProps<typeof BreadcrumbVariants>["appearance"]
 >
 
 type BreadcrumbContextValue = {
   styles: ReturnType<typeof BreadcrumbVariants>
 }
 
-const BreadcrumbContext =
-  createContext<BreadcrumbContextValue | null>(null)
+const BreadcrumbContext = createContext<BreadcrumbContextValue | null>(null)
 
 function useBreadcrumbContext() {
   const context = useContext(BreadcrumbContext)
 
   if (!context) {
-    throw new Error(
-      "Breadcrumb components must be used within Breadcrumb.Root"
-    )
+    throw new Error("Breadcrumb components must be used within Breadcrumb.Root")
   }
 
   return context
@@ -167,12 +170,17 @@ export function Breadcrumb({
   children,
   className,
   ref,
-  size,
-  variant,
+  size: sizeProp,
+  appearance: appearanceProp,
   "aria-label": ariaLabel = "breadcrumb",
   ...props
 }: BreadcrumbRootProps) {
-  const styles = BreadcrumbVariants({ size, variant })
+  const { size, appearance } = useUIDefaults(
+    "Breadcrumb",
+    { size: sizeProp, appearance: appearanceProp },
+    BreadcrumbVariants
+  )
+  const styles = BreadcrumbVariants({ size, appearance })
 
   return (
     <BreadcrumbContext.Provider value={{ styles }}>
@@ -229,14 +237,12 @@ Breadcrumb.Item = function BreadcrumbItem({
 type BreadcrumbLinkHref<T extends ElementType> =
   ComponentPropsWithoutRef<T> extends { href?: infer H } ? H : string
 
-export type BreadcrumbLinkProps<T extends ElementType = "a"> =
-  LinkProps<T> & {
-    href?: BreadcrumbLinkHref<T>
-  }
+export type BreadcrumbLinkProps<T extends ElementType = "a"> = LinkProps<T> & {
+  href?: BreadcrumbLinkHref<T>
+}
 
-Breadcrumb.Link = function BreadcrumbLink<
-  T extends ElementType = "a",
->({
+Breadcrumb.Link = function BreadcrumbLink<T extends ElementType = "a">({
+  size = "current",
   children,
   className,
   ...props
@@ -244,16 +250,19 @@ Breadcrumb.Link = function BreadcrumbLink<
   const { styles } = useBreadcrumbContext()
 
   return (
-    <Link className={styles.link({ className })} {...(props as LinkProps<T>)}>
+    <Link
+      className={styles.link({ className })}
+      {...(props as LinkProps<T>)}
+      size={size}
+    >
       {children}
     </Link>
   )
 }
 
-export type BreadcrumbCurrentLinkProps =
-  ComponentPropsWithoutRef<"span"> & {
-    ref?: Ref<HTMLSpanElement>
-  }
+export type BreadcrumbCurrentLinkProps = ComponentPropsWithoutRef<"span"> & {
+  ref?: Ref<HTMLSpanElement>
+}
 
 Breadcrumb.CurrentLink = function BreadcrumbCurrentLink({
   children,
@@ -285,7 +294,7 @@ Breadcrumb.Icon = function BreadcrumbIcon({
   const { styles } = useBreadcrumbContext()
 
   return (
-    <Icon
+    <IconComponent
       className={styles.icon({
         className: getContextualIconClassName({
           className,
@@ -299,13 +308,12 @@ Breadcrumb.Icon = function BreadcrumbIcon({
   )
 }
 
-export type BreadcrumbSeparatorProps =
-  ComponentPropsWithoutRef<"li"> & {
-    icon?: IconType
-    iconProps?: Omit<IconProps, "icon" | "size">
-    iconSize?: IconProps["size"]
-    ref?: Ref<HTMLLIElement>
-  }
+export type BreadcrumbSeparatorProps = ComponentPropsWithoutRef<"li"> & {
+  icon?: IconType
+  iconProps?: Omit<IconProps, "icon" | "size">
+  iconSize?: IconProps["size"]
+  ref?: Ref<HTMLLIElement>
+}
 
 Breadcrumb.Separator = function BreadcrumbSeparator({
   children,
@@ -327,7 +335,7 @@ Breadcrumb.Separator = function BreadcrumbSeparator({
       {...props}
     >
       {children ?? (
-        <Icon
+        <IconComponent
           className={styles.separatorIcon({
             className: getContextualIconClassName({
               className: iconClassName,
@@ -344,13 +352,12 @@ Breadcrumb.Separator = function BreadcrumbSeparator({
   )
 }
 
-export type BreadcrumbEllipsisProps =
-  ComponentPropsWithoutRef<"li"> & {
-    icon?: IconType
-    iconProps?: Omit<IconProps, "icon" | "size">
-    iconSize?: IconProps["size"]
-    ref?: Ref<HTMLLIElement>
-  }
+export type BreadcrumbEllipsisProps = ComponentPropsWithoutRef<"li"> & {
+  icon?: IconType
+  iconProps?: Omit<IconProps, "icon" | "size">
+  iconSize?: IconProps["size"]
+  ref?: Ref<HTMLLIElement>
+}
 
 Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
   children,
@@ -373,7 +380,7 @@ Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
       {...props}
     >
       {children ?? (
-        <Icon
+        <IconComponent
           className={styles.ellipsisIcon({
             className: getContextualIconClassName({
               className: iconClassName,
@@ -390,5 +397,6 @@ Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
   )
 }
 
-Breadcrumb.Root = Breadcrumb
+// Keep native TypeScript declarations from hiding siblings behind a Root export alias.
+Breadcrumb.Root = Breadcrumb satisfies typeof Breadcrumb
 Breadcrumb.displayName = "Breadcrumb"

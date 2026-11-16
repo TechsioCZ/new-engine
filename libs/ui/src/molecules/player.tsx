@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,9 +23,10 @@ import {
   useMediaState,
   VolumeSlider,
 } from "@vidstack/react"
-import { createContext, type ComponentProps, useContext } from "react"
+import { type ComponentProps, createContext, useContext } from "react"
 import { ActionIcon } from "../atoms/action-icon"
 import type { IconType } from "../atoms/icon"
+import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 
 const playerStyles = tv({
@@ -36,14 +37,14 @@ const playerStyles = tv({
     control: "flex min-w-0 items-center gap-player-control",
     controlGroup: "flex w-full min-w-0 items-center gap-player-control",
     iconButton:
-      "text-player-control-fg hover:bg-player-control-bg-hover active:bg-player-control-bg-active focus-visible:outline-player-focus-ring aria-hidden:hidden",
+      "bg-player-control-bg text-player-control-fg not-disabled:hover:bg-player-control-bg-hover focus-visible:outline-player-focus-ring not-disabled:active:bg-player-control-bg-active aria-hidden:hidden",
     timeSlider: "vds-time-slider vds-slider min-w-0 flex-1",
     volumeSlider: "vds-volume-slider vds-slider player-volume-slider shrink-0",
     track: "vds-slider-track",
     trackFill: "vds-slider-track vds-slider-track-fill",
     progress: "vds-slider-track vds-slider-progress",
     thumb: "vds-slider-thumb",
-    time: "shrink-0 tabular-nums font-player-time text-player-time",
+    time: "shrink-0 font-player-time text-player-time tabular-nums",
   },
   variants: {
     padding: {
@@ -67,7 +68,9 @@ function usePlayerContext() {
 export type PlayerProps = ComponentProps<typeof MediaPlayer>
 export type PlayerControlsProps = ComponentProps<typeof MediaControls.Root>
 export type PlayerControlProps = ComponentProps<"div">
-export type PlayerControlGroupProps = ComponentProps<typeof MediaControls.Group> & {
+export type PlayerControlGroupProps = ComponentProps<
+  typeof MediaControls.Group
+> & {
   padding?: "default" | "none"
 }
 export type PlayerPlayButtonProps = Omit<
@@ -108,10 +111,22 @@ export type PlayerVolumeSliderProps = Omit<
   "asChild" | "children" | "orientation"
 >
 
-export function Player({ className, ...props }: PlayerProps) {
+export function Player({
+  className,
+  "aria-label": ariaLabel,
+  ariaLabel: mediaLabel,
+  ...props
+}: PlayerProps) {
+  const messages = useUiMessages().player
+  const label = ariaLabel ?? mediaLabel ?? props.title ?? messages.label
   return (
     <PlayerContext.Provider value={true}>
-      <MediaPlayer {...props} className={playerStyles().root({ className })} />
+      <MediaPlayer
+        {...props}
+        aria-label={label}
+        ariaLabel={label}
+        className={playerStyles().root({ className })}
+      />
     </PlayerContext.Provider>
   )
 }
@@ -157,20 +172,25 @@ Player.PlayButton = function PlayerPlayButton({
   icon = "token-icon-player-play",
   pauseIcon = "token-icon-player-pause",
   className,
+  "aria-label": ariaLabel,
   ...props
 }: PlayerPlayButtonProps) {
   usePlayerContext()
   const paused = useMediaState("paused")
+  const messages = useUiMessages().player
+  const label = ariaLabel ?? (paused ? messages.play : messages.pause)
   return (
     <MediaPlayButton
       {...props}
+      aria-label={label}
       asChild
       className={playerStyles().iconButton({ className })}
     >
       <ActionIcon
-        type="button"
-        size="lg"
+        aria-label={label}
         icon={paused ? icon : pauseIcon}
+        size="lg"
+        type="button"
       />
     </MediaPlayButton>
   )
@@ -181,23 +201,29 @@ Player.MuteButton = function PlayerMuteButton({
   mutedIcon = "token-icon-player-mute",
   lowVolumeIcon = "token-icon-player-volume-low",
   className,
+  "aria-label": ariaLabel,
   ...props
 }: PlayerMuteButtonProps) {
   usePlayerContext()
   const muted = useMediaState("muted")
   const volume = useMediaState("volume")
-  const resolvedIcon =
-    muted || volume === 0 ? mutedIcon : volume >= 0.5 ? icon : lowVolumeIcon
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ?? (muted || volume === 0 ? messages.unmute : messages.mute)
+  const volumeIcon = volume >= 0.5 ? icon : lowVolumeIcon
+  const resolvedIcon = muted || volume === 0 ? mutedIcon : volumeIcon
   return (
     <MediaMuteButton
       {...props}
+      aria-label={label}
       asChild
       className={playerStyles().iconButton({ className })}
     >
       <ActionIcon
-        type="button"
-        size="lg"
+        aria-label={label}
         icon={resolvedIcon}
+        size="lg"
+        type="button"
       />
     </MediaMuteButton>
   )
@@ -205,12 +231,18 @@ Player.MuteButton = function PlayerMuteButton({
 
 Player.TimeSlider = function PlayerTimeSlider({
   className,
+  "aria-label": ariaLabel,
   ...props
 }: PlayerTimeSliderProps) {
   usePlayerContext()
   const styles = playerStyles()
+  const messages = useUiMessages().player
   return (
-    <TimeSlider.Root {...props} className={styles.timeSlider({ className })}>
+    <TimeSlider.Root
+      {...props}
+      aria-label={ariaLabel ?? messages.seek}
+      className={styles.timeSlider({ className })}
+    >
       <TimeSlider.Track className={styles.track()}>
         <TimeSlider.TrackFill className={styles.trackFill()} />
         <TimeSlider.Progress className={styles.progress()} />
@@ -222,13 +254,16 @@ Player.TimeSlider = function PlayerTimeSlider({
 
 Player.VolumeSlider = function PlayerVolumeSlider({
   className,
+  "aria-label": ariaLabel,
   ...props
 }: PlayerVolumeSliderProps) {
   usePlayerContext()
   const styles = playerStyles()
+  const messages = useUiMessages().player
   return (
     <VolumeSlider.Root
       {...props}
+      aria-label={ariaLabel ?? messages.volume}
       className={styles.volumeSlider({ className })}
     >
       <VolumeSlider.Track className={styles.track()}>
@@ -251,20 +286,27 @@ Player.FullscreenButton = function PlayerFullscreenButton({
   icon = "token-icon-player-fullscreen",
   exitIcon = "token-icon-player-fullscreen-exit",
   className,
+  "aria-label": ariaLabel,
   ...props
 }: PlayerFullscreenButtonProps) {
   usePlayerContext()
   const fullscreen = useMediaState("fullscreen")
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ??
+    (fullscreen ? messages.exitFullscreen : messages.enterFullscreen)
   return (
     <MediaFullscreenButton
       {...props}
+      aria-label={label}
       asChild
       className={playerStyles().iconButton({ className })}
     >
       <ActionIcon
-        type="button"
-        size="lg"
+        aria-label={label}
         icon={fullscreen ? exitIcon : icon}
+        size="lg"
+        type="button"
       />
     </MediaFullscreenButton>
   )
@@ -274,24 +316,33 @@ Player.SeekButton = function PlayerSeekButton({
   direction,
   seconds = 10,
   className,
+  "aria-label": ariaLabel,
   ...props
 }: PlayerSeekButtonProps) {
   usePlayerContext()
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ??
+    (direction === "forward"
+      ? messages.seekForward(seconds)
+      : messages.seekBackward(seconds))
   return (
     <MediaSeekButton
       {...props}
-      seconds={direction === "forward" ? seconds : -seconds}
+      aria-label={label}
       asChild
       className={playerStyles().iconButton({ className })}
+      seconds={direction === "forward" ? seconds : -seconds}
     >
       <ActionIcon
-        type="button"
-        size="lg"
+        aria-label={label}
         icon={
           direction === "forward"
             ? "token-icon-player-seek-forward"
             : "token-icon-player-seek-backward"
         }
+        size="lg"
+        type="button"
       />
     </MediaSeekButton>
   )

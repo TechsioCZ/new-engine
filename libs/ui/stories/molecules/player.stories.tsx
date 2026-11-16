@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { type ComponentProps, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
+import { expect, fn, userEvent, waitFor, within } from "storybook/test"
+import { UiMessagesProvider } from "../../src/messages/ui-messages-provider"
 import { Player } from "../../src/molecules/player"
 
 const AUDIO_SRC = "https://files.vidstack.io/sprite-fight/audio.mp3"
@@ -57,6 +58,30 @@ export const Playground: Story = {
   ),
 }
 
+export const Localized: Story = {
+  ...Playground,
+  args: { title: undefined },
+  decorators: [
+    (Story) => (
+      <UiMessagesProvider
+        messages={{
+          player: {
+            label: "Prehravac",
+            play: "Spustit",
+            pause: "Pozastavit",
+            mute: "Ztlumit",
+            unmute: "Zapnout zvuk",
+            seek: "Pozice",
+            volume: "Hlasitost",
+          },
+        }}
+      >
+        <Story />
+      </UiMessagesProvider>
+    ),
+  ],
+}
+
 function FormExample(args: ComponentProps<typeof Player>) {
   const [submissions, setSubmissions] = useState(0)
   return (
@@ -93,11 +118,20 @@ export const InForm: Story = {
   render: (args) => <FormExample {...args} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    await waitFor(
+      () =>
+        expect(
+          canvasElement.querySelector("[data-media-player]")
+        ).toHaveAttribute("data-can-play", ""),
+      { timeout: 10_000 }
+    )
     const mute = await canvas.findByRole("button", { name: "Mute" })
     await userEvent.click(mute)
+    await waitFor(() => expect(mute).toHaveAccessibleName("Unmute"))
     await expect(canvas.getByRole("status")).toHaveTextContent(
       "Form submissions: 0",
     )
     await userEvent.click(mute)
+    await waitFor(() => expect(mute).toHaveAccessibleName("Mute"))
   },
 }

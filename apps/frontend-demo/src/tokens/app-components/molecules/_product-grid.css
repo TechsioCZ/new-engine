@@ -1,9 +1,0 @@
-@theme static {
-  /* === PRODUCT GRID COLORS === */
-  --color-product-grid-empty-text: var(--color-fg-secondary);
-
-  /* === PRODUCT GRID SPACING === */
-  --spacing-product-grid-gap: var(--spacing-md);
-  --spacing-product-grid-pagination-margin: var(--spacing-xl);
-  --spacing-product-grid-empty-padding: var(--spacing-2xl);
-}

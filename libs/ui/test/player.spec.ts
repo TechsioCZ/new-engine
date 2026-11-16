@@ -1,29 +1,11 @@
 import { expect, test } from "@playwright/test"
+import { installPlayerMediaFixture } from "./player-media-fixture"
 
-// Thirty seconds of silent PCM: exercise the real media element without a CDN.
-const sampleRate = 8000
-const audio = Buffer.alloc(44 + sampleRate * 30 * 2)
-audio.write("RIFF", 0)
-audio.writeUInt32LE(audio.length - 8, 4)
-audio.write("WAVEfmt ", 8)
-audio.writeUInt32LE(16, 16)
-audio.writeUInt16LE(1, 20)
-audio.writeUInt16LE(1, 22)
-audio.writeUInt32LE(sampleRate, 24)
-audio.writeUInt32LE(sampleRate * 2, 28)
-audio.writeUInt16LE(2, 32)
-audio.writeUInt16LE(16, 34)
-audio.write("data", 36)
-audio.writeUInt32LE(audio.length - 44, 40)
+const PLAY_LABEL = /^(Play|Pause)$/
+const MUTE_LABEL = /^(Mute|Unmute)$/
 
 test.beforeEach(async ({ page }) => {
-  await page.route("**/sprite-fight/audio.mp3", (route) =>
-    route.fulfill({
-      contentType: "audio/wav",
-      headers: { "Accept-Ranges": "bytes" },
-      body: audio,
-    })
-  )
+  await installPlayerMediaFixture(page)
 })
 
 test("audio cover leaves room for visible, usable sliders", async ({
@@ -44,6 +26,10 @@ test("audio cover leaves room for visible, usable sliders", async ({
   await expect(controls).toHaveCSS("padding", "0px")
   for (const name of ["Seek", "Volume"]) {
     const slider = page.getByRole("slider", { name, exact: true })
+    if (name === "Volume" && (page.viewportSize()?.width ?? 0) < 640) {
+      await expect(slider).toBeHidden()
+      continue
+    }
     expect((await slider.boundingBox())?.height).toBeGreaterThan(20)
     await expect(
       slider.locator(".vds-slider-track > .vds-slider-track-fill")
@@ -60,7 +46,7 @@ test("audio playback, seeking, mute and volume work with native media", async ({
   await page.goto(
     "/iframe.html?id=molecules-audioplayer--playground&viewMode=story"
   )
-  const play = page.getByRole("button", { name: "Play", exact: true })
+  const play = page.getByRole("button", { name: PLAY_LABEL })
   await play.click()
   await expect(play).toHaveAttribute("aria-pressed", "true")
   await expect
@@ -102,28 +88,80 @@ test("audio playback, seeking, mute and volume work with native media", async ({
   await expect(play).toHaveAttribute("aria-pressed", "true")
   await page.keyboard.press("k")
   await expect(play).toHaveAttribute("aria-pressed", "false")
-  const mute = page.getByRole("button", { name: "Mute", exact: true })
+  const mute = page.getByRole("button", { name: MUTE_LABEL })
   await page.keyboard.press("m")
   await expect(mute).toHaveAttribute("aria-pressed", "true")
   await page.keyboard.press("m")
   await expect(mute).toHaveAttribute("aria-pressed", "false")
   const volume = page.getByRole("slider", { name: "Volume", exact: true })
-  await volume.focus()
-  await expect(volume).toHaveAttribute("aria-valuenow", "100")
-  await page.keyboard.press("ArrowLeft")
-  await expect(volume).toHaveAttribute("aria-valuenow", "95")
+  if ((page.viewportSize()?.width ?? 0) >= 640) {
+    await volume.focus()
+    await expect(volume).toHaveAttribute("aria-valuenow", "100")
+    await page.keyboard.press("ArrowLeft")
+    await expect(volume).toHaveAttribute("aria-valuenow", "95")
+  } else {
+    await expect(volume).toBeHidden()
+  }
 })
 
 test("player controls do not submit their enclosing form", async ({ page }) => {
   await page.goto("/iframe.html?id=molecules-player--in-form&viewMode=story")
-  const play = page.getByRole("button", { name: "Play", exact: true })
+  const play = page.getByRole("button", { name: PLAY_LABEL })
   await play.click()
   await expect(play).toHaveAttribute("aria-pressed", "true")
   for (const button of await page.locator("[data-media-player] button").all()) {
     await expect(button).toHaveAttribute("type", "button")
-    if (await button.isVisible()) await button.click()
+    if (await button.isVisible()) {
+      await button.click()
+    }
   }
   await expect(page.getByRole("status")).toHaveText("Form submissions: 0")
+})
+
+test("player uses the app catalog as playback and mute states change", async ({
+  page,
+}) => {
+  await page.goto("/iframe.html?id=molecules-player--localized&viewMode=story")
+  await expect(page.getByLabel("Prehravac", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Spustit", exact: true }).click()
+  const pause = page.getByRole("button", { name: "Pozastavit", exact: true })
+  await expect(pause).toHaveAttribute("aria-pressed", "true")
+  await pause.click()
+  const mute = page.getByRole("button", { name: "Ztlumit", exact: true })
+  await mute.click()
+  await expect(
+    page.getByRole("button", { name: "Zapnout zvuk", exact: true })
+  ).toHaveAttribute("aria-pressed", "true")
+  await expect(
+    page.getByRole("slider", { name: "Pozice", exact: true })
+  ).toBeVisible()
+})
+
+test("video controls fit a narrow container", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 650 })
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--fixed-height&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toBeVisible()
+  const playerBox = await player.boundingBox()
+  const seek = page.getByRole("slider", { name: "Seek", exact: true })
+  const seekBox = await seek.boundingBox()
+  expect(seekBox?.height).toBeGreaterThan(20)
+  expect(seekBox?.x).toBeGreaterThanOrEqual(playerBox?.x ?? 0)
+  expect((seekBox?.x ?? 0) + (seekBox?.width ?? 0)).toBeLessThanOrEqual(
+    (playerBox?.x ?? 0) + (playerBox?.width ?? 0)
+  )
+  for (const button of await player.getByRole("button").all()) {
+    if (!(await button.isVisible())) {
+      continue
+    }
+    const box = await button.boundingBox()
+    expect(box?.x).toBeGreaterThanOrEqual(playerBox?.x ?? 0)
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
+      (playerBox?.x ?? 0) + (playerBox?.width ?? 0)
+    )
+  }
 })
 
 test("video sizing applies to the player and custom controls omit unused buttons", async ({
@@ -142,7 +180,9 @@ test("video sizing applies to the player and custom controls omit unused buttons
   expect(playerBox?.height).toBe(320)
   const controls = player.locator(".player-overlay")
   await expect(controls).toBeVisible()
-  expect((await controls.boundingBox())?.height).toBeLessThan(80)
+  expect((await controls.boundingBox())?.height).toBeLessThan(
+    (playerBox?.height ?? 0) / 2
+  )
   for (const button of await controls.getByRole("button").all()) {
     const buttonBox = await button.boundingBox()
     expect(buttonBox?.x).toBeGreaterThanOrEqual(playerBox?.x ?? 0)
@@ -165,4 +205,42 @@ test("video sizing applies to the player and custom controls omit unused buttons
   await expect(
     page.getByRole("slider", { name: "Seek", exact: true })
   ).toHaveCount(1)
+})
+
+test("video preset controls drive native playback and fullscreen", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  const play = page.getByRole("button", { name: PLAY_LABEL })
+  await play.click()
+  await expect(play).toHaveAttribute("aria-pressed", "true")
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector("video")?.currentTime)
+    )
+    .toBeGreaterThan(0)
+  await play.click()
+  await page
+    .getByRole("button", { name: "Seek forward 10 seconds", exact: true })
+    .click()
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector("video")?.currentTime)
+    )
+    .toBeGreaterThan(9)
+  const fullscreen = page.getByRole("button", {
+    name: "Enter Fullscreen",
+    exact: true,
+  })
+  if (await fullscreen.isVisible()) {
+    await fullscreen.click()
+    await expect(player).toHaveAttribute("data-fullscreen", "")
+    await page
+      .getByRole("button", { name: "Exit Fullscreen", exact: true })
+      .click()
+    await expect(player).not.toHaveAttribute("data-fullscreen", "")
+  }
 })

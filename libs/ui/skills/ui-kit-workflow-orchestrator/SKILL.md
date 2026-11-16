@@ -5,9 +5,10 @@ description: >
   consumer. Routes component authoring, app usage, token work, Storybook,
   validation, framework adapters, Figma handoff, and Intent skill maintenance
   without crossing library/app scope accidentally.
-type: lifecycle
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  type: "lifecycle"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 sources:
   - "libs/ui/AGENTS.md"
   - "libs/ui/skills/_artifacts/domain_map.yaml"
@@ -81,7 +82,7 @@ Do not edit Figma automatically from ordinary UI-kit skills.
 ```sh
 bunx biome check --write libs/ui/src/atoms/button.tsx
 pnpm --dir libs/ui validate:tokens
-bunx nx run ui:build
+pnpm --dir libs/ui build
 ```
 
 Run narrow checks by default. Ask the maintainer before broader Storybook,

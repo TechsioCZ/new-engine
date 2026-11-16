@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/steps-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as StepsStories from "./steps.stories"
+
+<Meta of={StepsStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

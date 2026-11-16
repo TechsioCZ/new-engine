@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/video-player-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as VideoPlayerStories from "./video-player.stories"
+
+<Meta of={VideoPlayerStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

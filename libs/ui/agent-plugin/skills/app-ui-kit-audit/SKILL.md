@@ -5,19 +5,18 @@ description: >
   existing component usage, native HTML replacement, nonexistent props,
   duplicate className styling, token-first violations, framework adapter
   mistakes, unnecessary wrappers, and UI-kit API gaps.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
-  - "libs/ui/package.json"
-  - "libs/ui/src/atoms"
-  - "libs/ui/src/molecules"
-  - "libs/ui/src/tokens/components"
+metadata:
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides"
+  sources: "../../references/consumer_app_usage_rules.md"
+  contributor_sources: "libs/ui/package.json libs/ui/src/atoms libs/ui/src/molecules libs/ui/src/tokens/components"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit App Adoption Audit
 
@@ -42,7 +41,7 @@ Fix: replace with UI-kit component or record the missing API gap.
 Expected:
 
 ```tsx
-<Button variant="danger" theme="solid" size="md" />
+<Button severity="danger" appearance="solid" size="md" />
 ```
 
 Fail condition: `variant="ghost"` or other props not in component source.
@@ -53,7 +52,7 @@ Fix: load the per-component usage skill and inspect the source props.
 Expected:
 
 ```tsx
-<Button variant="primary" theme="solid" />
+<Button severity="primary" appearance="solid" />
 ```
 
 Fail condition: `className` duplicates background, text color, padding, radius,
@@ -90,25 +89,25 @@ import { TreeView } from "@techsio/ui-kit/molecules/tree-view"
 
 The first audit pass should inventory existing UI-kit components.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### HIGH Duplicated default style accepted
 
 Wrong:
 
 ```tsx
-<Button variant="danger" className="bg-danger text-fg-reverse px-200" />
+<Button severity="danger" className="bg-danger text-fg-reverse px-200" />
 ```
 
 Correct:
 
 ```tsx
-<Button variant="danger" />
+<Button severity="danger" />
 ```
 
 Do not allow className to restate what component props and tokens already do.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### HIGH Native HTML primitive remains
 
@@ -128,7 +127,7 @@ import { Input } from "@techsio/ui-kit/atoms/input"
 
 Use UI-kit primitives where possible so props and tokens remain centralized.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ### MEDIUM Loading pattern drift
 
@@ -149,7 +148,7 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 Loading placeholders should use token-consistent Skeleton instead of ad-hoc
 animated divs.
 
-Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
+Source: ../../references/consumer_app_usage_rules.md
 
 ## Validation Commands
 

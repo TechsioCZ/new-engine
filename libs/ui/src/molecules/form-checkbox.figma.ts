@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-20608
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/form-checkbox.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/form-checkbox.tsx
 // component=FormCheckbox
 
 import figma from "figma"
@@ -30,7 +30,7 @@ const disabled = figma.selectedInstance.getEnum("state", {
 // no text component property — the label is a plain text layer
 const childrenLayer = figma.selectedInstance.findText("Label")
 const children =
-  childrenLayer.type !== "ERROR" ? childrenLayer.textContent : undefined
+  childrenLayer.type === "ERROR" ? undefined : childrenLayer.textContent
 
 export default {
   id: "FormCheckbox",

@@ -1,28 +1,84 @@
 ---
-component_version: "1.0.1"
 name: dialog-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Dialog for
   modal dialogs, alert dialogs, drawers, actions, focus management, placement,
   size, and close behavior backed by Zag.js.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/molecules/dialog.tsx"
-  - "libs/ui/src/tokens/components/molecules/_dialog.css"
-  - "libs/ui/stories/molecules/dialog.stories.tsx"
-  - "libs/ui/src/molecules/dialog.figma.ts"
-  - "https://zagjs.com/components/react/dialog"
+metadata:
+  component_version: "1.4.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: "https://zagjs.com/components/react/dialog"
+  contributor_sources: "libs/ui/src/molecules/dialog.tsx libs/ui/src/tokens/components/molecules/_dialog.css libs/ui/stories/molecules/dialog.stories.tsx libs/ui/src/molecules/dialog.figma.ts"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Dialog Usage
 
 Use Dialog for focused overlays and confirmations. Use Popover for lightweight
 anchored content and Tooltip for short supplemental help.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Dialog`.
+
+**Use it when**
+
+- A focused task or decision that must be finished or cancelled before continuing.
+- Irreversible confirmations with `role="alertdialog"`.
+- Create / edit / read of a record over its list with `placement="right"` (drawer pattern from the CRUD reference).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Lightweight anchored content (filters, small forms next to their trigger) | Popover |
+| A hint on hover/focus | Tooltip |
+| Confirming a finished action | Toast |
+| Persistent navigation or edge panels | Sidebar / Drawer |
+| A long, multi-section record | a full page (record editor) |
+
+**Do**
+
+- Title = the action or record (`New product`, `Edit product`); destructive title = question (`Delete this product?`).
+- Put actions in the `actions` footer: `[Cancel] [Primary]`, bottom-right, one primary. Use `severity="tertiary" appearance="outline"` for neutral Cancel, never warning or secondary brand orange.
+- In destructive confirmations, focus Cancel first with `initialFocusEl`; reserve `severity="danger"` for the destructive action.
+- In an alertdialog the destructive button replaces the primary and repeats the verb + object (`Delete product`); the description names the record and consequences.
+- Ask before closing a dirty form (`Discard unsaved changes?`).
+- Size to the content: `sm` for confirmations, `md` for forms; right drawer for record CRUD.
+
+**Don't**
+
+- Open a dialog from a dialog; replace the content or use steps inside one dialog.
+- Use a dialog for success messages or marketing interruptions on load.
+- Put the only close affordance inside scrolled content — the close button and `Cancel` stay visible.
+- Use `Yes` / `No` buttons.
+
+**Copy and states**
+
+- Buttons follow ux-guidelines/ux-writing#button-labels; descriptions are one or two sentences about consequences.
+
+**Behaviour (from the UX spec)**
+
+- On close focus returns to the trigger; if the trigger is gone (its row was deleted), pass `finalFocusEl` pointing at the next logical element.
+- Closing or Escape never confirms. A failed save keeps the dialog open with the draft and the error on the field.
+- Use `behavior="modeless"` only when working beside the dialog is the point; modal is the default.
+- `placement="right"` is the current, canonical CRUD drawer API (create/edit forms, row detail) — not legacy, whatever older design notes say. A transient edge panel that needs swipe, snap points or logical placement (cart, filters on mobile) is `Drawer` (see "Choose Drawer for edge panels").
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `behavior=modal` | `behavior="modal"` (default) |
+| — (not in Figma) | `behavior="modeless"`, `placement`, `size`, `role="alertdialog"` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Dialog → UX guidelines*.
 
 ## Setup
 
@@ -34,7 +90,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
   role="alertdialog"
   title="Delete product?"
   description="This action cannot be undone."
-  actions={<Button variant="danger">Delete</Button>}
+  actions={<Button severity="danger">Delete</Button>}
 />
 ```
 
@@ -50,9 +106,17 @@ open, onOpenChange, customTrigger, triggerText, title, description, actions
 closeOnEscape, closeOnInteractOutside, preventScroll, trapFocus, modal, portal
 ```
 
-Controlled dialogs close on Escape as soon as their content is mounted. The
-component composes any Zag content key handler first and respects
-`closeOnEscape={false}` or a prevented keyboard event.
+Controlled dialogs use Zag's dismissable-layer handling for Escape, including
+nested-popup dismissal order and `closeOnEscape={false}`.
+
+`behavior="modeless"` defaults to no backdrop, focus trap, or background scroll
+lock. `modal`, `trapFocus`, and `preventScroll` remain explicit overrides;
+`modal` takes precedence over `behavior`. Set `closeOnInteractOutside={false}`
+when background interaction should keep the window open.
+
+Always supply `title`, or `aria-label` when a visible title is intentionally
+omitted. Centered `size` presets set width, not fixed height, and retain viewport
+gutters on narrow screens.
 
 ## Core Patterns
 
@@ -60,10 +124,13 @@ component composes any Zag content key handler first and respects
 
 Use `role="alertdialog"` and a danger Button action for irreversible actions.
 
-### Use placement for drawers
+### Choose Drawer for edge panels
 
-`placement="left" | "right" | "top" | "bottom"` creates drawer behavior with
-size-driven width or height.
+Use the dedicated `Drawer` component for new edge-panel flows, especially when
+swipe gestures, logical placement, or snap points are needed. Dialog's existing
+`placement="left" | "right" | "top" | "bottom"` remains supported for compatibility
+with size-driven width or height; do not duplicate Drawer demonstrations in
+Dialog documentation.
 
 ### Use tokens for visual changes
 
@@ -93,13 +160,13 @@ Source: libs/ui/src/molecules/dialog.tsx
 Wrong:
 
 ```tsx
-<Popover><Button variant="danger">Delete</Button></Popover>
+<Popover><Button severity="danger">Delete</Button></Popover>
 ```
 
 Correct:
 
 ```tsx
-<Dialog role="alertdialog" actions={<Button variant="danger">Delete</Button>} />
+<Dialog role="alertdialog" actions={<Button severity="danger">Delete</Button>} />
 ```
 
 ### HIGH Inline dialog sizing
@@ -125,3 +192,8 @@ rg -n "role=\"dialog\"|fixed inset-0|alertdialog|<Dialog[^>]*className=.*(w-|h-|
 rg -U -n "<Popover[\\s\\S]{0,300}(Delete|Remove|danger)" apps
 rg -n "<Dialog[^>]*role=\"(modal|drawer)\"" apps
 ```
+
+Nested kit Menu, Popover and Tooltip portals stay inside the owning modal's
+focus and accessibility scope. Dialog and Drawer share managed modal depth, so
+a nested modal backdrop sits above its parent panel. Centered dialogs have a
+viewport-relative height cap with scrolling for excess content.

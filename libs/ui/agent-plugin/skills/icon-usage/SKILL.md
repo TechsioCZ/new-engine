@@ -1,34 +1,99 @@
 ---
-component_version: "1.0.0"
 name: icon-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
   Iconify classes with the library's supported size and semantic color props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-requires:
-  - component-usage-ux
-  - app-token-overrides
-sources:
-  - "libs/ui/src/atoms/icon.tsx"
-  - "libs/ui/src/tokens/components/atoms/_icon.css"
-  - "libs/ui/stories/atoms/icon.stories.tsx"
-  - "libs/ui/src/atoms/icon.figma.ts"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  requires: "component-usage-ux app-token-overrides ux-guidelines"
+  resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  sources: ""
+  contributor_sources: "libs/ui/src/atoms/icon.tsx libs/ui/src/tokens/components/atoms/_icon.css libs/ui/stories/atoms/icon.stories.tsx libs/ui/src/atoms/icon.figma.ts"
+  audience: "consumer"
 ---
+
+> Portable scope: Use the installed package's exported types and bundled sibling skills. Repository source paths are optional contributor evidence, not consumer prerequisites; use the consuming app's own checks. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Icon Usage
 
 Use Icon for decorative or component-adjacent icons. The Icon atom renders
-`aria-hidden`, so it must not be the only accessible content for an action.
+`aria-hidden` by default, so it must not be the only accessible content for an action.
+A meaningful standalone icon (a status glyph with no text beside it) takes `label`
+and renders as `role="img"`.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Icon`.
+
+**Use it when**
+
+- Decorative icons that support adjacent text (status, list items, headings).
+- Icons inside components that render them for you (Button `icon`, StatusText).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A clickable icon | ActionIcon (with `aria-label`) or Button with `icon` |
+| An icon that carries meaning without text | Icon with `label`, or visible status text |
+
+**Do**
+
+- Use one icon set and consistent size per context (the kit's icon tokens).
+- Use the same icon for the same meaning everywhere (trash = delete, pencil = edit).
+- Keep icons decorative — the text must carry the meaning.
+
+**Don't**
+
+- Use emoji as icons.
+- Attach `onClick` to an Icon.
+- Use colour-only icons to convey status.
+
+**Copy and states**
+
+- No text inside icons; meaning lives in the adjacent label.
+
+**Behaviour (from the UX spec)**
+
+- Classify every icon first: decorative (`aria-hidden`, the default), informative (`label`, or visible text), or inside a control (the control has the name).
+- `size="current"` is 1em of the surrounding text in code but a fixed 16 px preview in Figma; don't read Figma sizes literally.
+- Pick a `token-icon-*` glyph by its meaning in the host's slot. The glyph → meaning → host table, with what each glyph never means, is on the UX page.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=current` (16 px preview) | `size="current"` (1em) |
+| `size=xs…2xl`, `color=current…warning` | `size` (same values), `severity` (same values as Figma `color`) |
+| `token-icon-cog`, `-filter`, `-sort-unfold`, `-drag-horizontal`, `-drag-vertical`, `-row-edit`, `-table-empty` | no token; DataTable uses `icon-[mdi--…]` classes |
+| glyph doc "Vazba" (host) | ignore; the host is whichever component uses the token in code |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Icon → UX guidelines*.
 
 ## Setup
 
 ```tsx
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 
-<Icon icon="token-icon-status-text-success" size="md" color="success" />
+<Icon icon="token-icon-status-text-success" size="md" severity="success" />
 ```
+
+The component defaults to `size="current"` and `severity="current"`, inheriting
+surrounding text. Choose an explicit size for standalone glyphs; the Playground
+uses a recognizable Home icon at `lg` (the system's 24px step), not an error icon.
+The Sizes story compares Small (`sm`), Medium (`md`) and Large (`lg`) in that order with the same icon. The `current`, `xs`, `xl` and `2xl` API sizes remain available for inherited, compact or decorative contexts; they are not canonical control sizes.
+Explicit color props consume `--color-icon-fg-*` component aliases, so app token
+overrides work without changing every icon call site.
+
+The Storybook Gallery searches the curated common token glyphs and Iconify
+examples by visible name, class name or category. Each result shows its exact
+class for copying; clearing the search returns keyboard focus to the search field.
+The gallery is not an exhaustive catalog of every component's private icon aliases. Iconify class names must be statically present in source
+so the CSS generator can include them.
 
 Supported props:
 
@@ -43,7 +108,7 @@ color: current | primary | secondary | danger | success | warning
 ### Prefer token icons for UI-kit semantics
 
 ```tsx
-<Icon icon="token-icon-status-text-warning" color="warning" />
+<Icon icon="token-icon-status-text-warning" severity="warning" />
 ```
 
 Use `icon-[...]` for specific Iconify icons only when there is no token icon
@@ -69,6 +134,15 @@ separate Icon next to text.
 Icon itself is decorative. The parent action or surrounding text carries the
 accessible name.
 
+### Label a meaningful standalone icon
+
+```tsx
+<Icon icon="icon-[mdi--check-circle]" label="In stock" />
+```
+
+Use `label` only when the icon is not inside a control and no text next to it
+says the same thing. Never put `label` on an icon inside a labelled button.
+
 ## Common Mistakes
 
 ### HIGH Inline SVG instead of token/icon class
@@ -82,7 +156,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Icon icon="token-icon-status-text-success" size="sm" color="success" />
+<Icon icon="token-icon-status-text-success" size="sm" severity="success" />
 ```
 
 Source: libs/ui/src/atoms/icon.tsx
@@ -116,7 +190,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Icon icon="token-icon-status-text-error" color="danger" />
+<Icon icon="token-icon-status-text-error" severity="danger" />
 ```
 
 Change component or semantic tokens when the app needs different color mapping.
@@ -148,3 +222,19 @@ rg -n "<Button[^>]*>\\s*<Icon" apps
 rg -P -n "<Button(?![^>]*aria-label)[^>]*icon=" apps
 rg -P -n "icon=\"(?!token-icon-|icon-\\[)" apps
 ```
+
+## Meaningful primary colour
+
+`severity="primary"` uses the contrast-safe semantic accent foreground, not the
+brand's decorative fill colour. For decoration that intentionally uses a tint,
+apply an application token class and keep the glyph hidden from assistive
+technology. Canonical comparison sizes are sm/md/lg. The existing xs/xl/2xl and
+current sizes remain available for non-interactive composition.
+
+Explicit secondary and status colours also use readable semantic foregrounds,
+not decorative brand/status fills. Use colour=current to inherit a surrounding
+control label's already-contrasting foreground.
+
+## Ref and system accessibility
+
+`ref` accepts `Ref<HTMLSpanElement>` (nullable object or callback, including React 19 cleanup). Masked glyphs preserve the system foreground in forced colors; the shared loading glyph is static under reduced motion. Do not replace it with an intrinsically animated SVG.

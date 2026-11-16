@@ -2,7 +2,7 @@
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,19 +12,32 @@
 import type { Ref } from "react"
 import type { IconType } from "../atoms/icon"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
+import { tv } from "../utils"
 
-export interface NumericInputTemplateProps
-  extends Omit<NumericInputProps, "children" | "ref"> {
+const numericInputTemplateVariants = tv({
+  base: "flex min-w-0 items-center gap-numeric-input-md",
+})
+
+export type NumericInputTemplateProps = Omit<
+  NumericInputProps,
+  "children" | "ref"
+> & {
   showControls?: boolean
   showScrubber?: boolean
   controlsPosition?: "right" | "sides"
   incrementIcon?: IconType
   decrementIcon?: IconType
   className?: string
+  /** Names the input when there is no visible label; reaches the input, not the root. */
+  "aria-label"?: string
+  /** Id of a visible label for the input. */
+  "aria-labelledby"?: string
   ref?: Ref<HTMLDivElement>
 }
 
 export function NumericInputTemplate({
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   showControls = true,
   showScrubber = false,
   controlsPosition = "right",
@@ -40,7 +53,10 @@ export function NumericInputTemplate({
       <NumericInput {...numericInputProps} className={className} ref={ref}>
         <NumericInput.Control>
           {showScrubber && <NumericInput.Scrubber />}
-          <NumericInput.Input />
+          <NumericInput.Input
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+          />
           {showControls && (
             <NumericInput.TriggerContainer>
               <NumericInput.IncrementTrigger icon={incrementIcon} />
@@ -55,11 +71,14 @@ export function NumericInputTemplate({
   // Layout for controls on the sides
   return (
     <NumericInput {...numericInputProps} className={className} ref={ref}>
-      <div className="flex items-center gap-50">
+      <div className={numericInputTemplateVariants()}>
         {showControls && <NumericInput.DecrementTrigger icon={decrementIcon} />}
         <NumericInput.Control className="flex-1">
           {showScrubber && <NumericInput.Scrubber />}
-          <NumericInput.Input />
+          <NumericInput.Input
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+          />
         </NumericInput.Control>
         {showControls && <NumericInput.IncrementTrigger icon={incrementIcon} />}
       </div>

@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-25431
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/breadcrumb.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/breadcrumb.tsx
 // component=Breadcrumb
 
 import figma from "figma"
@@ -12,10 +12,12 @@ const size = figma.selectedInstance.getEnum("size", {
 
 export default {
   id: "Breadcrumb",
-  imports: ['import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"'],
+  imports: [
+    'import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"',
+  ],
   example: figma.code`<Breadcrumb${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}>
         <Breadcrumb.Item>
           <Breadcrumb.Link href="/">Home</Breadcrumb.Link>

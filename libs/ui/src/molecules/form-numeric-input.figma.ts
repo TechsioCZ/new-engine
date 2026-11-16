@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-21378
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/form-numeric-input.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/form-numeric-input.tsx
 // component=FormNumericInput
 
 import figma from "figma"
@@ -46,16 +46,16 @@ export default {
   ],
   example: figma.code`<FormNumericInput defaultValue={42}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} helpText="Enter value between 0-100" id="quantity" label="Quantity"${figma.helpers.react.renderProp(
     "readOnly",
-    readOnly,
+    readOnly
   )}${figma.helpers.react.renderProp(
     "required",
-    required,
+    required
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
+    size
   )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}>
         <NumericInput.Control>
           <NumericInput.Input />

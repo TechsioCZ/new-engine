@@ -5,17 +5,17 @@ description: >
   usage patterns, Figma handoff practices, validation commands, or generated
   skills change and the TanStack Intent skill artifacts or SKILL.md files need
   review or regeneration.
-type: lifecycle
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
-sources:
-  - "libs/ui/skills/_artifacts/domain_map.yaml"
-  - "libs/ui/skills/_artifacts/skill_spec.md"
-  - "libs/ui/skills/_artifacts/skill_tree.yaml"
-  - "package:@tanstack/intent@0.0.41/meta/domain-discovery"
-  - "package:@tanstack/intent@0.0.41/meta/tree-generator"
-  - "package:@tanstack/intent@0.0.41/meta/generate-skill"
+metadata:
+  type: "lifecycle"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
+  sources: "package:@tanstack/intent@0.0.41/meta/domain-discovery package:@tanstack/intent@0.0.41/meta/tree-generator package:@tanstack/intent@0.0.41/meta/generate-skill"
+  contributor_sources: "libs/ui/skills/_artifacts/domain_map.yaml libs/ui/skills/_artifacts/skill_spec.md libs/ui/skills/_artifacts/skill_tree.yaml"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # @techsio/ui-kit Intent Skill Maintenance
 

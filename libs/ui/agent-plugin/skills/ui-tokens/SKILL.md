@@ -5,9 +5,14 @@ description: >
   the token cascade, shared form-control/icon-button utilities, and run token validation.
   Use for any change under libs/ui/src/tokens/. Invoke explicitly with $ui-tokens.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
+  requires: "tailwind-token-authoring"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # ui-kit token work
 
@@ -16,7 +21,7 @@ Deep guidance: the bundled `tailwind-token-authoring` skill and, in-repo,
 
 ## Cascade (defined in `src/tokens/_tokens-base.css`)
 
-primitives (`_base/_colors/_spacing/_typography/_layout.css`)
+primitives (`_base/_spacing/_typography/_layout.css`)
 → `_semantic.css`
 → component tokens (`components/components.css` → `components/<level>/_<name>.css`)
 → `figma/variables.css` (generated — never hand-edit)

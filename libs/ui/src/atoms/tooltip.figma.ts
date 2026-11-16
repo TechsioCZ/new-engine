@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-19620
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/tooltip.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/tooltip.tsx
 // component=Tooltip
 
 import figma from "figma"
@@ -9,8 +9,9 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("variant", {
-  default: "default",
+// Figma still names the property variant; code reads appearance.
+const appearance = figma.selectedInstance.getEnum("variant", {
+  default: "solid",
   outline: "outline",
 })
 const placement = figma.selectedInstance.getEnum("placement", {
@@ -36,8 +37,8 @@ export default {
   )}${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}>
-        <Button size="sm" variant="secondary">
+  )}${figma.helpers.react.renderProp("appearance", appearance)}>
+        <Button size="sm" severity="secondary">
           Hover me
         </Button>
       </Tooltip>`,

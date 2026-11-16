@@ -1,21 +1,23 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/core", "ultracite/react", "ultracite/next"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next",
+    "ultracite/biome/vitest"
+  ],
   "files": {
     "includes": [
-      "**",
       "!**/node_modules/**/*",
       "!**/playwright-report/**/*",
-      "!**/.medusa/**/*",
       "!**/migrations/**/*",
       "!**/.next/**/*",
-      "!apps/payload/src/payload-types.ts",
-      "!apps/payload/src/app/(payload)/importMap.js",
       "!**/check-env-variables.js",
       "!**/*.stories.tsx",
       "!**/.storybook/main.ts",
-      "!apps/medusa-be/tests/fixtures/ro-catalog-source-extract/befungin-minimal.html",
-      "!**/libs/ui/src/tokens/index.css"
+      "!**/libs/ui/src/tokens/index.css",
+      "!apps",
+      "!scripts/ultramodern-overlay/files"
     ]
   },
   "vcs": {
@@ -24,17 +26,50 @@
     "useIgnoreFile": true,
     "defaultBranch": "master"
   },
+  "assist": {
+    "actions": {
+      "source": {
+        "useSortedInterfaceMembers": "off",
+        "useSortedKeys": "off",
+        "useSortedPackageJson": "off",
+        "useSortedProperties": "off",
+        "useSortedSelectionSet": "off",
+        "useSortedTypeFields": "off"
+      }
+    }
+  },
   "linter": {
     "rules": {
+      "style": {
+        "noIncrementDecrement": {
+          "level": "error",
+          "options": {
+            "allowForLoopAfterthoughts": true
+          }
+        },
+        "useConsistentMethodSignatures": "off",
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": {
+            "style": "type"
+          }
+        },
+        "useDestructuring": "off",
+        "useErrorCause": "off"
+      },
       "performance": {
+        "noAwaitInLoops": "off",
+        "noJsxPropsBind": "off",
         "noNamespaceImport": "info",
         "useTopLevelRegex": "info"
       },
       "suspicious": {
+        "noEqualsToNull": "off",
         "noEmptyBlockStatements": "info",
         "noArrayIndexKey": "warn",
         "noExplicitAny": "warn",
-        "noEvolvingTypes": "warn"
+        "noEvolvingTypes": "warn",
+        "noUnnecessaryConditions": "off"
       }
     }
   },
@@ -47,6 +82,59 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["**", "!libs/ui/**"],
+      "assist": {
+        "actions": {
+          "source": {
+            "useSortedAttributes": "off"
+          }
+        }
+      },
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          },
+          "complexity": {
+            "noExtraBooleanCast": "off",
+            "noRedundantDefaultExport": "off",
+            "noUselessCatchBinding": "off",
+            "noUselessReturn": "off",
+            "useOptionalChain": "off"
+          },
+          "correctness": {
+            "noGlobalDirnameFilename": "off",
+            "noUnknownProperty": "off",
+            "noUnsafeOptionalChaining": "off",
+            "useExhaustiveDependencies": "off"
+          },
+          "nursery": {
+            "useSortedClasses": "off"
+          },
+          "style": {
+            "noNegationElse": "off",
+            "noSubstr": "off"
+          },
+          "suspicious": {
+            "noLeakedRender": "off",
+            "noMisplacedAssertion": "off",
+            "noSkippedTests": "off",
+            "noUnknownAttribute": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["libs/ui/**/*"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noLeakedRender": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["**/*.spec.ts"],
       "javascript": {
@@ -83,23 +171,6 @@
           },
           "security": {
             "noDangerouslySetInnerHtml": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/medusa-be/**/*"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "useAwait": "off"
-          },
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "warn"
-          },
-          "performance": {
-            "noBarrelFile": "off",
-            "noNamespaceImport": "info"
           }
         }
       }

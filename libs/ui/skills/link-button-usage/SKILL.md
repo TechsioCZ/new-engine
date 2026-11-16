@@ -1,17 +1,21 @@
 ---
-component_version: "1.0.0"
 name: link-button-usage
 description: >
   Use after component-usage-ux when navigation should look like a Button using
   @techsio/ui-kit LinkButton, including framework link adapters, href, disabled
   state, icons, and Button-compatible variants/themes/sizes.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/link-button.tsx"
   - "libs/ui/src/atoms/link.tsx"
@@ -25,13 +29,60 @@ sources:
 Use LinkButton for navigation that needs Button styling. Use Button for
 actions that stay in the current page state.
 
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `LinkButton`.
+
+**Use it when**
+
+- Navigation that must look like a button: `Go to checkout`, `View order`, CTA on marketing pages, `Back to list` when it is a real URL.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| An action that stays on the page | Button |
+| A link inside text or lists | Link |
+
+**Do**
+
+- Label with the destination or intent (`View order`, `Continue shopping`).
+- Follow Button hierarchy: one primary per surface.
+- Use the framework link adapter so client routing and prefetch work.
+
+**Don't**
+
+- Use LinkButton to submit forms or trigger mutations.
+- Open new tabs without saying so (`opens in a new tab`).
+
+**Copy and states**
+
+- No `Click here` / `Learn more` without context; `Read the returns policy` instead.
+
+**Behaviour (from the UX spec)**
+
+- A LinkButton to a "New …" page only navigates; the record is created by the form's submit Button.
+- `primary` marks the likely next page, not an approved or required step. Never label it `Confirm` or `Save`.
+- Disabled must block the real navigation, not just look grey; the kit does this (no `href`, `aria-disabled`, out of the tab order).
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant`, `theme`, `size` | `severity`, `appearance` (Figma `light` / `outlined` / `borderless` → `subtle` / `outline` / `ghost`), `size` |
+| `state=disabled` | `disabled` |
+| `state=hover` | not a prop (browser state) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/LinkButton → UX guidelines*.
+
 ## Setup
 
 ```tsx
 import NextLink from "next/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 
-<LinkButton as={NextLink} href="/products" variant="primary" theme="solid">
+<LinkButton as={NextLink} href="/products" severity="primary" appearance="solid">
   Products
 </LinkButton>
 ```
@@ -51,7 +102,7 @@ icon/iconPosition/iconSize: Button icon props
 ### Use for navigational CTA
 
 ```tsx
-<LinkButton as={NextLink} href="/checkout" variant="primary">
+<LinkButton as={NextLink} href="/checkout" severity="primary">
   Checkout
 </LinkButton>
 ```
@@ -62,7 +113,7 @@ Button instead.
 ### Use framework adapters directly
 
 ```tsx
-<LinkButton as={NextLink} href="/account/orders" theme="outlined">
+<LinkButton as={NextLink} href="/account/orders" appearance="outline">
   Orders
 </LinkButton>
 ```
@@ -73,9 +124,9 @@ component cannot accept the framework prop shape.
 ### Reuse Button visual semantics
 
 ```text
-danger -> destructive navigation such as leave/cancel flow
-borderless -> low-emphasis navigation action
-current -> inherit size from parent surface
+severity="danger" -> destructive navigation such as leave/cancel flow
+appearance="ghost" -> low-emphasis navigation action
+size="current" -> inherit size from parent surface
 ```
 
 The visual props come from Button variants and tokens.
@@ -111,7 +162,7 @@ Wrong:
 Correct:
 
 ```tsx
-<LinkButton as={NextLink} href="/checkout" variant="primary">
+<LinkButton as={NextLink} href="/checkout" severity="primary">
   Checkout
 </LinkButton>
 ```
@@ -123,13 +174,13 @@ Source: libs/ui/src/tokens/components/atoms/_button.css
 Wrong:
 
 ```tsx
-<LinkButton href="/help" variant="ghost">Help</LinkButton>
+<LinkButton href="/help" severity="ghost">Help</LinkButton>
 ```
 
 Correct:
 
 ```tsx
-<LinkButton href="/help" variant="secondary" theme="borderless">
+<LinkButton href="/help" severity="secondary" appearance="ghost">
   Help
 </LinkButton>
 ```
@@ -156,8 +207,25 @@ Correct:
 
 ```sh
 rg -n "<Button[^>]*onClick=.*router\\.push|<a[^>]*className=.*(bg-|px-|py-)" apps
-rg -n "<LinkButton[^>]*variant=\"ghost\"" apps
+rg -n "<LinkButton[^>]*(variant=|theme=)" apps
 rg -n "<LinkButton[^>]*className=.*(bg-|text-|px-|py-|rounded-|border-)" apps
 rg -n "function .*LinkButton|const .*LinkButton" apps
 ```
 
+## Canonical and disabled navigation
+
+Default size is md. Use sm/md/lg for ordinary navigation; current remains an
+explicit embedded-composition escape hatch. Disabled LinkButton removes href,
+sets aria-disabled and tabindex=-1, and blocks click callbacks/navigation. The
+shared unavailable treatment applies to anchor data attributes as well as native
+buttons, including hover and pressed states. Disabled destinations render a static span, bypassing routing adapters that
+require an href; enabled adapters must forward native link and ARIA props.
+
+## Ref and internal composition contract
+
+`ref` follows the selected `as` element/adapter, not an unconditional anchor.
+Adapters without a ref prop do not gain one. A disabled LinkButton renders an
+inert link-like span and does not assign that span to an anchor/adapter ref.
+Text labels grow with the same minimum-height treatment as Button. Internal
+navigation compositions may pass `composition` to opt out of Button font weight
+and press scaling; they must supply component-owned typography and feedback.

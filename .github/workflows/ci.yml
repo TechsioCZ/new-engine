@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
 
 permissions:
@@ -18,7 +19,6 @@ jobs:
   main:
     runs-on: ubuntu-latest
     env:
-      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
       NX_NO_CLOUD: "true"
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
       # This enables task distribution via Nx Cloud
       # Run this command as early as possible, before dependencies are installed
@@ -42,8 +42,6 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile --prefer-offline
-      - name: Verify Herbatika Next.js version
-        run: pnpm --filter=herbatika verify:next-version
       - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
       - name: Determine affected projects
         id: determine_affected
@@ -54,22 +52,16 @@ jobs:
           projects="$(printf '%s' "$projects_json" | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const projects = input.trim() ? JSON.parse(input) : []; if (!Array.isArray(projects)) { throw new Error("Expected an array from nx show projects --json"); } process.stdout.write(projects.join(",")); });')"
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
-      - name: Generate Next.js types (n1)
-        id: generate_next_types_n1
-        if: contains(steps.determine_affected.outputs.projects_csv, ',n1,')
-        run: TURBOPACK=1 pnpm --filter=n1 exec next typegen
 
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World
       - name: Lint Nx module boundaries
         run: pnpm lint:nx
-      - name: Test new-engine-ctl CI wiring
-        run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:test
       - name: Typecheck affected prepared projects
         run: |
           affected="${{ steps.determine_affected.outputs.projects }}"
           # Only run project-owned typecheck targets; inferred TypeScript targets use build mode.
-          prepared="@techsio/storefront-data,new-engine-ctl,zane-operator,medusa-symmy-plugin,medusa-order-dashboard-plugin"
+          prepared="@techsio/storefront-data"
           projects="$(AFFECTED="$affected" PREPARED="$prepared" node -e 'const affected = (process.env.AFFECTED || "").split(",").filter(Boolean); const prepared = new Set((process.env.PREPARED || "").split(",").filter(Boolean)); process.stdout.write(affected.filter((project) => prepared.has(project)).join(","));')"
           if [ -z "$projects" ]; then
             echo "No affected projects with explicit typecheck targets."
@@ -78,12 +70,50 @@ jobs:
           ./node_modules/.bin/nubx --node nx run-many -t typecheck --projects="$projects"
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test
+      - name: Typecheck affected UI package
+        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
+        run: pnpm --dir libs/ui typecheck
+      - name: Test affected UI asset replay
+        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
+        run: |
+          timeout 420 pnpm exec playwright install --only-shell chromium
+          pnpm --dir libs/ui test:visual-assets
       - name: Check affected UI package output
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: pnpm --dir libs/ui check:package
-      - name: Prove URL registry parity on PostgreSQL 18.1
-        if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
-        run: pnpm --filter=herbatika test:url-registry:pg18
-      - name: Prove Herbatika Pages hard statuses through Docker ingress
-        if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
-        run: pnpm --filter=herbatika test:m00:wire
+
+  # Runs only what the change can affect: a pull request against its base, a
+  # push against the previous tip. A change that cannot reach the UI library
+  # skips the components and accessibility jobs; workflow changes force the full
+  # run, and dependency or build-input changes count as "all". The full, strict
+  # run on every UI change is the release gate (ui-release.yml), so a push here
+  # does not repeat it. The reusable workflow validates this SHA.
+  ui-quality:
+    uses: ./.github/workflows/ui-quality.yml
+    with:
+      sha: ${{ github.sha }}
+      mode: changed
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+
+  # Required status check for master (ruleset "Master"). It fails unless every
+  # job in `needs` succeeded, so the ruleset has one stable name to require.
+  # To make another job blocking, add it to `needs`; don't edit the ruleset.
+  quality-gate:
+    name: quality-gate
+    if: always()
+    needs:
+      - main
+      - ui-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every blocking job to pass
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          failed=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
+          if [ -n "$failed" ]; then
+            echo "::error::Blocking jobs did not succeed: $failed"
+            exit 1
+          fi

@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-36053
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/product-card.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/product-card.tsx
 // component=ProductCard
 
 import figma from "figma"
@@ -11,10 +11,12 @@ const layout = figma.selectedInstance.getEnum("layout", {
 
 export default {
   id: "ProductCard",
-  imports: ['import { ProductCard } from "@techsio/ui-kit/molecules/product-card"'],
+  imports: [
+    'import { ProductCard } from "@techsio/ui-kit/molecules/product-card"',
+  ],
   example: figma.code`<ProductCard${figma.helpers.react.renderProp(
     "layout",
-    layout,
+    layout
   )}>
         <ProductCard.Image alt="Product" src="/product.jpg"/>
         <ProductCard.Name>Product Name</ProductCard.Name>

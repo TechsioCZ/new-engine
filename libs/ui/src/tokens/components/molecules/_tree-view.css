@@ -1,9 +1,9 @@
 /*
- * TreeView — runtime tokens come entirely from
+ * TreeView — base runtime tokens come from
  * libs/ui/src/tokens/figma/variables.css (tree-view namespace).
  *
- * Kept: `--tree-indent-per-level` — consumed as a raw var() in the TSX
- * indent calc; aliases Figma's indent-per-level token.
+ * Local aliases add selection, hit-area and constant per-level indentation
+ * roles while preserving the configurable Figma indent-per-level token.
  */
 
 @theme static {
@@ -30,4 +30,28 @@
 
 @utility token-icon-tree-indicator-open {
   @apply token-icon-chevron-down;
+}
+
+@theme static {
+  /* Reference layer: shared popup selection palette, independent of tree hover. */
+  --color-tree-view-selection: var(--color-fill-selected);
+  --color-tree-view-selection-text: var(--color-fg-on-selected);
+  --color-tree-view-node-bg-selected: var(--color-tree-view-selection);
+  --color-tree-view-node-fg-selected: var(--color-tree-view-selection-text);
+  --spacing-tree-view-level: var(--tree-indent-per-level);
+  --border-width-tree-view-marker: var(--border-sm);
+  --spacing-tree-view-target: var(--dimension-24);
+}
+
+@utility tree-view-selection {
+  &[data-selected] {
+    box-shadow: inset var(--border-width-tree-view-marker) 0 0 currentColor;
+    text-decoration: underline;
+  }
+  @media (forced-colors: active) {
+    &[data-selected] {
+      outline: 1px solid Highlight;
+      outline-offset: -1px;
+    }
+  }
 }

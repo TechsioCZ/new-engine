@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/rating-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as RatingStories from "./rating.stories"
+
+<Meta of={RatingStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

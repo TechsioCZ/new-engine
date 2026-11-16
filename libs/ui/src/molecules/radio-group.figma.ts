@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-33126
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/molecules/radio-group.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/molecules/radio-group.tsx
 // component=RadioGroup
 
 import figma from "figma"
@@ -18,7 +18,9 @@ const disabled = figma.selectedInstance.getEnum("state", {
 
 export default {
   id: "RadioGroup",
-  imports: ['import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"'],
+  imports: [
+    'import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"',
+  ],
   example: figma.code`<RadioGroup${figma.helpers.react.renderProp(
     "disabled",
     disabled

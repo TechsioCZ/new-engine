@@ -1,0 +1,8 @@
+import { Meta } from "@storybook/addon-docs/blocks"
+import source from "../../skills/tour-usage/references/ux.md?raw"
+import { UxMarkdown } from "../helpers/ux-markdown"
+import * as TourStories from "./tour.stories"
+
+<Meta of={TourStories} name="UX guidelines" />
+
+<UxMarkdown source={source} />

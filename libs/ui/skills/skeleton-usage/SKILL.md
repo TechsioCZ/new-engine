@@ -1,16 +1,20 @@
 ---
-component_version: "1.0.0"
 name: skeleton-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Skeleton for
   loading placeholders using Root, Circle, Text, and Rectangle compound parts
   with token-backed variants, sizes, and animation speeds.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/skeleton.tsx"
   - "libs/ui/src/tokens/components/atoms/_skeleton.css"
@@ -21,6 +25,54 @@ sources:
 # @techsio/ui-kit Skeleton Usage
 
 Use Skeleton for loading placeholders that preserve the final layout shape.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Skeleton`.
+
+**Use it when**
+
+- Content that takes longer than ~300 ms to load, where the final layout is known (lists, cards, detail pages, charts).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| A button action in progress | Button `isLoading` + `loadingText` |
+| Very short waits | nothing |
+| Unknown layout / long job | progress text or a loading toast |
+
+**Do**
+
+- Mirror the real layout: same number of rows/columns, same heights and widths.
+- Keep headers, navigation and actions real while their content loads.
+- Replace the skeleton in place without layout shift.
+
+**Don't**
+
+- Show skeletons for errors or empty results.
+- Animate aggressively; respect reduced motion.
+
+**Copy and states**
+
+- Announce loading once for assistive tech (`Loading orders`).
+
+**Behaviour (from the UX spec)**
+
+- `speed` is the pulse tempo only; it never conveys progress or time left.
+- `noOfLines` and `lastLineWidth` hint at structure, not at the real length or a text limit.
+- On retry, only the missing area waits again; confirmed content around it is not reset to placeholders.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| Skeleton/Circle, /Rectangle, /Text sets | `Skeleton.Circle`, `Skeleton.Rectangle`, `Skeleton.Text` inside one `<Skeleton isLoaded>` |
+| Text `noOfLines=1\|3\|5`, `lastLineWidth=60%\|80%\|90%` | any number / any CSS width |
+| Text `size` | gap between lines |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Skeleton → UX guidelines*.
 
 ## Setup
 
@@ -104,7 +156,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Skeleton.Text variant="secondary" />
+<Skeleton.Text severity="secondary" />
 ```
 
 Use `_skeleton.css` or app token overrides for color changes.
@@ -153,3 +205,20 @@ rg -n "<Skeleton[^>]*className=.*(bg-|rounded-|animate-)" apps
 rg -n "<Skeleton\\.Text[^>]*noOfLines=\\{.*\\.length" apps
 rg -P -n "<Skeleton\\.Rectangle(?![^>]*className=)" apps
 ```
+
+## Shared contracts
+
+Wrap related placeholders in one `Skeleton` loading region: the root owns a single named `role="status"` with `aria-busy`, and its shapes are decorative. A standalone shape is its own loading region; use `aria-hidden="true"` when another component already supplies the loading description. The canonical Sizes story uses sm/md/lg; xl remains a legacy media-size option, not a control size.
+
+## Placeholder interaction and animation ownership
+
+A loading root keeps its placeholder composition mounted in an `inert`,
+`aria-hidden` subtree; its single customizable `aria-label` loading status stays
+outside that subtree. Do not put genuine navigation/actions inside placeholders.
+Circle, Text and Rectangle withhold their eventual children until loaded. After
+loading, children render without residual loading/hidden/inert wrappers.
+
+The grouping root is fully opaque and never pulses. Each visible shape (or Text
+line) owns exactly one animation; group speed is a context default and a local
+speed overrides it independently. Reduced motion stops each shape's animation
+without dimming its fill or overriding consumer-authored opacity.

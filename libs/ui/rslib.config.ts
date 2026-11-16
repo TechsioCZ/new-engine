@@ -1,14 +1,25 @@
+import { existsSync } from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { pluginReact } from "@rsbuild/plugin-react"
 import { defineConfig } from "@rslib/core"
 import { pluginAreTheTypesWrong } from "rsbuild-plugin-arethetypeswrong"
 import { pluginPublint } from "rsbuild-plugin-publint"
 
+import { getClientBoundaryModules } from "./test/visual-rsc-boundaries.mjs"
+
 const checkBuildOutput = Boolean(process.env.RSLIB_CHECK_OUTPUT)
 
 export default defineConfig({
   bundle: false,
-  dts: true,
+  dts: {
+    // The compatibility alias supplies the JS API to tooling; emit declarations
+    // with the native TypeScript compiler installed alongside it.
+    typescriptPath: fileURLToPath(import.meta.resolve("@typescript/native")),
+    tsgo: true,
+  },
   source: {
+    tsconfigPath: "./tsconfig.lib.json",
     entry: {
       // *.figma.ts are Code Connect templates: they are uploaded to Figma and
       // executed there against a virtual "figma" module, so they are neither
@@ -18,6 +29,42 @@ export default defineConfig({
   },
   output: {
     target: "web",
+  },
+  tools: {
+    rspack(config, { rspack }) {
+      // Apply per-module RSC boundaries to the published, unbundled entrypoints.
+      // Server-safe primitives/configuration remain available without a boundary.
+      let clientModules = new Set<string>()
+      config.plugins ??= []
+      config.plugins.push(
+        {
+          apply(compiler) {
+            // Refresh on every compilation, including watch rebuilds.
+            compiler.hooks.beforeCompile.tap("ClientBoundaries", () => {
+              clientModules = getClientBoundaryModules(
+                path.resolve(import.meta.dirname, "src")
+              )
+            })
+          },
+        },
+        new rspack.BannerPlugin({
+          raw: true,
+          entryOnly: true,
+          banner: ({ filename }) => {
+            if (!filename.endsWith(".js")) {
+              return ""
+            }
+            const stem = path.resolve(
+              import.meta.dirname,
+              "src",
+              filename.slice(0, -3)
+            )
+            const source = [`${stem}.tsx`, `${stem}.ts`].find(existsSync)
+            return source && clientModules.has(source) ? '"use client";' : ""
+          },
+        })
+      )
+    },
   },
   plugins: [
     pluginPublint({ enable: checkBuildOutput }),

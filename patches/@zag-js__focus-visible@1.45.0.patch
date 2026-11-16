@@ -1,0 +1,40 @@
+diff --git a/dist/index.js b/dist/index.js
+index 953c652c8ce68041bbd09eafc19b73c9cb8ade48..f612ce5bd7250d79bc6b73fc1bc7c210062d8522 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -138,6 +138,7 @@ function patchFocusMethod(win) {
+     const nativeFocus = win.HTMLElement.prototype.focus;
+     Object.defineProperty(win.HTMLElement.prototype, "focus", {
+       configurable: true,
++      writable: true,
+       value: patchedFocus2
+     });
+     return nativeFocus;
+@@ -189,6 +190,7 @@ var tearDownWindowFocusTracking = (root, loadListener) => {
+     try {
+       Object.defineProperty(win.HTMLElement.prototype, "focus", {
+         configurable: true,
++        writable: true,
+         value: listenerData.focus
+       });
+     } catch {
+diff --git a/dist/index.mjs b/dist/index.mjs
+index ffdbf214605f51d8c657939c13ca39c4f0e1adb3..cb9bd51ea6830e1e8b9498d6a81ef5e28e76dc12 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -108,6 +108,7 @@ function patchFocusMethod(win) {
+     const nativeFocus = win.HTMLElement.prototype.focus;
+     Object.defineProperty(win.HTMLElement.prototype, "focus", {
+       configurable: true,
++      writable: true,
+       value: patchedFocus2
+     });
+     return nativeFocus;
+@@ -159,6 +160,7 @@ var tearDownWindowFocusTracking = (root, loadListener) => {
+     try {
+       Object.defineProperty(win.HTMLElement.prototype, "focus", {
+         configurable: true,
++        writable: true,
+         value: listenerData.focus
+       });
+     } catch {

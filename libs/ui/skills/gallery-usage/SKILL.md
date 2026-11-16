@@ -1,19 +1,23 @@
 ---
-component_version: "1.0.0"
 name: gallery-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Gallery for
   product or media image galleries with Carousel integration, thumbnails,
   controlled page, orientation, thumbnail image adapters, thumbnail aria labels,
   empty state, and NextImage support.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.2.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - carousel-usage
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/gallery.tsx"
   - "libs/ui/src/tokens/components/organisms/_gallery.css"
@@ -24,6 +28,54 @@ sources:
 
 Use Gallery for product or media galleries with thumbnails. Use Carousel
 directly when thumbnails are not part of the UX.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Gallery`.
+
+**Use it when**
+
+- Product detail images with thumbnails and variant switching. Gallery has no zoom or fullscreen view; don't promise either in copy or icons.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Banners or related items without thumbnails | Carousel |
+| Single image | Image |
+| Media management in admin | a media library grid |
+
+**Do**
+
+- Keep a fixed aspect ratio so the page doesn't jump between images.
+- Give every image meaningful alt text (product, colour, angle); thumbnails can share the main alt.
+- Switch the gallery when the user changes the colour variant.
+- Support keyboard and swipe; show position (`2 / 6`).
+
+**Don't**
+
+- Auto-rotate product images.
+- Hide the only view of a variant behind the 10th thumbnail.
+
+**Copy and states**
+
+- Alt text: `Linen shirt in navy, front`; controls `Previous image`, `Next image`.
+
+**Behaviour (from the UX spec)**
+
+- The selected thumbnail and the main image always show the same view; never link one variant's thumbnail to another variant's image.
+- Every thumbnail stays reachable however many there are. A missing image is a neutral placeholder, never another variant's photo.
+- The default thumbnail name is English `Show slide N`; pass a localized `getThumbnailAriaLabel` that names the view and position.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `orientation=vertical` / `horizontal` | `orientation` (default `vertical`) |
+| — | `showThumbnails`, `hideThumbnailsWhenSingle`, `thumbnailSize`, `emptyState` (code only) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Gallery → UX guidelines*.
 
 ## Setup
 
@@ -111,7 +163,10 @@ Wrong:
 Correct:
 
 ```tsx
-<Gallery thumbnailSize={64}><Gallery.Thumbnails /></Gallery>
+<Gallery items={items} thumbnailSize={64}>
+  <Gallery.Main><Gallery.Carousel /></Gallery.Main>
+  <Gallery.Thumbnails />
+</Gallery>
 ```
 
 Source: libs/ui/src/tokens/components/organisms/_gallery.css
@@ -123,3 +178,14 @@ rg -n "setActive|setPage|<Gallery\\.Thumbnail[^>]*className=.*(h-|w-|rounded-|bo
 rg -U -P -n "<Gallery(?![\\s\\S]{0,800}<Gallery\\.Thumbnails)" apps
 rg -P -n "<Gallery(?![^>]*(thumbnailImageAs|carouselProps=\\{\\{[^}]*imageAs))" apps
 ```
+
+## Wave 2 contracts
+
+Gallery is the compound organism, not GalleryTemplate: configure nested media through carouselProps and compose Gallery.Main, Gallery.Carousel, Gallery.Slides and Gallery.Thumbnails. carouselWidth, fitParent and showControls belong to GalleryTemplate only. Gallery.Carousel defaults to aria-label="Product images"; provide a specific name through carouselProps or the slot when multiple galleries appear. Thumbnail dimming uses unitless brightness factors (0.7 at rest, 1 on hover/current), not rem dimensions. thumbnailSize is a media dimension in pixels, not a sm/md/lg control scale.
+
+Gallery is a single-image selector: `slidesPerPage` and `slidesPerMove` are fixed to 1 (including at runtime). Use Carousel directly for multi-slide pages. The active thumbnail is kept visible within its rail without moving page focus or scrolling the document.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.
+
+Forward the template name to its carousel landmark.

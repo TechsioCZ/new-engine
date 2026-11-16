@@ -1,18 +1,22 @@
 ---
-component_version: "1.0.0"
 name: header-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Header for
   responsive site header composition with desktop/mobile sections, containers,
   nav, nav items, actions, hamburger, active state, size, direction, and token
   styling.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/header.tsx"
   - "libs/ui/src/tokens/components/organisms/_header.css"
@@ -24,6 +28,52 @@ sources:
 Use Header for global page header/navigation layout. Compose it with Link or
 LinkButton for actual navigation items.
 
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Header`.
+
+**Use it when**
+
+- The global top bar: logo, primary navigation, search, account, cart.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| In-app admin navigation with many destinations | Sidebar + VerticalNavigation |
+| Page-level title and actions | the page header inside content (title + top-right actions) |
+
+**Do**
+
+- Keep the same order across pages: logo start, navigation, search, account/cart end.
+- Show cart count and account state; collapse navigation to a Drawer/Sidebar below `lg`.
+- Make it sticky only if it stays compact; ensure it never covers focused content (scroll-padding).
+
+**Don't**
+
+- Put page-specific actions in the global header.
+- Hide search behind an icon on desktop storefronts where search is a primary task.
+
+**Copy and states**
+
+- Navigation labels are short nouns; icon buttons have labels (`Cart, 3 items`, `Account`).
+
+**Behaviour (from the UX spec)**
+
+- `size` is density, not a breakpoint; the app decides where navigation collapses behind `Header.Hamburger`, and it is never just cut off.
+- `Header.NavItem active` is visual only; also set `aria-current="page"` on the link. Pass a localised `aria-label` to `Header.Hamburger` (default `Toggle mobile menu`).
+- The header is not a list of every feature; switching section never pretends to save an open draft.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | same prop |
+| — | `direction`, `Header.NavItem active`, `Header.Mobile position` (not in Figma) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Header → UX guidelines*.
+
 ## Setup
 
 ```tsx
@@ -31,7 +81,7 @@ LinkButton for actual navigation items.
   <Header.Desktop>
     <Header.Container position="start">
       <Header.Nav>
-        <Header.NavItem active><Link as={NextLink} href="/">Home</Link></Header.NavItem>
+        <Header.NavItem active><Link as={NextLink} aria-current="page" href="/">Home</Link></Header.NavItem>
       </Header.Nav>
       <Header.Actions><Header.ActionItem><Button>Account</Button></Header.ActionItem></Header.Actions>
     </Header.Container>
@@ -124,3 +174,14 @@ rg -n "<a[^>]*href=|<Header\\.Hamburger|<Header\\.Mobile" apps
 rg -n "<Header[^>]*size=\"(xs|xl)\"|position=\"(left|right)\".*Header\\.Container" apps
 ```
 
+
+## Wave 2 contracts
+
+Header.Desktop, Header.Mobile and Header.Hamburger use the header container’s content width (48rem breakpoint), not the viewport. Compose exactly one Mobile slot with its Hamburger. The trigger exposes aria-controls/aria-expanded; Escape closes an open menu and restores trigger focus. A custom Mobile id is synchronized with aria-controls. Canonical sizes are sm/md/lg (default md); place primary navigation inside the responsive slots.
+
+Header.NavItem active controls styling only. Mark the actual current destination link with aria-current="page"; inactive destinations omit it.
+
+Hamburger forwards Button props (including localized `aria-label`, event handlers and a React 19 `ref`). Prevent the click default to cancel toggling. On transition to desktop, the menu closes and focus moves to desktop navigation when the hidden mobile region held focus. Render Hamburger before Mobile so the next Tab enters the open navigation.
+
+Rendering without `ResizeObserver` (jsdom tests, older embeds) no longer throws;
+the initial measurement still runs.

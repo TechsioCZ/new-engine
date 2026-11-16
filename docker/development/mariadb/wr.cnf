@@ -1,4 +1,0 @@
-[mariadb]
-sql_mode=NO_ENGINE_SUBSTITUTION #wr
-optimizer_use_condition_selectivity=1
-optimizer_switch=rowid_filter=off

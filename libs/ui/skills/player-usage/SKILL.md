@@ -1,17 +1,20 @@
 ---
-component_version: "1.0.0"
 name: player-usage
 description: >
   Use after component-usage-ux when an app needs a token-driven media player.
   Player is a headless compound molecule over Vidstack (@vidstack/react); apps
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.0.1"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/player.tsx"
   - "libs/ui/src/tokens/components/molecules/_player.css"
@@ -114,3 +117,5 @@ Correct:
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_player.css
+
+Control labels follow `UiMessagesProvider.messages.player`; explicit control `aria-label` props take precedence.

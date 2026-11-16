@@ -1,0 +1,4 @@
+[data-navigation-story] {
+  width: calc(var(--container-2xs) - var(--dimension-8));
+  max-width: 100%;
+}

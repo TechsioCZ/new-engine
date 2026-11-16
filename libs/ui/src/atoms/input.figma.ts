@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-13336
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/input.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/input.tsx
 // component=Input
 
 import figma from "figma"
@@ -9,7 +9,7 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("state", {
+const validateStatus = figma.selectedInstance.getEnum("state", {
   default: "default",
   error: "error",
   success: "success",
@@ -29,10 +29,10 @@ export default {
   imports: ['import { Input } from "@techsio/ui-kit/atoms/input"'],
   example: figma.code`<Input${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )}${figma.helpers.react.renderProp(
     "size",
-    size,
-  )}${figma.helpers.react.renderProp("variant", variant)}/>`,
+    size
+  )}${figma.helpers.react.renderProp("validateStatus", validateStatus)}/>`,
   metadata: { nestable: true },
 }

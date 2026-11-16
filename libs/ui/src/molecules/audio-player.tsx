@@ -2,7 +2,7 @@
  * AudioPlayer — @techsio/ui-kit molecule.
  *
  * @component AudioPlayer
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill audio-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,10 +16,10 @@ import { Player, type PlayerProps } from "./player"
 
 const audioPlayerStyles = tv({
   slots: {
-    root: "flex items-center gap-player-control rounded-player border-(length:--border-width-player) border-player-border bg-player-bg p-player-root",
+    root: "border-(length:--border-width-player) flex items-center gap-player-control rounded-player border-player-border bg-player-bg p-player-root",
     cover: "size-player-cover shrink-0 rounded-player object-cover",
     body: "flex min-w-0 flex-1 flex-col gap-player-control",
-    title: "truncate font-player-title text-player-title text-player-fg",
+    title: "truncate font-player-title text-player-fg text-player-title",
     controls: "flex-col items-stretch",
     timeline: "w-full",
     toolbar: "w-full justify-between",
@@ -67,27 +67,24 @@ export function AudioPlayer({
   return (
     <div className={styles.root({ className })} style={style}>
       {cover ? (
-        <Image size="custom" className={styles.cover()} src={cover} alt="" />
+        <Image alt="" className={styles.cover()} size="custom" src={cover} />
       ) : null}
       <div className={styles.body()}>
         {title ? <p className={styles.title()}>{title}</p> : null}
         <Player
           {...props}
-          src={src}
-          title={title}
-          viewType="audio"
           onVolumeChange={
             onVolumeChange
               ? (detail) => onVolumeChange(detail.volume)
               : undefined
           }
+          src={src}
+          title={title}
+          viewType="audio"
         >
           <Player.Provider />
           <Player.Controls>
-            <Player.ControlGroup
-              className={styles.controls()}
-              padding="none"
-            >
+            <Player.ControlGroup className={styles.controls()} padding="none">
               <Player.Control className={styles.timeline()}>
                 <Player.TimeSlider />
                 <Player.Time type="current" />

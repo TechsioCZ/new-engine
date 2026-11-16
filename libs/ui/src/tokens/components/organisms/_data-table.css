@@ -1,14 +1,36 @@
 /*
+ * DataTable — component tokens.
+ *
+ * The colour, radius and spacing tokens all come from Figma via
+ * libs/ui/src/tokens/figma/variables.css (`--color-data-table-*`,
+ * `--padding-data-table-*`, `--spacing-data-table-*`).
+ *
+ * Kept here: the `-x`/`-y` padding composites. Figma exports padding split
+ * into halves, and Tailwind's `p-*` utilities resolve a single
+ * `--padding-<name>` value — there is no `px-<name>` lookup for a `-x` token.
+ * So the shorthands are rebuilt from the Figma halves (padding: y x), exactly
+ * as _table.css does for `--padding-table-cell-*`.
+ */
+
+@theme static {
+  --padding-data-table-toolbar: var(--padding-data-table-toolbar-y)
+    var(--padding-data-table-toolbar-x);
+  --padding-data-table-filter-cell: var(--padding-data-table-filter-cell-y)
+    var(--padding-data-table-filter-cell-x);
+  --padding-data-table-pagination: var(--padding-data-table-pagination-y)
+    var(--padding-data-table-pagination-x);
+}
+
+/*
  * DataTable — nested-row tint.
  *
  * `tintNestedRows` shades a row by `row.depth` as an inset box-shadow rather
  * than a background, so it composes with `striped`'s zebra background instead
  * of losing the Tailwind-merge conflict against it (two `bg-*` utilities on
  * one element can't both render; a shadow layers on top of whichever
- * background is already there). Reuses `--color-table-row-bg-hover`, an
- * existing Figma-exported Table token, rather than a raw semantic token or a
- * new one added ahead of the Figma sync this component's other colors are
- * still waiting on (see the "PROTOTYPE styling" note in data-table.tsx).
+ * background is already there). Reads `--color-data-table-row-bg-nested`,
+ * which aliases `--color-table-row-bg-hover` in Figma — the depth shading can
+ * now be retargeted without this file knowing which Table token backs it.
  */
 /*
  * Verified: box-shadow on a `<tr>` *does* paint under `border-collapse` in
@@ -21,7 +43,7 @@
  * would cause.
  */
 @utility data-table-row-nested-tint {
-  box-shadow: inset 0 0 0 9999px var(--color-table-row-bg-hover);
+  box-shadow: inset 0 0 0 9999px var(--color-data-table-row-bg-nested);
 }
 
 /*
@@ -33,19 +55,117 @@
  *
  * `background: inherit` gives the second without the first: every row-level
  * tint in this system is an alpha overlay meant to composite over a surface
- * (`--color-table-row-striped-secondary` is literally `oklch(0 0 0 / 0)`), so
+ * (`--color-table-row-striped-secondary` is literally `oklch(0 0 none / 0)`), so
  * inheriting it yields a see-through cell.
  *
  * Compositing solves both at once — the same trick `OPAQUE_HEADER_BG` uses for
- * the header. The opaque table surface is the background-*color*; the row tint
+ * the header. The opaque surface is `--color-data-table-pinned-cell-bg` as the
+ * background-*color*; the row tint
  * is painted over it as a gradient image, read from a custom property the row
  * sets. Custom properties inherit, so the row can drive its cells' tint
  * without either knowing about the other.
  */
 @utility data-table-frozen-cell {
-  background-color: var(--color-table-bg);
+  background-color: var(--color-data-table-pinned-cell-bg);
   background-image: linear-gradient(
     var(--dt-row-tint, transparent),
     var(--dt-row-tint, transparent)
   );
+}
+
+@theme static {
+  --color-data-table-skeleton: var(--color-border-secondary);
+  --color-data-table-skeleton-bg: var(--color-data-table-skeleton);
+}
+@utility data-table-skeleton {
+  background-color: var(--color-data-table-skeleton-bg);
+}
+
+@theme static {
+  --color-data-table-focus: var(--color-ring);
+  --color-data-table-scroll-ring: var(--color-data-table-focus);
+}
+@utility data-table-scroll-focus {
+  outline-style: var(--default-ring-style);
+  outline-width: var(--default-ring-width);
+  outline-color: var(--color-data-table-scroll-ring);
+  outline-offset: calc(-1 * var(--default-ring-width));
+}
+
+@theme static {
+  --spacing-data-table-search: var(--container-3xs);
+  --spacing-data-table-filter-sm: calc(var(--height-form-control-sm) * 5);
+  --spacing-data-table-filter-md: calc(var(--height-form-control-md) * 5);
+  --spacing-data-table-filter-lg: calc(var(--height-form-control-lg) * 5);
+  /* Reserve room for values, padding and steppers, not just control chrome. */
+  --spacing-data-table-editor-sm: calc(var(--height-form-control-sm) * 4);
+  --spacing-data-table-editor-md: calc(var(--height-form-control-md) * 4);
+  --spacing-data-table-editor-lg: calc(var(--height-form-control-lg) * 4);
+}
+
+@utility data-table-filter-viewport {
+  /* Fixed cells cannot grow to the control minimum. Keep the complete filter
+   * reachable by scrolling inside its cell; auto layout still reserves room. */
+  &[data-layout="fixed"] {
+    overflow-x: auto;
+  }
+}
+
+@utility data-table-filter-control {
+  --data-table-filter-min: var(--spacing-data-table-filter-md);
+  min-width: var(--data-table-filter-min);
+  &[data-size="sm"] {
+    --data-table-filter-min: var(--spacing-data-table-filter-sm);
+  }
+  &[data-size="lg"] {
+    --data-table-filter-min: var(--spacing-data-table-filter-lg);
+  }
+  & > input {
+    min-width: calc(var(--data-table-filter-min) / 2);
+  }
+}
+
+@utility data-table-empty-viewport {
+  /* cqw resolves against the scrollport, not the overflowing table. Sticky
+   * keeps both built-in and custom empty content in view while scrolling. */
+  position: sticky;
+  inset-inline-start: 0;
+  width: 100cqw;
+  max-width: 100%;
+  & > * {
+    max-width: 100%;
+  }
+}
+
+@utility data-table-editor {
+  /* Fixed-width tables scroll a constrained editor rather than hiding values
+   * or painting over the adjacent cell. Auto layout reserves its full width. */
+  &[data-layout="fixed"] {
+    overflow-x: auto;
+  }
+  /* A switch needs no text-entry minimum. Let its complete associated
+   * feedback wrap, rather than forcing it underneath sticky row actions. */
+  &[data-type="boolean"] > .data-table-editor-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@utility data-table-editor-value {
+  min-width: var(--spacing-data-table-editor-md);
+  &[data-size="sm"] {
+    min-width: var(--spacing-data-table-editor-sm);
+  }
+  &[data-size="lg"] {
+    min-width: var(--spacing-data-table-editor-lg);
+  }
+}
+
+/* End-pinned columns reserve this actions column's measured width. */
+@utility data-table-actions-sticky {
+  inset-inline-end: 0;
+  @container data-table (width < 48rem) {
+    inset-inline-end: auto;
+  }
 }

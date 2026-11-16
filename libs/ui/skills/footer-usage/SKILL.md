@@ -1,18 +1,22 @@
 ---
-component_version: "1.0.0"
 name: footer-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Footer for
   site footer composition with container, section, title, list, link, text,
   divider, bottom area, size, layout, direction, section flow, and framework
   link adapters.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.2.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/organisms/footer.tsx"
   - "libs/ui/src/tokens/components/organisms/_footer.css"
@@ -23,6 +27,54 @@ sources:
 
 Use Footer for global footer layout. Do not build app footers from raw divs and
 anchors when this organism fits.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Footer`.
+
+**Use it when**
+
+- The global site footer: secondary navigation, legal links, contact, newsletter, payment/shipping marks.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Primary navigation | Header |
+| Actions for the current page | page content / page header |
+
+**Do**
+
+- Group links under short headings; keep the same footer on every storefront page.
+- Include legal links (terms, privacy, cookies) and contact details users look for.
+- Stack groups into accordions or a single column on mobile without hiding legal links.
+
+**Don't**
+
+- Put important actions only in the footer.
+- Duplicate the whole header navigation.
+
+**Copy and states**
+
+- Headings are nouns (`Customer care`, `Company`); `© 2026 Company name` generated from the current year.
+
+**Behaviour (from the UX spec)**
+
+- `Footer.Title` is a heading, not a link; give each `Footer.Section` `aria-labelledby` pointing at its title.
+- Render `Footer.Divider` only between groups that are present; an empty group leaves no heading or lone line.
+- Contact, legal and version data come from the product owner; never ship sample values.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `size=sm…lg` | same prop |
+| — | `direction`, `layout`, `sectionFlow` (not in Figma) |
+| FooterTitle / FooterLink / FooterText / FooterDivider | `Footer.Title` / `Footer.Link` / `Footer.Text` / `Footer.Divider` |
+| — | `Footer.Container`, `Footer.Section`, `Footer.List`, `Footer.Bottom` (no Figma part) |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Organisms/Footer → UX guidelines*.
 
 ## Setup
 
@@ -63,6 +115,8 @@ It wraps the UI-kit Link atom and supports framework adapters.
 ### Use sections for groups
 
 Group footer columns with `Footer.Section`, `Footer.Title`, and `Footer.List`.
+`Footer.List` is a `<ul>` and wraps each child that is not already an `<li>` in one,
+so put `Footer.Link`s straight inside it. Icon-only links (social icons) need `aria-label`.
 
 ### Let footer tokens define density
 
@@ -125,3 +179,9 @@ rg -n "<footer\\b|<Footer\\.(Container|Section|Link)[^>]*className=.*(grid|gap-|
 rg -P -n "<Footer\\.Link(?![^>]*as=\\{?NextLink)" apps
 rg -n "<Footer[^>]*size=\"(xs|xl)\"|layout=\"(grid|columns)\"" apps
 ```
+
+## Wave 2 contracts
+
+Every Footer slot forwards native DOM/ARIA/event props. Footer.Section renders a semantic section; name important sections with aria-labelledby referring to Footer.Title. Columns stack on mobile and long contact strings wrap. Hover uses readable text tokens, never decorative brand fills. Canonical sizes are sm/md/lg (default md).
+
+Keep footer subsections as groups within the single footer landmark.

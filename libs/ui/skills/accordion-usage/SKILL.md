@@ -1,17 +1,21 @@
 ---
-component_version: "1.0.0"
 name: accordion-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Accordion for
   collapsible sections using the Zag.js-backed compound anatomy, supported
   variant, shadow, size, value, multiple, and collapsible props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "2.0.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - zag-compound-components
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/molecules/accordion.tsx"
   - "libs/ui/src/tokens/components/molecules/_accordion.css"
@@ -24,6 +28,62 @@ sources:
 
 Use Accordion for related collapsible content sections. Do not build disclosure
 behavior with local state and native buttons when this component fits.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Accordion`.
+
+**Use it when**
+
+- Optional or secondary content the user may want to expand: FAQs, shipping details, advanced settings.
+- Long pages where users scan headings and open only what they need.
+- Mobile layouts that stack content which sits side by side on desktop (with care — see Don't).
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Peer views of the same object the user switches between | Tabs |
+| Ordered steps that must be completed in sequence | Steps |
+| Navigation links in a tree | VerticalNavigation |
+| Content everyone needs to read (prices, legal terms, errors) | keep it visible, no disclosure |
+
+**Do**
+
+- Write triggers as short noun phrases or questions that predict the content (`Shipping and returns`, `Can I change my order?`).
+- Open the first item by default when it answers the most common question; otherwise start collapsed.
+- Allow multiple open items for reference content; single-open only when items are mutually exclusive steps.
+- Keep the chevron/indicator from the component — it is the only affordance that the heading is interactive.
+
+**Don't**
+
+- Hide required form fields or validation errors inside a collapsed item.
+- Nest accordions inside accordions.
+- Put primary actions only inside a collapsed panel.
+- Use an accordion for one item — show the content or use a Link to a detail page.
+
+**Copy and states**
+
+- Trigger text in sentence case, no trailing colon or punctuation.
+- If a collapsed section contains an error, open it on submit and focus the field (see ux-guidelines/states).
+
+**Behaviour (from the UX spec)**
+
+- Opening or closing a section never saves, submits, confirms consent or navigates; collapsing keeps any draft inside it.
+- `Accordion.Title` alone must identify the section. `Accordion.Subtitle` is one short context line; long explanations go in Content.
+- The indicator mirrors the real open state; the header is the only control.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `variant`, `shadow`, `size` | `appearance` (`default` → `outline`, `borderless` → `ghost`, `child` → `appearance="ghost" nested`), `shadow`, `size` |
+| `state=collapsed` / `expanded` | `value` / `defaultValue` (array of item values) |
+| `state=disabled` | `disabled` on the root or on `Accordion.Item` |
+| AccordionIndicator / indicator icon | `Accordion.Indicator` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/Accordion → UX guidelines*.
 
 ## Setup
 
@@ -44,7 +104,8 @@ import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 Supported root props:
 
 ```text
-variant: default | borderless | child
+appearance: outline | ghost
+nested: boolean
 shadow: sm | md | none
 size: sm | md | lg
 value/defaultValue: string[]
@@ -58,14 +119,35 @@ collapsible, multiple, disabled, dir, onChange
 Use `Accordion.Item`, `Accordion.Header`, `Accordion.Content`, and optional
 `Accordion.Indicator`, `Accordion.Title`, `Accordion.Subtitle`.
 
+`Accordion.Header` renders an `h3` (level 3 by default). Set
+`aria-level` so it fits the page outline, e.g. `<Accordion.Header aria-level={2}>`
+directly under a page `h1`. Do not wrap it in another heading or `<header>`.
+
 ### Choose behavior from content model
 
 ```text
 single open section -> multiple=false
 FAQ-style independent sections -> multiple=true
 must keep one section open -> collapsible=false
-nested accordion -> variant=child
+inherited surrounding surface -> appearance="ghost" nested (avoid nested accordions)
 ```
+
+### Preserve content hierarchy
+
+Triggers use semibold text; panel copy uses regular-weight secondary text,
+smaller type at medium/large sizes, a divider, and additional inline inset.
+This hierarchy is built into all variants and themes, including `child`;
+do not add muted-text classes to every panel to obtain the default treatment.
+Small panels have vertical padding too. Long titles wrap without moving the
+indicator out of the trigger. Trigger padding belongs to Header's button,
+not Title, so custom header layouts retain the same hit area. The trigger is a
+native button with accordion-owned typography and keyboard focus styling;
+Button token overrides do not alter its heading weight or add press scaling.
+
+The `--color-accordion-panel-fg`, `--font-weight-accordion-trigger`,
+`--font-weight-accordion-panel`, `--text-accordion-panel-*`, and
+`--padding-accordion-panel-*` aliases provide scoped consumer overrides.
+Keep interactive controls inside Content, never inside the Header button.
 
 ### Let tokens own visual state
 
@@ -135,3 +217,12 @@ rg -n "<Accordion[^>]*className=.*(bg-|text-|border-|p-|px-|py-)" apps
 rg -n "<Accordion\\.Content[^>]*className=.*(bg-|text-|p-|px-|py-)" apps
 ```
 
+
+## Template headings and long titles
+
+AccordionTemplate accepts headingLevel (1–6, default 3) and applies it to each
+item heading, never the root. Match the surrounding page outline, for example
+headingLevel={2} below the page title. Long titles wrap without truncation and
+indicator wrappers keep a separate nonshrinking column.
+
+Honor explicit panel names and grouping roles so repeated accordions expose distinct landmarks.

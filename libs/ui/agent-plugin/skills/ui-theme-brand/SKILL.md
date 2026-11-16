@@ -5,15 +5,21 @@ description: >
   variables pipeline or fully in code ("vibe" a theme). Use for brand colors, data-theme
   switching, or theme overrides. Invoke explicitly with $ui-theme-brand.
 metadata:
-  plugin: techsio-ui-kit-ai
+  plugin: "techsio-ui-kit-ai"
   library: "@techsio/ui-kit"
+  resources: "../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
+  audience: "contributor"
+  requires: "tailwind-token-authoring app-token-overrides"
 ---
+
+> Portable scope: Source-authoring steps and monorepo commands require an explicit kit source checkout. In an installed consumer app, route to ../component-usage-ux/SKILL.md instead; do not run contributor commands or require repository artifacts. Resolve ../../references/ paths from this skill's folder, not the app working directory.
 
 # ui-kit brand theming
 
 Architecture: brands × color-scheme runtime switching via `better-themes`, `data-theme`
-attribute + `.light`/`.dark`/`.reverse` classes. Existing brands: base (default), `neo`,
-`cyber` — each with a light/dark pair. Full picture: `libs/ui/THEME-FLOW.md`.
+attribute + `.light`/`.dark`/`.reverse` classes. Registered brands: `business` (default),
+`akros`, `n1` — all light-only; the attribute-less base layer is the shared foundation,
+not a brand. Full picture: `libs/ui/THEME-FLOW.md`.
 
 ## Two ways to create a brand
 

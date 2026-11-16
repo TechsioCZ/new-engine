@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.0.0
+ * @componentVersion v1.4.0
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,20 +11,63 @@
  */
 import { connect, machine } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
+import {
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+  type Ref,
+  useId,
+} from "react"
 import { StatusText } from "../atoms/status-text"
+import {
+  commitChoiceClick,
+  getControlledChoiceInputProps,
+  isSilentChoiceReset,
+  mergeChoiceInputProps,
+  runSilentChoiceReset,
+  trackChoiceFormControl,
+  useChoiceInputRef,
+} from "../internal/choice-control"
+import { joinDescribedBy } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
+
+const checkboxChoiceMachine: typeof machine = {
+  ...machine,
+  implementations: {
+    ...machine.implementations,
+    effects: {
+      ...machine.implementations?.effects,
+      trackFormControlState({ scope, context, prop, action }) {
+        const root = scope.getById(scope.ids?.root ?? `checkbox:${scope.id}`)
+        return trackChoiceFormControl(
+          root,
+          () => {
+            if (prop("checked") === undefined) {
+              runSilentChoiceReset(context, () =>
+                context.set("checked", context.initial("checked"))
+              )
+            } else {
+              // Native reset bypasses React; the parent remains authoritative.
+              action(["syncInputElement"])
+            }
+          },
+          (disabled) => context.set("fieldsetDisabled", disabled)
+        )
+      },
+    },
+  },
+}
 
 const checkboxVariants = tv({
   slots: {
     root: "flex items-center gap-form-checkbox-gap",
     control: [
-      "relative shrink-0 cursor-pointer",
-      "size-checkbox",
-      "rounded-checkbox border border-checkbox-border-base",
+      "form-control-readonly form-control-disabled relative shrink-0 cursor-pointer",
+
+      "border-(length:--border-width-checkbox) rounded-checkbox-control border-checkbox-border-base",
       "bg-checkbox-bg-base",
       "flex items-center justify-center",
-      "transition-all duration-200 motion-reduce:transition-none",
+      "transition duration-200 motion-reduce:transition-none",
       "data-[state=checked]:bg-checkbox-bg-checked",
       "data-[state=checked]:border-checkbox-border-checked",
       "data-[state=indeterminate]:bg-checkbox-bg-indeterminate",
@@ -41,25 +84,41 @@ const checkboxVariants = tv({
     indicator: [
       "text-checkbox-fg-checked",
       "data-[state=checked]:token-icon-checkbox",
-      "data-[state=indeterminate]:size-checkbox-indeterminate-icon",
+      "data-[state=indeterminate]:w-checkbox-indeterminate-icon",
+      "data-[state=indeterminate]:h-checkbox-indeterminate-stroke",
       "data-[state=indeterminate]:rounded-full",
       "data-[state=indeterminate]:bg-checkbox-fg-indeterminate",
       "data-disabled:text-checkbox-fg-disabled",
+      "data-disabled:data-[state=indeterminate]:bg-checkbox-fg-disabled",
+      "data-readonly:not-data-disabled:text-checkbox-fg-readonly",
+      "data-readonly:not-data-disabled:data-[state=indeterminate]:bg-checkbox-fg-readonly",
     ],
     label: [
-      "cursor-pointer select-none",
+      "wrap-anywhere min-w-0 flex-1 cursor-pointer select-none data-readonly:not-data-disabled:cursor-default data-readonly:select-text",
       "text-label-fg",
       "data-disabled:cursor-not-allowed",
       "data-disabled:text-label-fg-disabled",
     ],
     hiddenInput: "sr-only",
-    textIndented: "data-[icon=false]:pl-form-checkbox-text-offset",
+    textIndented: "",
   },
   variants: {
     size: {
-      sm: { label: "text-label-sm" },
-      md: { label: "text-label-md" },
-      lg: { label: "text-label-lg" },
+      sm: {
+        label: "text-label-sm",
+        control: "size-form-checkbox-control-sm",
+        textIndented: "data-[icon=false]:ps-form-checkbox-description-sm",
+      },
+      md: {
+        label: "text-label-md",
+        control: "size-form-checkbox-control-md",
+        textIndented: "data-[icon=false]:ps-form-checkbox-description-md",
+      },
+      lg: {
+        label: "text-label-lg",
+        control: "size-form-checkbox-control-lg",
+        textIndented: "data-[icon=false]:ps-form-checkbox-description-lg",
+      },
     },
   },
   defaultVariants: {
@@ -68,6 +127,22 @@ const checkboxVariants = tv({
 })
 
 export type FormCheckboxProps = {
+  /** Ref targets the native, focusable input rather than the visual control. */
+  ref?: Ref<HTMLInputElement>
+  inputProps?: Omit<
+    ComponentPropsWithoutRef<"input">,
+    | "type"
+    | "checked"
+    | "defaultChecked"
+    | "disabled"
+    | "readOnly"
+    | "required"
+    | "name"
+    | "value"
+    | "id"
+  >
+  "aria-label"?: string
+  "aria-labelledby"?: string
   id?: string
   name?: string
   value?: string
@@ -80,6 +155,7 @@ export type FormCheckboxProps = {
   children?: ReactNode
   label?: ReactNode
   helpText?: ReactNode
+  "aria-describedby"?: string
   validateStatus?: "default" | "error" | "success" | "warning"
   showHelpTextIcon?: boolean
   size?: "sm" | "md" | "lg"
@@ -88,6 +164,10 @@ export type FormCheckboxProps = {
 }
 
 export function FormCheckbox({
+  ref,
+  inputProps: nativeInputProps = {},
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   id,
   name,
   value,
@@ -100,19 +180,35 @@ export function FormCheckbox({
   children,
   label,
   helpText,
+  "aria-describedby": ariaDescribedBy,
   validateStatus = "default",
   showHelpTextIcon = validateStatus !== "default",
-  size = "md",
+  size: sizeProp,
   className,
   onCheckedChange,
 }: FormCheckboxProps) {
+  const { size = "md" } = useUIDefaults(
+    "Checkbox",
+    { size: sizeProp },
+    checkboxVariants
+  )
   const generatedId = useId()
   const uniqueId = id || generatedId
+  const helpTextId = useId()
+  const describedBy = joinDescribedBy(
+    ariaDescribedBy,
+    nativeInputProps["aria-describedby"],
+    helpText ? helpTextId : undefined
+  )
+  const invalid = validateStatus === "error"
+  const showIcon = validateStatus !== "default" || showHelpTextIcon
 
-  const service = useMachine(machine, {
+  const service = useMachine(checkboxChoiceMachine, {
     id: uniqueId,
+    ids: id ? { hiddenInput: id } : undefined,
     name,
     value,
+    form: nativeInputProps.form,
     checked: indeterminate ? "indeterminate" : checked,
     defaultChecked,
     disabled,
@@ -120,12 +216,25 @@ export function FormCheckbox({
     readOnly,
     required,
     onCheckedChange: (details) => {
-      onCheckedChange?.(details.checked === true)
+      if (!(readOnly || disabled || isSilentChoiceReset(service.context))) {
+        onCheckedChange?.(details.checked === true)
+      }
     },
   })
 
   const api = connect(service, normalizeProps)
+  const inputProps = getControlledChoiceInputProps(
+    mergeChoiceInputProps(
+      nativeInputProps,
+      commitChoiceClick(api.getHiddenInputProps(), readOnly, (next) =>
+        service.context.set("checked", next)
+      )
+    ),
+    api.checked,
+    api.indeterminate
+  )
 
+  const inputRef = useChoiceInputRef(ref, api.indeterminate)
   const styles = checkboxVariants({ size })
 
   const labelContent = label ?? children
@@ -137,8 +246,26 @@ export function FormCheckbox({
           <span className={styles.indicator()} {...api.getIndicatorProps()} />
         </div>
         <input
-          className={styles.hiddenInput()}
-          {...api.getHiddenInputProps()}
+          {...inputProps}
+          aria-checked={api.indeterminate ? "mixed" : api.checked}
+          aria-describedby={describedBy}
+          aria-errormessage={invalid && helpText ? helpTextId : undefined}
+          aria-invalid={invalid || undefined}
+          aria-label={nativeInputProps["aria-label"] ?? ariaLabel}
+          aria-labelledby={
+            nativeInputProps["aria-labelledby"] ??
+            ariaLabelledBy ??
+            ((nativeInputProps["aria-label"] ?? ariaLabel) || !labelContent
+              ? undefined
+              : inputProps["aria-labelledby"])
+          }
+          aria-readonly={(readOnly && !disabled) || undefined}
+          className={styles.hiddenInput({
+            className: nativeInputProps.className,
+          })}
+          readOnly={readOnly}
+          ref={inputRef}
+          type="checkbox"
         />
         {labelContent && (
           <span className={styles.label()} {...api.getLabelProps()}>
@@ -148,9 +275,10 @@ export function FormCheckbox({
         )}
       </label>
       {helpText && (
-        <div className={styles.textIndented()} data-icon={showHelpTextIcon}>
+        <div className={styles.textIndented()} data-icon={showIcon}>
           <StatusText
-            showIcon={showHelpTextIcon}
+            id={helpTextId}
+            showIcon={showIcon}
             size={size}
             status={validateStatus}
           >

@@ -1,14 +1,16 @@
+Naming authority: [AGENTS.md](./AGENTS.md#naming-rules). Reference aliases may omit color roles; derived component colors must include `bg`, `fg` or `border`.
+
 ## 🚀 QUICK REFERENCE
 
 ### Essential Rules
-1. **All colors need suffixes**: `-bg`, `-fg`, `-border` (never just `--color-button`)
+1. **Derived component colors need roles**: `-bg`, `-fg`, `-border`; reference aliases such as `--color-button-primary` are valid
 2. **Two-layer strategy**: Reference layer → Derived tokens
 3. **No abbreviations**: `button` not `btn`, `product-card` not `pc`
 4. **Follow the pattern**: `--[prefix]-[component]-[part?]-[property]-[state?]`
 
 ### Validation
 ```bash
-pnpm validate:tokens        # Check token naming compliance
+pnpm validate:tokens        # Check active token definitions, aliases and utility usage
 pnpm check:unused-tokens    # Find unused tokens
 ```
 
@@ -21,11 +23,11 @@ pnpm check:unused-tokens    # Find unused tokens
 
 @theme static {
   /* Reference layer first */
-  --color-button-primary: var(--color-primary);
+  --color-button-primary: var(--color-bg-primary-base);
   --color-button-secondary: var(--color-secondary);
   
   /* Then derived tokens */
-  --color-button-bg-primary: var(--color-button-primary);
+  --color-button-bg-primary-base: var(--color-button-primary);
   --color-button-fg-primary: var(--color-fg-reverse);
   
   /* Spacing - separate single and composite */
@@ -70,12 +72,21 @@ Required Prefixes
 | --color-   | ALL colors                                     | --color-button-bg-primary |
 | --spacing- | Spacing including width/height needing max/min | --spacing-button-padding  |
 | --text-    | Font sizes only                                | --text-button-lg          |
-| --border-  | Border properties                              | --border-button-width     |
+| --border-width- | Border widths (legacy border shapes are compatibility-only) | --border-width-button |
 | --radius-  | Border radius                                  | --radius-button-sm        |
 | --shadow-  | Box shadows                                    | --shadow-button-focus     |
 | --opacity- | Transparency values                            | --opacity-button-disabled |
 
-Required Suffixes for Colors
+Pixel-named dimension primitives preserve exact `px / 16` rem precision: for
+example, `--dimension-2: 0.125rem` and `--dimension-70: 4.375rem`. Do not round
+them to two decimal places. The sole legacy naming exception is
+`--dimension-700`, retained as an alias of `--dimension-70` (70px at the default
+16px root), **not** a 700px primitive. New consumers use `--dimension-70`; do
+not repurpose or remove the legacy name without a consumer migration. Exporter
+validation must allowlist that compatibility alias explicitly and reject other
+pixel-name/value mismatches.
+
+Required Role Segments for Derived Component Colors (reference aliases may omit them)
 
 | SUFFIX    | USAGE                  | FORBIDDEN                 |
 |-----------|------------------------|---------------------------|
@@ -97,7 +108,7 @@ Component Naming Rules
 /* ❌ FORBIDDEN */
 --color-btn-primary           /* Use 'button' not 'btn' */
 --color-pc-bg                 /* Use 'product-card' not 'pc' */
---color-button                /* Missing -bg suffix */
+--color-button                /* Missing role if used as a derived token; permitted as a reference alias */
 --color-button-text           /* Use -fg not -text */
 
 ---
@@ -178,7 +189,7 @@ Derived Colors
 
 /* === DERIVED COLORS === */
 /* Background colors - using reference layer */
---color-button-bg-primary: var(--color-button-primary);
+--color-button-bg-primary-base: var(--color-button-primary);
 --color-button-bg-secondary: var(--color-button-secondary);
 --color-button-bg-danger: var(--color-button-danger);
 
@@ -302,7 +313,7 @@ State-Based Styling
 
 Mandatory Checks
 
-1. All colors MUST have explicit suffix (-bg, -fg, -border)
+1. Derived component colors MUST include an explicit role (-bg, -fg, -border); reference aliases may omit it
 2. No abbreviations except universally known (no btn, pc, etc.)
 3. Reference layer before derived colors
 4. Consistent section ordering
@@ -311,7 +322,7 @@ Mandatory Checks
 Forbidden Patterns
 
 /* ❌ FORBIDDEN */
---color-button:                          /* Missing suffix */
+--color-button:                          /* Invalid only when used as a derived color */
 --color-btn-primary:                     /* Abbreviation */
 --color-button-text:                     /* Use -fg not -text */
 --color-button-primary: #3b82f6;         /* Hardcoded value */
@@ -319,8 +330,8 @@ Forbidden Patterns
 --spacing-component: 1rem;               /* Use semantic token */
 
 /* ✅ CORRECT */
---color-button-bg-primary:               /* Explicit suffix */
---color-button-primary: var(--color-primary); /* Reference layer */
+--color-button-bg-primary-base:               /* Explicit suffix */
+--color-button-primary: var(--color-bg-primary-base); /* Reference layer */
 --color-button-fg-primary:               /* Use -fg for text */
 --spacing-button-padding: var(--spacing-200); /* Semantic reference */
 
@@ -352,3 +363,22 @@ Required Section Order
 9. /* === BORDERS & RADIUS === */
 10. /* === SHADOWS === */
 11. /* === FOCUS RINGS === */
+## Runtime validation and customization
+
+Run validators from any working directory; they resolve the package from
+their script URL. Definition validation scans primitive, shared, component,
+merged Figma and brand CSS and rejects undefined `var()` references.
+Optional fallbacks and documented Zag/Floating UI properties are allowed.
+Regenerate nested scheme aliases with
+`node scripts/validate-token-scopes.js --write` after alias changes.
+
+`check-unused-tokens.js` writes the report to stdout by default. An explicit
+`--output=/absolute/path/unused-tokens-report.md` opts into a file. Never
+write reports into the package as a side effect of a read-only check.
+
+Current primary surfaces use `--color-bg-primary-base`, `-hover`, `-active`;
+the legacy `--color-primary` is not the Figma-backed Button source. Keep
+component exceptions on the exact shipped token (for example
+`--color-button-bg-primary-base`). Font weights use `--font-weight-*`,
+font families use `--font-*`. Duration values must carry real CSS time units;
+ordinal Figma steps require the documented runtime bridge, not `1ms/2ms/3ms`.

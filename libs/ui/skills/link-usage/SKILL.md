@@ -1,16 +1,20 @@
 ---
-component_version: "1.0.0"
 name: link-usage
 description: >
   Use after component-usage-ux when an app needs the low-level
   @techsio/ui-kit Link atom for inline or unstyled navigation, including
   external links and framework adapter usage.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+metadata:
+  component_version: "1.3.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - framework-consumer-integration
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/link.tsx"
   - "libs/ui/src/atoms/link-button.tsx"
@@ -21,6 +25,54 @@ sources:
 
 Use Link for inline navigation or when a molecule needs a framework-agnostic
 link. Use LinkButton when the link should look like a button.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `Link`.
+
+**Use it when**
+
+- Navigation inside text, lists, tables (record names), breadcrumbs and footers.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Navigation styled as a button | LinkButton |
+| An action | Button |
+
+**Do**
+
+- Make link text describe the destination; in tables, link the record name, not a separate `View` column.
+- Mark external links and links that download files.
+- Keep underline or another non-colour cue for links inside text.
+
+**Don't**
+
+- Use links for actions (`Delete`).
+- Make whole cards clickable while also nesting other links inside.
+
+**Copy and states**
+
+- Destination-first, sentence case; no `here`.
+
+**Behaviour (from the UX spec)**
+
+- A Link only navigates; it never changes data or silently drops an unsaved draft.
+- Link has no disabled or visited state in code. For an unavailable destination render text (or a disabled `LinkButton`); visited styling, if an app adds it, never means done or approved.
+- Only the page that actually loads is current; opening a panel or a navigation branch is not navigation.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `state=disabled` | no prop; plain text or `LinkButton disabled` |
+| `state=visited` | no style in the kit |
+| `state=hover` / `active` | not props (browser states) |
+| — | `size="sm" \| "md" \| "lg" \| "current"`, `external` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/Link → UX guidelines*.
 
 ## Setup
 
@@ -66,7 +118,7 @@ Default to the framework link adapter in Next apps.
 ### Escalate styled CTA to LinkButton
 
 ```tsx
-<LinkButton as={NextLink} href="/checkout" variant="primary">
+<LinkButton as={NextLink} href="/checkout" severity="primary">
   Checkout
 </LinkButton>
 ```
@@ -104,7 +156,7 @@ Wrong:
 Correct:
 
 ```tsx
-<LinkButton href="/checkout" variant="primary">Checkout</LinkButton>
+<LinkButton href="/checkout" severity="primary">Checkout</LinkButton>
 ```
 
 Source: libs/ui/src/atoms/link-button.tsx
@@ -147,3 +199,27 @@ rg -P -n "<Link[^>]*href=\"https?://(?![^>]*external)" apps
 rg -n "function .*Link|const .*Link" apps
 rg -n "<LinkButton|<Link\\b" apps
 ```
+
+## Navigation appearance and sizes
+
+Links are underlined in every theme, so navigation never relies on colour alone.
+They use a readable foreground and visible keyboard focus. By default, focus
+redraws the link's own underline as one continuous rule — a single solid
+border-width step in the shared ring colour, dropped clear of descenders and
+painted without skip-ink gaps — instead of painting a highlight box or stacking
+a second rail under the resting hairline, so focus paint stays inside the
+link's own text box: wrapping, glyph positions and the punctuation beside the
+link are untouched. High-contrast systems get the system highlight colour and
+an inset system ring instead. Caller focus utilities, shadows and the
+Link-owned focus tokens (`--color-link-focus-decoration`,
+`--border-width-link-focus`, `--spacing-link-focus-underline-offset`) remain
+usable. Canonical text sizes are sm/md/lg, default md; `size="current"` inherits
+paragraph typography for inline composition. Link is not a boxed control and
+does not set field height. Use LinkButton for prominent navigation, not manual
+button classes on Link.
+
+## React 19 refs
+
+Native Link accepts anchor object/callback refs. When `as` selects another
+intrinsic element or a custom adapter, its own ref contract is preserved;
+adapters without ref support do not gain a fabricated ref prop.

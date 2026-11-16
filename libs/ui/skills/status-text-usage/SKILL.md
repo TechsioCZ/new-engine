@@ -1,16 +1,20 @@
 ---
-component_version: "1.0.0"
 name: status-text-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit StatusText
   for inline validation, success, warning, or default status messages with
-  optional token icons and size/alignment props.
-type: core
-library: "@techsio/ui-kit"
-library_version: "0.3.2"
+  default-on state icons and size/alignment props.
+metadata:
+  component_version: "1.2.0"
+  type: "core"
+  library: "@techsio/ui-kit"
+  library_version: "0.3.2"
 requires:
   - component-usage-ux
   - app-token-overrides
+  - ux-guidelines
+resources:
+  - "references/ux.md"
 sources:
   - "libs/ui/src/atoms/status-text.tsx"
   - "libs/ui/src/tokens/components/atoms/_status-text.css"
@@ -21,7 +25,59 @@ sources:
 # @techsio/ui-kit StatusText Usage
 
 Use StatusText for short inline messages that describe a nearby field, section,
-or operation result.
+or operation result. Default error, success and warning icons use distinct solid
+circle, check and triangle silhouettes; keep `icon` for deliberate caller overrides.
+Business neutral hints share the validation text column without adding an icon or
+live role. Other brands retain their alignment; caller padding classes and explicit
+icons override the neutral prefix.
+
+## UX/UI guidelines
+
+House rules come from the `ux-guidelines` skill (writing, formatting, states,
+where actions and feedback live). This section applies them to `StatusText`.
+
+**Use it when**
+
+- Short inline messages tied to a nearby field, section or operation: validation hints, section-level warnings, `Last saved 2 minutes ago`.
+
+**Use something else when**
+
+| Need | Use instead |
+| --- | --- |
+| Transient confirmation of an action | Toast |
+| List of form errors after submit | FormErrorSummary |
+| Short state label | Badge |
+| Blocking decision | Dialog |
+
+**Do**
+
+- Place it directly under/next to what it describes.
+- Use `status` by meaning: `error` blocks, `warning` informs of a consequence, `success` confirms, `default` neutral.
+- Keep the icon — colour must not be the only signal.
+
+**Don't**
+
+- Stack many status texts; summarise.
+- Use it for long instructions — use help text or docs.
+
+**Copy and states**
+
+- One sentence: what + how to fix for errors (ux-guidelines/ux-writing#messages).
+
+**Behaviour (from the UX spec)**
+
+- A service failure is never phrased as a user input error (`Couldn't check the SKU. Try again.`, not `Invalid SKU`).
+- `status` doesn't validate: the app decides when and links the message to its field (`aria-describedby`, `aria-errormessage`). The kit only sets the live role.
+- `success` confirms the checked value, not a saved form or transaction. Product availability is `AvailabilityStatus`, not StatusText.
+
+**Figma → code**
+
+| Figma | Code |
+| --- | --- |
+| `status=default\|error\|success\|warning`, `size=sm\|md\|lg` | same prop names and values |
+| — | `align="start" \| "center"`, `showIcon`, `icon` |
+
+Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Atoms/StatusText → UX guidelines*.
 
 ## Setup
 
@@ -38,8 +94,8 @@ Supported props:
 ```text
 status: error | success | warning | default
 size: sm | md | lg
-align: start | center
-showIcon: boolean
+align: start | center (default start)
+showIcon: boolean (default true; do not disable for field validation)
 icon: IconType override
 ```
 
@@ -56,7 +112,7 @@ default -> neutral help text
 
 Do not choose status only from color preference.
 
-### Use showIcon for scannable state
+### State icons are automatic
 
 ```tsx
 <StatusText status="warning" showIcon>
@@ -64,7 +120,10 @@ Do not choose status only from color preference.
 </StatusText>
 ```
 
-Default icons are mapped from status in `status-text.tsx`.
+Default icons are mapped from status in `status-text.tsx`. Error, warning and
+success show them without a showIcon prop. Neutral/default helper text has no
+default icon; pass an explicit icon for informational guidance when needed.
+Icons are aria-hidden. Keep the state meaning in the sentence as well.
 
 ### Use align start for long text
 
@@ -135,7 +194,7 @@ Source: libs/ui/src/tokens/components/atoms/_status-text.css
 Wrong:
 
 ```tsx
-<Badge variant="danger">Email is required.</Badge>
+<Badge severity="danger">Email is required.</Badge>
 ```
 
 Correct:
@@ -153,3 +212,29 @@ rg -n "<StatusText[^>]*className=.*(text-|gap-|mt-|mb-)" apps
 rg -n "<Badge[^>]*>[^<]{30,}</Badge>" apps
 ```
 
+
+## Field association and wrapping contract
+
+Follow `libs/ui/docs/component-contracts.md`. Put a unique stable id on each
+message and merge it into the focusable field's aria-describedby. For errors
+also set aria-invalid and aria-errormessage; remove error references on clear.
+Compound controls use useDescribedBy/useRegisterDescription/joinDescribedBy.
+StatusText cannot infer an unrelated field's ID.
+
+Default align=start uses a first-line-height frame; the icon inherits the message
+font size and all wrapped lines remain in the text column. No manual offsets or
+extra icon wrappers are needed. Match sm/md/lg to the associated control.
+
+Errors default to role=alert; warning/success use role=status; neutral help has no
+live role. Validate on blur/submit and avoid duplicate enclosing live regions.
+Override role/ARIA if a parent already owns announcements.
+
+## Secondary feedback scale
+
+Feedback uses a deliberately quieter 12/14/16px sm/md/lg scale. Match the
+field size prop rather than choosing a smaller helper size to compensate
+for typography. Icons inherit this message scale and stay on its first line.
+
+## Typography overrides
+
+`--line-height-status-text-sm/md/lg` controls the corresponding message line height through the registered text utility. The default is 1.5; a length override is supported. The decorative icon frame stays aligned to the first line.

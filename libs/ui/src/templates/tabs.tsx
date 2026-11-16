@@ -2,7 +2,7 @@
  * Tabs — @techsio/ui-kit template.
  *
  * @component Tabs
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -13,14 +13,15 @@ import type * as React from "react"
 import type { Ref } from "react"
 import { Tabs, type TabsProps } from "../molecules/tabs"
 
-export interface TabItem {
+export type TabItem = {
   value: string
   label: string
   content: React.ReactNode
   disabled?: boolean
 }
 
-export interface TabsTemplateProps extends Omit<TabsProps, "children" | "ref"> {
+export type TabsTemplateProps = Omit<TabsProps, "children" | "ref"> & {
+  tablistProps?: React.ComponentPropsWithoutRef<typeof Tabs.List>
   items: TabItem[]
   showIndicator?: boolean
   ref?: Ref<HTMLDivElement>
@@ -28,9 +29,8 @@ export interface TabsTemplateProps extends Omit<TabsProps, "children" | "ref"> {
 
 export function TabsTemplate({
   items,
+  tablistProps,
   showIndicator = false,
-  variant = "default",
-  size = "md",
   fitted = false,
   justify = "start",
   orientation = "horizontal",
@@ -44,18 +44,16 @@ export function TabsTemplate({
   return (
     <Tabs
       className={className}
-      defaultValue={defaultValue}
+      defaultValue={defaultValue ?? items.find((item) => !item.disabled)?.value}
       fitted={fitted}
       justify={justify}
       onValueChange={onValueChange}
       orientation={orientation}
       ref={ref}
-      size={size}
       value={value}
-      variant={variant}
       {...tabsProps}
     >
-      <Tabs.List>
+      <Tabs.List {...tablistProps}>
         {items.map((item) => (
           <Tabs.Trigger
             disabled={item.disabled}

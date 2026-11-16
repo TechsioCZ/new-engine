@@ -1,5 +1,5 @@
 // url=https://www.figma.com/design/gi5GUSWwAeXknaKEeLqK5w/New-Design-System?node-id=2774-14143
-// source=https://github.com/NMIT-WR/new-engine/blob/master/libs/ui/src/atoms/numeric-input.tsx
+// source=https://github.com/TechsioCZ/new-engine/blob/master/libs/ui/src/atoms/numeric-input.tsx
 // component=NumericInput
 
 import figma from "figma"
@@ -35,13 +35,13 @@ export default {
   ],
   example: figma.code`<NumericInput defaultValue={42}${figma.helpers.react.renderProp(
     "disabled",
-    disabled,
+    disabled
   )} id="quantity"${figma.helpers.react.renderProp(
     "invalid",
-    invalid,
+    invalid
   )}${figma.helpers.react.renderProp(
     "readOnly",
-    readOnly,
+    readOnly
   )}${figma.helpers.react.renderProp("size", size)}>
         <NumericInput.Control>
           <NumericInput.Input />
