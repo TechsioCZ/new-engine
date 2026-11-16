@@ -22,6 +22,17 @@ async function openStory(page: Page, storyId: string) {
     .toBe("finished")
 }
 
+// Storybook's render phase says nothing about the drawer. The trigger can be
+// painted while Zag's trigger props - its click handler among them - are not on
+// that node yet, and the click is then swallowed with no drawer to show for it.
+// Open on the machine's own trigger part and wait for the state the drawer
+// publishes, so a lost click fails as a lost click and not as a missing dialog.
+async function openDrawer(trigger: Locator, dialog: Locator) {
+  await expect(trigger).toHaveAttribute("data-part", "trigger")
+  await trigger.click()
+  await expect(dialog).toHaveAttribute("data-state", "open")
+}
+
 // A fast machine reaches Escape before the drawer takes focus and starts
 // listening for it; press it only once focus is inside.
 async function pressEscapeOnceFocused(page: Page, dialog: Locator) {
@@ -88,18 +99,11 @@ test.describe("Drawer behavior", () => {
     await openStory(page, "molecules-drawer--playground")
 
     const trigger = page.getByRole("button", { name: "Open drawer" })
-    await trigger.click()
     const dialog = page.getByRole("dialog", { name: "Playground drawer" })
+    await openDrawer(trigger, dialog)
     await expect(dialog).toBeVisible()
-    // Mobile WebKit can paint the dialog before the drawer takes focus and
-    // starts listening for Escape; press it only once focus is inside.
-    await expect
-      .poll(() =>
-        dialog.evaluate((node) => node.contains(document.activeElement))
-      )
-      .toBe(true)
 
-    await page.keyboard.press("Escape")
+    await pressEscapeOnceFocused(page, dialog)
     await expect(dialog).toHaveCount(0)
     await expect(trigger).toBeFocused()
   })
