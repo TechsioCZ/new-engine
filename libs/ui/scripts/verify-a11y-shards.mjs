@@ -66,7 +66,7 @@ function readArg(argv, name) {
   }
   const at = argv.indexOf(name)
   if (at === -1) {
-    return undefined
+    return
   }
   const value = argv[at + 1]
   if (value === undefined || value.startsWith("--")) {
@@ -193,7 +193,8 @@ async function changedSuites(indexFile, changedFiles) {
   const selection = affectedStoriesFromDisk({
     repoRoot: path.resolve(import.meta.dirname, "../../.."),
     changedFiles: readPathList(changedFiles),
-    storybookDir: path.dirname(indexFile),
+    // The plan reads a per-run copy (index-full.json), not <storybook>/index.json.
+    indexPath: indexFile,
   })
   const reason = `${selection.mode}: ${selection.reason}`
   if (selection.mode === "all") {
@@ -352,13 +353,11 @@ async function planShard(argv) {
  */
 function parseJsonLine(line) {
   if (!line.startsWith("{")) {
-    return undefined
+    return
   }
   try {
     return JSON.parse(line)
-  } catch {
-    return undefined
-  }
+  } catch {}
 }
 
 /** Under --json Jest writes its result JSON as the last line of stdout and
@@ -658,7 +657,11 @@ function assertShardsRanTheirPlan(expected, byIndex) {
  * @param {{dir: string}[]} shards
  * @param {string[]} [requiredIds]
  */
-function assertCalibrationCoverage(expected, shards, requiredIds = calibrationIds) {
+function assertCalibrationCoverage(
+  expected,
+  shards,
+  requiredIds = calibrationIds
+) {
   const passes = new Map()
   for (const { dir } of shards) {
     for (const entry of calibrationEntries(dir)) {
