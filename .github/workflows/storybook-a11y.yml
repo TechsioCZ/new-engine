@@ -34,6 +34,7 @@ on:
         default: 4
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -62,6 +63,11 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ui-a11y-chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
+      - name: Wait for the caller's shared build
+        if: inputs.storybook_artifact != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node libs/ui/scripts/wait-ci-artifact.mjs "${{ inputs.storybook_artifact }}" main
       - name: Download the shared Storybook build
         if: inputs.storybook_artifact != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4

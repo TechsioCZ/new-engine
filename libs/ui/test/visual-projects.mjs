@@ -1,3 +1,4 @@
+import costs from "./visual-shard-costs.json" with { type: "json" }
 import { THEMES } from "../src/theme/theme-config.ts"
 
 /** @typedef {"business" | "akros" | "n1"} VisualBrand */
@@ -44,19 +45,32 @@ export const DEVICE_PROJECTS = ["desktop", "mobile"]
 export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
 
 /**
- * Give every screenshot shard the same share of every brand/browser project.
- * Playwright's contiguous --shard groups cheap Chromium tests on early runners
- * and expensive WebKit tests on late ones. Splitting the sorted story list
- * inside each project keeps all project identities while balancing that cost.
+ * Assign expensive stories first instead of balancing only test counts. Costs
+ * come from full CI captures across all four projects. Unmeasured stories have
+ * the median cost. Reserve the last bundle's share for its mobile behavior run.
  * @template T
  * @param {T[]} stories
  * @param {{index: number, total: number} | undefined} shard
+ * @param {{storyCount: number, mobileCost: number, stories: Record<string, number>}} [weights]
  * @returns {T[]}
  */
-export function shardVisualStories(stories, shard) {
-  return shard
-    ? stories.filter((_, index) => index % shard.total === shard.index - 1)
-    : stories
+export function shardVisualStories(stories, shard, weights = costs) {
+  if (!shard) return stories
+  const loads = Array(shard.total).fill(0)
+  loads[shard.total - 1] = weights.mobileCost * stories.length / weights.storyCount
+  const assigned = new Map()
+  const ordered = stories.map((story, index) => {
+    const id = typeof story === "string" ? story
+      : typeof story === "object" && story !== null && "id" in story && typeof story.id === "string"
+        ? story.id : ""
+    return { index, cost: weights.stories[id] ?? 1 }
+  }).sort((a, b) => b.cost - a.cost || a.index - b.index)
+  for (const { index, cost } of ordered) {
+    const bucket = loads.indexOf(Math.min(...loads))
+    assigned.set(index, bucket)
+    loads[bucket] += cost
+  }
+  return stories.filter((_, index) => assigned.get(index) === shard.index - 1)
 }
 
 /** Specs the `mobile` project runs. Every other behavior spec asserts DOM,

@@ -61,6 +61,52 @@ jobs:
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
 
+      # Start the shared Storybook build as soon as the workspace is installed.
+      # Browser runners prepare concurrently and consume it before this job's
+      # later lint/typecheck/unit checks finish. The quality gate still needs both.
+      - name: Wait for the UI scope plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node libs/ui/scripts/wait-ci-artifact.mjs "ui-ci-expected-${{ github.sha }}" "ui-quality / plan"
+      - name: Read the UI scope plan
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ui-ci-expected-${{ github.sha }}
+          path: ${{ runner.temp }}/ui-build-plan
+      - id: ui-build
+        run: echo "scope=$(jq -er .scope "$RUNNER_TEMP/ui-build-plan/expected.json")" >> "$GITHUB_OUTPUT"
+      - if: steps.ui-build.outputs.scope != 'none'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+      - name: Hash the Storybook inputs
+        if: steps.ui-build.outputs.scope != 'none'
+        id: storybook
+        run: echo "hash=$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)" >> "$GITHUB_OUTPUT"
+      - name: Restore Storybook for unchanged inputs
+        if: steps.ui-build.outputs.scope != 'none'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: libs/ui/storybook-static
+          key: ui-storybook-node26-${{ steps.storybook.outputs.hash }}
+      - name: Build Storybook once
+        if: steps.ui-build.outputs.scope != 'none'
+        run: node libs/ui/scripts/visual-storybook-build.mjs --ensure
+      - name: Share the immutable Storybook build
+        if: steps.ui-build.outputs.scope != 'none'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-storybook-${{ github.sha }}
+          path: libs/ui/storybook-static
+          include-hidden-files: true
+          if-no-files-found: error
+      # Preserve the existing Node-24 workspace checks after building Storybook
+      # on the same Node-26 line used by the screenshot and accessibility runners.
+      - if: steps.ui-build.outputs.scope != 'none'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World
       - name: Lint Nx module boundaries

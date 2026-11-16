@@ -17,6 +17,7 @@ on:
         default: ""
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -134,44 +135,6 @@ jobs:
           path: ${{ runner.temp }}/expected.json
           if-no-files-found: error
 
-      - if: steps.scope.outputs.scope != 'none'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.sha }}
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /*
-            !/libs/ui/test/visual.spec.ts-snapshots/
-          persist-credentials: false
-      - if: steps.scope.outputs.scope != 'none'
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - if: steps.scope.outputs.scope != 'none'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.11.1
-      - if: steps.scope.outputs.scope != 'none'
-        run: pnpm install --frozen-lockfile --prefer-offline --filter='@techsio/ui-kit...'
-      - name: Hash the Storybook inputs
-        if: steps.scope.outputs.scope != 'none'
-        id: storybook
-        run: echo "hash=$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)" >> "$GITHUB_OUTPUT"
-      - name: Restore Storybook for unchanged inputs
-        if: steps.scope.outputs.scope != 'none'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: libs/ui/storybook-static
-          key: ui-storybook-node26-${{ steps.storybook.outputs.hash }}
-      - name: Build Storybook once
-        if: steps.scope.outputs.scope != 'none'
-        run: node libs/ui/scripts/visual-storybook-build.mjs --ensure
-      - name: Share the immutable Storybook build
-        if: steps.scope.outputs.scope != 'none'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ui-storybook-${{ inputs.sha }}
-          path: libs/ui/storybook-static
-          include-hidden-files: true
-          if-no-files-found: error
 
   accessibility:
     needs: plan
@@ -226,6 +189,10 @@ jobs:
         with:
           name: ui-changed-files-${{ inputs.sha }}
           path: ${{ runner.temp }}/ui-changed-files
+      - name: Wait for the shared build, not the producer's later tests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node libs/ui/scripts/wait-ci-artifact.mjs "ui-storybook-${{ inputs.sha }}" main
       - name: Download the shared Storybook build
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
