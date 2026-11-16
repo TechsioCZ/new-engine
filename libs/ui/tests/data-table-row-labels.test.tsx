@@ -47,18 +47,21 @@ describe("grouped header semantics", () => {
         { accessorKey: "id", header: "Identifier" },
       ],
     })
-    const headers = [...html.matchAll(/<th\b([^>]*)>([\s\S]*?)<\/th>/g)]
-    const placeholders = headers.filter(([, attributes]) =>
+    const headers = Array.from(
+      html.matchAll(/<th\b([^>]*)>([\s\S]*?)<\/th>/g),
+      ([, attributes = "", content = ""]) => ({ attributes, content })
+    )
+    const placeholders = headers.filter(({ attributes }) =>
       attributes.includes('role="presentation"')
     )
     expect(placeholders).toHaveLength(1)
-    expect(placeholders[0]?.[1]).not.toContain("scope=")
-    const named = headers.filter(([, attributes]) =>
+    expect(placeholders[0]?.attributes).not.toContain("scope=")
+    const named = headers.filter(({ attributes }) =>
       !attributes.includes('role="presentation"')
     )
     expect(named).toHaveLength(3)
     for (const name of ["Identity", "Name", "Identifier"]) {
-      expect(named.some(([, , content]) => content.includes(name))).toBe(true)
+      expect(named.some(({ content }) => content.includes(name))).toBe(true)
     }
   })
 })
