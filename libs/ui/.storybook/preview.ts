@@ -1,10 +1,20 @@
 import type { Decorator, Preview } from "@storybook/react"
 import { createElement, useEffect } from "react"
+import { configure } from "storybook/test"
 import { brandKeys, DEFAULT_BRAND, getBrand } from "../src/theme/theme-config"
 import "../src/tokens/index.css"
 import { curateControls } from "./controls"
 import { DocsTheme } from "./docs-theme"
 import { applyPreviewTheme } from "./theme.mjs"
+
+/*
+ * Testing-library's async utilities (findByRole, waitFor) inside a play
+ * function default to 1 s, while the budgets around them are 60 s (jest) and
+ * 120 s / 30 s (Playwright). One second is a wrong budget on a runner that is
+ * also serving Storybook, not a signal: these utilities poll, so a query that
+ * is ready returns immediately and only a genuinely stuck story spends more.
+ */
+configure({ asyncUtilTimeout: 10_000 })
 
 const brandItems = brandKeys().map((key) => ({
   value: key,
