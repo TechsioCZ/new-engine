@@ -38,7 +38,6 @@ case "${SCOPE}" in
     ;;
 esac
 SHARDS_SCRIPT="${ROOT_DIR}/scripts/verify-a11y-shards.mjs"
-INDEX_JSON="${ROOT_DIR}/storybook-static/index.json"
 
 mkdir -p "${REPORT_ROOT}"
 # The reporter appends to NDJSON, so each invocation needs fresh output.
@@ -52,6 +51,24 @@ if [ "${A11Y_STORYBOOK_REBUILD:-1}" != "0" ]; then
   node "${ROOT_DIR}/scripts/visual-storybook-build.mjs" --ensure
 fi
 
+# The scanner narrows its served index. Give it a private tree, so the
+# producer's cached/shared build stays immutable even when a scan fails.
+SERVER_ROOT="$(mktemp -d)"
+SERVER_PID=""
+cleanup() {
+  if [ -n "${SERVER_PID}" ]; then
+    kill "${SERVER_PID}" >/dev/null 2>&1 || true
+    wait "${SERVER_PID}" >/dev/null 2>&1 || true
+  fi
+  rm -rf "${SERVER_ROOT}"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+cp -a "${ROOT_DIR}/storybook-static/." "${SERVER_ROOT}/"
+INDEX_JSON="${SERVER_ROOT}/index.json"
+
 # Every shard plans and records against the build's whole index; only the copy
 # the runner is served gets narrowed to the shard, so a stale narrowing from a
 # previous invocation can never be mistaken for the build's real contents.
@@ -63,17 +80,9 @@ fi
 cp "${INDEX_JSON}" "${FULL_INDEX}"
 
 SERVER_LOG="${RUN_REPORT_ROOT}/server.log"
-VISUAL_STORYBOOK_PORT="${PORT}" VISUAL_STORYBOOK_STATIC_DIR="${ROOT_DIR}/storybook-static" \
+VISUAL_STORYBOOK_PORT="${PORT}" VISUAL_STORYBOOK_STATIC_DIR="${SERVER_ROOT}" \
   node test/visual-static-server.mjs > "${SERVER_LOG}" 2>&1 &
 SERVER_PID=$!
-cleanup() {
-  kill "${SERVER_PID}" >/dev/null 2>&1 || true
-  wait "${SERVER_PID}" >/dev/null 2>&1 || true
-}
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-trap 'exit 129' HUP
 
 # A failed bind must not accidentally scan another process on this port.
 if ! curl -fs -o /dev/null --retry 30 --retry-connrefused --retry-delay 1 \

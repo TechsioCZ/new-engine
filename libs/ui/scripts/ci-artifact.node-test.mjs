@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { readyArtifact } from "./wait-ci-artifact.mjs"
+import { readyArtifact, rateLimitDelay } from "./ci-artifact.mjs"
 
 const dependency = { name: "storybook-current-sha", producer: "main" }
 
@@ -31,4 +31,21 @@ test("a finished producer without the declared build fails its consumers", () =>
       jobs: [{ name: "main", status: "completed", conclusion }],
     }), /without artifact storybook-current-sha/)
   }
+})
+
+test("rate limits respect the server's delay without retrying permission failures", () => {
+  assert.equal(rateLimitDelay({
+    status: 429, headers: new Headers({ "retry-after": "12" }), now: 100_000,
+  }), 12_000)
+  assert.equal(rateLimitDelay({
+    status: 403, headers: new Headers({
+      "x-ratelimit-remaining": "0", "x-ratelimit-reset": "130",
+    }), now: 100_000,
+  }), 30_000)
+  assert.equal(rateLimitDelay({
+    status: 403, headers: new Headers(), message: "secondary rate limit", now: 100_000,
+  }), 60_000)
+  assert.equal(rateLimitDelay({
+    status: 403, headers: new Headers(), message: "Resource not accessible", now: 100_000,
+  }), undefined)
 })

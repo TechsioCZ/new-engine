@@ -35,6 +35,11 @@ if (process.argv.includes("--print-plan")) {
   fs.writeFileSync(path.join(bin, "docker"), "#!/bin/sh\nexit 0\n", {
     mode: 0o755,
   })
+  // This fixture exercises orchestration, not jq. All external tools in that
+  // contract are owned by the fixture; test:node needs no system jq install.
+  fs.writeFileSync(path.join(bin, "jq"), "#!/bin/sh\ncat >/dev/null\nprintf 'test-image\\n'\n", {
+    mode: 0o755,
+  })
   const result = spawnSync("bash", ["libs/ui/scripts/component-ci-bundle.sh"], {
     cwd: repo,
     encoding: "utf8",

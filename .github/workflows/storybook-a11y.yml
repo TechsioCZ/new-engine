@@ -14,10 +14,6 @@ on:
         description: Jest workers per theme
         type: number
         default: 4
-      storybook_artifact:
-        description: Immutable Storybook build from the caller; empty builds it here
-        type: string
-        default: ""
       changed_files_artifact:
         description: Artifact holding the changed-file list a narrowed scan needs
         type: string
@@ -34,7 +30,6 @@ on:
         default: 4
 
 permissions:
-  actions: read
   contents: read
 
 jobs:
@@ -63,20 +58,6 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ui-a11y-chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
-      - name: Wait for the caller's shared build
-        if: inputs.storybook_artifact != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node libs/ui/scripts/wait-ci-artifact.mjs "${{ inputs.storybook_artifact }}" main
-      - name: Download the shared Storybook build
-        if: inputs.storybook_artifact != ''
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: ${{ inputs.storybook_artifact }}
-          path: libs/ui/storybook-static
-      - name: Build standalone Storybook once
-        if: inputs.storybook_artifact == ''
-        run: node libs/ui/scripts/visual-storybook-build.mjs --ensure
       - name: Download the changed-file list
         if: inputs.scope != 'full' && inputs.scope != 'all' && inputs.changed_files_artifact != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
