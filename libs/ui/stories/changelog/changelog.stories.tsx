@@ -98,7 +98,7 @@ const CHANGELOG = `
 - **Breaking:** \`color\` → \`severity\` (same values). \`size\` follows the nearest \`UIProvider\`; glyphs placed by other components keep \`size="current"\`.
 
 ### Image v1.3.0
-- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
+- Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes). \`ImageWithFallback\` follows the same \`Image\` provider entry.
 
 ### Input v2.0.0
 - **Breaking:** the validation \`variant\` → \`validateStatus\` (\`default\` | \`error\` | \`success\` | \`warning\`), matching every form molecule. Follows the \`UIProvider\` default \`size\` (an explicit prop still wins; without a provider nothing changes).
