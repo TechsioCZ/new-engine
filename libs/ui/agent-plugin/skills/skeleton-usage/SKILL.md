@@ -5,7 +5,7 @@ description: >
   loading placeholders using Root, Circle, Text, and Rectangle compound parts
   with token-backed variants, sizes, and animation speeds.
 metadata:
-  component_version: "1.1.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -152,7 +152,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Skeleton.Text variant="secondary" />
+<Skeleton.Text severity="secondary" />
 ```
 
 Use `_skeleton.css` or app token overrides for color changes.

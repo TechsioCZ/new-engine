@@ -84,7 +84,7 @@ describe("VerticalNavigation server rendering", () => {
               ),
               h(
                 VerticalNavigation.BranchContent,
-                { tone: "accent", variant },
+                { appearance: "solid", severity: variant },
                 h(
                   VerticalNavigation.List,
                   null,
@@ -105,8 +105,8 @@ describe("VerticalNavigation server rendering", () => {
       )
       expect(html).toContain('aria-expanded="true"')
       expect(html).toContain("aria-controls=")
-      expect(html).toContain('data-tone="accent"')
-      expect(html).toContain(`data-variant="${variant}"`)
+      expect(html).toContain('data-appearance="solid"')
+      expect(html).toContain(`data-severity="${variant}"`)
       expect(html).toContain(
         `bg-vertical-navigation-group-bg-${variant === "primary" ? "accent" : "secondary"}`
       )
@@ -120,7 +120,7 @@ describe("VerticalNavigation server rendering", () => {
       h(
         VerticalNavigation,
         null,
-        h(VerticalNavigation.Group, { variant: "secondary" }, "Categories")
+        h(VerticalNavigation.Group, { severity: "secondary" }, "Categories")
       )
     )
     expect(html).toContain("bg-vertical-navigation-group-bg-plain")

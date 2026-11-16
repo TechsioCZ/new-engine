@@ -130,7 +130,7 @@ that `@techsio/ui-kit` exposes.
 ### Let tokens handle appearance
 
 ```tsx
-<Button variant="danger" theme="solid" size="md">
+<Button severity="danger" appearance="solid" size="md">
   Delete
 </Button>
 ```
@@ -180,7 +180,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Button variant="danger" theme="solid">Delete</Button>
+<Button severity="danger" appearance="solid">Delete</Button>
 ```
 
 Apps should use UI-kit components when the library already has the primitive.
@@ -192,16 +192,16 @@ Source: ../../references/consumer_app_usage_rules.md
 Wrong:
 
 ```tsx
-<Button variant="ghost">Cancel</Button>
+<Button severity="ghost">Cancel</Button>
 ```
 
 Correct:
 
 ```tsx
-<Button theme="borderless">Cancel</Button>
+<Button appearance="ghost">Cancel</Button>
 ```
 
-The Button source defines `theme`, not a `ghost` variant.
+The Button source defines `appearance="ghost"`; there is no `variant="ghost"`.
 
 Source: libs/ui/src/atoms/button.tsx
 
@@ -210,13 +210,13 @@ Source: libs/ui/src/atoms/button.tsx
 Wrong:
 
 ```tsx
-<Button variant="danger" theme="solid" className="bg-danger text-fg-reverse" />
+<Button severity="danger" appearance="solid" className="bg-danger text-fg-reverse" />
 ```
 
 Correct:
 
 ```tsx
-<Button variant="danger" theme="solid" />
+<Button severity="danger" appearance="solid" />
 ```
 
 Component props already map to token-backed visual classes.

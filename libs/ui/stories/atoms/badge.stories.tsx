@@ -25,7 +25,7 @@ const meta: Meta<typeof Badge> = {
         defaultValue: { summary: "md" },
       },
     },
-    variant: {
+    severity: {
       control: "select",
       options: [
         "primary",
@@ -36,12 +36,21 @@ const meta: Meta<typeof Badge> = {
         "success",
         "warning",
         "danger",
-        "outline",
-        "dynamic",
+        "neutral",
+        "custom",
       ],
-      description: "Visual style variant of the badge",
+      description: "Color intent of the badge",
       table: {
         defaultValue: { summary: "info" },
+      },
+    },
+    appearance: {
+      control: "select",
+      options: ["solid", "outline"],
+      description:
+        "Fill style. Falls back to the nearest UIProvider, then solid.",
+      table: {
+        defaultValue: { summary: "solid" },
       },
     },
     children: {
@@ -50,32 +59,31 @@ const meta: Meta<typeof Badge> = {
     },
     bgColor: {
       control: "color",
-      description: "Background color for dynamic variant",
+      description: "Background color for the custom severity",
       if: {
-        arg: "variant",
-        eq: "dynamic",
+        arg: "severity",
+        eq: "custom",
       },
     },
     fgColor: {
       control: "color",
-      description: "Foreground color for dynamic variant",
+      description: "Foreground color for the custom severity",
       if: {
-        arg: "variant",
-        eq: "dynamic",
+        arg: "severity",
+        eq: "custom",
       },
     },
     borderColor: {
       control: "color",
-      description: "Border color for dynamic variant",
+      description: "Border color for the custom severity",
       if: {
-        arg: "variant",
-        eq: "dynamic",
+        arg: "severity",
+        eq: "custom",
       },
     },
   },
   args: {
-    variant: "info",
-    size: "md",
+    severity: "info",
     children: "Ready to ship",
   },
 }
@@ -87,7 +95,7 @@ type Story = Omit<StoryObj<typeof meta>, "args"> & {
 
 export const Playground: Story = {
   render: (args: BadgeProps) =>
-    args.variant === "dynamic" ? (
+    args.severity === "custom" ? (
       <Badge
         {...args}
         bgColor={args.bgColor ?? "var(--color-badge-bg-primary)"}
@@ -106,8 +114,7 @@ export const Playground: Story = {
     },
   },
   args: {
-    variant: "info",
-    size: "md",
+    severity: "info",
     children: "Ready to ship",
   },
 }
@@ -137,18 +144,26 @@ export const Variants: Story = {
   },
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Solid themes">
-        <Badge variant="primary">Primary</Badge>
-        <Badge variant="secondary">Secondary</Badge>
-        <Badge variant="tertiary">Tertiary</Badge>
-        <Badge variant="discount">Discount 30%</Badge>
-        <Badge variant="info">Ships within 24 h</Badge>
-        <Badge variant="success">Delivered</Badge>
-        <Badge variant="warning">Last units</Badge>
-        <Badge variant="danger">Unavailable</Badge>
+      <VariantGroup title="Solid">
+        <Badge severity="primary">Primary</Badge>
+        <Badge severity="secondary">Secondary</Badge>
+        <Badge severity="tertiary">Tertiary</Badge>
+        <Badge severity="discount">Discount 30%</Badge>
+        <Badge severity="info">Ships within 24 h</Badge>
+        <Badge severity="success">Delivered</Badge>
+        <Badge severity="warning">Last units</Badge>
+        <Badge severity="danger">Unavailable</Badge>
       </VariantGroup>
       <VariantGroup title="Outline">
-        <Badge variant="outline">Outline badge</Badge>
+        <Badge appearance="outline" severity="neutral">
+          Outline badge
+        </Badge>
+        <Badge appearance="outline" severity="primary">
+          Primary outline
+        </Badge>
+        <Badge appearance="outline" severity="danger">
+          Danger outline
+        </Badge>
       </VariantGroup>
     </VariantContainer>
   ),
@@ -194,7 +209,7 @@ export const Sizes: Story = {
             { sm: "Small (sm)", md: "Medium (md)", lg: "Large (lg)" }[size]
           }
         >
-          <Badge size={size} variant="success">
+          <Badge size={size} severity="success">
             Ready to ship
           </Badge>
         </VariantGroup>
@@ -213,8 +228,7 @@ export const Dynamic: Story = {
     },
   },
   args: {
-    variant: "dynamic",
-    size: "md",
+    severity: "custom",
     bgColor: "var(--color-badge-bg-primary)",
     fgColor: "var(--color-badge-fg-primary)",
     borderColor: "var(--color-badge-border-primary)",

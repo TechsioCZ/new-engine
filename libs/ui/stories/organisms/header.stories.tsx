@@ -21,7 +21,7 @@ function StoreHeader({ navigationName, ...props }: React.ComponentProps<typeof H
       <Header.Desktop>
         <Navigation label={navigationName ? `${navigationName} main navigation` : "Main navigation"} />
         <Header.Actions>
-          <Header.ActionItem><Button theme="outlined" size={props.size}>Account</Button></Header.ActionItem>
+          <Header.ActionItem><Button appearance="outline" size={props.size}>Account</Button></Header.ActionItem>
         </Header.Actions>
       </Header.Desktop>
       <Header.Hamburger />
@@ -101,7 +101,7 @@ export const LocalizedHamburger: Story = {
           onClick={(event) => { if (!allowOpening) event.preventDefault() }} />
         <Header.Mobile><Navigation label="Mobile navigation" /></Header.Mobile>
       </Header>
-      <Button theme="outlined" onClick={() => setAllowOpening(true)}>Allow menu opening</Button>
+      <Button appearance="outline" onClick={() => setAllowOpening(true)}>Allow menu opening</Button>
     </div>
   },
   play: async ({ canvasElement }) => {

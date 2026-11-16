@@ -37,7 +37,7 @@ user's click history.
 | Figma | Code | Meaning |
 | --- | --- | --- |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only; links inherit the trail's size. |
-| — | `variant="plain" \| "underline"` | Link decoration. Not in Figma yet. |
+| — | `appearance="plain" \| "underline"` | Link decoration. Not in Figma yet. |
 | ellipsis glyph | `Breadcrumb.Ellipsis`; `maxItems` on `BreadcrumbTemplate` | Collapses the middle. `maxItems` keeps the root and the trailing items, and the current page is always among them. |
 | separator glyph | `Breadcrumb.Separator` | Icon from the component; never a typed `/` or `>`. |
 

@@ -107,7 +107,7 @@ A ready-to-use location trail driven by an array of ancestor pages. The last ite
         defaultValue: { summary: "md" },
       },
     },
-    variant: {
+    appearance: {
       control: "select",
       options: ["plain", "underline"],
       description: "Controls the visual style of breadcrumb links.",
@@ -120,8 +120,6 @@ A ready-to-use location trail driven by an array of ancestor pages. The last ite
   args: {
     items: defaultItems,
     maxItems: 0,
-    size: "md",
-    variant: "plain",
     "aria-label": "breadcrumb",
   },
 }
@@ -180,12 +178,12 @@ export const Variants: Story = {
           <BreadcrumbTemplate
             aria-label="Breadcrumb, plain"
             items={defaultItems}
-            variant="plain"
+            appearance="plain"
           />
           <BreadcrumbTemplate
             aria-label="Breadcrumb, underline"
             items={defaultItems}
-            variant="underline"
+            appearance="underline"
           />
         </div>
       </VariantGroup>

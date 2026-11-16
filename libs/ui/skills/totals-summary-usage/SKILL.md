@@ -5,7 +5,7 @@ description: >
   to present prepared cart or checkout rows, unresolved fees, discounts,
   a labeled total and actions blocked while updating.
 metadata:
-  component_version: "1.0.1"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -39,7 +39,7 @@ transport/payment selection, requests and order submission.
 | Figma | Code |
 | --- | --- |
 | `pending=true` | `pending` + `pendingLabel` |
-| Row instances (`label`, `value`, `emphasis`, `showNote`) | `rows: { id, label, value, emphasis?, note? }[]` (data, not JSX) |
+| Row instances (`label`, `value`, `emphasis`, `showNote`) | `rows: { id, label, value, severity?, note? }[]` (Figma `emphasis` → `severity`) (data, not JSX) |
 | `showFooter` / `showActions` | `footer` / `actions` |
 
 Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](references/ux.md). The same page renders in Storybook as *Molecules/TotalsSummary → UX guidelines*.
@@ -63,7 +63,7 @@ import { TotalsSummary } from "@techsio/ui-kit/molecules/totals-summary"
 ## Contract
 
 - rows is a readonly array with stable unique id, label and value strings.
-- Each row may have note and emphasis (default or discount).
+- Each row may have a note and a severity (neutral or discount).
 - totalLabel and totalValue are required strings supplied by the application.
 - footer and actions accept consumer content.
 - Native div attributes and a div ref are supported.
@@ -79,7 +79,7 @@ Load ux-guidelines and app-token-overrides for composition and appearance.
 Do not represent an unselected fee as zero. Supply a clear unresolved label
 and call the total a subtotal when final fees are missing. Include the tax
 convention in the total label or footer. Show a discount as a separate negative
-value; emphasis does not change its amount or sign.
+value; severity does not change its amount or sign.
 
 Use PriceBlock for one product's price. Use TotalsSummary for a labeled breakdown.
 Do not pass Medusa DTOs, calculation functions or mutation hooks into the summary.

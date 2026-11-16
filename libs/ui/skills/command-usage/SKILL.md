@@ -5,7 +5,7 @@ description: >
   searchable action list or a Dialog-based command palette with compound parts,
   grouped results, disabled actions, and optional shortcut hints.
 metadata:
-  component_version: "1.1.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

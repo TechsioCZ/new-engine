@@ -608,7 +608,7 @@ export const StableFilteredSeries: Story = {
   render: () => {
     const [showOnline, setShowOnline] = useState(true)
     return <div className="flex flex-col gap-200">
-      <Button theme="outlined" onClick={() => setShowOnline((current) => !current)}>Toggle Online channel</Button>
+      <Button appearance="outline" onClick={() => setShowOnline((current) => !current)}>Toggle Online channel</Button>
       <Chart data={showOnline ? revenueByChannel : revenueByChannel.filter((row) => row.channel !== "Online")}
         x="month" y="revenue" series="channel" seriesDomain={CHANNELS} ariaLabel="Revenue by channel" height={300} animate={false} />
     </div>

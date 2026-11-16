@@ -113,7 +113,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         actions={<></>}
         description="Saturday, 12 September 2026 · everything below is scoped to the last 30 days."
         meta={
-          <Badge size="sm" variant="warning">
+          <Badge size="sm" severity="warning">
             3 alerts
           </Badge>
         }
@@ -258,7 +258,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
         description="Two questions that share a shape, so they share a widget."
         title="Catalogue"
       >
-        <Tabs defaultValue="low-stock" variant="line">
+        <Tabs defaultValue="low-stock" appearance="line">
           <Tabs.List>
             <Tabs.Trigger value="low-stock">Low stock</Tabs.Trigger>
             <Tabs.Trigger value="best-sellers">Best sellers</Tabs.Trigger>
@@ -266,7 +266,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           </Tabs.List>
 
           <Tabs.Content className="pt-200" value="low-stock">
-            <Table size="sm" variant="line">
+            <Table size="sm" appearance="line">
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader>Product</Table.ColumnHeader>
@@ -282,7 +282,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
                     <Table.Cell>{product.sku}</Table.Cell>
                     <Table.Cell align="end">
                       {product.stock === 0 ? (
-                        <Badge size="sm" variant="danger">
+                        <Badge size="sm" severity="danger">
                           Out of stock
                         </Badge>
                       ) : (
@@ -299,7 +299,7 @@ function DashboardPage({ loading }: { loading?: boolean }) {
           </Tabs.Content>
 
           <Tabs.Content className="pt-200" value="best-sellers">
-            <Table size="sm" variant="line">
+            <Table size="sm" appearance="line">
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader>Product</Table.ColumnHeader>

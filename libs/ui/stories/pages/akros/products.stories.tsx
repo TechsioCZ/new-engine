@@ -83,14 +83,14 @@ function CompletenessBadge({ product }: { product: AkProduct }) {
   const missing = missingCmsFields(product)
   if (missing.length === 0) {
     return (
-      <Badge size="sm" variant="success">
+      <Badge size="sm" severity="success">
         Complete
       </Badge>
     )
   }
   return (
     <span className="flex flex-col items-start gap-50">
-      <Badge size="sm" variant="warning">
+      <Badge size="sm" severity="warning">
         {`${missing.length} missing`}
       </Badge>
       <span className="text-fg-secondary text-xs">{missing.join(", ")}</span>
@@ -180,8 +180,8 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
               })
             }
             size="sm"
-            theme="outlined"
-            variant="secondary"
+            appearance="outline"
+            severity="secondary"
           >
             About ABRA import
           </Button>
@@ -201,8 +201,8 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
             <Button
               onClick={() => setView("incomplete")}
               size="sm"
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Show them
             </Button>
@@ -215,17 +215,17 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
         </Notice>
       )}
 
-      <Tabs onValueChange={setView} value={view} variant="line">
+      <Tabs onValueChange={setView} value={view} appearance="line">
         <Tabs.List>
           <Tabs.Trigger value="all">
             All products
-            <Badge size="sm" variant="outline">
+            <Badge size="sm" appearance="outline" severity="neutral">
               {String(products.length)}
             </Badge>
           </Tabs.Trigger>
           <Tabs.Trigger value="incomplete">
             Needs completion
-            <Badge size="sm" variant="warning">
+            <Badge size="sm" severity="warning">
               {String(incomplete.length)}
             </Badge>
           </Tabs.Trigger>
@@ -418,7 +418,7 @@ function ProductEditorPage({ productId }: { productId: string }) {
               })
             }}
             size="sm"
-            variant="primary"
+            severity="primary"
           >
             Save draft
           </Button>
@@ -574,7 +574,7 @@ function ProductEditorPage({ productId }: { productId: string }) {
           </SectionCard>
 
           <SectionCard flush>
-            <Tabs defaultValue="description" variant="line">
+            <Tabs defaultValue="description" appearance="line">
               <Tabs.List className="px-250 pt-250">
                 <Tabs.Trigger value="description">Description</Tabs.Trigger>
                 <Tabs.Trigger value="images">Images</Tabs.Trigger>

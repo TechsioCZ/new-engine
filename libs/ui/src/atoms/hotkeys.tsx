@@ -2,12 +2,13 @@
  * Hotkeys — @techsio/ui-kit atom.
  *
  * @component Hotkeys
- * @componentVersion v1.1.2
+ * @componentVersion v1.2.0
  * @skill hotkeys-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
 import type { ComponentPropsWithoutRef, Ref } from "react"
 import { type HotkeyFormatOptions, useFormatHotkey } from "../hotkeys"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const hotkeysStyles = tv({
@@ -35,13 +36,14 @@ export type HotkeysProps = ComponentPropsWithoutRef<"span"> & {
 
 export function Hotkeys({
   hotkey,
-  size,
+  size: sizeProp,
   formatOptions,
   children,
   className,
   ref,
   ...props
 }: HotkeysProps) {
+  const { size } = useUIDefaults("Hotkeys", { size: sizeProp }, hotkeysStyles)
   const format = useFormatHotkey()
   return (
     <span

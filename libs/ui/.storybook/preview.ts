@@ -2,10 +2,16 @@ import type { Decorator, Preview } from "@storybook/react"
 import { createElement, useEffect } from "react"
 import { configure } from "storybook/test"
 import { brandKeys, DEFAULT_BRAND, getBrand } from "../src/theme/theme-config"
+import {
+  type UIAppearance,
+  UIProvider,
+  type UISize,
+} from "../src/theme/ui-provider"
 import "../src/tokens/index.css"
 import { curateControls } from "./controls"
 import { DocsTheme } from "./docs-theme"
 import { applyPreviewTheme } from "./theme.mjs"
+import { COMPONENT_DEFAULT } from "./ui-defaults-panel"
 
 /*
  * Testing-library's async utilities (findByRole, waitFor) inside a play
@@ -35,6 +41,29 @@ const withTheme: Decorator = (Story, context) => {
   }, [brand, mode, brandLock])
 
   return createElement(Story)
+}
+
+/*
+ * Size / Appearance toolbars wrap the story in a UIProvider so a reviewer can
+ * see every component follow the global defaults. "Component default" renders
+ * without a provider, which keeps stories and visual baselines unchanged.
+ */
+const withUIDefaults: Decorator = (Story, context) => {
+  const { uiSize, uiAppearance } = context.globals
+  if (uiSize === COMPONENT_DEFAULT && uiAppearance === COMPONENT_DEFAULT) {
+    return createElement(Story)
+  }
+  return createElement(
+    UIProvider,
+    {
+      size: uiSize === COMPONENT_DEFAULT ? undefined : (uiSize as UISize),
+      appearance:
+        uiAppearance === COMPONENT_DEFAULT
+          ? undefined
+          : (uiAppearance as UIAppearance),
+    },
+    createElement(Story)
+  )
 }
 
 const preview: Preview = {
@@ -105,13 +134,45 @@ const preview: Preview = {
     mode: {
       description: "Color mode",
     },
+    uiSize: {
+      description: "Global component size (UIProvider)",
+      toolbar: {
+        title: "Size",
+        icon: "ruler",
+        items: [
+          { value: COMPONENT_DEFAULT, title: "Component default" },
+          { value: "sm", title: "Small (sm)" },
+          { value: "md", title: "Medium (md)" },
+          { value: "lg", title: "Large (lg)" },
+        ],
+        dynamicTitle: true,
+      },
+    },
+    uiAppearance: {
+      description: "Global component appearance (UIProvider)",
+      toolbar: {
+        title: "Appearance",
+        icon: "contrast",
+        items: [
+          { value: COMPONENT_DEFAULT, title: "Component default" },
+          { value: "solid", title: "Solid" },
+          { value: "subtle", title: "Subtle" },
+          { value: "outline", title: "Outline" },
+          { value: "ghost", title: "Ghost" },
+          { value: "plain", title: "Plain" },
+        ],
+        dynamicTitle: true,
+      },
+    },
   },
   initialGlobals: {
     brand: DEFAULT_BRAND,
     mode: "light",
+    uiSize: COMPONENT_DEFAULT,
+    uiAppearance: COMPONENT_DEFAULT,
   },
   argTypesEnhancers: [curateControls],
-  decorators: [withTheme],
+  decorators: [withUIDefaults, withTheme],
 }
 
 export default preview

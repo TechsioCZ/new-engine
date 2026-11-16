@@ -183,7 +183,7 @@ export const Discounted: Story = {
         id: "discount",
         label: "Sleva VITEJTE",
         value: "−150 Kč",
-        emphasis: "discount",
+        severity: "discount",
         note: "Platný slevový kód",
       },
     ],
@@ -315,7 +315,7 @@ function PendingFocusExample() {
       />
       <div className="flex flex-wrap gap-200">
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             if (pending) complete(false)
             else setOutcome("Start an update before simulating its completion.")
@@ -324,7 +324,7 @@ function PendingFocusExample() {
           Simulate success
         </Button>
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             if (pending) complete(true)
             else setOutcome("Start an update before simulating a failure.")
@@ -333,7 +333,7 @@ function PendingFocusExample() {
           Simulate failure
         </Button>
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             if (!pending) {
               setOutcome(
@@ -352,7 +352,7 @@ function PendingFocusExample() {
         </Button>
       </div>
       <Button
-        variant="secondary"
+        severity="secondary"
         onClick={() =>
           setOutcome(
             "You moved to another action; completion must not move focus back."

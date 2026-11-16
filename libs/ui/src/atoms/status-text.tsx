@@ -2,7 +2,7 @@
  * StatusText — @techsio/ui-kit atom.
  *
  * @component StatusText
- * @componentVersion v1.1.4
+ * @componentVersion v1.2.0
  * @skill status-text-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,7 @@
  */
 import type { HTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
@@ -78,13 +79,18 @@ export function StatusText({
   className,
   showIcon = true,
   status = "default",
-  size = "md",
+  size: sizeProp,
   align = "start",
   icon,
   children,
   ref,
   ...props
 }: StatusTextProps) {
+  const { size = "md" } = useUIDefaults(
+    "StatusText",
+    { size: sizeProp },
+    statusTextVariants
+  )
   const resolvedIcon = icon ?? ICON_MAP[status]
   // Validation feedback must reach assistive tech when it appears: errors
   // interrupt (alert), warning/success are polite (status). Plain helper text

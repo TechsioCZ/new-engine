@@ -5,7 +5,7 @@ description: >
   multi-line text entry with valid variant, size, resize, readonly styling, and
   token-first validation.
 metadata:
-  component_version: "1.0.11"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -61,13 +61,13 @@ where actions and feedback live). This section applies them to `Textarea`.
 **Behaviour (from the UX spec)**
 
 - Enter inserts a newline and never submits; `rows` sets the initial height, not a length limit.
-- `variant="error" | "success" | "warning"` is presentation only; the rule lives in the form or app.
+- `validateStatus="error" | "success" | "warning"` is presentation only; the rule lives in the form or app.
 
 **Figma → code**
 
 | Figma | Code |
 | --- | --- |
-| `variant=default…borderless` | same prop names and values |
+| `variant=default…warning`, `variant=borderless` | `validateStatus` (same values); Figma `borderless` → `appearance="ghost"` |
 | `state=disabled` | `disabled` |
 | `state=readonly` | `readOnly` (not the legacy `readonly`) |
 
@@ -78,13 +78,14 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 ```tsx
 import { Textarea } from "@techsio/ui-kit/atoms/textarea"
 
-<Textarea name="note" variant="default" size="md" resize="y" />
+<Textarea name="note" validateStatus="default" size="md" resize="y" />
 ```
 
 Supported component props:
 
 ```text
-variant: default | error | success | warning | borderless
+validateStatus: default | error | success | warning
+appearance: outline | ghost
 size: sm | md | lg
 resize: none | y | x | both | auto
 readOnly: boolean
@@ -98,7 +99,7 @@ Use native `readOnly` for both immutable behavior and the full-contrast read-onl
 ### Use variant for validation
 
 ```tsx
-<Textarea aria-describedby="note-error" variant="error" />
+<Textarea aria-describedby="note-error" validateStatus="error" />
 ```
 
 Do not style borders or placeholders inline for validation.
@@ -143,13 +144,13 @@ Source: libs/ui/src/atoms/textarea.tsx
 Wrong:
 
 ```tsx
-<Textarea variant="danger" />
+<Textarea validateStatus="danger" />
 ```
 
 Correct:
 
 ```tsx
-<Textarea variant="error" />
+<Textarea validateStatus="error" />
 ```
 
 Source: libs/ui/src/atoms/textarea.tsx
@@ -165,7 +166,7 @@ Wrong:
 Correct:
 
 ```tsx
-<Textarea variant="error" />
+<Textarea validateStatus="error" />
 ```
 
 Source: libs/ui/src/tokens/components/atoms/_textarea.css
@@ -189,7 +190,7 @@ Use `readOnly` to preserve focus, selection, submission and normal contrast. Dis
 ## Validation Commands
 
 ```sh
-rg -n "<textarea\\b|<Textarea[^>]*variant=\"(danger|invalid|primary)\"" apps
+rg -n "<textarea\\b|<Textarea[^>]*(variant=|validateStatus=\"(danger|invalid|primary)\")" apps
 rg -n "<Textarea[^>]*className=.*(border-|bg-|text-|placeholder:|p-|px-|py-)" apps
 rg -n "<Textarea[^>]*readOnly" apps
 rg -n "resize=\"(none|y|x|both|auto)\"" apps

@@ -54,7 +54,6 @@ const meta: Meta<typeof SelectTemplate> = {
     label: "Country",
     placeholder: "Select a country",
     helpText: "Choose the country for your delivery address.",
-    size: "md",
     disabled: false,
     readOnly: false,
   },

@@ -32,9 +32,9 @@ totals.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=line` | `variant="line"` | Rows separated by lines. |
-| `variant=outline` | `variant="outline"` | A border around the table; doesn't change what it does. |
-| `variant=striped` | `variant="striped"` | Alternating rows for long rows. Stripes never read as selected or error. |
+| `variant=line` | `appearance="line"` | Rows separated by lines. |
+| `variant=outline` | `appearance="outline"` | A border around the table; doesn't change what it does. |
+| `variant=striped` | `appearance="striped"` | Alternating rows for long rows. Stripes never read as selected or error. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` (default `md`) | Density only. |
 | — | `interactive` | Rows with `onClick` get hover, a tab stop, and Enter / Space activation. |
 | — | `Table.Row selected` | The row the app has selected (`aria-selected`). |

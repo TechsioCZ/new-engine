@@ -222,7 +222,7 @@ function OrdersDashboard() {
             return (
               <div className="flex flex-col gap-150 p-200">
                 <p className="font-medium text-sm">Line items</p>
-                <Table size="sm" variant="line">
+                <Table size="sm" appearance="line">
                   <Table.Header>
                     <Table.Row>
                       <Table.ColumnHeader>Product</Table.ColumnHeader>

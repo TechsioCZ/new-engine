@@ -2,7 +2,7 @@
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.2.3
+ * @componentVersion v2.0.0
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,8 +16,13 @@ import type {
   ReactNode,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
-import { buttonVariants } from "./button"
+import {
+  type ButtonAppearance,
+  buttonStyleValues,
+  buttonVariants,
+} from "./button"
 import { Icon, type IconProps, type IconType } from "./icon"
 
 const linkButton = tv({
@@ -31,9 +36,14 @@ const linkButton = tv({
 type LinkButtonHref<T extends ElementType> =
   ComponentPropsWithRef<T> extends { href?: infer H } ? H : string
 
-export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
-  typeof linkButton
+export type LinkButtonProps<T extends ElementType = "a"> = Omit<
+  VariantProps<typeof linkButton>,
+  "appearance"
 > & {
+  /** Fill style. Falls back to the nearest `UIProvider`, then `solid`. */
+  appearance?: ButtonAppearance
+  /** Drop every Button visual (fill and color). */
+  unstyled?: boolean
   href?: LinkButtonHref<T>
   icon?: IconType
   iconPosition?: "left" | "right"
@@ -44,7 +54,7 @@ export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   as?: T
 } & Omit<
     ComponentPropsWithRef<T>,
-    "as" | "children" | keyof VariantProps<typeof linkButton>
+    "as" | "children" | "unstyled" | keyof VariantProps<typeof linkButton>
   >
 
 export function LinkButton<T extends ElementType = "a">({
@@ -55,9 +65,10 @@ export function LinkButton<T extends ElementType = "a">({
   iconPosition = "left",
   iconSize,
   children,
-  variant,
-  theme,
-  size,
+  severity,
+  appearance: appearanceProp,
+  unstyled = false,
+  size: sizeProp,
   block,
   uppercase,
   className,
@@ -72,6 +83,11 @@ export function LinkButton<T extends ElementType = "a">({
     | ((event: MouseEvent<Element>) => void)
     | undefined
 
+  const { size, appearance } = useUIDefaults(
+    "LinkButton",
+    { size: sizeProp, appearance: appearanceProp },
+    buttonStyleValues
+  )
   const Component = (disabled ? "span" : as || "a") as ElementType
 
   return (
@@ -80,8 +96,8 @@ export function LinkButton<T extends ElementType = "a">({
       aria-disabled={disabled === true ? true : props["aria-disabled"]}
       className={linkButton({
         density,
-        variant,
-        theme,
+        severity,
+        appearance: unstyled ? "unstyled" : appearance,
         size,
         block,
         uppercase,

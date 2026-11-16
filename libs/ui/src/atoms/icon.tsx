@@ -2,7 +2,7 @@
  * Icon — @techsio/ui-kit atom.
  *
  * @component Icon
- * @componentVersion v1.2.1
+ * @componentVersion v2.0.0
  * @skill icon-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,7 @@
  */
 import type { HTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 export type IconType = `token-icon-${string}` | `icon-[${string}]`
@@ -27,7 +28,7 @@ const iconVariants = tv({
       xl: "text-icon-xl",
       "2xl": "text-icon-2xl",
     },
-    color: {
+    severity: {
       current: "text-current",
       primary: "text-icon-fg-accent-safe",
       secondary: "text-icon-fg-secondary-safe",
@@ -38,7 +39,7 @@ const iconVariants = tv({
   },
   defaultVariants: {
     size: "current",
-    color: "current",
+    severity: "current",
   },
 })
 
@@ -56,12 +57,13 @@ export type IconProps = Omit<HTMLAttributes<HTMLSpanElement>, "color"> &
 
 export function Icon({
   icon,
-  size,
-  color,
+  size: sizeProp,
+  severity,
   className,
   label,
   ...props
 }: IconProps) {
+  const { size } = useUIDefaults("Icon", { size: sizeProp }, iconVariants)
   const a11yProps = label
     ? { role: "img", "aria-label": label }
     : { "aria-hidden": true }
@@ -69,7 +71,7 @@ export function Icon({
   return (
     <span
       {...a11yProps}
-      className={`${iconVariants({ size, color, className })} ${icon}`}
+      className={`${iconVariants({ size, severity, className })} ${icon}`}
       {...props}
     />
   )

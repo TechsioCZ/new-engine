@@ -12,7 +12,7 @@ describe("Tabs indicator geometry ownership", () => {
       const html = renderToStaticMarkup(
         h(
           Tabs,
-          { defaultValue: "general", orientation, variant: "line" },
+          { defaultValue: "general", orientation, appearance: "line" },
           h(
             Tabs.List,
             null,

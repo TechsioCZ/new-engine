@@ -2,7 +2,7 @@
  * FormCheckbox — @techsio/ui-kit molecule.
  *
  * @component FormCheckbox
- * @componentVersion v1.3.2
+ * @componentVersion v1.4.0
  * @skill form-checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -28,6 +28,7 @@ import {
   useChoiceInputRef,
 } from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const checkboxChoiceMachine: typeof machine = {
@@ -182,10 +183,15 @@ export function FormCheckbox({
   "aria-describedby": ariaDescribedBy,
   validateStatus = "default",
   showHelpTextIcon = validateStatus !== "default",
-  size = "md",
+  size: sizeProp,
   className,
   onCheckedChange,
 }: FormCheckboxProps) {
+  const { size = "md" } = useUIDefaults(
+    "Checkbox",
+    { size: sizeProp },
+    checkboxVariants
+  )
   const generatedId = useId()
   const uniqueId = id || generatedId
   const helpTextId = useId()

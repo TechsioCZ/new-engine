@@ -61,15 +61,15 @@ const today = "2026-09-14"
 
 function slideStatus(
   slide: BannerSlide
-): ["success" | "warning" | "outline", string] {
+): ["success" | "warning" | "neutral", string] {
   if (!slide.live) {
-    return ["outline", "Off"]
+    return ["neutral", "Off"]
   }
   if (slide.from > today) {
     return ["warning", `Starts ${slide.from}`]
   }
   if (slide.to < today) {
-    return ["outline", "Ended"]
+    return ["neutral", "Ended"]
   }
   return ["success", "Live"]
 }
@@ -211,8 +211,8 @@ function BannerPage() {
                 setSelectedId(id)
               }}
               size="sm"
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Add slide
             </Button>
@@ -237,7 +237,7 @@ function BannerPage() {
                 })
               }}
               size="sm"
-              variant="primary"
+              severity="primary"
             >
               Save demo banner
             </Button>
@@ -283,7 +283,7 @@ function BannerPage() {
               {selected.cta && (
                 <Button
                   size="sm"
-                  variant="secondary"
+                  severity="secondary"
                   onClick={() =>
                     toaster.create({
                       type: "info",
@@ -323,8 +323,8 @@ function BannerPage() {
                     className="flex min-w-0 flex-1 items-center gap-150 text-start"
                     onClick={() => setSelectedId(slide.id)}
                     size="current"
-                    theme="unstyled"
-                    variant="secondary"
+                    unstyled
+                    severity="secondary"
                   >
                     <Image
                       alt=""
@@ -340,7 +340,7 @@ function BannerPage() {
                       </span>
                     </span>
                   </Button>
-                  <Badge size="sm" variant={variant}>
+                  <Badge size="sm" severity={variant}>
                     {label}
                   </Badge>
                   <span className="flex flex-col">
@@ -350,8 +350,8 @@ function BannerPage() {
                       icon="icon-[mdi--chevron-up]"
                       onClick={() => move(index, -1)}
                       size="sm"
-                      theme="borderless"
-                      variant="secondary"
+                      appearance="ghost"
+                      severity="secondary"
                     />
                     <Button
                       aria-label={`Move ${slide.title} down`}
@@ -359,8 +359,8 @@ function BannerPage() {
                       icon="icon-[mdi--chevron-down]"
                       onClick={() => move(index, 1)}
                       size="sm"
-                      theme="borderless"
-                      variant="secondary"
+                      appearance="ghost"
+                      severity="secondary"
                     />
                   </span>
                 </li>

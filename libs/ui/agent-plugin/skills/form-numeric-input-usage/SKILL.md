@@ -5,7 +5,7 @@ description: >
   FormNumericInput for labeled numeric fields using NumericInput compound
   children, validation status, help text, and number-specific constraints.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

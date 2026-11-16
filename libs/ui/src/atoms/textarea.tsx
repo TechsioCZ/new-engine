@@ -2,7 +2,7 @@
  * Textarea — @techsio/ui-kit atom.
  *
  * @component Textarea
- * @componentVersion v1.0.11
+ * @componentVersion v2.0.0
  * @skill textarea-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,6 +22,7 @@ import {
   subscribeOwnerFormReset,
   syncReactFormControl,
 } from "../internal/form-control-lifecycle"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const textareaVariants = tv(
@@ -52,7 +53,17 @@ const textareaVariants = tv(
       "user-invalid:focus:border-textarea-border-danger-focus",
     ],
     variants: {
-      variant: {
+      // Declared before validateStatus so a validation border wins over `ghost`.
+      appearance: {
+        outline: "",
+        ghost: [
+          "border-transparent",
+          "bg-textarea-bg-borderless",
+          "hover:bg-textarea-bg-borderless-hover",
+          "focus:bg-textarea-bg-borderless-focus",
+        ],
+      },
+      validateStatus: {
         default: "",
         error: [
           "border-(length:--border-width-validation)",
@@ -73,12 +84,6 @@ const textareaVariants = tv(
           "hover:border-textarea-border-warning-hover",
           "focus:border-textarea-border-warning-focus",
         ],
-        borderless: [
-          "border-transparent",
-          "bg-textarea-bg-borderless",
-          "hover:bg-textarea-bg-borderless-hover",
-          "focus:bg-textarea-bg-borderless-focus",
-        ],
       },
       size: {
         sm: "rounded-textarea-sm p-textarea-sm px-textarea-inline-sm text-textarea-sm",
@@ -98,8 +103,9 @@ const textareaVariants = tv(
     },
     compoundVariants: [
       {
-        // Validation and borderless borders stay authoritative on read-only fields.
-        variant: "default",
+        // Validation and ghost borders stay authoritative on read-only fields.
+        validateStatus: "default",
+        appearance: "outline",
         readOnly: true,
         class: [
           "hover:border-textarea-border-readonly-hover",
@@ -110,7 +116,8 @@ const textareaVariants = tv(
     defaultVariants: {
       size: "md",
       resize: "y",
-      variant: "default",
+      validateStatus: "default",
+      appearance: "outline",
     },
   },
   {
@@ -133,9 +140,10 @@ export type TextareaProps = Omit<
   }
 
 export function Textarea({
-  size,
+  size: sizeProp,
+  appearance: appearanceProp,
   resize,
-  variant,
+  validateStatus,
   readonly,
   readOnly = readonly,
   id,
@@ -144,6 +152,11 @@ export function Textarea({
   ...props
 }: TextareaProps) {
   const generatedId = useId()
+  const { size, appearance } = useUIDefaults(
+    "Textarea",
+    { size: sizeProp, appearance: appearanceProp },
+    textareaVariants
+  )
   const currentValue = useRef(props.value)
   useLayoutEffect(() => {
     currentValue.current = props.value
@@ -182,7 +195,8 @@ export function Textarea({
       className={textareaVariants({
         size,
         resize,
-        variant,
+        validateStatus,
+        appearance,
         readOnly: Boolean(readOnly),
         className,
       })}
@@ -191,7 +205,7 @@ export function Textarea({
       readOnly={readOnly}
       ref={textareaRef}
       {...props}
-      aria-invalid={variant === "error" ? true : props["aria-invalid"]}
+      aria-invalid={validateStatus === "error" ? true : props["aria-invalid"]}
     />
   )
 }

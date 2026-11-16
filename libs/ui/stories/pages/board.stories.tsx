@@ -62,7 +62,7 @@ type Story = StoryObj
 
 const priorityVariant = {
   high: "danger",
-  normal: "outline",
+  normal: "neutral",
   low: "secondary",
 } as const
 
@@ -201,7 +201,7 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
             <header className="flex items-center justify-between gap-100">
               <h2 className="flex items-center gap-100 font-semibold text-sm">
                 {column.title}
-                <Badge size="sm" variant="outline">
+                <Badge size="sm" appearance="outline" severity="neutral">
                   {String(column.cards.length)}
                 </Badge>
               </h2>
@@ -235,8 +235,8 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
                             data-card-id={card.id}
                             icon="icon-[mdi--dots-horizontal]"
                             size="sm"
-                            theme="borderless"
-                            variant="secondary"
+                            appearance="ghost"
+                            severity="secondary"
                           />
                         }
                         items={cardMenu(
@@ -258,7 +258,7 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
                     </div>
                     <p className="text-fg-secondary text-xs">{card.meta}</p>
                     <div className="flex flex-wrap items-center gap-100">
-                      <Badge size="sm" variant={priorityVariant[card.priority]}>
+                      <Badge size="sm" severity={priorityVariant[card.priority]}>
                         {card.priority}
                       </Badge>
                       <span className="flex items-center gap-50 text-fg-secondary text-xs">

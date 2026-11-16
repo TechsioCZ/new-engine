@@ -98,7 +98,7 @@ const meta: Meta<typeof RadioGroup> = {
     id: { table: { disable: true } },
     ref: { table: { disable: true } },
     size: { control: "select", options: ["sm", "md", "lg"] },
-    variant: {
+    appearance: {
       control: "inline-radio",
       options: ["outline", "subtle", "solid"],
     },
@@ -123,8 +123,6 @@ const meta: Meta<typeof RadioGroup> = {
   },
   args: {
     value: "standard",
-    size: "md",
-    variant: "outline",
     orientation: "vertical",
     disabled: false,
     readOnly: false,
@@ -169,9 +167,9 @@ export const Variants: Story = {
   ),
   render: () => (
     <VariantContainer>
-      {(["outline", "subtle", "solid"] as const).map((variant) => (
-        <VariantGroup key={variant} title={variant} fullWidth>
-          <DeliveryOptions variant={variant} defaultValue="standard" />
+      {(["outline", "subtle", "solid"] as const).map((appearance) => (
+        <VariantGroup key={appearance} title={appearance} fullWidth>
+          <DeliveryOptions appearance={appearance} defaultValue="standard" />
         </VariantGroup>
       ))}
     </VariantContainer>
@@ -334,7 +332,7 @@ export const MultipleDescriptions: Story = {
             </RadioGroup.StatusText>
           )}
         </RadioGroup>
-        <Button theme="outlined" size="sm" onClick={() => setInvalid(false)}>
+        <Button appearance="outline" size="sm" onClick={() => setInvalid(false)}>
           Clear validation
         </Button>
       </div>

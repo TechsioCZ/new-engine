@@ -5,7 +5,7 @@ description: >
   for product summaries with image adapter, name, price, stock, badges,
   rating, actions, and card button variants.
 metadata:
-  component_version: "1.4.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -86,7 +86,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
   <ProductCard.Name>{product.title}</ProductCard.Name>
   <ProductCard.Price>{price}</ProductCard.Price>
   <ProductCard.Stock status="in-stock">In stock</ProductCard.Stock>
-  <ProductCard.Actions><ProductCard.Button buttonVariant="cart">Add</ProductCard.Button></ProductCard.Actions>
+  <ProductCard.Actions><ProductCard.Button action="cart">Add</ProductCard.Button></ProductCard.Actions>
 </ProductCard>
 ```
 

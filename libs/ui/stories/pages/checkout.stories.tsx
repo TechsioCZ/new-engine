@@ -127,7 +127,7 @@ function OrderSummary({ delivery }: { delivery: DeliveryOption }) {
     >
       <div className="flex items-center justify-between gap-150">
         <h2 className="font-semibold text-md">Order summary</h2>
-        <Badge size="sm" variant="outline">
+        <Badge size="sm" appearance="outline" severity="neutral">
           {`${cartLines.length} items`}
         </Badge>
       </div>
@@ -338,7 +338,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
           <dt>Total</dt>
           <dd>{money(total)}</dd>
         </dl>
-        <Button variant="secondary" onClick={() => setPlaced(false)}>
+        <Button severity="secondary" onClick={() => setPlaced(false)}>
           Back to review
         </Button>
       </div>
@@ -380,7 +380,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
             linear
             onStepChange={(details) => setStep(details.step)}
             step={step}
-            variant="solid"
+            appearance="solid"
           >
             <Steps.List>
               {checkoutSteps.map((entry, index) => (
@@ -527,7 +527,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       set({ delivery: value ?? "standard" })
                     }
                     value={form.delivery}
-                    variant="outline"
+                    appearance="outline"
                   >
                     <RadioCard.Label>Delivery method</RadioCard.Label>
                     {deliveryOptions.map((option) => (
@@ -556,7 +556,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                     name="payment"
                     onValueChange={(value) => set({ payment: value ?? "card" })}
                     value={form.payment}
-                    variant="outline"
+                    appearance="outline"
                   >
                     <RadioCard.Label>Payment method</RadioCard.Label>
                     <RadioCard.Item value="card">
@@ -649,8 +649,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       <Button
                         onClick={() => editStep(0)}
                         size="sm"
-                        theme="borderless"
-                        variant="secondary"
+                        appearance="ghost"
+                        severity="secondary"
                       >
                         Edit
                       </Button>
@@ -668,8 +668,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       </div>
                       <Button
                         size="sm"
-                        theme="borderless"
-                        variant="secondary"
+                        appearance="ghost"
+                        severity="secondary"
                         onClick={() => editStep(0)}
                       >
                         Edit billing address
@@ -685,8 +685,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       <Button
                         onClick={() => editStep(1)}
                         size="sm"
-                        theme="borderless"
-                        variant="secondary"
+                        appearance="ghost"
+                        severity="secondary"
                       >
                         Edit
                       </Button>
@@ -703,8 +703,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       <Button
                         onClick={() => editStep(2)}
                         size="sm"
-                        theme="borderless"
-                        variant="secondary"
+                        appearance="ghost"
+                        severity="secondary"
                       >
                         Edit
                       </Button>
@@ -725,8 +725,8 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                 disabled={step === 0}
                 icon="icon-[mdi--arrow-left]"
                 onClick={() => setStep((current) => Math.max(0, current - 1))}
-                theme="borderless"
-                variant="secondary"
+                appearance="ghost"
+                severity="secondary"
               >
                 Back
               </Button>
@@ -735,7 +735,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                   disabled={!canContinue}
                   icon="icon-[mdi--lock-outline]"
                   onClick={() => setPlaced(true)}
-                  variant="primary"
+                  severity="primary"
                 >
                   {form.payment === "card"
                     ? `Review demo payment · ${money(total)}`
@@ -751,7 +751,7 @@ function CheckoutPage({ initialStep = 0 }: { initialStep?: number }) {
                       Math.min(checkoutSteps.length - 1, current + 1)
                     )
                   }
-                  variant="primary"
+                  severity="primary"
                 >
                   Continue
                 </Button>

@@ -2,7 +2,7 @@
  * Link — @techsio/ui-kit atom.
  *
  * @component Link
- * @componentVersion v1.2.4
+ * @componentVersion v1.3.0
  * @skill link-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,7 @@
  */
 import type { ComponentPropsWithRef, ElementType, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const linkVariants = tv({
@@ -55,9 +56,10 @@ export function Link<T extends ElementType = "a">({
   children,
   external = false,
   className,
-  size,
+  size: sizeProp,
   ...props
 }: LinkProps<T>) {
+  const { size } = useUIDefaults("Link", { size: sizeProp }, linkVariants)
   const Component = (as || "a") as ElementType
   const target = "target" in props ? props.target : undefined
   const rel = "rel" in props ? props.rel : undefined

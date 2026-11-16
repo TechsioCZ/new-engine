@@ -155,7 +155,6 @@ const meta: Meta<typeof Slider> = {
     max: 100,
     step: 1,
     orientation: "horizontal",
-    size: "md",
     disabled: false,
     readOnly: false,
     showValueText: true,
@@ -540,7 +539,7 @@ export const DynamicBoundsControlled: Story = {
           </Button>
           <Button
             size="sm"
-            variant="secondary"
+            severity="secondary"
             onClick={() => setBounds({ min: 0, max: 100 })}
           >
             Reset bounds
@@ -1147,10 +1146,10 @@ function FocusableThumbsExample() {
         })}
       />
       <div className="flex flex-wrap gap-150">
-        <Button variant="secondary" onClick={() => thumbs.current[0]?.focus()}>
+        <Button severity="secondary" onClick={() => thumbs.current[0]?.focus()}>
           Focus minimum
         </Button>
-        <Button variant="secondary" onClick={() => thumbs.current[1]?.focus()}>
+        <Button severity="secondary" onClick={() => thumbs.current[1]?.focus()}>
           Focus maximum
         </Button>
       </div>

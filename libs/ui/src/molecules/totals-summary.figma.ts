@@ -19,8 +19,9 @@ const rows = instance
     id: `row-${index + 1}`,
     label: row.getString("label"),
     value: row.getString("value"),
-    emphasis: row.getEnum("emphasis", {
-      default: "default",
+    // Figma still names the row property emphasis; code reads severity.
+    severity: row.getEnum("emphasis", {
+      default: "neutral",
       discount: "discount",
     }),
     note: row.getBoolean("showNote") ? row.getString("note") : undefined,

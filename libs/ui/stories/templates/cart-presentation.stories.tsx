@@ -39,7 +39,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
         <StatusText role="status">Košík je prázdný.</StatusText>
         <Button
           ref={restoreRef}
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             focusRequest.current = "quantity"
             setRemoved(false)
@@ -126,7 +126,7 @@ function CartExample({ readOnly = false }: { readOnly?: boolean }) {
         }
         actions={
           readOnly ? undefined : reviewing ? (
-            <Button variant="secondary" onClick={() => setReviewing(false)}>
+            <Button severity="secondary" onClick={() => setReviewing(false)}>
               Upravit košík
             </Button>
           ) : (
@@ -296,7 +296,7 @@ function MultipleItemCart() {
       {removed.length > 0 && (
         <Button
           ref={restoreRef}
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             const title = removed[removed.length - 1]
             if (!title) return

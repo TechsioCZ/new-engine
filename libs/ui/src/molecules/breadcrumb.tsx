@@ -2,7 +2,7 @@
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.4
+ * @componentVersion v2.0.0
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,7 @@ import {
   type IconType,
 } from "../atoms/icon"
 import { Link, type LinkProps } from "../atoms/link"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const BreadcrumbVariants = tv({
@@ -74,7 +75,7 @@ const BreadcrumbVariants = tv({
     ellipsisIconSize: "",
   },
   variants: {
-    variant: {
+    appearance: {
       plain: {},
       underline: {
         link: "underline",
@@ -116,7 +117,7 @@ const BreadcrumbVariants = tv({
   },
   defaultVariants: {
     size: "md",
-    variant: "plain",
+    appearance: "plain",
   },
 })
 
@@ -125,7 +126,7 @@ export type BreadcrumbSize = NonNullable<
 >
 
 export type BreadcrumbVariant = NonNullable<
-  VariantProps<typeof BreadcrumbVariants>["variant"]
+  VariantProps<typeof BreadcrumbVariants>["appearance"]
 >
 
 type BreadcrumbContextValue = {
@@ -169,12 +170,17 @@ export function Breadcrumb({
   children,
   className,
   ref,
-  size,
-  variant,
+  size: sizeProp,
+  appearance: appearanceProp,
   "aria-label": ariaLabel = "breadcrumb",
   ...props
 }: BreadcrumbRootProps) {
-  const styles = BreadcrumbVariants({ size, variant })
+  const { size, appearance } = useUIDefaults(
+    "Breadcrumb",
+    { size: sizeProp, appearance: appearanceProp },
+    BreadcrumbVariants
+  )
+  const styles = BreadcrumbVariants({ size, appearance })
 
   return (
     <BreadcrumbContext.Provider value={{ styles }}>

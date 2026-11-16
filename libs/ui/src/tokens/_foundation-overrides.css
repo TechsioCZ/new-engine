@@ -166,7 +166,7 @@
   min-height: var(--height-form-control-lg);
 }
 
-/* Two-tone focus: at least one edge contrasts with both bright fills and dark
+/* Two-severity focus: at least one edge contrasts with both bright fills and dark
  * surfaces. Do not replace validation outlines while the control is resting. */
 :where(button, a, input, select, textarea, [tabindex], [data-part]):is(
   :focus-visible,

@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -36,6 +36,7 @@ import type { VariantProps } from "tailwind-variants"
 import { Icon, type IconType } from "../atoms/icon"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 export type TreeNode = {
@@ -265,12 +266,17 @@ type TreeViewRootProps = VariantProps<typeof treeViewVariants> &
 
 export function TreeView({
   data,
-  size,
+  size: sizeProp,
   selectionBehavior = "all",
   children,
   className,
   ...props
 }: TreeViewRootProps) {
+  const { size } = useUIDefaults(
+    "TreeView",
+    { size: sizeProp },
+    treeViewVariants
+  )
   const messages = useUiMessages()
   const generatedId = useId()
   const [machineProps, rootProps] = splitTreeProps(props)
@@ -854,7 +860,7 @@ TreeView.NodeIcon = function TreeViewNodeIcon({
       data-state={nodeState.expanded ? "open" : "closed"}
       {...props}
     >
-      <Icon icon={iconToShow} />
+      <Icon icon={iconToShow} size="current" />
     </span>
   )
 }

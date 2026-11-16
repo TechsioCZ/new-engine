@@ -2,7 +2,7 @@
  * Header — @techsio/ui-kit organism.
  *
  * @component Header
- * @componentVersion v1.3.0
+ * @componentVersion v2.0.0
  * @skill header-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,6 +27,7 @@ import {
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const headerVariants = tv({
@@ -184,13 +185,18 @@ type HeaderMobileProps = HTMLAttributes<HTMLDivElement> & {
 }
 
 export function Header({
-  size = "md",
+  size: sizeProp,
   direction = "horizontal",
   className,
   children,
   ref,
   ...props
 }: HeaderProps) {
+  const { size = "md" } = useUIDefaults(
+    "Header",
+    { size: sizeProp },
+    headerVariants
+  )
   const generatedMenuId = useId()
   const [mobileMenuId, setMobileMenuId] = useState(
     `${generatedMenuId}-mobile-menu`
@@ -475,8 +481,8 @@ Header.Hamburger = function HeaderHamburger({
         }
       }}
       size="current"
-      theme="unstyled"
       type="button"
+      unstyled
     />
   )
 }

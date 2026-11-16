@@ -4,7 +4,7 @@ description: >
   Use for nested page or category links with independently expandable and
   styled subgroups, standalone or inside Sidebar or Drawer.
 metadata:
-  component_version: "1.1.1"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -62,7 +62,7 @@ where actions and feedback live). This section applies them to `VerticalNavigati
 **Behaviour (from the UX spec)**
 
 - Keep three states apart: `current` (this page, `aria-current="page"`), `containsCurrent` (its ancestors) and an open branch (disclosure only). Opening a branch never changes the page.
-- `tone`, `variant`, `indent` and `showGuide` are visual only; never use them to mark the current page.
+- `appearance`, `severity`, `indent` and `showGuide` are visual only; never use them to mark the current page.
 - Render a Separator only between groups that are present.
 
 **Figma → code**
@@ -93,7 +93,7 @@ import { VerticalNavigation } from "@techsio/ui-kit/molecules/vertical-navigatio
           <VerticalNavigation.BranchIndicator />
         </VerticalNavigation.BranchTrigger>
       </VerticalNavigation.Row>
-      <VerticalNavigation.BranchContent tone="subtle">
+      <VerticalNavigation.BranchContent appearance="subtle">
         <VerticalNavigation.List>
           <VerticalNavigation.Item>
             <VerticalNavigation.Link href="/fasteners/bolts" current>
@@ -138,8 +138,8 @@ Root size is sm, md (default), or lg, with optional dir="rtl". Canonical control
 heights, typography, padding and indicator tokens scale together. Use sm for dense
 navigation and lg for prominent/touch-friendly navigation; section labels stay
 subordinate and subgroup surfaces stay flat.
-BranchContent and Group accept tone: plain (default), subtle, accent.
-With tone="accent", variant="primary" (default) or variant="secondary" selects
+BranchContent and Group accept appearance: plain (default), subtle, solid.
+With appearance="solid", severity="primary" (default) or severity="secondary" selects
 the brand color for that surface. Plain and subtle stay neutral regardless of
 variant. Variants do not inherit into nested groups or change current-link colors.
 Prefer a few intentionally colored groups over assigning a color to every depth.

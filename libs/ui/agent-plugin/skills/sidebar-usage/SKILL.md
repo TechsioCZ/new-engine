@@ -6,7 +6,7 @@ description: >-
 metadata:
   type: "core"
   component: "Sidebar"
-  component_version: "1.0.0"
+  component_version: "2.0.0"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux drawer-usage app-token-overrides ux-guidelines"
@@ -229,14 +229,14 @@ Accordion.
       <Sidebar.Pane
         aria-label="Workspace switcher"
         role="navigation"
-        size="rail"
+        paneSize="rail"
       >
         {/* icon-only destinations */}
       </Sidebar.Pane>
       <Sidebar.Pane
         aria-label="Selected workspace navigation"
         role="navigation"
-        size="content"
+        paneSize="content"
         visibility="expanded"
       >
         {/* links for the selected destination */}

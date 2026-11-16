@@ -8,7 +8,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "PriceBlock"
-  component_version: "1.0.1"
+  component_version: "1.0.2"
 requires:
   - component-usage-ux
   - app-token-overrides

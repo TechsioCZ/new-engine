@@ -289,8 +289,8 @@ function MediaLibraryPage() {
                 onClick={() => setView("grid")}
                 icon="icon-[mdi--view-grid-outline]"
                 size="sm"
-                theme={view === "grid" ? "solid" : "outlined"}
-                variant="secondary"
+                appearance={view === "grid" ? "solid" : "outline"}
+                severity="secondary"
               />
               <Button
                 aria-label="List view"
@@ -298,8 +298,8 @@ function MediaLibraryPage() {
                 onClick={() => setView("list")}
                 icon="icon-[mdi--view-list-outline]"
                 size="sm"
-                theme={view === "list" ? "solid" : "outlined"}
-                variant="secondary"
+                appearance={view === "list" ? "solid" : "outline"}
+                severity="secondary"
               />
             </div>
           </div>
@@ -318,8 +318,8 @@ function MediaLibraryPage() {
                 bulkDone(`Moved ${assetCount(selected.length)} to Campaigns`)
               }}
               size="sm"
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Move
             </Button>
@@ -335,8 +335,8 @@ function MediaLibraryPage() {
                 bulkDone(`Tagged ${assetCount(selected.length)} “autumn-2026”`)
               }}
               size="sm"
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Tag
             </Button>
@@ -344,8 +344,8 @@ function MediaLibraryPage() {
               icon="icon-[mdi--delete-outline]"
               onClick={() => setConfirmDelete(true)}
               size="sm"
-              theme="outlined"
-              variant="danger"
+              appearance="outline"
+              severity="danger"
             >
               Delete
             </Button>
@@ -356,8 +356,8 @@ function MediaLibraryPage() {
               <>
                 <Button
                   onClick={() => setConfirmDelete(false)}
-                  theme="outlined"
-                  variant="secondary"
+                  appearance="outline"
+                  severity="secondary"
                 >
                   Keep assets
                 </Button>
@@ -370,7 +370,7 @@ function MediaLibraryPage() {
                     setConfirmDelete(false)
                     bulkDone(`Deleted ${assetCount(count)}`)
                   }}
-                  variant="danger"
+                  severity="danger"
                 >
                   {`Delete ${assetCount(selected.length)}`}
                 </Button>
@@ -429,8 +429,8 @@ function MediaLibraryPage() {
                       setAltDraft(asset.alt)
                     }}
                     size="current"
-                    theme="unstyled"
-                    variant="secondary"
+                    unstyled
+                    severity="secondary"
                   >
                     <Image
                       alt={asset.alt}
@@ -458,17 +458,17 @@ function MediaLibraryPage() {
                       className="self-start"
                       key={tag}
                       size="sm"
-                      variant="info"
+                      severity="info"
                     >
                       {tag}
                     </Badge>
                   ))}
                   {asset.usedIn === 0 ? (
-                    <Badge className="self-start" size="sm" variant="warning">
+                    <Badge className="self-start" size="sm" severity="warning">
                       Unused
                     </Badge>
                   ) : (
-                    <Badge className="self-start" size="sm" variant="outline">
+                    <Badge className="self-start" size="sm" appearance="outline" severity="neutral">
                       {`Used in ${asset.usedIn}`}
                     </Badge>
                   )}
@@ -532,8 +532,8 @@ function MediaLibraryPage() {
           <>
             <Button
               onClick={() => setPreview(null)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Close
             </Button>
@@ -550,7 +550,7 @@ function MediaLibraryPage() {
                 toaster.create({ type: "success", title: "Alt text saved" })
                 setPreview(null)
               }}
-              variant="primary"
+              severity="primary"
             >
               Save
             </Button>

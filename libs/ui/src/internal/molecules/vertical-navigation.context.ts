@@ -3,8 +3,8 @@ import type { PropTypes } from "@zag-js/react"
 import { createContext, useContext } from "react"
 
 export type VerticalNavigationSize = "sm" | "md" | "lg"
-export type VerticalNavigationTone = "plain" | "subtle" | "accent"
-export type VerticalNavigationVariant = "primary" | "secondary"
+export type VerticalNavigationAppearance = "plain" | "subtle" | "solid"
+export type VerticalNavigationSeverity = "primary" | "secondary"
 
 export const VerticalNavigationContext = createContext<{
   size: VerticalNavigationSize

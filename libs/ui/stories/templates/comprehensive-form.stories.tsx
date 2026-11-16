@@ -56,6 +56,7 @@ const meta: Meta<FormArgs> = {
     readOnly: { control: "boolean" },
   },
   args: {
+    // Wrapper parts (Label, StatusText) read this size, so keep it explicit.
     size: "md",
     validateStatus: "default",
     disabled: false,
@@ -324,8 +325,8 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
         <Button
           type="button"
           size={size}
-          theme="outlined"
-          variant="secondary"
+          appearance="outline"
+          severity="secondary"
           disabled={disabled || readOnly}
           onClick={() => {
             setData(initialData)
@@ -338,7 +339,7 @@ function EnquiryForm({ size, validateStatus, disabled, readOnly }: FormArgs) {
         <Button
           type="submit"
           size={size}
-          variant="primary"
+          severity="primary"
           disabled={disabled || readOnly}
         >
           Send enquiry
@@ -661,27 +662,27 @@ function PopupLifecycleFixture() {
       </fieldset>
       <div className="flex flex-wrap gap-150">
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => setOwner((current) => (current === "a" ? "b" : "a"))}
         >
           Reassociate owner
         </Button>
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => setCancel((current) => !current)}
         >
           Toggle cancellation
         </Button>
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => setDisabled((current) => !current)}
         >
           Toggle ancestor disabled
         </Button>
-        <Button variant="secondary" type="reset" form={`${prefix}-a`}>
+        <Button severity="secondary" type="reset" form={`${prefix}-a`}>
           Reset owner a
         </Button>
-        <Button variant="secondary" type="reset" form={`${prefix}-b`}>
+        <Button severity="secondary" type="reset" form={`${prefix}-b`}>
           Reset owner b
         </Button>
       </div>

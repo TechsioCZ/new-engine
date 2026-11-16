@@ -52,7 +52,6 @@ const meta = {
   },
   args: {
     status: "error",
-    size: "md",
     align: "start",
     showIcon: true,
     children: "Enter a valid email address, such as mara@example.com.",
@@ -145,7 +144,7 @@ function ValidationField() {
         onBlur={(event) => setValid(event.currentTarget.validity.valid)}
         required
         type="email"
-        variant={valid ? "success" : "error"}
+        validateStatus={valid ? "success" : "error"}
       />
       <StatusText id="status-text-email-hint" size="md">We only send updates about this order.</StatusText>
       <StatusText id="status-text-email-message" size="md" status={valid ? "success" : "error"}>
@@ -203,7 +202,7 @@ function DescriptionLifecycleDemo() {
   const id = useId()
   const [showError, setShowError] = useState(true)
   const { describedById, registerDescription } = useDescribedBy()
-  return <div className="grid w-xs max-w-full gap-100"><Label htmlFor={id}>Email address</Label><Input id={id} aria-describedby={joinDescribedBy(`${id}-external`, describedById)} aria-invalid={showError || undefined} aria-errormessage={showError ? `${id}-error` : undefined} defaultValue="mara@" variant={showError ? "error" : undefined} /><span className="sr-only" id={`${id}-external`}>Billing contact.</span><RegisteredFeedback id={`${id}-hint`} register={registerDescription} />{showError && <RegisteredFeedback error id={`${id}-error`} register={registerDescription} />}<Button variant="secondary" size="sm" onClick={() => setShowError(!showError)}>{showError ? "Clear validation" : "Show validation"}</Button></div>
+  return <div className="grid w-xs max-w-full gap-100"><Label htmlFor={id}>Email address</Label><Input id={id} aria-describedby={joinDescribedBy(`${id}-external`, describedById)} aria-invalid={showError || undefined} aria-errormessage={showError ? `${id}-error` : undefined} defaultValue="mara@" validateStatus={showError ? "error" : undefined} /><span className="sr-only" id={`${id}-external`}>Billing contact.</span><RegisteredFeedback id={`${id}-hint`} register={registerDescription} />{showError && <RegisteredFeedback error id={`${id}-error`} register={registerDescription} />}<Button severity="secondary" size="sm" onClick={() => setShowError(!showError)}>{showError ? "Clear validation" : "Show validation"}</Button></div>
 }
 
 export const DescriptionLifecycle: Story = {

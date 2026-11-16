@@ -22,10 +22,10 @@ function TourSurface() {
           <Tour.Description />
           <Tour.ProgressText />
           <Tour.Actions>
-            <Tour.ActionTrigger action="skip" theme="borderless">
+            <Tour.ActionTrigger action="skip" appearance="ghost">
               Skip tour
             </Tour.ActionTrigger>
-            <Tour.ActionTrigger action="prev" theme="outlined">
+            <Tour.ActionTrigger action="prev" appearance="outline">
               Back
             </Tour.ActionTrigger>
             <Tour.Context>
@@ -84,7 +84,7 @@ function TourExample(props: Omit<TourRootProps, "children" | "steps">) {
       >
         <div className="flex flex-wrap items-center gap-200">
           <Tour.Trigger>Start tour</Tour.Trigger>
-          <Button ref={target} theme="outlined">
+          <Button ref={target} appearance="outline">
             Create project
           </Button>
         </div>
@@ -179,7 +179,7 @@ function LateTargetExample(props: Omit<TourRootProps, "children" | "steps">) {
         <Button
           disabled={visible}
           onClick={() => setVisible(true)}
-          theme="outlined"
+          appearance="outline"
         >
           Reveal target
         </Button>
@@ -257,10 +257,10 @@ function InteractiveWaitExample(
         steps={steps}
       >
         <Tour.Trigger>Start tour</Tour.Trigger>
-        <Button ref={target} theme="outlined">
+        <Button ref={target} appearance="outline">
           Connect account
         </Button>
-        <Button onClick={() => cancelEffect.current?.()} theme="outlined">
+        <Button onClick={() => cancelEffect.current?.()} appearance="outline">
           Cancel waiting
         </Button>
         <p>

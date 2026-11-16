@@ -193,7 +193,7 @@ export const ContextMenu: Story = {
 export const CustomTrigger: Story = {
   args: {
     customTrigger: (
-      <Button onClick={fn()} theme="outlined">
+      <Button onClick={fn()} appearance="outline">
         More project actions
       </Button>
     ),

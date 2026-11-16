@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -470,8 +470,8 @@ Gallery.Thumbnail = function GalleryThumbnail<
       onClick={handleClick}
       size="current"
       style={resolvedStyle}
-      theme="unstyled"
       type="button"
+      unstyled
       {...props}
     >
       {children ?? item.thumbnailContent ?? fallbackThumbnail}

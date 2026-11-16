@@ -28,8 +28,8 @@ important navigation step and promises a destination, never a submission.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=primary` … `danger` | `variant="primary" \| "secondary" \| "tertiary" \| "warning" \| "danger"` | Same hierarchy as Button: one primary per surface. `danger` only for navigation into a destructive flow (leave, cancel an order). |
-| `theme=solid` / `light` / `outlined` / `borderless` | same values | Emphasis only. There is no `ghost`; use `borderless`. |
+| `variant=primary` … `danger` | `severity="primary" \| "secondary" \| "tertiary" \| "warning" \| "danger"` | Same hierarchy as Button: one primary per surface. `danger` only for navigation into a destructive flow (leave, cancel an order). |
+| `theme=solid` / `light` / `outlined` / `borderless` | `appearance="solid" | "subtle" | "outline" | "ghost"` | Emphasis only. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` (default `md`) | Density only. |
 | `state=hover` | not a prop | A browser state; it navigates nowhere. |
 | `state=disabled` | `disabled` | Navigation blocked for a reason the user can find. The kit drops `href`, sets `aria-disabled`, removes it from the tab order and swallows clicks. |

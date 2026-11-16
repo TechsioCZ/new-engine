@@ -34,7 +34,7 @@ the panel on screen.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=default` / `line` / `solid` / `outline` | `variant="default" \| "line" \| "solid" \| "outline"` | Visual only; doesn't change which panels exist. |
+| `variant=default` / `line` / `solid` / `outline` | `appearance="underline" \| "line" \| "solid" \| "outline"` | Visual only; doesn't change which panels exist. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. |
 | `orientation=horizontal` / `vertical` | `orientation` | Vertical for settings groups or long names; order and meaning stay the same. |
 | `state=selected` | `value` / `defaultValue` | The panel actually shown. Hover never selects. Focus never selects in `manual`; in `automatic` (default) arrow keys select as they move focus. |

@@ -2,7 +2,7 @@
  * Steps — @techsio/ui-kit molecule.
  *
  * @component Steps
- * @componentVersion v1.3.0
+ * @componentVersion v2.0.0
  * @skill steps-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -35,6 +35,7 @@ import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
 import { Icon } from "../atoms/icon"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const stepsVariants = tv({
@@ -140,7 +141,7 @@ const stepsVariants = tv({
     nextTrigger: "",
   },
   variants: {
-    variant: {
+    appearance: {
       subtle: { item: "steps-connector-subtle" },
       solid: {
         item: "steps-connector-solid",
@@ -195,7 +196,7 @@ const stepsVariants = tv({
     },
   },
   defaultVariants: {
-    variant: "subtle",
+    appearance: "subtle",
     size: "md",
   },
 })
@@ -462,13 +463,18 @@ export type StepsProps = StepsRootSharedProps &
   }
 
 export function Steps({
-  size,
-  variant,
+  size: sizeProp,
+  appearance: appearanceProp,
   children,
   className,
   ref,
   ...props
 }: StepsProps) {
+  const { size, appearance } = useUIDefaults(
+    "Steps",
+    { size: sizeProp, appearance: appearanceProp },
+    stepsVariants
+  )
   const [machineProps, elementProps] = splitStepsProps(props)
   const api = useSteps({
     count: 1,
@@ -479,7 +485,7 @@ export function Steps({
   })
   const orientation = machineProps.orientation ?? "horizontal"
   const requestNavigationFocus = useNavigationFocus(api)
-  const styles = stepsVariants({ size, variant })
+  const styles = stepsVariants({ size, appearance })
   const rootProps = mergeProps(elementProps, api.getRootProps())
   const contentRegistry = useStepsContentRegistry()
 
@@ -507,14 +513,19 @@ type StepsRootProviderProps = StepsRootSharedProps & {
 
 Steps.RootProvider = function StepsRootProvider({
   value,
-  size,
-  variant,
+  size: sizeProp,
+  appearance: appearanceProp,
   children,
   className,
   ref,
   ...props
 }: StepsRootProviderProps) {
-  const styles = stepsVariants({ size, variant })
+  const { size, appearance } = useUIDefaults(
+    "Steps",
+    { size: sizeProp, appearance: appearanceProp },
+    stepsVariants
+  )
+  const styles = stepsVariants({ size, appearance })
   const requestNavigationFocus = useNavigationFocus(value)
   const resolvedOrientation = getOrientationFromApi(value)
   const rootProps = mergeProps(props, value.getRootProps())
@@ -686,8 +697,8 @@ Steps.Trigger = function StepsTrigger({
       className={styles.trigger({ className })}
       ref={ref}
       size="current"
-      theme="unstyled"
       type="button"
+      unstyled
       {...buttonProps}
       aria-controls={
         contentIndexes.has(index) ? buttonProps["aria-controls"] : undefined
@@ -758,6 +769,7 @@ Steps.Indicator = function StepsIndicator({
             <Icon
               className={styles.indicatorIcon()}
               icon="token-icon-steps-check"
+              size="current"
             />
           }
           current={<Steps.Number />}
@@ -1001,8 +1013,8 @@ Steps.PrevTrigger = function StepsPrevTrigger({
   className,
   ref,
   size,
-  theme = "outlined",
-  variant = "secondary",
+  appearance = "outline",
+  severity = "secondary",
   ...props
 }: StepsControlProps) {
   const {
@@ -1022,11 +1034,11 @@ Steps.PrevTrigger = function StepsPrevTrigger({
 
   return (
     <Button
+      appearance={appearance}
       className={styles.prevTrigger({ className })}
       ref={ref}
+      severity={severity}
       size={size ?? getControlSize(rootSize)}
-      theme={theme}
-      variant={variant}
       {...buttonProps}
       disabled={isDisabled}
       onClick={(event) => {
@@ -1045,8 +1057,8 @@ Steps.NextTrigger = function StepsNextTrigger({
   className,
   ref,
   size,
-  theme = "solid",
-  variant = "primary",
+  appearance = "solid",
+  severity = "primary",
   ...props
 }: StepsControlProps) {
   const {
@@ -1066,11 +1078,11 @@ Steps.NextTrigger = function StepsNextTrigger({
 
   return (
     <Button
+      appearance={appearance}
       className={styles.nextTrigger({ className })}
       ref={ref}
+      severity={severity}
       size={size ?? getControlSize(rootSize)}
-      theme={theme}
-      variant={variant}
       {...buttonProps}
       disabled={isDisabled}
       onClick={(event) => {

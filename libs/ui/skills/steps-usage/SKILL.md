@@ -6,7 +6,7 @@ description: >
   panels, progress, navigation triggers, linear flow, controlled step, and
   variants.
 metadata:
-  component_version: "1.3.0"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -79,7 +79,7 @@ where actions and feedback live). This section applies them to `Steps`.
 
 | Figma | Code |
 | --- | --- |
-| `variant=subtle\|solid`, `size=sm…lg` | same prop names and values |
+| `variant=subtle\|solid`, `size=sm…lg` | `appearance` (same values), `size` |
 | current / complete / default | `step` / `defaultStep`; complete = steps before the current one |
 | — | `linear`, `orientation` (not in Figma) |
 
@@ -117,7 +117,7 @@ Supported props:
 
 ```text
 count, step/defaultStep, linear, orientation horizontal | vertical
-variant: subtle | solid
+appearance: subtle | solid
 size: sm | md | lg
 onStepChange, onStepComplete
 RootProvider/useSteps for external store

@@ -69,7 +69,7 @@ const STATUS_VARIANT: Record<Person["status"], "success" | "info" | "danger"> = 
 }
 
 const StatusBadge = ({ status }: { status: Person["status"] }) => (
-  <Badge variant={STATUS_VARIANT[status]}>{status}</Badge>
+  <Badge severity={STATUS_VARIANT[status]}>{status}</Badge>
 )
 
 const columns: ColumnDef<Person>[] = [
@@ -130,7 +130,7 @@ const meta = {
   argTypes: {
     columns: { control: false },
     rowActions: { control: false },
-    variant: { control: "select", options: ["line", "outline", "striped"] },
+    appearance: { control: "select", options: ["line", "outline", "striped"] },
     size: { control: "select", options: ["sm", "md", "lg"] },
     stickyHeader: { control: "boolean" },
     striped: { control: "boolean" },
@@ -315,15 +315,15 @@ export const ToolbarActions: Story = {
         id: "refresh",
         "aria-label": "Refresh",
         icon: "icon-[mdi--refresh]",
-        theme: "outlined",
-        variant: "secondary",
+        appearance: "outline",
+        severity: "secondary",
         onClick: fn(),
       },
       {
         id: "export",
         label: "Export",
         icon: "icon-[mdi--tray-arrow-down]",
-        variant: "warning",
+        severity: "warning",
         onClick: fn(),
       },
       {
@@ -331,7 +331,7 @@ export const ToolbarActions: Story = {
         label: "Filtry",
         icon: "token-icon-chevron-down",
         iconPosition: "right",
-        variant: "secondary",
+        severity: "secondary",
         onClick: fn(),
       },
     ],
@@ -387,7 +387,7 @@ export const ToolbarActionsOnly: Story = {
         id: "export",
         label: "Export",
         icon: "icon-[mdi--tray-arrow-down]",
-        variant: "warning",
+        severity: "warning",
         onClick: fn(),
       },
     ],
@@ -448,7 +448,7 @@ export const RowActions: Story = {
         icon="token-icon-trash"
         onClick={() => onDeleteClick(row.original.id)}
         size="sm"
-        tone="danger"
+        severity="danger"
       />
     ),
   },
@@ -682,11 +682,11 @@ export const StripedRows: Story = {
   args: { ...base, striped: true },
 }
 
-/* ── 11b. Striped + outline (boolean composes with any variant) ──────────── */
+/* ── 11b. Striped + outline (boolean composes with any appearance) ──────────── */
 
 export const StripedOutlined: Story = {
   parameters: { docs: { description: { story: "Combine a restrained outer boundary with alternating rows for a dense standalone record panel." } } },
-  args: { ...base, striped: true, variant: "outline" },
+  args: { ...base, striped: true, appearance: "outline" },
 }
 
 /* ── 12. Infinite scroll / virtualization ────────────────────────────────── */
@@ -1850,7 +1850,7 @@ export const PerRowActionPermissions: Story = {
         id: "delete",
         label: "Delete",
         icon: "token-icon-trash",
-        tone: "danger",
+        severity: "danger",
         // Admins may not be deleted at all — hide rather than disable.
         hidden: (row) => row.original.role === "Admin",
         onAction: (row) => onDelete(row.original.id),
@@ -2036,7 +2036,7 @@ export const AsyncSaveRecovery: Story = {
         })
       }} />
       <div className="flex gap-100">
-        <Button disabled={!request} theme="outlined" onClick={() => request?.reject()}>Simulate save failure</Button>
+        <Button disabled={!request} appearance="outline" onClick={() => request?.reject()}>Simulate save failure</Button>
         <Button disabled={!request} onClick={() => request?.resolve()}>Complete save</Button>
       </div>
     </div>
@@ -2129,8 +2129,8 @@ export const ShrinkingServerTotal: Story = {
     return <div className="flex flex-col gap-200">
       <DataTable {...base} data={records.slice(pagination.pageIndex * pagination.pageSize, (pagination.pageIndex + 1) * pagination.pageSize)}
         enablePagination manualPagination rowCount={count} pagination={pagination} onPaginationChange={setPagination} pageSizeOptions={[2, 5, 10]} loading={loading} />
-      <Button theme="outlined" onClick={() => { setLoading(true); setCount(0) }}>Start refetch</Button>
-      <Button theme="outlined" onClick={() => { setCount(4); setLoading(false) }}>Delete last-page record</Button>
+      <Button appearance="outline" onClick={() => { setLoading(true); setCount(0) }}>Start refetch</Button>
+      <Button appearance="outline" onClick={() => { setCount(4); setLoading(false) }}>Delete last-page record</Button>
     </div>
   },
   play: async ({ canvasElement }) => {
@@ -2215,7 +2215,7 @@ export const InteractiveCellIsolation: Story = {
   parameters: { docs: { description: { story: "Buttons and prevented cell events do not also activate the surrounding clickable row." } } },
   args: {
     ...base, data: people.slice(0, 1), onRowClick: fn(),
-    columns: [{ accessorKey: "firstName", header: "First name" }, { id: "inspect", header: "Details", cell: () => <Button theme="outlined">Inspect person</Button> }],
+    columns: [{ accessorKey: "firstName", header: "First name" }, { id: "inspect", header: "Details", cell: () => <Button appearance="outline">Inspect person</Button> }],
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -2232,7 +2232,7 @@ export const SelectionEligibilityChanges: Story = {
     const [eligible, setEligible] = useState(true)
     return <div className="flex flex-col gap-200">
       <DataTable {...base} data={people.slice(0, 2)} enableRowSelection canSelectRow={() => eligible} />
-      <Button theme="outlined" onClick={() => setEligible(false)}>Revoke eligibility</Button>
+      <Button appearance="outline" onClick={() => setEligible(false)}>Revoke eligibility</Button>
     </div>
   },
   play: async ({ canvasElement }) => {
@@ -2259,7 +2259,7 @@ export const MeasuredFrozenColumns: Story = {
       { accessorKey: "email", header: "Email", meta: { width: 900 } },
       { accessorKey: "visits", header: "Visits", meta: { width: 120 } },
     ],
-    renderRowActions: () => <Button theme="outlined">Inspect</Button>,
+    renderRowActions: () => <Button appearance="outline">Inspect</Button>,
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
@@ -2315,7 +2315,7 @@ export const OverlayIsolation: Story = {
       <Textarea id="table-overlay-notes" defaultValue="Leave the parcel at the workshop reception." />
     </Dialog>
     <DataTable {...base} data={bigData} stickyHeader maxHeight="26rem"
-      renderRowActions={() => <Button theme="outlined">Inspect</Button>} />
+      renderRowActions={() => <Button appearance="outline">Inspect</Button>} />
   </div>,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)

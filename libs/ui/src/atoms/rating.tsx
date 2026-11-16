@@ -2,7 +2,7 @@
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.4.0
+ * @componentVersion v1.5.0
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -37,6 +37,7 @@ import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import type { UiMessages } from "../messages/ui-messages"
 import { definedEntries } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Label } from "./label"
 import { StatusText } from "./status-text"
@@ -262,13 +263,14 @@ export function Rating({
   validateStatus = "default",
   onChange,
   onHoverChange,
-  size = "md",
+  size: sizeProp,
   className,
   "aria-describedby": ariaDescribedBy,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
   ...props
 }: RatingProps) {
+  const { size = "md" } = useUIDefaults("Rating", { size: sizeProp }, rating)
   const readOnly = readOnlyProp || displayOnly
   const messages = useUiMessages()
   const zagTranslations = {

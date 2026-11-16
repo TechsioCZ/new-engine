@@ -111,7 +111,7 @@ const meta: Meta<typeof Steps> = {
       description: "Controlled active step index.",
       table: { category: "Behavior", defaultValue: { summary: "0" } },
     },
-    variant: {
+    appearance: {
       control: "radio",
       options: ["subtle", "solid"],
       description: "Visual emphasis style.",
@@ -145,9 +145,7 @@ const meta: Meta<typeof Steps> = {
   args: {
     linear: false,
     orientation: "horizontal",
-    size: "md",
     step: 0,
-    variant: "subtle",
   },
 }
 
@@ -180,7 +178,7 @@ export const Playground: Story = {
           orientation={args.orientation}
           size={args.size}
           step={step}
-          variant={args.variant}
+          appearance={args.appearance}
         >
           <Steps.List>
             {demoSteps.map((item, index) => (
@@ -200,7 +198,7 @@ export const Playground: Story = {
             {demoSteps.map((item, index) => (
               <Steps.Content index={index} key={item.title}>
                 <div className="flex flex-col gap-200">
-                  <Badge variant="outline">{item.badge}</Badge>
+                  <Badge appearance="outline" severity="neutral">{item.badge}</Badge>
                   <div className="flex flex-col gap-100">
                     <h3 className="text-md font-semibold text-fg-primary">
                       {item.title}
@@ -212,7 +210,7 @@ export const Playground: Story = {
             ))}
             <Steps.CompletedContent>
               <div className="flex flex-col gap-150">
-                <Badge variant="success">Complete</Badge>
+                <Badge severity="success">Complete</Badge>
                 <h3 className="text-md font-semibold text-fg-primary">
                   Ready for handoff
                 </h3>
@@ -279,7 +277,7 @@ export const Variants: Story = {
             count={demoSteps.length}
             defaultStep={1}
             size="md"
-            variant="subtle"
+            appearance="subtle"
           >
             <Steps.List>
               {demoSteps.map((item, index) => (
@@ -314,7 +312,7 @@ export const Variants: Story = {
             count={demoSteps.length}
             defaultStep={1}
             size="md"
-            variant="solid"
+            appearance="solid"
           >
             <Steps.List>
               {demoSteps.map((item, index) => (
@@ -365,7 +363,7 @@ export const Sizes: Story = {
             count={demoSteps.length}
             defaultStep={1}
             size="sm"
-            variant="subtle"
+            appearance="subtle"
           >
             <Steps.List>
               {demoSteps.map((item, index) => (
@@ -400,7 +398,7 @@ export const Sizes: Story = {
             count={demoSteps.length}
             defaultStep={1}
             size="md"
-            variant="subtle"
+            appearance="subtle"
           >
             <Steps.List>
               {demoSteps.map((item, index) => (
@@ -435,7 +433,7 @@ export const Sizes: Story = {
             count={demoSteps.length}
             defaultStep={1}
             size="lg"
-            variant="subtle"
+            appearance="subtle"
           >
             <Steps.List>
               {demoSteps.map((item, index) => (
@@ -484,7 +482,7 @@ export const Basic: Story = {
         count={demoSteps.length}
         defaultStep={1}
         size="md"
-        variant="subtle"
+        appearance="subtle"
       >
         <Steps.List>
           {demoSteps.map((item, index) => (
@@ -540,7 +538,7 @@ export const Controlled: Story = {
           onStepChange={(details) => setStep(details.step)}
           size="md"
           step={step}
-          variant="subtle"
+          appearance="subtle"
         >
           <Steps.List>
             {demoSteps.map((item, index) => (
@@ -636,7 +634,7 @@ export const Validation: Story = {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  variant={invalid ? "error" : "default"}
+                  validateStatus={invalid ? "error" : "default"}
                   aria-describedby={[hintId, invalid ? errorId : undefined]
                     .filter(Boolean)
                     .join(" ")}
@@ -660,7 +658,7 @@ export const Validation: Story = {
               <p>Your contact preferences are saved for this preview.</p>
             </Steps.CompletedContent>
             <Steps.Navigation className="justify-end">
-              <Steps.PrevTrigger variant="secondary">Back</Steps.PrevTrigger>
+              <Steps.PrevTrigger severity="secondary">Back</Steps.PrevTrigger>
               <Steps.NextTrigger
                 onClick={(event) => {
                   if (step === 1 && !valid) {
@@ -712,7 +710,7 @@ export const Vertical: Story = {
         defaultStep={1}
         orientation="vertical"
         size="md"
-        variant="subtle"
+        appearance="subtle"
       >
         <Steps.List>
           {demoSteps.map((item, index) => (
@@ -907,7 +905,7 @@ export const Description: Story = {
         count={demoSteps.length}
         defaultStep={1}
         size="md"
-        variant="subtle"
+        appearance="subtle"
       >
         <Steps.List>
           {demoSteps.map((item, index) => (
@@ -960,7 +958,7 @@ export const WithIcon: Story = {
         count={demoSteps.length}
         defaultStep={1}
         size="md"
-        variant="subtle"
+        appearance="subtle"
       >
         <Steps.List>
           {demoSteps.map((item, index) => (
@@ -1026,7 +1024,7 @@ export const Lines: Story = {
         count={demoSteps.length}
         defaultStep={1}
         size="md"
-        variant="subtle"
+        appearance="subtle"
       >
         <Steps.List className="gap-200">
           {demoSteps.map((item, index) => (
@@ -1087,7 +1085,7 @@ export const Trigger: Story = {
         defaultStep={1}
         linear
         size="md"
-        variant="subtle"
+        appearance="subtle"
       >
         <Steps.List>
           {demoSteps.map((item, index) => (

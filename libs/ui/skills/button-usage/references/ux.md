@@ -36,22 +36,22 @@ Before activating it, the user must know what it affects and what will happen.
 
 | Figma | Code | Meaning |
 | --- | --- | --- |
-| `variant=primary` | `variant="primary"` | The main next step of the current task. One per surface. |
-| `variant=secondary` | `variant="secondary"` | A supporting action that must stay clearly available. |
-| `variant=tertiary` | `variant="tertiary"` | A quieter related action, such as a neutral Cancel. Keep its name readable. |
-| `variant=warning` | `variant="warning"` | Risky but not destructive; the label explains the consequence. |
-| `variant=danger` | `variant="danger"` | Destructive or otherwise serious; the label names the object and the result. |
-| `theme=solid` | `theme="solid"` | Strongest emphasis. |
-| `theme=light` | `theme="light"` | Softer filled surface; still clearly a control. |
-| `theme=outlined` | `theme="outlined"` | Boundary without a solid fill; the border is never the only sign it's interactive. |
-| `theme=borderless` | `theme="borderless"` | Quiet, integrated action (what other kits call "ghost"). The context must still show it's a control. |
-| — | `theme="unstyled"` | Only inside another component's surface. |
+| `variant=primary` | `severity="primary"` | The main next step of the current task. One per surface. |
+| `variant=secondary` | `severity="secondary"` | A supporting action that must stay clearly available. |
+| `variant=tertiary` | `severity="tertiary"` | A quieter related action, such as a neutral Cancel. Keep its name readable. |
+| `variant=warning` | `severity="warning"` | Risky but not destructive; the label explains the consequence. |
+| `variant=danger` | `severity="danger"` | Destructive or otherwise serious; the label names the object and the result. |
+| `theme=solid` | `appearance="solid"` | Strongest emphasis. |
+| `theme=light` | `appearance="subtle"` | Softer filled surface; still clearly a control. |
+| `theme=outlined` | `appearance="outline"` | Boundary without a solid fill; the border is never the only sign it's interactive. |
+| `theme=borderless` | `appearance="ghost"` | Quiet, integrated action (formerly `theme="borderless"`). The context must still show it's a control. |
+| — | `unstyled` | Only inside another component's surface. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. A larger size doesn't change meaning, permission or state. `sm` never shrinks the target below what the task needs. |
 | `state=hover`, `focus`, `active` | not props | Produced by the browser. Hover never commits anything; focus is not a chosen value. |
 | `state=disabled` | `disabled` | Can't be used right now, for a reason the user can find. |
 | `state=loading` | `isLoading` + `loadingText` | A started, unfinished operation. Blocks a repeat; keeps focus and tab stop. |
 
-There is no `variant="ghost"` and no error Button.
+There is no `variant` prop and no error Button; the quiet look is `appearance="ghost"`.
 
 ## Behaviour
 
@@ -104,7 +104,7 @@ Full label table: [UX writing](../../ux-guidelines/references/ux-writing.md).
   fix, and the button doesn't pretend the save succeeded.
 - **Stock changed while adding to cart**: show the explanation and the current
   offer; an animation alone is not confirmation that the item was added.
-- **Removing access** uses `variant="danger"` and explains the impact first. A
+- **Removing access** uses `severity="danger"` and explains the impact first. A
   rejected request never switches the UI to "Removed". Danger is not used for
   merely closing a panel.
 

@@ -132,7 +132,6 @@ It keeps the visible input ergonomic for users, emits formatted phone details th
   args: {
     countries,
     defaultCountry: "SK",
-    size: "md",
     validateStatus: "default",
     disabled: false,
     readOnly: false,
@@ -940,7 +939,7 @@ export const ExternalFormReset: Story = {
           Reset phone
         </Button>
         <Button onClick={() => setOwner(owner === "first" ? "second" : "first")}>Reassociate phone</Button>
-        <Button theme="outlined" onClick={() => setCancelReset(!cancelReset)}>
+        <Button appearance="outline" onClick={() => setCancelReset(!cancelReset)}>
           Cancel reset: {cancelReset ? "on" : "off"}
         </Button>
       </div>

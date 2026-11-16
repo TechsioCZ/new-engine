@@ -92,7 +92,7 @@
 }
 
 /* Input is a standalone control elsewhere, but here its atom-level paint must
- * not create a second surface. Keep this unlayered: the shared two-tone focus
+ * not create a second surface. Keep this unlayered: the shared two-severity focus
  * rule is unlayered too, so a utility-only reset cannot suppress its inner halo.
  * Geometry and padding still come from the Combobox's size slots.
  * Command also renders zag's combobox parts, but its control has no surface and

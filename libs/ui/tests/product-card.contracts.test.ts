@@ -110,7 +110,7 @@ describe("ProductCard public contracts", () => {
       createElement(ProductCardTemplate, {
         badges: [
           {
-            variant: "info",
+            severity: "info",
             size: "lg",
             children: "Available",
             title: "Stock",
@@ -119,7 +119,7 @@ describe("ProductCard public contracts", () => {
             style: { opacity: 0.9 },
           },
           {
-            variant: "dynamic",
+            severity: "custom",
             size: "lg",
             children: "Offer",
             title: "Sale",

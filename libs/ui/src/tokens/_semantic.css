@@ -59,7 +59,7 @@
 /* === TAILWIND UTILITY VARIABLES === */
 @theme static {
   /* Colors */
-  /* User interface main tone and interactive colors, usually used for main operation button, etc */
+  /* User interface main severity and interactive colors, usually used for main operation button, etc */
   --color-primary: light-dark(var(--color-blue-300), var(--color-sky-300));
   --color-primary-hover: oklch(
     from var(--color-primary) calc(l + var(--state-hover)) c h

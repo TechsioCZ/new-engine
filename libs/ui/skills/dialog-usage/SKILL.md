@@ -5,7 +5,7 @@ description: >
   modal dialogs, alert dialogs, drawers, actions, focus management, placement,
   size, and close behavior backed by Zag.js.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -52,8 +52,8 @@ where actions and feedback live). This section applies them to `Dialog`.
 **Do**
 
 - Title = the action or record (`New product`, `Edit product`); destructive title = question (`Delete this product?`).
-- Put actions in the `actions` footer: `[Cancel] [Primary]`, bottom-right, one primary. Use `variant="tertiary" theme="outlined"` for neutral Cancel, never warning or secondary brand orange.
-- In destructive confirmations, focus Cancel first with `initialFocusEl`; reserve `variant="danger"` for the destructive action.
+- Put actions in the `actions` footer: `[Cancel] [Primary]`, bottom-right, one primary. Use `severity="tertiary" appearance="outline"` for neutral Cancel, never warning or secondary brand orange.
+- In destructive confirmations, focus Cancel first with `initialFocusEl`; reserve `severity="danger"` for the destructive action.
 - In an alertdialog the destructive button replaces the primary and repeats the verb + object (`Delete product`); the description names the record and consequences.
 - Ask before closing a dirty form (`Discard unsaved changes?`).
 - Size to the content: `sm` for confirmations, `md` for forms; right drawer for record CRUD.
@@ -95,7 +95,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
   role="alertdialog"
   title="Delete product?"
   description="This action cannot be undone."
-  actions={<Button variant="danger">Delete</Button>}
+  actions={<Button severity="danger">Delete</Button>}
 />
 ```
 
@@ -165,13 +165,13 @@ Source: libs/ui/src/molecules/dialog.tsx
 Wrong:
 
 ```tsx
-<Popover><Button variant="danger">Delete</Button></Popover>
+<Popover><Button severity="danger">Delete</Button></Popover>
 ```
 
 Correct:
 
 ```tsx
-<Dialog role="alertdialog" actions={<Button variant="danger">Delete</Button>} />
+<Dialog role="alertdialog" actions={<Button severity="danger">Delete</Button>} />
 ```
 
 ### HIGH Inline dialog sizing

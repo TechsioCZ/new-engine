@@ -22,13 +22,13 @@ import {
   type PaymentState,
 } from "./data"
 
-type BadgeVariant =
+type BadgeSeverity =
   | "success"
   | "warning"
   | "danger"
   | "info"
   | "secondary"
-  | "outline"
+  | "neutral"
 
 /**
  * Akros back-office frame. Pages pass the nav id they represent; the shell
@@ -70,36 +70,36 @@ export function AkrosShell({
 
 /* --------------------------------------------------------------- badges --- */
 
-const orderStates: Record<OrderState, [string, BadgeVariant]> = {
+const orderStates: Record<OrderState, [string, BadgeSeverity]> = {
   new: ["New", "info"],
   processing: ["Processing", "warning"],
   ready: ["Ready to ship", "info"],
   shipped: ["Shipped", "secondary"],
   delivered: ["Delivered", "success"],
-  cancelled: ["Cancelled", "outline"],
+  cancelled: ["Cancelled", "neutral"],
 }
 
 export function OrderStateBadge({ state }: { state: OrderState }) {
   const [label, variant] = orderStates[state]
   return (
-    <Badge size="sm" variant={variant}>
+    <Badge severity={variant} size="sm">
       {label}
     </Badge>
   )
 }
 
-const paymentStates: Record<PaymentState, [string, BadgeVariant]> = {
+const paymentStates: Record<PaymentState, [string, BadgeSeverity]> = {
   paid: ["Paid", "success"],
   unpaid: ["Unpaid", "warning"],
   pending: ["Awaiting gateway", "info"],
   failed: ["Payment failed", "danger"],
-  refunded: ["Refunded", "outline"],
+  refunded: ["Refunded", "neutral"],
 }
 
 export function PaymentBadge({ state }: { state: PaymentState }) {
   const [label, variant] = paymentStates[state]
   return (
-    <Badge size="sm" variant={variant}>
+    <Badge severity={variant} size="sm">
       {label}
     </Badge>
   )
@@ -134,8 +134,8 @@ export function PaymentCell({
         {unpaidOnline && (
           <>
             <Icon
-              color="danger"
               icon="icon-[mdi--credit-card-remove-outline]"
+              severity="danger"
               size="sm"
             />
             <span className="sr-only">Online payment not completed ·</span>
@@ -147,8 +147,8 @@ export function PaymentCell({
   )
 }
 
-const abraStates: Record<AbraState, [string, BadgeVariant, IconType]> = {
-  "not-sent": ["Not sent", "outline", "icon-[mdi--database-off-outline]"],
+const abraStates: Record<AbraState, [string, BadgeSeverity, IconType]> = {
+  "not-sent": ["Not sent", "neutral", "icon-[mdi--database-off-outline]"],
   queued: ["Queued", "info", "icon-[mdi--database-clock-outline]"],
   sent: ["In ABRA", "success", "icon-[mdi--database-check-outline]"],
   error: ["Transfer failed", "danger", "icon-[mdi--database-alert-outline]"],
@@ -168,7 +168,7 @@ export function AbraBadge({
     <span className="flex flex-col items-start gap-50">
       <span className="flex items-center gap-50">
         <Icon className="text-fg-secondary" icon={icon} size="sm" />
-        <Badge size="sm" variant={variant}>
+        <Badge severity={variant} size="sm">
           {label}
         </Badge>
       </span>
@@ -274,7 +274,7 @@ export function AbraOwned() {
     <Tooltip content="Managed in ABRA — edit it there, the next import overwrites the CMS">
       <span className="inline-flex items-center gap-50 text-fg-secondary">
         <Icon icon="icon-[mdi--lock-outline]" size="sm" />
-        <Badge size="sm" variant="outline">
+        <Badge appearance="outline" severity="neutral" size="sm">
           From ABRA
         </Badge>
       </span>

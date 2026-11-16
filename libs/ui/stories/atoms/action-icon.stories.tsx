@@ -24,7 +24,7 @@ const meta = {
       options: iconOptions,
     },
     size: { control: "select", options: ["sm", "md", "lg"] },
-    tone: { control: "select", options: ["neutral", "danger"] },
+    severity: { control: "select", options: ["neutral", "danger"] },
     "aria-label": { control: "text" },
     disabled: { control: "boolean" },
     ref: { table: { disable: true } },
@@ -32,8 +32,7 @@ const meta = {
   args: {
     icon: "token-icon-close",
     "aria-label": "Close details",
-    size: "md",
-    tone: "neutral",
+    severity: "neutral",
     onClick: fn(),
   },
 } satisfies Meta<typeof ActionIcon>
@@ -45,7 +44,7 @@ export const Playground: Story = {
     docs: {
       description: {
         story:
-          "Adjust the glyph, accessible name, tone and hit area while retaining native button behavior.",
+          "Adjust the glyph, accessible name, severity and hit area while retaining native button behavior.",
       },
     },
   },
@@ -56,7 +55,7 @@ export const Variants: Story = {
     docs: {
       description: {
         story:
-          "The same close glyph isolates neutral and destructive tone on a consistent interaction surface.",
+          "The same close glyph isolates neutral and destructive severity on a consistent interaction surface.",
       },
     },
   },
@@ -69,7 +68,7 @@ export const Variants: Story = {
         <ActionIcon
           aria-label="Discard draft"
           icon="token-icon-close"
-          tone="danger"
+          severity="danger"
         />
       </VariantGroup>
     </VariantContainer>

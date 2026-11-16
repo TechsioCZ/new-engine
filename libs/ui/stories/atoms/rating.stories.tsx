@@ -47,7 +47,6 @@ const meta: Meta<typeof Rating> = {
     labelText: "Rate your delivery",
     value: 3,
     count: 5,
-    size: "md",
     allowHalf: false,
     readOnly: false,
     disabled: false,
@@ -466,15 +465,15 @@ export const ChangingScale: Story = {
         <p className="text-sm text-fg-secondary">Score changes: {changes}</p>
         <div className="flex flex-wrap gap-150">
           <Button
-            variant="secondary"
+            severity="secondary"
             onClick={() => setShrinkOnFocus(true)}
           >
             Use three stars after focus moves
           </Button>
-          <Button variant="secondary" onClick={() => setAllowHalf(false)}>
+          <Button severity="secondary" onClick={() => setAllowHalf(false)}>
             Use whole stars
           </Button>
-          <Button variant="secondary" type="reset">
+          <Button severity="secondary" type="reset">
             Restore original score
           </Button>
         </div>

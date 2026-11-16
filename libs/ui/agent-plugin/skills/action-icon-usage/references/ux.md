@@ -37,8 +37,8 @@ users recognise: close, clear, edit, delete, copy, more. The name lives in
 | --- | --- | --- |
 | fixed close (✕) glyph | `icon` (any glyph) | Figma has one fixed ✕. In code the glyph is a prop; pick the one that matches the action. |
 | `size=sm` / `md` / `lg` | `size="sm" \| "md" \| "lg"` | Density only. Default `md`; prefer `lg` for standalone touch actions. `sm` never shrinks the target below what the task needs. |
-| `tone=neutral` | `tone="neutral"` | An ordinary action with no destructive result. |
-| `tone=danger` | `tone="danger"` | A destructive action. Put it last in the group; it still confirms or offers Undo. |
+| `tone=neutral` | `severity="neutral"` | An ordinary action with no destructive result. |
+| `tone=danger` | `severity="danger"` | A destructive action. Put it last in the group; it still confirms or offers Undo. |
 | `state=hover` | not a prop | Highlight only. It never confirms or runs anything. |
 | — | `disabled` | Can't be used right now. Removed from the tab order, so explain why elsewhere. |
 
@@ -57,7 +57,7 @@ The design file's `Table.IconButton` is this component.
   saves and never deletes.
 - A clear (✕) inside a field clears the value or the query, never the record
   behind it.
-- Delete uses `tone="danger"` and a trash glyph, and goes through a confirmation
+- Delete uses `severity="danger"` and a trash glyph, and goes through a confirmation
   or an Undo toast ([Feedback and actions](../../ux-guidelines/references/feedback-and-actions.md)).
 - Two neighbouring ActionIcons never share a glyph for different actions.
 

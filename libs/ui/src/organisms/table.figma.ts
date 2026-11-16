@@ -4,7 +4,8 @@
 
 import figma from "figma"
 
-const variant = figma.selectedInstance.getEnum("variant", {
+// Figma still names the property variant; code reads appearance.
+const appearance = figma.selectedInstance.getEnum("variant", {
   line: "line",
   outline: "outline",
   striped: "striped",
@@ -21,7 +22,7 @@ export default {
   example: figma.code`<Table${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}>
+  )}${figma.helpers.react.renderProp("appearance", appearance)}>
         <Table.Caption>Recent orders</Table.Caption>
         <Table.Header>
           <Table.Row>

@@ -9,8 +9,9 @@ const size = figma.selectedInstance.getEnum("size", {
   md: "md",
   lg: "lg",
 })
-const variant = figma.selectedInstance.getEnum("variant", {
-  default: "default",
+// Figma still names the property variant; code reads appearance.
+const appearance = figma.selectedInstance.getEnum("variant", {
+  default: "solid",
   outline: "outline",
 })
 const placement = figma.selectedInstance.getEnum("placement", {
@@ -36,8 +37,8 @@ export default {
   )}${figma.helpers.react.renderProp(
     "size",
     size
-  )}${figma.helpers.react.renderProp("variant", variant)}>
-        <Button size="sm" variant="secondary">
+  )}${figma.helpers.react.renderProp("appearance", appearance)}>
+        <Button size="sm" severity="secondary">
           Hover me
         </Button>
       </Tooltip>`,

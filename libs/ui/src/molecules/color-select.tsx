@@ -2,7 +2,7 @@
  * ColorSelect — @techsio/ui-kit molecule.
  *
  * @component ColorSelect
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill color-select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,7 @@ import { useChoiceFocusRecovery } from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
 import { useEffectiveDisabled } from "../internal/use-effective-disabled"
 import { useUiMessages } from "../messages/ui-messages-provider"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const colorSelectVariants = tv({
@@ -179,7 +180,7 @@ function getNextIndex(
 export const ColorSelect = ({
   colors,
   layout = "grid",
-  size = "md",
+  size: sizeProp,
   radius = "full",
   disabled: explicitDisabled,
   onColorClick,
@@ -192,6 +193,11 @@ export const ColorSelect = ({
   ...props
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: the swatch group keeps its label, selection and keyboard handling together.
 }: ColorSelectProps) => {
+  const { size = "md" } = useUIDefaults(
+    "ColorSelect",
+    { size: sizeProp },
+    colorSelectVariants
+  )
   const messages = useUiMessages()
   const resolvedLabel = label ?? messages.colorSelect.label
   const id = useId()

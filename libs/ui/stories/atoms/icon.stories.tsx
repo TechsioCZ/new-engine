@@ -33,7 +33,7 @@ const meta = {
       description: "System size scale; current inherits surrounding text size.",
       table: { defaultValue: { summary: "current" } },
     },
-    color: {
+    severity: {
       control: "select",
       options: [
         "current",
@@ -55,7 +55,7 @@ const meta = {
   args: {
     icon: "token-icon-home",
     size: "lg",
-    color: "current",
+    severity: "current",
     label: "Home",
   },
 } satisfies Meta<typeof Icon>
@@ -158,7 +158,7 @@ export const Colors: Story = {
                 className="flex min-w-0 flex-col items-center gap-150"
                 key={color}
               >
-                <Icon icon="token-icon-home" size="2xl" color={color} />
+                <Icon icon="token-icon-home" size="2xl" severity={color} />
                 <span className="text-fg-primary text-sm">{color}</span>
               </div>
             ))}
@@ -222,7 +222,7 @@ function IconGallery({
             className="shrink-0 whitespace-nowrap"
             disabled={!query}
             size="sm"
-            theme="outlined"
+            appearance="outline"
             onClick={() => {
               setQuery("")
               searchRef.current?.focus()
@@ -384,7 +384,7 @@ export const AccessibleMeaning: Story = {
             <Icon
               icon="token-icon-check-circle"
               size="lg"
-              color="success"
+              severity="success"
               label="In stock"
               className="self-start"
             />
@@ -395,7 +395,7 @@ export const AccessibleMeaning: Story = {
         </VariantGroup>
         <VariantGroup title="Decorative beside text">
           <span className="inline-flex items-center gap-100">
-            <Icon icon="token-icon-check-circle" size="lg" color="success" />
+            <Icon icon="token-icon-check-circle" size="lg" severity="success" />
             In stock
           </span>
         </VariantGroup>

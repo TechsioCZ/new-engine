@@ -2,7 +2,7 @@
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.3.0
+ * @componentVersion v1.4.0
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,6 +14,7 @@ import { Label } from "../atoms/label"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
@@ -35,7 +36,7 @@ export function FormNumericInput({
   validateStatus = "default",
   helpText,
   showHelpTextIcon = validateStatus !== "default",
-  size = "md",
+  size: sizeProp,
   required,
   requiredLabel,
   disabled,
@@ -45,6 +46,11 @@ export function FormNumericInput({
   children,
   ...numericInputProps
 }: FormNumericInputProps) {
+  const { size = "md" } = useUIDefaults(
+    "NumericInput",
+    { size: sizeProp },
+    { size: ["sm", "md", "lg"] }
+  )
   const generatedId = useId()
   // The label must point at the real input. Zag only uses our id for the
   // input when one is given, otherwise it generates `number-input:<id>:input`

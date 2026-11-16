@@ -2,7 +2,7 @@
  * Accordion — @techsio/ui-kit template.
  *
  * @component Accordion
- * @componentVersion v1.2.1
+ * @componentVersion v2.0.0
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -32,8 +32,6 @@ export function AccordionTemplate({
   headingLevel = 3,
   showIndicator = true,
   indicatorIcon = "token-icon-accordion-chevron",
-  variant = "default",
-  size = "md",
   shadow = "none",
   collapsible = true,
   multiple = false,
@@ -53,9 +51,7 @@ export function AccordionTemplate({
       onChange={onChange}
       ref={ref}
       shadow={shadow}
-      size={size}
       value={value}
-      variant={variant}
       {...accordionProps}
     >
       {items.map((item) => (

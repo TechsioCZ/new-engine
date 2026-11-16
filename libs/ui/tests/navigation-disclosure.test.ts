@@ -108,8 +108,8 @@ describe("bounded navigation state", () => {
     expect(html).not.toContain("href=")
     expect(html).not.toContain('aria-current="page"')
   })
-  it("gives minimal current pages a persistent non-color cue", () => {
-    expect(paginationVariants({ variant: "minimal" }).link()).toContain(
+  it("gives ghost current pages a persistent non-color cue", () => {
+    expect(paginationVariants({ appearance: "ghost" }).link()).toContain(
       "data-selected:underline"
     )
   })

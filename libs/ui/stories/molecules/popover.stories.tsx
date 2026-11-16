@@ -143,10 +143,10 @@ export const Controlled: Story = {
     return (
       <div className="flex flex-col items-center gap-200">
         <div className="flex gap-100">
-          <Button onClick={() => setOpen(true)} size="sm" variant="secondary">
+          <Button onClick={() => setOpen(true)} size="sm" severity="secondary">
             Open Popover
           </Button>
-          <Button onClick={() => setOpen(false)} size="sm" variant="secondary">
+          <Button onClick={() => setOpen(false)} size="sm" severity="secondary">
             Close Popover
           </Button>
         </div>
@@ -165,7 +165,7 @@ export const Controlled: Story = {
               className="mt-100"
               onClick={() => setOpen(false)}
               size="sm"
-              variant="secondary"
+              severity="secondary"
             >
               Close from inside
             </Button>
@@ -185,7 +185,7 @@ export const WithForm: Story = {
     return <div className="space-y-200"><PopoverTemplate trigger="Edit delivery contact" title="Delivery contact" description="Update the contact name for this order." open={open} onOpenChange={(details) => setOpen(details.open)}>
       <form className="mt-200 space-y-200" onSubmit={(event) => { event.preventDefault(); setSaved(true); setOpen(false) }}>
         <div className="space-y-100"><Label htmlFor={`${id}-name`} size="sm" required>Full name</Label><Input id={`${id}-name`} size="sm" defaultValue="Mara Nováková" required aria-describedby={`${id}-hint`} /><StatusText size="sm" id={`${id}-hint`}>Use the name shown on your delivery address.</StatusText></div>
-        <div className="flex justify-end gap-100"><Button onClick={() => setOpen(false)} size="sm" variant="secondary">Cancel</Button><Button size="sm" type="submit">Save contact</Button></div>
+        <div className="flex justify-end gap-100"><Button onClick={() => setOpen(false)} size="sm" severity="secondary">Cancel</Button><Button size="sm" type="submit">Save contact</Button></div>
       </form>
     </PopoverTemplate>{saved && <StatusText status="success">Delivery contact saved for this preview.</StatusText>}</div>
   },
@@ -294,7 +294,7 @@ export const AsyncContent: Story = {
             <div className="text-center">
               <Icon
                 className="mx-auto mb-100"
-                color="success"
+                severity="success"
                 icon="token-icon-check"
                 size="lg"
               />

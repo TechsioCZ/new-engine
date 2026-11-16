@@ -165,7 +165,7 @@ function NextLinkButton(props: NextLinkProps) {
 Correct:
 
 ```tsx
-<LinkButton as={NextLink} href="/account" variant="primary" theme="solid">
+<LinkButton as={NextLink} href="/account" severity="primary" appearance="solid">
   Account
 </LinkButton>
 ```

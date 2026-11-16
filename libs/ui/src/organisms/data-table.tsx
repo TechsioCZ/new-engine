@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v1.5.0
+ * @componentVersion v2.0.0
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -87,6 +87,7 @@ import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { SearchForm } from "../molecules/search-form"
 import type { SelectItem } from "../molecules/select"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import {
   columnLabel,
@@ -247,7 +248,7 @@ const dataTableVariants = tv({
   },
   variants: {
     /**
-     * `variant="outline"` draws its border on the wrapper rather than on the
+     * `appearance="outline"` draws its border on the wrapper rather than on the
      * `<table>`, so the toolbar and pagination bar sit inside the same rounded
      * card instead of the table alone being outlined.
      */
@@ -733,7 +734,7 @@ export type DataTableRowAction<T extends RowData> = {
   id: string
   label: string
   icon: IconType
-  tone?: "neutral" | "danger"
+  severity?: "neutral" | "danger"
   /** Omit the action entirely for this row. */
   hidden?: (row: Row<T>) => boolean
   /** Render the action but block it for this row. */
@@ -850,10 +851,10 @@ export type DataTableProps<T extends RowData> = {
   ref?: Ref<HTMLDivElement>
 
   /* Presentation (passed through to the Table organism) */
-  variant?: "line" | "outline" | "striped"
+  appearance?: "line" | "outline" | "striped"
   /**
-   * Zebra-stripe body rows. Independent of `variant`, so striping composes
-   * with `variant="outline"`. Equivalent to `variant="striped"` — DataTable
+   * Zebra-stripe body rows. Independent of `appearance`, so striping composes
+   * with `appearance="outline"`. Equivalent to `appearance="striped"` — DataTable
    * routes both through this prop's own row-index-based coloring rather than
    * `Table`'s `odd:`/`even:` implementation, which drifts under
    * `enableVirtualization` (a row's DOM sibling position, not its logical
@@ -1785,8 +1786,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     id: idProp,
     className,
     ref,
-    variant = "line",
-    size = "md",
+    appearance: appearanceProp,
+    size: sizeProp,
     stickyHeader,
     interactive,
     showColumnBorder,
@@ -1877,6 +1878,11 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     canSelectRow,
     onSelectionLimitReached,
   } = props
+  const { appearance = "line", size = "md" } = useUIDefaults(
+    "DataTable",
+    { appearance: appearanceProp, size: sizeProp },
+    { appearance: ["line", "outline", "striped"], size: ["sm", "md", "lg"] }
+  )
 
   /*
    * Undefined entries are dropped rather than spread over the defaults.
@@ -1900,13 +1906,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const [tableDragPlugins] = useState(() =>
     createTableDragPlugins(buildTableDragAccessibility(dragMessages))
   )
-  const outlined = variant === "outline"
-  // `variant="striped"` forwards to the `Table` organism, which stripes via
+  const outlined = appearance === "outline"
+  // `appearance="striped"` forwards to the `Table` organism, which stripes via
   // `odd:`/`even:` DOM-sibling pseudo-classes — the same drift bug fixed
   // above for the `striped` boolean's rowIndex-based coloring. Route both
   // spellings through the one correct implementation instead of letting a
   // consumer pick the broken one.
-  const effectiveStriped = striped || variant === "striped"
+  const effectiveStriped = striped || appearance === "striped"
   const styles = dataTableVariants({
     outlined,
     fixedLayout: tableLayout === "fixed",
@@ -3543,6 +3549,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return (
         <>
           <Button
+            appearance="outline"
             aria-label={translations.cancelEditLabel}
             disabled={savePending}
             icon="token-icon-close"
@@ -3550,9 +3557,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               event.stopPropagation()
               cancelEdit()
             }}
+            severity="secondary"
             size={size}
-            theme="outlined"
-            variant="secondary"
           />
           <Button
             aria-describedby={
@@ -3566,8 +3572,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               event.stopPropagation()
               commitEdit()
             }}
+            severity="primary"
             size={size}
-            variant="primary"
           />
         </>
       )
@@ -3584,8 +3590,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           e.stopPropagation()
           startEdit(row)
         }}
+        severity="neutral"
         size={size}
-        tone="neutral"
       />
     )
   }
@@ -3651,6 +3657,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       <div className={styles.actionsCell()} data-part="actions-cell-content">
         {enableExpanding && row.getCanExpand() ? (
           <Button
+            appearance="ghost"
             aria-controls={expandAriaControls(row.id)}
             aria-expanded={row.getIsExpanded()}
             aria-label={
@@ -3675,14 +3682,14 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
               }
               row.getToggleExpandedHandler()()
             }}
+            severity="secondary"
             size="sm"
-            theme="borderless"
-            variant="secondary"
           />
         ) : null}
         {rowActions?.map((action) =>
           action.hidden?.(row) ? null : (
             <Button
+              appearance="ghost"
               aria-label={action.label}
               // `locked`, not `isEditing`: with
               // `lockInteractionsWhileEditing={false}` the caller has opted
@@ -3695,9 +3702,8 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                 e.stopPropagation()
                 action.onAction(row)
               }}
+              severity={action.severity === "danger" ? "danger" : "secondary"}
               size="sm"
-              theme="borderless"
-              variant={action.tone === "danger" ? "danger" : "secondary"}
             />
           )
         )}
@@ -4130,15 +4136,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const tableEl = (
     <FieldTableLayoutContext.Provider value={tableLayout}>
       <Table
+        // Never forward "striped" to Table — its own odd:/even: implementation
+        // is the broken one `effectiveStriped` is routing around.
+        appearance={outlined || appearance === "striped" ? "line" : appearance}
         aria-busy={loading || loadingMore || invalidPage || undefined}
         aria-rowcount={accessibleRowCount}
         interactive={(interactive || !!onRowClick) && !locked}
         showColumnBorder={showColumnBorder}
         size={size}
         stickyHeader={stickyHeader}
-        // Never forward "striped" to Table — its own odd:/even: implementation
-        // is the broken one `effectiveStriped` is routing around.
-        variant={outlined || variant === "striped" ? "line" : variant}
         {...slotProps?.root}
         style={{
           tableLayout,
@@ -4480,9 +4486,9 @@ DataTable.ColumnVisibility = function DataTableColumnVisibility() {
         <Button
           aria-label={translations.columnsLabel}
           icon="icon-[mdi--cog-outline]"
+          severity="primary"
           size="sm"
           title={translations.columnsLabel}
-          variant="primary"
         />
       }
       items={items}
@@ -4622,6 +4628,7 @@ DataTable.Pagination = function DataTablePagination() {
         {pager.unknownTotal ? (
           <>
             <Button
+              appearance="outline"
               aria-disabled={paginationBusy || undefined}
               disabled={locked || pager.pageIndex === 0}
               onClick={() => {
@@ -4629,13 +4636,13 @@ DataTable.Pagination = function DataTablePagination() {
                   table.previousPage()
                 }
               }}
+              severity="secondary"
               size={size}
-              theme="outlined"
-              variant="secondary"
             >
               {translations.previousPageLabel}
             </Button>
             <Button
+              appearance="outline"
               aria-disabled={paginationBusy || undefined}
               disabled={locked || !pager.canNext}
               onClick={() => {
@@ -4643,9 +4650,8 @@ DataTable.Pagination = function DataTablePagination() {
                   table.nextPage()
                 }
               }}
+              severity="secondary"
               size={size}
-              theme="outlined"
-              variant="secondary"
             >
               {translations.nextPageLabel}
             </Button>

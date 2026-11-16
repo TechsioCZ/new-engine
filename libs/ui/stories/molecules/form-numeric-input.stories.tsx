@@ -119,7 +119,6 @@ const meta: Meta<typeof FormNumericInput> = {
   args: {
     label: "Quantity",
     helpText: "Enter a value between 0 and 100",
-    size: "md",
     validateStatus: "default",
     showHelpTextIcon: true,
     disabled: false,
@@ -801,7 +800,7 @@ export const ControlledDraft: Story = {
         <p data-testid="form-committed-value">Committed: {committedValue}</p>
         <p data-testid="form-numeric-value">Numeric: {String(numericValue)}</p>
         <div className="flex flex-wrap gap-100">
-          <Button onClick={() => setRejected(true)} variant="secondary">
+          <Button onClick={() => setRejected(true)} severity="secondary">
             Reject draft
           </Button>
           <Button
@@ -809,7 +808,7 @@ export const ControlledDraft: Story = {
               setValue("2")
               setRejected(false)
             }}
-            theme="outlined"
+            appearance="outline"
           >
             Reset from parent
           </Button>
@@ -853,10 +852,10 @@ export const CallerOwnedError: Story = {
             <NumericInput.Input />
           </NumericInput.Control>
         </FormNumericInput>
-        <Button onClick={() => setLocalError(false)} variant="secondary">
+        <Button onClick={() => setLocalError(false)} severity="secondary">
           Clear field validation
         </Button>
-        <Button onClick={() => setCallerError(false)} variant="secondary">
+        <Button onClick={() => setCallerError(false)} severity="secondary">
           Clear caller error
         </Button>
       </div>

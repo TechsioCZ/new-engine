@@ -154,7 +154,7 @@ export const UpdateExample: Story = {
             {toastId && (
               <Button
                 size="sm"
-                variant="secondary"
+                severity="secondary"
                 onClick={() => {
                   const nextStep = step + 1
                   setStep(nextStep)
@@ -241,7 +241,7 @@ export const RemoveVsDismiss: Story = {
               {toastIds.instant && (
                 <Button
                   size="sm"
-                  variant="danger"
+                  severity="danger"
                   onClick={() => {
                     toaster.remove(toastIds.instant!)
                     setToastIds((prev) => ({ ...prev, instant: null }))
@@ -272,7 +272,7 @@ export const RemoveVsDismiss: Story = {
               {toastIds.animated && (
                 <Button
                   size="sm"
-                  variant="warning"
+                  severity="warning"
                   onClick={() => {
                     toaster.dismiss(toastIds.animated!)
                     setToastIds((prev) => ({ ...prev, animated: null }))
@@ -335,7 +335,7 @@ export const PauseResumeExample: Story = {
             {toastId && (
               <Button
                 size="sm"
-                variant="secondary"
+                severity="secondary"
                 onClick={() => {
                   if (isPaused) {
                     toaster.resume(toastId)
@@ -414,7 +414,7 @@ export const BatchOperations: Story = {
               <>
                 <Button
                   size="sm"
-                  variant="secondary"
+                  severity="secondary"
                   onClick={() => {
                     toastIds.forEach((id) => toaster.pause(id))
                   }}
@@ -424,7 +424,7 @@ export const BatchOperations: Story = {
 
                 <Button
                   size="sm"
-                  variant="secondary"
+                  severity="secondary"
                   onClick={() => {
                     toastIds.forEach((id) => toaster.resume(id))
                   }}
@@ -434,7 +434,7 @@ export const BatchOperations: Story = {
 
                 <Button
                   size="sm"
-                  variant="danger"
+                  severity="danger"
                   onClick={() => {
                     toastIds.forEach((id) => toaster.remove(id))
                     setToastIds([])
@@ -535,7 +535,7 @@ export const WithAction: Story = {
     return (
       <div className="flex flex-col gap-200">
         <Button
-          variant="secondary"
+          severity="secondary"
           onClick={() => {
             setRestored(false)
             toaster.create({
@@ -602,8 +602,8 @@ export const PersistentLoading: Story = {
           Prepare export
         </Button>
         <Button
-          variant="secondary"
-          theme="outlined"
+          severity="secondary"
+          appearance="outline"
           disabled={!id}
           onClick={() => {
             if (id)

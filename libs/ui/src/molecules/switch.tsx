@@ -2,7 +2,7 @@
  * Switch — @techsio/ui-kit molecule.
  *
  * @component Switch
- * @componentVersion v1.3.1
+ * @componentVersion v1.4.0
  * @skill switch-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,6 +30,7 @@ import {
   useChoiceInputRef,
 } from "../internal/choice-control"
 import { joinDescribedBy } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 
 const switchChoiceMachine: typeof machine = {
@@ -157,7 +158,7 @@ export function Switch({
   "aria-labelledby": ariaLabelledBy,
   id,
   "aria-describedby": ariaDescribedBy,
-  size = "md",
+  size: sizeProp,
   name,
   value,
   checked,
@@ -174,6 +175,11 @@ export function Switch({
   helpText,
   showHelpTextIcon = true,
 }: SwitchProps) {
+  const { size = "md" } = useUIDefaults(
+    "Switch",
+    { size: sizeProp },
+    switchVariants
+  )
   const generatedId = useId()
   const uniqueId = id || generatedId
   const helpTextId = useId()

@@ -414,7 +414,7 @@ function CrudPage() {
             icon="icon-[mdi--plus]"
             onClick={openCreate}
             size="sm"
-            variant="primary"
+            severity="primary"
           >
             New product
           </Button>
@@ -471,7 +471,7 @@ function CrudPage() {
               id: "delete",
               label: "Delete",
               icon: "icon-[mdi--delete-outline]",
-              tone: "danger",
+              severity: "danger",
               onAction: (row) => {
                 deleteOrigin.current = document.activeElement as HTMLElement
                 deleteFocus.current = deleteOrigin.current
@@ -490,12 +490,12 @@ function CrudPage() {
           <>
             <Button
               onClick={() => setFormOpen(false)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
-            <Button onClick={submitForm} variant="primary">
+            <Button onClick={submitForm} severity="primary">
               {editingId ? "Save changes" : "Create product"}
             </Button>
           </>
@@ -530,7 +530,7 @@ function CrudPage() {
                 openEdit(detail)
                 setDetail(null)
               }}
-              variant="primary"
+              severity="primary"
             >
               Edit product
             </Button>
@@ -576,12 +576,12 @@ function CrudPage() {
           <>
             <Button
               onClick={() => setPendingDelete(null)}
-              theme="outlined"
-              variant="secondary"
+              appearance="outline"
+              severity="secondary"
             >
               Cancel
             </Button>
-            <Button onClick={confirmDelete} variant="danger">
+            <Button onClick={confirmDelete} severity="danger">
               Delete product
             </Button>
           </>

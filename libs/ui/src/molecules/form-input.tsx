@@ -2,7 +2,7 @@
  * FormInput — @techsio/ui-kit molecule.
  *
  * @component FormInput
- * @componentVersion v1.2.0
+ * @componentVersion v2.0.0
  * @skill form-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -14,6 +14,7 @@ import { Input, type InputProps } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText, type StatusTextProps } from "../atoms/status-text"
 import { joinDescribedBy } from "../internal/described-by"
+import { useUIDefaults } from "../theme/ui-provider"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
@@ -37,7 +38,7 @@ export function FormInputRaw({
   validateStatus = "default",
   helpText,
   showHelpTextIcon,
-  size = "md",
+  size: sizeProp,
   required,
   requiredLabel,
   disabled,
@@ -46,6 +47,11 @@ export function FormInputRaw({
   "aria-errormessage": ariaErrorMessage,
   ...props
 }: FormInputProps) {
+  const { size = "md" } = useUIDefaults(
+    "Input",
+    { size: sizeProp },
+    { size: ["sm", "md", "lg"] }
+  )
   const generatedId = useId()
   const generatedMessageId = useId()
   const controlId = id || generatedId
@@ -97,7 +103,7 @@ export function FormInputRaw({
         id={controlId}
         required={required}
         size={size}
-        variant={status === "default" ? props.variant : status}
+        validateStatus={status}
       />
       {hasHelpText &&
         (suppliedMessage ? (

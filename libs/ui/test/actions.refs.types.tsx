@@ -117,7 +117,7 @@ export function actionRefConsumerContract() {
         borderColor="black"
         fgColor="black"
         ref={span}
-        variant="dynamic"
+        severity="custom"
       >
         Ready
       </Badge>

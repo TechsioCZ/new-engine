@@ -5,7 +5,7 @@ description: >
   prominent single-choice cards with Zag.js radio behavior, label, item,
   hidden input, control, text, description, addon, indicator, and status text.
 metadata:
-  component_version: "1.1.5"
+  component_version: "2.0.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -80,7 +80,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 ## Setup
 
 ```tsx
-<RadioCard name="shipping" defaultValue="standard" variant="outline">
+<RadioCard name="shipping" defaultValue="standard" appearance="outline">
   <RadioCard.Label>Shipping method</RadioCard.Label>
   <RadioCard.Item value="standard">
     <RadioCard.ItemHiddenInput />
@@ -98,7 +98,7 @@ Full UX page (anatomy, states, behaviour, edge cases): [references/ux.md](refere
 Supported props:
 
 ```text
-variant: outline | subtle | solid
+appearance: outline | subtle | solid
 size: sm | md | lg
 itemOrientation: horizontal | vertical
 align: start | center | end
@@ -244,7 +244,7 @@ Wrong:
 Correct:
 
 ```tsx
-<RadioCard variant="subtle"><RadioCard.Item value="pro" /></RadioCard>
+<RadioCard appearance="subtle"><RadioCard.Item value="pro" /></RadioCard>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_radio-card.css
@@ -257,7 +257,7 @@ Checked outline hover states promote descriptions and addon text to the full-con
 
 ```sh
 rg -U -P -n "onClick=.*set.*(Plan|Method)|<RadioCard\\.Item(?![\\s\\S]{0,300}<RadioCard\\.ItemHiddenInput)" apps
-rg -n "<RadioCard[^>]*variant=\"(primary|outlined)\"|<RadioCard[^>]*className=.*(border-|bg-|p-)" apps
+rg -n "<RadioCard[^>]*(variant=|appearance=\"(primary|outlined)\")|<RadioCard[^>]*className=.*(border-|bg-|p-)" apps
 rg -n "<RadioCard[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
 
