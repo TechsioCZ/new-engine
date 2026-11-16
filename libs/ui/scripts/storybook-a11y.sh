@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Build Storybook, serve it, and scan every supported brand/mode pair. Extra arguments are forwarded to test-storybook (for example
+# Build Storybook, serve it, and scan every supported brand/mode pair. One CI job scans one theme (A11Y_THEME) and one Jest shard
+# (A11Y_SHARD); what that shard scanned is recorded next to its report and scripts/verify-a11y-shards.mjs asserts coverage and the
+# calibration contract over the theme's shards together. Extra arguments are forwarded to test-storybook (for example
 # `--testTimeout 90000`). The test timeout defaults to the Jest config value.
 set -euo pipefail
 
@@ -13,7 +15,30 @@ case "${REPORT_DIR}" in
 esac
 FAIL_ON_VIOLATIONS="${A11Y_REPORT_FAIL_ON_VIOLATIONS:-true}"
 case "$FAIL_ON_VIOLATIONS" in true|false) ;; *) echo "A11Y_REPORT_FAIL_ON_VIOLATIONS must be true or false" >&2; exit 1 ;; esac
+# CI passes the workflow's `workers` input; the local default keeps a laptop usable.
 WORKERS="${A11Y_TEST_WORKERS:-2}"
+[[ "${WORKERS}" =~ ^[1-9][0-9]*$ ]] || { echo "A11Y_TEST_WORKERS must be a positive integer, got '${WORKERS}'" >&2; exit 1; }
+# Jest splits the scan by suite: one shard per job, "index/total".
+SHARD="${A11Y_SHARD:-1/1}"
+[[ "${SHARD}" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]] || { echo "A11Y_SHARD must be index/total, got '${SHARD}'" >&2; exit 1; }
+[ "${SHARD%%/*}" -le "${SHARD##*/}" ] || { echo "A11Y_SHARD index exceeds its shard count: ${SHARD}" >&2; exit 1; }
+# full and all scan every story. Any other scope narrows the scan to the suites the changed files can reach; without a usable list
+# the scan falls back to everything, which is the classifier's own posture.
+SCOPE="${A11Y_SCOPE:-full}"
+CHANGED_FILES="${A11Y_CHANGED_FILES_FROM:-}"
+case "${SCOPE}" in
+  full|all|"") SCOPE=full ;;
+  *)
+    if [ -n "${CHANGED_FILES}" ] && [ -f "${CHANGED_FILES}" ]; then
+      SCOPE=changed
+    else
+      echo "Scope ${SCOPE} has no changed-file list at '${CHANGED_FILES}'; scanning every story."
+      SCOPE=full
+    fi
+    ;;
+esac
+SHARDS_SCRIPT="${ROOT_DIR}/scripts/verify-a11y-shards.mjs"
+INDEX_JSON="${ROOT_DIR}/storybook-static/index.json"
 
 mkdir -p "${REPORT_ROOT}"
 # The reporter appends to NDJSON, so each invocation needs fresh output.
@@ -63,17 +88,30 @@ if [ -n "${A11Y_THEME:-}" ]; then
   THEME_MATRIX="$(printf '%s\n' "$THEME_MATRIX" | awk -v want="${A11Y_THEME}" '$1"-"$2 == want')"
   [ -n "$THEME_MATRIX" ] || { echo "Unsupported A11Y_THEME: ${A11Y_THEME}" >&2; exit 1; }
 fi
+# A11Y_THEME_COUNT is already checked against the supported matrix above; without it the matrix itself is the count.
+THEME_COUNT="${A11Y_THEME_COUNT:-$(printf '%s\n' "$THEME_MATRIX" | wc -l | tr -d ' ')}"
 while read -r brand mode; do
   theme="${brand}-${mode}"
   THEME_DIR="${RUN_REPORT_ROOT}/${theme}"
   mkdir -p "${THEME_DIR}"
+  # Declares the stories this theme must cover and prints a Jest path pattern for a narrowed scan.
+  PLAN_ARGS=(--plan --index "${INDEX_JSON}" --out "${THEME_DIR}" --theme "${theme}" \
+    --shard "${SHARD}" --theme-count "${THEME_COUNT}" --scope "${SCOPE}")
+  if [ "${SCOPE}" = "changed" ]; then
+    PLAN_ARGS+=(--changed-files "${CHANGED_FILES}")
+  fi
+  PATTERN="$(node "${SHARDS_SCRIPT}" "${PLAN_ARGS[@]}")"
+  RUN_ARGS=(--url "http://127.0.0.1:${PORT}" --config-dir .storybook --index-json --json \
+    --maxWorkers "${WORKERS}" --shard "${SHARD}")
+  if [ -n "${PATTERN}" ]; then
+    RUN_ARGS+=("${PATTERN}")
+  fi
+  # --json puts Jest's machine-readable result on stdout and leaves every human message on stderr, so the log keeps the failures
+  # and the report keeps the list of stories this shard ran.
+  JEST_STDOUT="${THEME_DIR}/jest-stdout.log"
   A11Y_STORYBOOK_BRAND="${brand}" A11Y_STORYBOOK_MODE="${mode}" A11Y_REPORT_OUTPUT_DIR="${THEME_DIR}" \
-    pnpm -C "${ROOT_DIR}" exec test-storybook \
-    --url "http://127.0.0.1:${PORT}" \
-    --config-dir .storybook \
-    --index-json \
-    --maxWorkers "${WORKERS}" \
-    "$@" || STATUS=1
+    pnpm -C "${ROOT_DIR}" exec test-storybook "${RUN_ARGS[@]}" "$@" \
+    > "${JEST_STDOUT}" || STATUS=1
 
   REPORT_INPUT="${THEME_DIR}/report.ndjson"
   if [ ! -f "${REPORT_INPUT}" ]; then
@@ -83,19 +121,17 @@ while read -r brand mode; do
     node "${ROOT_DIR}/scripts/storybook-a11y-summary.mjs" \
       --input "${REPORT_INPUT}" \
       --output "${THEME_DIR}/summary.md" || STATUS=1
-  else
+  elif [ "${SCOPE}" = "full" ]; then
     echo "No a11y report found for ${theme}." >&2
     STATUS=1
+  else
+    # A narrowed scan can hand a shard only stories that belong to another theme, or no story at all.
+    echo "No story in this shard produced an a11y report for ${theme}."
   fi
-  # A successful product report cannot mask absent calibration stories.
-  node --input-type=module - "${THEME_DIR}/calibration.ndjson" <<'JS' || STATUS=1
-import { readFileSync } from 'node:fs'
-import { calibrationIds } from './.storybook/a11y-policy.mjs'
-const entries = readFileSync(process.argv[2], 'utf8').trim().split('\n').map(JSON.parse)
-if (entries.length !== calibrationIds.length || calibrationIds.some(id => entries.filter(e => e.storyId === id && e.status === 'passed').length !== 1)) {
-  throw new Error('Calibration coverage is missing, duplicated or failed')
-}
-JS
+  # Records what this shard scanned from Jest's own result JSON. Calibration and story coverage are asserted over the theme's
+  # shards together, because Jest hands the calibration suite to exactly one of them.
+  node "${SHARDS_SCRIPT}" --record --index "${INDEX_JSON}" --out "${THEME_DIR}" \
+    --theme "${theme}" --shard "${SHARD}" --jest-output "${JEST_STDOUT}" || STATUS=1
 done <<< "$THEME_MATRIX"
 
 if [ "${FAIL_ON_VIOLATIONS}" = "false" ]; then
