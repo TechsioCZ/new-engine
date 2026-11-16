@@ -100,12 +100,16 @@ while read -r brand mode; do
   if [ "${SCOPE}" = "changed" ]; then
     PLAN_ARGS+=(--changed-files "${CHANGED_FILES}")
   fi
+  # The plan prints the path pattern of the suites this shard owns. Jest's own
+  # --shard is deliberately not used: it orders suites by a SHA-1 of each test
+  # path relative to rootDir, and the runner regenerates the index-json suites
+  # into a fresh mkdtemp directory every invocation, so the shards hash
+  # different paths and neither agree nor cover. Measured on run 43882857373:
+  # 21 business-light stories ran in two shards and others in none.
   PATTERN="$(node "${SHARDS_SCRIPT}" "${PLAN_ARGS[@]}")"
+  [ -n "${PATTERN}" ] || { echo "The a11y plan produced no suite pattern for ${A11Y_THEME:-all} shard ${SHARD}" >&2; exit 1; }
   RUN_ARGS=(--url "http://127.0.0.1:${PORT}" --config-dir .storybook --index-json --json \
-    --maxWorkers "${WORKERS}" --shard "${SHARD}")
-  if [ -n "${PATTERN}" ]; then
-    RUN_ARGS+=("${PATTERN}")
-  fi
+    --maxWorkers "${WORKERS}" "${PATTERN}")
   # --json puts Jest's machine-readable result on stdout and leaves every human message on stderr, so the log keeps the failures
   # and the report keeps the list of stories this shard ran.
   JEST_STDOUT="${THEME_DIR}/jest-stdout.log"

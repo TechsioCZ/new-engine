@@ -212,10 +212,61 @@ async function changedSuites(indexFile, changedFiles) {
  * @returns {string}
  */
 function suitePattern(suites) {
+  if (suites.length === 0) {
+    // A shard that owns no suite must run nothing. An empty alternation would
+    // match every path instead, which is the opposite.
+    return "$^"
+  }
   const names = suites
     .map((suite) => suite.replace(REGEX_SPECIAL, "\\$&"))
     .join("|")
   return `(^|/)(?:${names})\\.test\\.js$`
+}
+
+/** Deterministic, balanced assignment of suites to shards.
+ *
+ * Jest's own --shard cannot do this job here. It sorts the suites by a SHA-1 of
+ * each test path taken relative to rootDir, and the test runner generates the
+ * index-json suites into a fresh mkdtemp directory on every invocation, so each
+ * shard hashes a different set of paths. Measured on run 43882857373: three
+ * shards of business-light each took 38 of 114 suites, but 21 stories ran in
+ * two shards while others ran in none. Planning the split from the Storybook
+ * index makes it a property of the index rather than of a temp directory, so
+ * the shards agree by construction.
+ *
+ * Longest-first assignment to the lightest shard keeps the story counts close;
+ * ties break on the suite name so every shard computes the same partition.
+ * @param {string[]} selected
+ * @param {Map<string, string[]>} suites suite name to its story ids
+ * @param {number} total
+ * @returns {string[][]}
+ */
+function partitionSuites(selected, suites, total) {
+  const sizeOf = (suite) => (suites.get(suite) ?? []).length
+  const buckets = Array.from({ length: total }, () => ({
+    names: [],
+    stories: 0,
+  }))
+  const ordered = [...selected].sort((a, b) => {
+    const bySize = sizeOf(b) - sizeOf(a)
+    if (bySize !== 0) {
+      return bySize
+    }
+    return a < b ? -1 : a > b ? 1 : 0
+  })
+  for (const name of ordered) {
+    let target = buckets[0]
+    for (const bucket of buckets) {
+      if (bucket.stories < target.stories) {
+        target = bucket
+      }
+    }
+    target.names.push(name)
+    target.stories += sizeOf(name)
+  }
+  return buckets.map((bucket) =>
+    bucket.names.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  )
 }
 
 /** A full scan must still cover every story the screenshot matrix owns.
@@ -260,26 +311,33 @@ async function planShard(argv) {
       `No Storybook suite for ${unknown.length} selected id(s): ${examples(unknown)}`
     )
   }
-  const storyIds = selected.flatMap((suite) => suites.get(suite) ?? []).sort()
+  const themeStoryIds = selected
+    .flatMap((suite) => suites.get(suite) ?? [])
+    .sort()
   if (!selection.suites) {
-    assertCoversVisualStories(index, new Set(storyIds))
+    assertCoversVisualStories(index, new Set(themeStoryIds))
   }
+  // This shard's own share of the theme, decided here rather than by Jest.
+  const mine = partitionSuites(selected, suites, shard.total)[shard.index - 1]
+  const storyIds = mine.flatMap((suite) => suites.get(suite) ?? []).sort()
   fs.mkdirSync(out, { recursive: true })
   writeJson(path.join(out, EXPECTED_NAME), {
     theme,
     themeCount,
+    shard: `${shard.index}/${shard.total}`,
     shards: shard.total,
     scope: selection.suites ? "subset" : "full",
     reason: selection.reason,
-    suites: selected,
+    suites: mine,
     storyIds,
+    themeSuites: selected,
+    themeStoryIds,
   })
   process.stderr.write(
-    `A11y plan ${theme} shard ${shard.index}/${shard.total}: ${selected.length} suites, ${storyIds.length} stories (${selection.reason})\n`
+    `A11y plan ${theme} shard ${shard.index}/${shard.total}: ${mine.length} of ${selected.length} suites, ${storyIds.length} of ${themeStoryIds.length} stories (${selection.reason})\n`
   )
-  if (selection.suites) {
-    process.stdout.write(`${suitePattern(selected)}\n`)
-  }
+  // Always: every shard now runs exactly the suites planned for it.
+  process.stdout.write(`${suitePattern(mine)}\n`)
 }
 
 /**
@@ -355,8 +413,14 @@ function recordShard(argv) {
       `Jest ran ${unmatched.length} test(s) that match no story in the Storybook index: ${examples(unmatched)}`
     )
   }
-  if (expected.scope === "full" && scanned.size === 0) {
-    throw new Error(`The full accessibility scan of ${theme} ran no story`)
+  // Planned against scanned, not scope against zero: a shard that owns suites
+  // and scanned nothing is the failure, and an empty shard is legitimate only
+  // when the plan gave it no suite.
+  const planned = expected.storyIds ?? []
+  if (planned.length > 0 && scanned.size === 0) {
+    throw new Error(
+      `The accessibility scan of ${theme} shard ${shard} ran none of its ${planned.length} planned stories`
+    )
   }
   const storyIds = [...scanned].sort()
   writeJson(path.join(out, SCANNED_NAME), {
@@ -407,13 +471,39 @@ function loadExpected(target) {
   const byTheme = new Map()
   for (const file of collect(target, EXPECTED_NAME)) {
     const expected = readJson(file)
-    const known = byTheme.get(expected.theme)
-    if (known && JSON.stringify(known) !== JSON.stringify(expected)) {
+    const themeStoryIds = expected.themeStoryIds ?? []
+    if (!byTheme.has(expected.theme)) {
+      byTheme.set(expected.theme, {
+        theme: expected.theme,
+        themeCount: expected.themeCount,
+        shards: expected.shards,
+        scope: expected.scope,
+        reason: expected.reason,
+        storyIds: themeStoryIds,
+        byShard: new Map(),
+      })
+    }
+    const entry = byTheme.get(expected.theme)
+    // Each shard plans from its own Storybook build. Agreement on the theme's
+    // whole story set is what proves they planned from the same index; their
+    // own shares are expected to differ.
+    const agrees =
+      entry.shards === expected.shards &&
+      entry.themeCount === expected.themeCount &&
+      entry.scope === expected.scope &&
+      JSON.stringify(entry.storyIds) === JSON.stringify(themeStoryIds)
+    if (!agrees) {
       throw new Error(
         `Theme ${expected.theme} has two different expected story sets; its shards were built from different Storybook indexes`
       )
     }
-    byTheme.set(expected.theme, expected)
+    const parsed = parseShard(expected.shard)
+    if (entry.byShard.has(parsed.index)) {
+      throw new Error(
+        `Theme ${expected.theme}: shard ${parsed.index} planned twice`
+      )
+    }
+    entry.byShard.set(parsed.index, expected.storyIds ?? [])
   }
   return byTheme
 }
@@ -510,8 +600,40 @@ function assertCoverage(expected, byIndex) {
   }
 }
 
-/** The calibration contract, aggregated: Jest hands the calibration suite to
- * exactly one shard, so only the theme as a whole can assert it.
+/** Every shard scanned exactly the stories planned for it. Together with the
+ * coverage assertion below this is what makes a drifting partition a failure:
+ * a shard that silently ran someone else's suites fails here even when the
+ * theme's union still happens to add up.
+ * @param {any} expected
+ * @param {Map<number, {dir: string, scanned: any}>} byIndex
+ */
+function assertShardsRanTheirPlan(expected, byIndex) {
+  for (const [index, shard] of byIndex) {
+    const planned = expected.byShard.get(index)
+    if (!planned) {
+      throw new Error(
+        `${expected.theme}: shard ${index} reported without a plan`
+      )
+    }
+    const plannedIds = new Set(planned)
+    const scanned = new Set(shard.scanned.storyIds ?? [])
+    const missing = planned.filter((id) => !scanned.has(id))
+    if (missing.length > 0) {
+      throw new Error(
+        `${expected.theme} shard ${index}: ${missing.length} planned stories were never scanned: ${examples(missing)}`
+      )
+    }
+    const extra = [...scanned].filter((id) => !plannedIds.has(id))
+    if (extra.length > 0) {
+      throw new Error(
+        `${expected.theme} shard ${index}: scanned ${extra.length} stories it was not planned to run: ${examples(extra)}`
+      )
+    }
+  }
+}
+
+/** The calibration contract, aggregated: the plan hands the calibration suite
+ * to exactly one shard, so only the theme as a whole can assert it.
  * @param {any} expected
  * @param {{dir: string, scanned: any}[]} shards
  */
@@ -553,6 +675,7 @@ function assertCalibrationCoverage(expected, shards) {
  */
 function verifyTheme(expected, shards) {
   const byIndex = indexShards(expected, shards)
+  assertShardsRanTheirPlan(expected, byIndex)
   assertCoverage(expected, byIndex)
   assertCalibrationCoverage(expected, shards)
   process.stdout.write(
