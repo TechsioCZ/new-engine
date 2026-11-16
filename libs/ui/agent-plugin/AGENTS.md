@@ -19,16 +19,17 @@ package for developing `@techsio/ui-kit` (`libs/ui`). Canonical library rules li
 | UX copy, dates/numbers, alignment, states, CRUD/toast placement, "which component?" | bundled `ux-guidelines` skill |
 | Architecture / patterns / nesting policy / design review | `ui-design-system-expert` agent |
 
-Agents are Codex subagents in `com.openai/agents/` (client-specific, not part of the portable
-contract).
+Agents are authored once as Codex subagents in `com.openai/agents/*.toml` (agents are
+client-specific, not part of the portable contract). Claude Code and GitHub Copilot get generated
+copies in `com.anthropic/agents/` and `com.github.copilot/agents/`.
 
 ## Package layout (Agent Plugins 1.0.0)
 
 - `plugin.json`, `mcp.json`, `skills/` — the portable contract. Edit these.
 - `com.openai/` — Codex extension directory (hooks, subagents), referenced from
-  `plugin.json` → `extensions["com.openai"]`.
-- `.claude-plugin/` — GENERATED Claude Code shim; never edit, run
-  `node scripts/build-client-manifests.mjs`.
+  `plugin.json` → `extensions["com.openai"]`. The canonical source for hooks and agents.
+- `com.anthropic/`, `com.github.copilot/`, `.claude-plugin/plugin.json` — GENERATED Claude Code
+  and GitHub Copilot files; never edit, run `node scripts/build-client-manifests.mjs`.
 - `skills/<name>-usage`, `ux-guidelines`, … — GENERATED from `libs/ui/skills/`; never edit here,
   run `node scripts/sync-skills.mjs`.
 - `node scripts/validate-plugin.mjs` must pass before committing plugin changes.

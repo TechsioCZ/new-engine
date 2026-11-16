@@ -1,6 +1,6 @@
 {
   "name": "techsio-ui-kit-ai",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Techsio UI Kit AI — skills for developing and consuming the @techsio/ui-kit design system (libs/ui): component usage with UX/UI guidance, tokens, Storybook, Figma sync and the quality gate.",
   "author": {
     "name": "Lukáš Chylík",
@@ -17,9 +17,18 @@
     "agent-plugins",
     "agent-skills",
     "codex",
-    "claude-code"
+    "claude-code",
+    "github-copilot"
   ],
-  "hooks": "./.claude-plugin/hooks.json",
+  "hooks": "./com.anthropic/hooks/hooks.json",
+  "agents": [
+    "./com.anthropic/agents/ui-component-dev.md",
+    "./com.anthropic/agents/ui-design-system-expert.md",
+    "./com.anthropic/agents/ui-figma-connector.md",
+    "./com.anthropic/agents/ui-qa-validator.md",
+    "./com.anthropic/agents/ui-storybook-writer.md",
+    "./com.anthropic/agents/ui-token-stylist.md"
+  ],
   "mcpServers": {
     "context7": {
       "type": "http",
@@ -32,9 +41,7 @@
     "chrome-devtools": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "chrome-devtools-mcp@latest"
-      ]
+      "args": ["chrome-devtools-mcp@latest"]
     }
   }
 }

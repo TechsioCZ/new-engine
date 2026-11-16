@@ -630,20 +630,25 @@ function isFile(absPath) {
 
 /**
  * Selection using the built Storybook index and the real source tree.
- * @param {{ repoRoot: string, changedFiles: string[], storybookDir?: string }} options
- *   storybookDir defaults to libs/ui/storybook-static; it must match the runner's build dir
+ * @param {{ repoRoot: string, changedFiles: string[], storybookDir?: string, indexPath?: string }} options
+ *   storybookDir defaults to libs/ui/storybook-static; it must match the runner's build dir.
+ *   indexPath points at the index file itself (e.g. a per-run copy not named index.json)
+ *   and wins over storybookDir.
  * @returns {Selection}
  */
 export function affectedStoriesFromDisk({
   repoRoot,
   changedFiles,
   storybookDir,
+  indexPath: indexFile,
 }) {
   const uiRoot = path.join(repoRoot, "libs/ui")
-  const indexPath = path.join(
-    storybookDir ?? path.join(uiRoot, "storybook-static"),
-    "index.json"
-  )
+  const indexPath =
+    indexFile ??
+    path.join(
+      storybookDir ?? path.join(uiRoot, "storybook-static"),
+      "index.json"
+    )
   if (!isFile(indexPath)) {
     throw new Error("Storybook index.json not found. Build Storybook first.")
   }
