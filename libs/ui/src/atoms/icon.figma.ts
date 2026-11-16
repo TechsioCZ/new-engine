@@ -13,8 +13,7 @@ const size = figma.selectedInstance.getEnum("size", {
   xl: "xl",
   "2xl": "2xl",
 })
-// Figma keeps `color` on Icon (fixed token colours); code names the prop `severity`.
-const severity = figma.selectedInstance.getEnum("color", {
+const severity = figma.selectedInstance.getEnum("severity", {
   current: "current",
   primary: "primary",
   secondary: "secondary",
