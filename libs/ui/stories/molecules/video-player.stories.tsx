@@ -5,6 +5,11 @@ import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Player } from "../../src/molecules/player"
 import { VideoPlayer } from "../../src/molecules/video-player"
+import {
+  PlayerStates,
+  playerStatesPlay,
+  playerStatesSource,
+} from "../helpers/player-states"
 
 const POSTER_SRC = new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
   .href
@@ -12,6 +17,30 @@ const POSTER_SRC = new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
 // SDK events expose state proxies; record calls without serializing the event.
 const playSpy = fn().mockName("onPlay")
 const pauseSpy = fn().mockName("onPause")
+const controls = [
+  "src",
+  "poster",
+  "title",
+  "muted",
+  "volume",
+  "playbackRate",
+  "playsInline",
+  "loop",
+  "preload",
+  "seekTime",
+  "controlsList",
+  "height",
+]
+const publicProps = [
+  ...controls,
+  "tracks",
+  "slots",
+  "onPlay",
+  "onPause",
+  "onEnded",
+  "onError",
+  "onVolumeChange",
+]
 
 type VideoPlayerStoryProps = ComponentProps<typeof VideoPlayer> & {
   description: string
@@ -32,7 +61,10 @@ const meta: Meta<typeof VideoPlayer> = {
   tags: ["autodocs"],
   parameters: {
     layout: "padded",
+    controls: { include: publicProps },
     docs: {
+      controls: { include: publicProps },
+      argTypes: { include: publicProps },
       description: {
         component:
           "A video preset with keyboard and surface playback, captions, loading/error feedback and configurable content slots. Use Player for a fully custom composition or AudioPlayer for audio.",
@@ -40,12 +72,25 @@ const meta: Meta<typeof VideoPlayer> = {
     },
   },
   argTypes: {
+    src: { control: "text" },
+    poster: { control: "text" },
+    title: { control: "text" },
+    loop: { control: "boolean" },
+    preload: { control: "select", options: ["none", "metadata", "auto"] },
     muted: { control: "boolean" },
     volume: { control: { type: "range", min: 0, max: 1, step: 0.1 } },
     playsInline: { control: "boolean" },
     playbackRate: { control: { type: "range", min: 0.5, max: 2, step: 0.25 } },
-    tracks: { control: false },
-    slots: { control: false },
+    tracks: {
+      control: false,
+      description:
+        "Caption/subtitle tracks with a stable id, kind, language and label, using src or inline content. See Captioned.",
+    },
+    slots: {
+      control: false,
+      description:
+        "Replace loading, error, controls or overlay inside the media context. Set a slot to null to remove it.",
+    },
     seekTime: { control: { type: "number", min: 1, max: 60 } },
     controlsList: {
       control: "check",
@@ -59,6 +104,12 @@ const meta: Meta<typeof VideoPlayer> = {
     title: "Sample video",
     controlsList: ["play", "time", "volume", "captions", "fullscreen"],
     playsInline: true,
+    muted: false,
+    volume: 1,
+    playbackRate: 1,
+    loop: false,
+    preload: "metadata",
+    seekTime: 10,
     onPlay: () => playSpy(),
     onPause: () => pauseSpy(),
     onVolumeChange: fn(),
@@ -71,6 +122,13 @@ type Story = StoryObj<typeof VideoPlayer>
 export const Playground: Story = {
   parameters: {
     docs: {
+      source: {
+        code: `import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+export function FilmPreview() {
+  return <VideoPlayer src="https://files.vidstack.io/sprite-fight/480p.mp4" title="Sample video" playsInline />
+}`,
+      },
       description: {
         story:
           "The full preset keeps a timeline and mute on mobile while hiding skip buttons and the volume slider; click or tap the video surface to toggle playback.",
@@ -85,6 +143,21 @@ export const Playground: Story = {
   ),
 }
 
+export const States: Story = {
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "Compare ready video with a real decoding error; retry selects the sample media and resets the player through its public API.",
+      },
+      source: { code: playerStatesSource("video") },
+    },
+  },
+  render: () => <PlayerStates kind="video" />,
+  play: playerStatesPlay,
+}
+
 export const CustomControls: Story = {
   args: { controlsList: ["play", "time"] },
   render: (args) => (
@@ -95,6 +168,13 @@ export const CustomControls: Story = {
   ),
   parameters: {
     docs: {
+      source: {
+        code: `import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+export function PlaybackOnlyVideo() {
+  return <VideoPlayer src="https://files.vidstack.io/sprite-fight/480p.mp4" title="Sample video" controlsList={["play", "time"]} />
+}`,
+      },
       description: {
         story:
           "Only playback and seeking are shown. Volume and fullscreen are omitted using controlsList.",
@@ -113,6 +193,13 @@ export const FixedHeight: Story = {
   ),
   parameters: {
     docs: {
+      source: {
+        code: `import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+export function FixedHeightVideo() {
+  return <VideoPlayer src="https://files.vidstack.io/sprite-fight/480p.mp4" title="Sample video" height={320} />
+}`,
+      },
       description: {
         story:
           "The player is 320 px tall. The video keeps its aspect ratio inside that space; controls stay attached to the bottom.",
@@ -137,6 +224,26 @@ export const Captioned: Story = {
   },
   parameters: {
     docs: {
+      source: {
+        code: `import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+export function CaptionedVideo() {
+  return (
+    <VideoPlayer
+      src="https://files.vidstack.io/sprite-fight/480p.mp4"
+      title="Sample video"
+      tracks={[{
+        id: "sample-english",
+        kind: "subtitles",
+        language: "en",
+        label: "English",
+        default: true,
+        content: "WEBVTT\\n\\n00:00.000 --> 00:30.000\\nThe sample includes English subtitles. Use the captions button to hide or show them.\\n",
+      }]}
+    />
+  )
+}`,
+      },
       description: {
         story:
           "An inline WebVTT track enables subtitles by default and makes the captions toggle available without another network request.",

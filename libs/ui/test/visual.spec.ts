@@ -1011,24 +1011,25 @@ async function captureStory(run: StoryRun): Promise<boolean> {
     })
     await waitForAssets(page, story.id)
     if (playerStoryId.test(story.id)) {
+      // States deliberately includes a failed source alongside the ready one.
+      const readyPlayer = story.id.endsWith("--states")
+        ? page.getByRole("region", { name: "Ready", exact: true })
+        : page.locator("[data-media-player]")
       // Metadata-only preload can report canplay with an empty buffered range
       // in WebKit. Load the entire fixture before comparing its progress track.
-      await page.locator("audio, video").evaluateAll((elements) => {
+      await readyPlayer.locator("audio, video").evaluateAll((elements) => {
         for (const element of elements) {
           const media = element as HTMLMediaElement
           media.preload = "auto"
           media.load()
         }
       })
-      await expect(page.locator("[data-media-player]")).toHaveAttribute(
-        "data-can-play",
-        ""
-      )
+      await expect(readyPlayer).toHaveAttribute("data-can-play", "")
       // The buffered track is part of the screenshot, so wait for the whole
       // local recording rather than capturing a network-dependent progress bar.
       await expect
         .poll(() =>
-          page.locator("audio, video").evaluateAll((elements) =>
+          readyPlayer.locator("audio, video").evaluateAll((elements) =>
             elements.every((element) => {
               const media = element as HTMLMediaElement
               return (

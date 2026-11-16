@@ -16,6 +16,37 @@ test.afterEach(({ page }) => {
   expect(pageErrors.get(page), "unhandled browser errors").toEqual([])
 })
 
+for (const component of ["player", "audioplayer", "videoplayer"]) {
+  test(`${component} state examples recover from a media error and play`, async ({
+    page,
+  }) => {
+    await page.goto(
+      `/iframe.html?id=molecules-${component}--states&viewMode=story`
+    )
+    const ready = page.getByRole("region", { name: "Ready", exact: true })
+    const recovery = page.getByRole("region", {
+      name: "Recovery demo",
+      exact: true,
+    })
+    await expect(ready).toHaveAttribute("data-can-play", "")
+    await expect(recovery.getByRole("alert")).toBeVisible()
+    await expect(recovery).toHaveAttribute("aria-busy", "false")
+    await recovery
+      .getByRole("button", { name: "Try again", exact: true })
+      .click()
+    await expect(recovery).toHaveAttribute("data-can-play", "")
+    await expect(recovery.getByRole("alert")).toHaveCount(0)
+    await recovery.getByRole("button", { name: "Play", exact: true }).click()
+    await expect
+      .poll(() =>
+        recovery
+          .locator("audio, video")
+          .evaluate((media: HTMLMediaElement) => media.currentTime)
+      )
+      .toBeGreaterThan(0)
+  })
+}
+
 test("audio cover leaves room for visible, usable sliders", async ({
   page,
 }) => {
