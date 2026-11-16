@@ -18,9 +18,6 @@ index_before=""
 if [ "$UI_SCOPE" != none ]; then index_before="$(index_hash)"; fi
 
 (
-  # Accessibility is the long CPU-bound workload. Let these independent checks
-  # use its idle CPU time rather than competing with every browser renderer.
-  node -e 'require("node:os").setPriority(process.ppid, 10)'
   export PATH="$NODE24_BIN:$BASE_PATH"
   pnpm lint:nx
   projects="$(AFFECTED="$AFFECTED_PROJECTS" PREPARED="@techsio/storefront-data" node -e 'const a=(process.env.AFFECTED||"").split(",");const p=new Set(process.env.PREPARED.split(","));process.stdout.write(a.filter(x=>p.has(x)).join(","))')"

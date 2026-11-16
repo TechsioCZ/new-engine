@@ -40,7 +40,7 @@ const meta: Meta = {
     ),
   ],
 
-  tags: ["autodocs"],
+  tags: ["autodocs", "a11y-brand:akros"],
   title: "Pages/Akros admin/Orders",
   parameters: {
     brandLock: "akros",
