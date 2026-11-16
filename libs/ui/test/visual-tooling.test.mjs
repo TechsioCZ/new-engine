@@ -390,7 +390,7 @@ test("CI owns the quality gate and publication chains behind its conclusion", ()
     "check:package",
     "test:components:release",
   ]) {
-    assert.ok(quality.includes(`pnpm --dir libs/ui ${command}`))
+    assert.ok(`${ci}\n${quality}`.includes(`pnpm --dir libs/ui ${command}`))
   }
   assert.match(
     quality,
@@ -677,7 +677,7 @@ test("the maintained CI gate covers Node regressions, TSX tests and portable ref
     assert.ok(scripts["test:node"].includes(file), `Missing Node gate: ${file}`)
   }
   assert.match(
-    read("../../../.github/workflows/ui-quality.yml"),
+    read("../../../.github/workflows/ci.yml"),
     /pnpm --dir libs\/ui test\s/
   )
   const { include } = JSON.parse(read("../tsconfig.tests.json"))

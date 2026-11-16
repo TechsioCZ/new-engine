@@ -6,7 +6,6 @@
 import { appendFileSync, mkdirSync } from "node:fs"
 import path from "node:path"
 import { getStoryContext } from "@storybook/test-runner"
-import { createA11yReporter } from "@techsio/storybook-a11y-reporter"
 import {
   assertCalibration,
   assertSupportedTheme,
@@ -14,6 +13,7 @@ import {
   calibrationIds,
 } from "./a11y-policy.mjs"
 import { checkChartPointerSelection } from "./chart-pointer-regression.mjs"
+import { recordA11yResult } from "./a11y-report.mjs"
 
 /**
  * @typedef {Window & {
@@ -23,13 +23,10 @@ import { checkChartPointerSelection } from "./chart-pointer-regression.mjs"
  * }} StorybookWindow
  */
 
-// The reporter reads its documented A11Y_REPORT_* environment variables itself
-// (A11Y_REPORT_JUNIT, A11Y_REPORT_WAIT_MS, A11Y_REPORT_OUTPUT_DIR). It records
-// every violation; this runner decides which ones block (see advisoryRules).
-// Only "false" disables enforcement.
+// Scan each story once; append its result once. The summary is generated after
+// the workers exit. Re-reading and rewriting the accumulated JSON/Markdown/JUnit
+// after every story was quadratic work and raced between Jest workers.
 const enforceViolations = process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS !== "false"
-process.env.A11Y_REPORT_FAIL_ON_VIOLATIONS = "false"
-const reporter = createA11yReporter({ waitForResultsMs: 30_000 })
 
 const mode = process.env.A11Y_STORYBOOK_MODE ?? "light"
 const brand = process.env.A11Y_STORYBOOK_BRAND ?? "business"
@@ -141,7 +138,17 @@ const testRunnerConfig = {
       return
     }
     const checks = [
-      () => reporter.postVisit?.(page, context),
+      () => {
+        const output = process.env.A11Y_REPORT_OUTPUT_DIR ?? "a11y-report"
+        recordA11yResult(output, {
+          storyId: context.id,
+          title: context.title,
+          name: context.name,
+          url: page.url(),
+          parameters: story.parameters.a11y ?? null,
+          results: result.results,
+        })
+      },
       () => {
         const blocking = blockingViolations(result.results.violations)
         if (enforceViolations && blocking.length) {

@@ -128,9 +128,6 @@ while read -r brand mode; do
     > "${JEST_STDOUT}" || STATUS=1
 
   REPORT_INPUT="${THEME_DIR}/report.ndjson"
-  if [ ! -f "${REPORT_INPUT}" ]; then
-    REPORT_INPUT="${THEME_DIR}/report.json"
-  fi
   if [ -f "${REPORT_INPUT}" ]; then
     node "${ROOT_DIR}/scripts/storybook-a11y-summary.mjs" \
       --input "${REPORT_INPUT}" \
