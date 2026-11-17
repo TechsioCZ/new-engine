@@ -18,6 +18,32 @@ index_hash() {
 index_before=""
 if [ "$UI_SCOPE" != none ]; then index_before="$(index_hash)"; fi
 
+scan() {
+  env PATH="$NODE26_BIN:$BASE_PATH" A11Y_THEME="$1" A11Y_SHARD="$2" \
+    A11Y_REPORT_FAIL_ON_VIOLATIONS=true A11Y_THEME_COUNT=3 \
+    A11Y_TEST_WORKERS=4 A11Y_SCOPE="$UI_SCOPE" \
+    A11Y_CHANGED_FILES_FROM="$RUNNER_TEMP/ui-changed-files/changed-files.txt" \
+    pnpm --dir libs/ui storybook:a11y
+  bash "$cpu_report" "a11y $1 $2"
+}
+
+# business-light runs beside the checks, then akros-light; bundle 2 scans
+# n1-light (ci-ui-plan.mjs). The scans are this job's longest path.
+a11y_pid=""
+if [ "$UI_SCOPE" != none ]; then
+  (
+    scan business-light 1/1
+    scan akros-light 1/1
+  ) &
+  a11y_pid=$!
+fi
+
+# Measured on 4-vCPU runners: CPU pressure stayed above 70% while both ran,
+# and business-light took 186-272s beside the checks, while one theme scan
+# alone takes 129-193s. Everything forked from here on (the checks) yields
+# the CPU to the scans.
+renice -n 10 -p $$ >/dev/null
+
 (
   export PATH="$NODE24_BIN:$BASE_PATH"
   pnpm lint:nx
@@ -43,26 +69,6 @@ if [ "$UI_SCOPE" != none ]; then index_before="$(index_hash)"; fi
   bash "$cpu_report" "workspace checks"
 ) &
 checks_pid=$!
-
-scan() {
-  env PATH="$NODE26_BIN:$BASE_PATH" A11Y_THEME="$1" A11Y_SHARD="$2" \
-    A11Y_REPORT_FAIL_ON_VIOLATIONS=true A11Y_THEME_COUNT=3 \
-    A11Y_TEST_WORKERS=4 A11Y_SCOPE="$UI_SCOPE" \
-    A11Y_CHANGED_FILES_FROM="$RUNNER_TEMP/ui-changed-files/changed-files.txt" \
-    pnpm --dir libs/ui storybook:a11y
-  bash "$cpu_report" "a11y $1 $2"
-}
-
-# business-light runs beside the checks, then this runner's half of
-# akros-light; bundle 2 scans n1-light and the other half (ci-ui-plan.mjs).
-a11y_pid=""
-if [ "$UI_SCOPE" != none ]; then
-  (
-    scan business-light 1/1
-    scan akros-light 1/2
-  ) &
-  a11y_pid=$!
-fi
 
 # Wait for both children even when one fails. A later successful check must
 # never hide the other workload's failure.

@@ -21,6 +21,7 @@ function runChecks(t, overrides = {}) {
   fs.writeFileSync(path.join(root, "bin/timeout"), '#!/bin/sh\nshift\nexec "$@"\n', { mode: 0o755 })
   fs.writeFileSync(path.join(root, "bin/pnpm"), `#!/bin/sh
 echo "$(basename "$(dirname "$(command -v node)")")|$*" >> "$RUNNER_TEMP/commands"
+echo "$(ps -o nice= -p $$ | tr -d ' ')|$*" >> "$RUNNER_TEMP/priorities"
 if [ "$*" = "lint:nx" ] && [ "$FAIL_CHECKS" = 1 ]; then exit 7; fi
 if [ "$*" = "--dir libs/ui storybook:a11y" ]; then
   node -e 'setTimeout(()=>{},100)'
@@ -45,8 +46,8 @@ exit 0
 test("the installed runner completes both workspace and accessibility checks", (t) => {
   const { root, result } = runChecks(t)
   assert.equal(result.status, 0, result.stderr)
-  // bundle 2 scans n1-light 1/1 and akros-light 2/2 (ci-ui-plan.mjs).
-  assert.deepEqual(fs.readFileSync(path.join(root, "a11y-finished"), "utf8").trim().split("\n"), ["business-light@1/1", "akros-light@1/2"])
+  // bundle 2 scans n1-light (ci-ui-plan.mjs).
+  assert.deepEqual(fs.readFileSync(path.join(root, "a11y-finished"), "utf8").trim().split("\n"), ["business-light@1/1", "akros-light@1/1"])
   const commands = fs.readFileSync(path.join(root, "commands"), "utf8")
   for (const command of [
     "node24|lint:nx",
@@ -61,6 +62,14 @@ test("the installed runner completes both workspace and accessibility checks", (
   const lines = commands.trim().split("\n")
   assert.deepEqual(lines.filter((line) => line.endsWith("check:package")), ["node26|--dir libs/ui check:package"])
   assert.ok(lines.indexOf("node26|--dir libs/ui check:package") < lines.indexOf("node24|--dir libs/ui check:consumer"))
+})
+
+test("the checks yield the CPU to the accessibility scans", (t) => {
+  const { root, result } = runChecks(t)
+  assert.equal(result.status, 0, result.stderr)
+  const priority = Object.fromEntries(fs.readFileSync(path.join(root, "priorities"), "utf8")
+    .trim().split("\n").map((line) => line.split("|").reverse()))
+  assert.ok(Number(priority["lint:nx"]) > Number(priority["--dir libs/ui storybook:a11y"]), JSON.stringify(priority))
 })
 
 test("an unaffected UI package skips the Node 24 consumer import", (t) => {

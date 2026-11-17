@@ -128,8 +128,8 @@ jobs:
         with:
           name: ui-storybook-${{ github.sha }}
           path: libs/ui/storybook-static
-      # business-light and half of akros-light share this install; bundle 2
-      # scans n1-light and the other half.
+      # business-light and akros-light share this install; bundle 2 scans
+      # n1-light.
       - name: Run workspace, UI package and accessibility checks
         env:
           NODE24_BIN: ${{ steps.node24-runtime.outputs.bin }}

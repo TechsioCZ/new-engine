@@ -32,7 +32,7 @@ jobs:
       matrix:
         include:
           - {group: visual, shard: 1, total: 6, a11y: ""}
-          - {group: visual, shard: 2, total: 6, a11y: "n1-light@1/1 akros-light@2/2"}
+          - {group: visual, shard: 2, total: 6, a11y: "n1-light@1/1"}
           - {group: visual, shard: 3, total: 6, a11y: ""}
           - {group: visual, shard: 4, total: 6, a11y: ""}
           - {group: visual, shard: 5, total: 6, a11y: ""}
