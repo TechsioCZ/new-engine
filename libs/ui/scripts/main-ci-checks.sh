@@ -27,13 +27,14 @@ scan() {
   bash "$cpu_report" "a11y $1 $2"
 }
 
-# business-light runs beside the checks, then akros-light; bundle 2 scans
-# n1-light (ci-ui-plan.mjs). The scans are this job's longest path.
+# business-light runs beside the checks, then half of akros-light; bundle 2
+# scans n1-light and the other half (ci-ui-plan.mjs). The scans are this
+# job's longest path.
 a11y_pid=""
 if [ "$UI_SCOPE" != none ]; then
   (
     scan business-light 1/1
-    scan akros-light 1/1
+    scan akros-light 1/2
   ) &
   a11y_pid=$!
 fi

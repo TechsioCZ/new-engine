@@ -1,10 +1,10 @@
 {
-  "maxVisualCost": 1368000,
+  "maxVisualCost": 1416000,
   "storyCount": 918,
   "medianCost": 6569,
   "cohostedCosts": [
     1120000,
-    600000,
+    900000,
     0,
     0,
     0,

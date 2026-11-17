@@ -43,10 +43,13 @@ if (process.env.MODE === "changed" && process.env.BASE_SHA) {
 const idle = scope === "none"
 const bundles = 6
 // Accessibility scans as theme@shard. main scans business-light beside its
-// lower-priority checks, then akros-light; bundle 2 already installs the
-// scanner and takes n1-light (main-ci-checks.sh, ui-quality.yml).
-const mainScans = ["business-light@1/1", "akros-light@1/1"]
-const bundleScans = { 2: ["n1-light@1/1"] }
+// lower-priority checks, then half of akros-light; bundle 2 already installs
+// the scanner and takes n1-light and the other half (main-ci-checks.sh,
+// ui-quality.yml). Whole akros-light on main made main the last job on a slow
+// host (run 44122397561: 215 s + 233 s of scans, main ended 46 s after the
+// slowest bundle and delayed the release that starts when main ends).
+const mainScans = ["business-light@1/1", "akros-light@1/2"]
+const bundleScans = { 2: ["n1-light@1/1", "akros-light@2/2"] }
 const matrix = {
   include: Array.from({ length: bundles }, (_, index) => ({
     group: "visual",

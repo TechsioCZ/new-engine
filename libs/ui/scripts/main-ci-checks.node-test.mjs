@@ -46,8 +46,8 @@ exit 0
 test("the installed runner completes both workspace and accessibility checks", (t) => {
   const { root, result } = runChecks(t)
   assert.equal(result.status, 0, result.stderr)
-  // bundle 2 scans n1-light (ci-ui-plan.mjs).
-  assert.deepEqual(fs.readFileSync(path.join(root, "a11y-finished"), "utf8").trim().split("\n"), ["business-light@1/1", "akros-light@1/1"])
+  // bundle 2 scans n1-light 1/1 and akros-light 2/2 (ci-ui-plan.mjs).
+  assert.deepEqual(fs.readFileSync(path.join(root, "a11y-finished"), "utf8").trim().split("\n"), ["business-light@1/1", "akros-light@1/2"])
   const commands = fs.readFileSync(path.join(root, "commands"), "utf8")
   for (const command of [
     "node24|lint:nx",
