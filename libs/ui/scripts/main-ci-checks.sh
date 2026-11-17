@@ -18,23 +18,30 @@ index_hash() {
 index_before=""
 if [ "$UI_SCOPE" != none ]; then index_before="$(index_hash)"; fi
 
+# Called after `||`, where errexit does not apply, so the scan's own status is
+# returned explicitly.
 scan() {
+  local status=0
   env PATH="$NODE26_BIN:$BASE_PATH" A11Y_THEME="$1" A11Y_SHARD="$2" \
     A11Y_REPORT_FAIL_ON_VIOLATIONS=true A11Y_THEME_COUNT=3 \
     A11Y_TEST_WORKERS=4 A11Y_SCOPE="$UI_SCOPE" \
     A11Y_CHANGED_FILES_FROM="$RUNNER_TEMP/ui-changed-files/changed-files.txt" \
-    pnpm --dir libs/ui storybook:a11y
+    pnpm --dir libs/ui storybook:a11y || status=$?
   bash "$cpu_report" "a11y $1 $2"
+  return "$status"
 }
 
 # business-light runs beside the checks, then half of akros-light; bundle 2
 # scans n1-light and the other half (ci-ui-plan.mjs). The scans are this
-# job's longest path.
+# job's longest path. Both scans run even when the first fails, so one push
+# reports every theme's violations.
 a11y_pid=""
 if [ "$UI_SCOPE" != none ]; then
   (
-    scan business-light 1/1
-    scan akros-light 1/2
+    status=0
+    scan business-light 1/1 || status=1
+    scan akros-light 1/2 || status=1
+    exit "$status"
   ) &
   a11y_pid=$!
 fi

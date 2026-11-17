@@ -2,8 +2,9 @@ name: UI Release
 
 # CI's ui-release-trigger job dispatches this on master when its main job
 # ends: preparation overlaps the browser bundles, and publishing still waits
-# for the exact commit's full push CI. A workflow_run start added two minutes;
-# a push start held an eighth hosted runner idle for ten.
+# for the exact commit's full push CI. A re-run of CI dispatches it again from
+# ui-release-retrigger once quality-gate passes. A workflow_run start added
+# two minutes; a push start held an eighth hosted runner idle for ten.
 on:
   workflow_dispatch:
     inputs:
@@ -151,7 +152,13 @@ jobs:
         if: steps.decide.outputs.publish == 'true'
         run: pnpm -C libs/ui check:package
 
+      # A newer push to master cancels this commit's CI (cancel-in-progress) or
+      # lands while it runs. Either way that commit's own release publishes
+      # this change, so this run ends without publishing, as the decide step
+      # does for the same case. Only a commit that is still the tip needs a
+      # green CI, and fails here without one.
       - name: Require successful push CI for this exact commit
+        id: ci
         if: steps.decide.outputs.publish == 'true' && !inputs.dry_run
         env:
           HEAD_SHA: ${{ steps.commit.outputs.sha }}
@@ -164,31 +171,30 @@ jobs:
               -f event=push -f head_sha="$HEAD_SHA" -f branch=master \
               --jq '.workflow_runs | first | {id, status, conclusion}')"
             status="$(jq -r '.status // "pending"' <<< "$run")"
-            if [ "$status" = completed ]; then
-              [ "$(jq -r .conclusion <<< "$run")" = success ] || {
-                echo "::error::Push CI did not succeed for $HEAD_SHA: $run"
-                exit 1
-              }
-              break
-            fi
+            [ "$status" = completed ] && break
             echo "Waiting for exact-SHA push CI: $status"
             sleep 5
           done
           tip="$(gh api "repos/${GITHUB_REPOSITORY}/commits/master" --jq .sha)"
-          [ "$tip" = "$HEAD_SHA" ] || {
-            echo "::error::$HEAD_SHA is no longer master ($tip); refusing a stale publish."
+          if [ "$tip" != "$HEAD_SHA" ]; then
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$HEAD_SHA is no longer master ($tip); that commit's release publishes instead. CI here: $run"
+            exit 0
+          fi
+          [ "$(jq -r .conclusion <<< "$run")" = success ] || {
+            echo "::error::Push CI did not succeed for $HEAD_SHA: $run"
             exit 1
           }
 
       - name: Fetch semantic-release notes
-        if: steps.decide.outputs.publish == 'true'
+        if: steps.decide.outputs.publish == 'true' && steps.ci.outputs.superseded != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/notes/*:refs/notes/*" || true
 
       - name: Run semantic-release
-        if: steps.decide.outputs.publish == 'true'
+        if: steps.decide.outputs.publish == 'true' && steps.ci.outputs.superseded != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}

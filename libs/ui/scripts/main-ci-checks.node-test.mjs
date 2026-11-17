@@ -88,6 +88,12 @@ test("failed accessibility cannot be hidden by successful workspace checks", (t)
   assert.equal(runChecks(t, { FAIL_A11Y: "1" }).result.status, 1)
 })
 
+test("a failed theme scan still runs the next theme's scan", (t) => {
+  const { root, result } = runChecks(t, { FAIL_A11Y: "1" })
+  assert.equal(result.status, 1)
+  assert.deepEqual(fs.readFileSync(path.join(root, "a11y-finished"), "utf8").trim().split("\n"), ["business-light@1/1", "akros-light@1/2"])
+})
+
 test("a scanner that corrupts the cached index fails validation", (t) => {
   const { result } = runChecks(t, { MUTATE_INDEX: "1" })
   assert.equal(result.status, 1)
