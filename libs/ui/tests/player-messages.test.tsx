@@ -6,6 +6,30 @@ import { Player } from "../src/molecules/player"
 import { VideoPlayer } from "../src/molecules/video-player"
 
 describe("player messages", () => {
+  it("renders optional timeline previews without leaking configuration to DOM", () => {
+    const html = renderToStaticMarkup(
+      <VideoPlayer
+        chapters
+        src="sample.mp4"
+        thumbnails={[{ startTime: 0, url: "/thumbnail.png" }]}
+      />
+    )
+    expect(html).toContain("player-preview")
+    expect(html).toContain("vds-slider-chapters")
+    expect(html).not.toContain("thumbnails=")
+    expect(html).not.toContain("chapters=")
+  })
+
+  it("renders picture-in-picture only when requested", () => {
+    const standard = renderToStaticMarkup(<VideoPlayer src="sample.mp4" />)
+    expect(standard).not.toContain('aria-label="Enter picture-in-picture"')
+    const pip = renderToStaticMarkup(
+      <VideoPlayer controlsList={["pip"]} src="sample.mp4" />
+    )
+    expect(pip).toContain('aria-label="Enter picture-in-picture"')
+    expect(pip).toContain('type="button"')
+  })
+
   it("keeps settings opt-in and names its trigger from the catalog", () => {
     const preset = renderToStaticMarkup(<VideoPlayer src="sample.mp4" />)
     expect(preset).not.toContain('aria-label="Playback settings"')

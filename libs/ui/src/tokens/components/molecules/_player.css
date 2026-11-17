@@ -47,6 +47,8 @@
   --color-player-video-feedback-fg: var(--color-player-media-content);
   --color-player-caption-bg: --alpha(var(--color-player-media-surface) / 90%);
   --color-player-caption-fg: var(--color-player-media-content);
+  --color-player-preview-bg: var(--color-player-media-surface);
+  --color-player-preview-fg: var(--color-player-media-content);
   --color-player-scrim-bg: --alpha(var(--color-player-media-surface) / 90%);
   --color-player-track-bg: var(--color-fill-hover);
   --color-player-track-progress-bg: var(--color-fill-active);
@@ -72,9 +74,12 @@
   --padding-player-feedback: var(--spacing-150);
   --padding-player-caption: var(--spacing-100);
   --padding-player-caption-cue: var(--spacing-50);
+  --padding-player-preview: var(--spacing-50);
   --gap-player-control: var(--spacing-150);
   --gap-player-video-control: var(--spacing-50);
   --gap-player-feedback: var(--spacing-100);
+  --gap-player-preview: var(--spacing-50);
+  --gap-player-chapter: var(--spacing-50);
   --size-player-slider: var(--spacing-400);
   --size-player-track: var(--spacing-100);
   --size-player-thumb: var(--spacing-200);
@@ -87,14 +92,18 @@
     2
   );
   --spacing-player-volume: var(--spacing-750);
+  --spacing-player-preview: var(--spacing-950);
+  --spacing-player-preview-wide: calc(var(--spacing-750) * 2);
   --border-width-player: var(--border-width-sm);
   --text-player-time: var(--text-sm);
   --text-player-title: var(--text-md);
   --text-player-feedback: var(--text-sm);
   --text-player-loading-icon: var(--text-xl);
   --text-player-caption: var(--text-sm);
+  --text-player-preview: var(--text-xs);
   --font-player-caption: var(--font-sans);
   --radius-player-caption: var(--radius-sm);
+  --radius-player-preview: var(--radius-sm);
   --font-weight-player-time: var(--font-weight-medium);
   --font-weight-player-title: var(--font-weight-semibold);
   --z-index-player-controls: calc(var(--z-index) + 1);
@@ -104,6 +113,16 @@
 
 @utility player-base {
   cursor: auto !important;
+  /* Timeline previews also belong to compact custom/audio compositions. Keep
+   * their ink visible while the provider retains the player's rounded clip. */
+  &:has(.player-preview) {
+    overflow: visible;
+
+    & [data-media-provider] {
+      overflow: hidden;
+      border-radius: inherit;
+    }
+  }
   --media-brand: var(--color-player-brand);
   --media-controls-padding: 0px;
   --media-controls-color: var(--color-player-fg);
@@ -252,6 +271,32 @@
   --media-slider-width: auto;
 }
 
+@utility player-chapters {
+  gap: var(--gap-player-chapter);
+
+  & .vds-slider-chapter {
+    margin-inline: 0;
+  }
+}
+
+@utility player-preview {
+  --media-thumbnail-min-width: var(--spacing-player-preview);
+  --media-thumbnail-max-width: var(--spacing-player-preview);
+  --media-thumbnail-border: 0;
+  --media-slider-preview-bg: var(--color-player-preview-bg);
+  --media-slider-preview-border-radius: var(--radius-player-preview);
+  --media-slider-value-bg: var(--color-transparent);
+  --media-slider-value-color: var(--color-player-preview-fg);
+  --media-slider-value-padding: 0;
+  --media-slider-value-border: 0;
+  font-size: var(--text-player-preview);
+  gap: var(--gap-player-preview);
+
+  @variant sm {
+    --spacing-player-preview: var(--spacing-player-preview-wide);
+  }
+}
+
 /* Vidstack's unlayered slider display rule outranks normal Tailwind display
  * utilities, so the responsive preset rule must be explicit. */
 @utility player-responsive-volume {
@@ -309,4 +354,12 @@
 
 @utility token-icon-player-settings {
   @apply icon-[mdi--cog];
+}
+
+@utility token-icon-player-picture-in-picture {
+  @apply icon-[mdi--picture-in-picture-bottom-right];
+}
+
+@utility token-icon-player-picture-in-picture-exit {
+  @apply icon-[mdi--picture-in-picture-bottom-right-outline];
 }

@@ -5,7 +5,7 @@ description: >
   VideoPlayer is an opinionated preset over Player with a Semi Design-shaped
   src/poster/controlsList API; controls overlay the video on a dark scrim.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -40,13 +40,13 @@ import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
 
 ## Props
 
-- `src` — media source.
+- `src` — media URL or a Vidstack MIME-typed source, including HLS and DASH manifests.
 - `poster` — poster image.
 - `autoPlay`, `loop`, `muted`, `volume` — engine playback props.
 - `seekTime` — seconds for the forward/backward seek buttons (default `10`).
 - `controlsList` — which controls to render; defaults to
   `["play", "time", "volume", "captions", "fullscreen"]`. Supported values:
-  `play`, `time`, `volume`, `captions`, `fullscreen`, `settings`. The captions
+  `play`, `time`, `volume`, `captions`, `fullscreen`, `settings`, `pip`. The captions
   button is shown only when caption/subtitle tracks are available. Settings
   is opt-in and is not added to the default list.
 - `width`, `height`, `style` — sizing on the media player itself.
@@ -59,6 +59,11 @@ import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
   application needs the platform's native fullscreen playback behavior.
 - `tracks` — optional text tracks with a required stable `id` and `kind`;
   supply `language`, `label` and either `src` or inline `content`.
+- `chapters` — show chapter segments on the seek timeline using a chapters track.
+- `thumbnails` — timeline preview images as a WebVTT URL or timestamped
+  `{ url, startTime }` objects; `startTime` is in media seconds.
+- `load`, `posterLoad`, `preload` — independent loading strategy, poster loading
+  and media preload behavior. See LazyLoading.
 - `storage` — optional Vidstack preference storage; a string names an
   application-owned preference key. Omitted by default.
 - Other Vidstack `MediaPlayer` props, including `preload`, `playbackRate`,
@@ -139,6 +144,70 @@ volume and mute values that compete with restoration. See MultipleLanguages
 for the same tracks without persistence and Settings for speed-only media.
 An audio composition can use `Player.SettingsMenu` inside its own controls.
 
+## Chapters and thumbnail previews
+
+Use a `kind: "chapters"` track with timed WebVTT cue titles, then pass
+`chapters` to split the timeline. An available chapters track also adds chapter
+seek actions to Settings. `thumbnails` supplies preview frames independently
+of subtitle tracks. Both features are optional.
+
+```tsx
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+<VideoPlayer src="/media/film.mp4" title="Product film" chapters
+  controlsList={["play", "time", "volume", "fullscreen", "settings"]}
+  tracks={[{
+    id: "film-chapters", kind: "chapters", language: "en", label: "Chapters", default: true,
+    content: "WEBVTT\n\n00:00.000 --> 00:10.000\nIntroduction\n\n00:10.000 --> 00:30.000\nDetails\n",
+  }]}
+  thumbnails={[
+    { url: "/media/preview-intro.png", startTime: 0 },
+    { url: "/media/preview-details.png", startTime: 10 },
+  ]}
+/>
+```
+
+The ChaptersAndPreviews story demonstrates three real chapters, chapter
+navigation and local preview images for the same 30-second recording.
+
+## Adaptive HLS and DASH
+
+Pass a typed source such as
+`src={{ src: "/media/master.m3u8", type: "application/x-mpegurl" }}` or
+`src={{ src: "/media/stream.mpd", type: "application/dash+xml" }}`. Opt into
+`"settings"` to expose Auto and the renditions reported by a quality-capable
+provider. MP4 does not acquire adaptive renditions by adding the control.
+Native HLS playback may retain browser-managed quality selection.
+
+The AdaptiveHLS and AdaptiveDASH stories contain real local two-rendition
+streams. Their copyable sources show how to assign an app-installed engine
+through `onProviderChange`, using the SDK's provider type guards. For the
+pinned Vidstack version, use `hls.js@^1` and `dashjs@^4`; see player-usage for
+the DASH dynamic-import browser-namespace bridge. Engine packages are app
+integration dependencies, not required for ordinary MP4 playback.
+
+## Visible loading and picture-in-picture
+
+`load="visible"` defers media requests until the mounted player enters the
+viewport. It works independently of `posterLoad="eager"` and
+`preload="metadata"`; the latter controls loading after the visibility gate.
+LazyLoading mounts a player below the viewport and uses a UI-kit Button to
+scroll it into view, without creating a replacement player.
+
+```tsx
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+<VideoPlayer src="/media/film.mp4" poster="/media/poster.png" title="Product film"
+  load="visible" posterLoad="eager" preload="metadata"
+  controlsList={["play", "time", "volume", "pip", "fullscreen"]}
+/>
+```
+
+The optional `"pip"` action renders `Player.PictureInPictureButton` when the
+browser and provider support native picture-in-picture. The SDK owns its
+entry, exit and pressed state. It is separate from fullscreen and is not in
+the preset's default control list.
+
 ## Slots, gestures and feedback
 
 `slots` accepts `loading`, `error`, `controls` and `overlay` React nodes.
@@ -171,9 +240,10 @@ Wrong:
 ```
 
 Correct: the preset supports `play`, `time`, `volume`, `captions`, `fullscreen`
-and opt-in `settings`. Use Settings for playback-speed choices and caption
-languages, or set the engine's `playbackRate` directly. Other control UI belongs
-in `slots.controls` or a custom `Player` composition.
+and opt-in `settings` / `pip`. Settings exposes playback speeds, caption
+languages, chapter navigation and available adaptive qualities. The engine's
+`playbackRate` can also be set directly. Use `slots.controls` or a custom
+`Player` composition for other control UI.
 
 Source: libs/ui/src/molecules/video-player.tsx
 

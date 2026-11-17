@@ -34,6 +34,8 @@ type StorybookEntry = {
 type VisualBrand = "business" | "akros" | "n1"
 type StorybookIndex = { entries: Record<string, StorybookEntry> }
 const playerStoryId = /^molecules-(player|audioplayer|videoplayer)--/
+const adaptivePlayerStoryId = /--adaptive-(hls|dash)$/
+const middleThumbnail = /thumbnail-10\.png$/
 const captionStories = new Set([
   "molecules-videoplayer--captioned",
   "molecules-videoplayer--multiple-languages",
@@ -856,6 +858,9 @@ async function captureStory(run: StoryRun): Promise<void> {
     waitForTimedToasts: completion.visualTimedToasts !== "capture",
   })
   const root = page.locator("#storybook-root")
+  if (story.id === "molecules-videoplayer--lazy-loading") {
+    await page.getByRole("button", { name: "Show video", exact: true }).click()
+  }
   const capture = async (suffix = "", fullPage = false) => {
     const beforeCapture =
       suffix === "--popup-submenu"
@@ -918,26 +923,37 @@ async function captureStory(run: StoryRun): Promise<void> {
       const readyPlayer = story.id.endsWith("--states")
         ? page.getByRole("region", { name: "Ready", exact: true })
         : page.locator("[data-media-player]")
+      await expect(readyPlayer).toHaveAttribute("data-can-play", "")
+      const hasChapterTimeline =
+        story.id === "molecules-player--timeline-previews" ||
+        story.id === "molecules-videoplayer--chapters-and-previews"
+      if (hasChapterTimeline) {
+        // The SDK first renders a single fallback segment. Finish loading the
+        // declared chapter track before the fixture's native media reload.
+        await expect(readyPlayer.locator(".vds-slider-chapter")).toHaveCount(3)
+      }
       // Metadata-only preload can report canplay with an empty buffered range
       // in WebKit. Load the entire fixture before comparing its progress track.
-      await readyPlayer
-        .locator("audio, video")
-        .evaluateAll(async (elements) => {
-          await Promise.all(
-            elements.map((element) => {
-              const media = element as HTMLMediaElement
-              return new Promise<void>((resolve) => {
-                // Await this reload, rather than accepting the previous buffered
-                // range while its loadstart event is still queued.
-                media.addEventListener("loadeddata", () => resolve(), {
-                  once: true,
+      if (!adaptivePlayerStoryId.test(story.id)) {
+        await readyPlayer
+          .locator("audio, video")
+          .evaluateAll(async (elements) => {
+            await Promise.all(
+              elements.map((element) => {
+                const media = element as HTMLMediaElement
+                return new Promise<void>((resolve) => {
+                  // Await this reload, rather than accepting the previous buffered
+                  // range while its loadstart event is still queued.
+                  media.addEventListener("loadeddata", () => resolve(), {
+                    once: true,
+                  })
+                  media.preload = "auto"
+                  media.load()
                 })
-                media.preload = "auto"
-                media.load()
               })
-            })
-          )
-        })
+            )
+          })
+      }
       await expect(readyPlayer).toHaveAttribute("data-can-play", "")
       // The buffered track is part of the screenshot, so wait for the whole
       // local recording rather than capturing a network-dependent progress bar.
@@ -948,7 +964,8 @@ async function captureStory(run: StoryRun): Promise<void> {
               const media = element as HTMLMediaElement
               return (
                 media.buffered.length > 0 &&
-                media.buffered.end(media.buffered.length - 1) === 30
+                Math.abs(media.buffered.end(media.buffered.length - 1) - 30) <
+                  0.1
               )
             })
           )
@@ -957,6 +974,17 @@ async function captureStory(run: StoryRun): Promise<void> {
       await expect(
         readyPlayer.locator(".player-feedback[role='status']")
       ).toHaveCount(0)
+      if (hasChapterTimeline) {
+        const fills = readyPlayer.locator(
+          ".vds-slider-chapter .vds-slider-track-fill"
+        )
+        await expect(fills).toHaveCount(3)
+        // These paused stories start at zero. Readiness includes the SDK's
+        // chapter paint, not just the native buffered range.
+        for (const fill of await fills.all()) {
+          await expect(fill).toHaveCSS("width", "0px")
+        }
+      }
       if (captionStories.has(story.id)) {
         await expect(
           readyPlayer.locator(".player-captions [data-part='cue']")
@@ -1095,6 +1123,25 @@ async function captureStory(run: StoryRun): Promise<void> {
     }
   }
   await capture()
+  if (
+    story.id === "molecules-videoplayer--chapters-and-previews" ||
+    story.id === "molecules-player--timeline-previews"
+  ) {
+    const timeline = page.getByRole("slider", { name: "Seek", exact: true })
+    const bounds = await timeline.boundingBox()
+    if (!bounds) {
+      throw new Error("Chapter timeline has no bounds")
+    }
+    await timeline.hover({
+      position: { x: bounds.width / 2, y: 4 },
+    })
+    const preview = page.locator(".player-preview")
+    await expect(preview).toHaveAttribute("data-visible", "")
+    await expect(preview.locator("img")).toHaveAttribute("src", middleThumbnail)
+    await expect(preview).toBeInViewport({ ratio: 1 })
+    await capture("--timeline-preview", true)
+    await page.mouse.move(0, 0)
+  }
   const hasVisiblePortal = (await visibleFloatingSurfaces(page)).some(
     (surface) => surface.external
   )

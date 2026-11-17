@@ -2,7 +2,7 @@
  * VideoPlayer — @techsio/ui-kit molecule.
  *
  * @component VideoPlayer
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill video-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -16,6 +16,7 @@ import {
   type PlayerPresetSlots,
   type PlayerProps,
   type PlayerTextTrack,
+  type PlayerTimeSliderProps,
 } from "./player"
 
 const videoPlayerStyles = tv({
@@ -41,6 +42,7 @@ export type VideoPlayerControls =
   | "fullscreen"
   | "captions"
   | "settings"
+  | "pip"
 
 export type VideoPlayerProps = Omit<
   PlayerProps,
@@ -48,7 +50,9 @@ export type VideoPlayerProps = Omit<
 > & {
   tracks?: readonly PlayerTextTrack[]
   slots?: PlayerPresetSlots
-  src: string
+  src: NonNullable<PlayerProps["src"]>
+  thumbnails?: PlayerTimeSliderProps["thumbnails"]
+  chapters?: boolean
   poster?: string
   seekTime?: number
   controlsList?: readonly VideoPlayerControls[]
@@ -97,9 +101,13 @@ function PlaybackControls({
 function DefaultControls({
   controlsList,
   seekTime,
+  thumbnails,
+  chapters,
 }: {
   controlsList: readonly VideoPlayerControls[]
   seekTime: number
+  thumbnails: VideoPlayerProps["thumbnails"]
+  chapters: VideoPlayerProps["chapters"]
 }) {
   const styles = videoPlayerStyles()
   const hasPlayControl = controlsList.includes("play")
@@ -108,12 +116,14 @@ function DefaultControls({
   const hasCaptionsControl = controlsList.includes("captions")
   const hasFullscreenControl = controlsList.includes("fullscreen")
   const hasSettingsControl = controlsList.includes("settings")
+  const hasPictureInPictureControl = controlsList.includes("pip")
   const hasPlaybackControls = hasPlayControl || hasTimeControl
   const hasSecondaryControls =
     hasVolumeControl ||
     hasFullscreenControl ||
     hasCaptionsControl ||
-    hasSettingsControl
+    hasSettingsControl ||
+    hasPictureInPictureControl
   const hasControls = hasPlaybackControls || hasSecondaryControls
 
   if (!hasControls) {
@@ -123,7 +133,11 @@ function DefaultControls({
     <Player.Controls className={styles.controls()} reserveCaptionSpace>
       <Player.ControlGroup className={styles.layout()} padding="none">
         {hasTimeControl ? (
-          <Player.TimeSlider className={styles.timeline()} />
+          <Player.TimeSlider
+            chapters={chapters}
+            className={styles.timeline()}
+            thumbnails={thumbnails}
+          />
         ) : null}
         <Player.Control className={styles.toolbar()}>
           {hasPlaybackControls ? (
@@ -143,6 +157,9 @@ function DefaultControls({
               ) : null}
               {hasCaptionsControl ? <Player.CaptionButton /> : null}
               {hasSettingsControl ? <Player.SettingsMenu /> : null}
+              {hasPictureInPictureControl ? (
+                <Player.PictureInPictureButton />
+              ) : null}
               {hasFullscreenControl ? <Player.FullscreenButton /> : null}
             </Player.Control>
           ) : null}
@@ -165,6 +182,8 @@ export function VideoPlayer({
   onVolumeChange,
   tracks,
   slots,
+  thumbnails,
+  chapters,
   ...props
 }: VideoPlayerProps) {
   const styles = videoPlayerStyles()
@@ -195,7 +214,12 @@ export function VideoPlayer({
       <Player.Captions />
       {slots?.overlay}
       {slots?.controls === undefined ? (
-        <DefaultControls controlsList={controlsList} seekTime={seekTime} />
+        <DefaultControls
+          chapters={chapters}
+          controlsList={controlsList}
+          seekTime={seekTime}
+          thumbnails={thumbnails}
+        />
       ) : (
         slots.controls
       )}

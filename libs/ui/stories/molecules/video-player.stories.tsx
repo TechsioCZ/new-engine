@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ComponentProps, useState } from "react"
+import { type ComponentProps, useRef, useState } from "react"
 import { fn } from "storybook/test"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
@@ -10,6 +10,7 @@ import {
   playerStatesPlay,
   playerStatesSource,
 } from "../helpers/player-states"
+import { configurePlayerStreaming } from "../helpers/player-streaming"
 
 const POSTER_SRC = new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
   .href
@@ -47,6 +48,9 @@ const controls = [
   "playsInline",
   "loop",
   "preload",
+  "load",
+  "posterLoad",
+  "chapters",
   "seekTime",
   "controlsList",
   "height",
@@ -54,6 +58,7 @@ const controls = [
 const publicProps = [
   ...controls,
   "tracks",
+  "thumbnails",
   "slots",
   "storage",
   "onPlay",
@@ -88,7 +93,7 @@ const meta: Meta<typeof VideoPlayer> = {
       argTypes: { include: publicProps },
       description: {
         component:
-          "A video preset with keyboard and surface playback, captions, loading/error feedback and configurable content slots. Use Player for a fully custom composition or AudioPlayer for audio.",
+          "A video preset with captions, chapter and thumbnail timelines, adaptive-quality settings, optional picture-in-picture, visible loading and configurable content slots. Use Player for a fully custom composition or AudioPlayer for audio.",
       },
     },
   },
@@ -98,6 +103,27 @@ const meta: Meta<typeof VideoPlayer> = {
     title: { control: "text" },
     loop: { control: "boolean" },
     preload: { control: "select", options: ["none", "metadata", "auto"] },
+    load: {
+      control: "select",
+      options: ["eager", "idle", "visible", "play", "custom"],
+      description:
+        "When the media provider may load. Visible defers media requests until the player enters the viewport; preload controls what loads afterward.",
+    },
+    posterLoad: {
+      control: "select",
+      options: ["eager", "idle", "visible", "custom"],
+      description: "Poster loading is independent of media loading.",
+    },
+    chapters: {
+      control: "boolean",
+      description:
+        "Split the timeline using a chapters text track. Settings also lists available chapter titles.",
+    },
+    thumbnails: {
+      control: false,
+      description:
+        "Timeline preview images supplied as a WebVTT URL or timestamped image objects. See ChaptersAndPreviews.",
+    },
     muted: { control: "boolean" },
     volume: { control: { type: "range", min: 0, max: 1, step: 0.1 } },
     playsInline: { control: "boolean" },
@@ -120,7 +146,15 @@ const meta: Meta<typeof VideoPlayer> = {
     seekTime: { control: { type: "number", min: 1, max: 60 } },
     controlsList: {
       control: "check",
-      options: ["play", "time", "volume", "captions", "fullscreen", "settings"],
+      options: [
+        "play",
+        "time",
+        "volume",
+        "captions",
+        "fullscreen",
+        "settings",
+        "pip",
+      ],
     },
     height: { control: { type: "number", min: 200, max: 800 } },
   },
@@ -560,4 +594,281 @@ export function TranscriptVideo() {
     },
   },
   render: (args) => <TranscriptVideo {...args} />,
+}
+
+const CHAPTER_TRACKS: readonly PlayerTextTrack[] = [
+  {
+    id: "sample-chapters",
+    kind: "chapters",
+    language: "en",
+    label: "Chapters",
+    default: true,
+    content:
+      "WEBVTT\n\n00:00.000 --> 00:10.000\nIntroduction\n\n00:10.000 --> 00:20.000\nDetails\n\n00:20.000 --> 00:30.000\nSummary\n",
+  },
+]
+const PREVIEW_IMAGES = [
+  { url: "/player-media/thumbnail-0.png", startTime: 0 },
+  { url: "/player-media/thumbnail-10.png", startTime: 10 },
+  { url: "/player-media/thumbnail-20.png", startTime: 20 },
+]
+
+export const ChaptersAndPreviews: Story = {
+  args: {
+    src: "/player-media/sample.mp4",
+    poster: "/player-media/poster.png",
+    tracks: CHAPTER_TRACKS,
+    chapters: true,
+    thumbnails: PREVIEW_IMAGES,
+    controlsList: ["play", "time", "volume", "fullscreen", "settings"],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A real 30-second recording with three chapters and local timeline thumbnails. Hover or drag the timeline to preview a frame; choose Settings → Chapters to jump to a chapter.",
+      },
+      source: {
+        code: `import type { PlayerTextTrack } from "@techsio/ui-kit/molecules/player"
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+const tracks: readonly PlayerTextTrack[] = ${JSON.stringify(CHAPTER_TRACKS, null, 2)}
+const thumbnails = ${JSON.stringify(PREVIEW_IMAGES, null, 2)}
+
+export function ChapterVideo() {
+  return (
+    <VideoPlayer
+      src="/player-media/sample.mp4"
+      poster="/player-media/poster.png"
+      title="Chaptered product film"
+      tracks={tracks}
+      chapters
+      thumbnails={thumbnails}
+      controlsList={["play", "time", "volume", "fullscreen", "settings"]}
+    />
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <VideoPlayerStory
+      {...args}
+      description="Preview the timeline, or open Settings → Chapters to jump between Introduction, Details and Summary. Each chapter has its own preview image."
+    />
+  ),
+}
+
+function LazyVideo(args: ComponentProps<typeof VideoPlayer>) {
+  const videoRef = useRef<HTMLDivElement>(null)
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-200">
+      <div className="flex min-h-screen flex-col items-start gap-200">
+        <p>
+          The video starts below the viewport. Show video scrolls to it;
+          Vidstack starts loading media when the player becomes visible. Its
+          poster may load earlier.
+        </p>
+        <Button
+          appearance="outline"
+          onClick={() => videoRef.current?.scrollIntoView({ block: "start" })}
+          type="button"
+        >
+          Show video
+        </Button>
+      </div>
+      <div ref={videoRef}>
+        <VideoPlayer {...args} />
+      </div>
+    </div>
+  )
+}
+
+export const LazyLoading: Story = {
+  args: {
+    src: "/player-media/sample.mp4",
+    poster: "/player-media/poster.png",
+    load: "visible",
+    posterLoad: "eager",
+    preload: "metadata",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The player is mounted below the viewport with load=visible. Show video reveals it without mounting a replacement; posterLoad=eager remains independent of media requests.",
+      },
+      source: {
+        code: `import { useRef } from "react"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+export function DeferredVideo() {
+  const videoRef = useRef<HTMLDivElement>(null)
+  return (
+    <div className="flex flex-col gap-200">
+      <div className="flex min-h-screen flex-col items-start gap-200">
+        <p>The video loads when it enters the viewport.</p>
+        <Button appearance="outline" type="button"
+          onClick={() => videoRef.current?.scrollIntoView({ block: "start" })}>
+          Show video
+        </Button>
+      </div>
+      <div ref={videoRef}>
+        <VideoPlayer
+          src="/player-media/sample.mp4"
+          poster="/player-media/poster.png"
+          title="Deferred product film"
+          load="visible"
+          posterLoad="eager"
+          preload="metadata"
+        />
+      </div>
+    </div>
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => <LazyVideo {...args} />,
+}
+
+export const PictureInPicture: Story = {
+  args: {
+    src: "/player-media/sample.mp4",
+    poster: "/player-media/poster.png",
+    controlsList: ["play", "time", "volume", "pip", "fullscreen"],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Opt into the native picture-in-picture action with pip. The control is available when the browser and current provider support it; the SDK owns entry, exit and pressed state.",
+      },
+      source: {
+        code: `import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+export function FloatingVideo() {
+  return (
+    <VideoPlayer
+      src="/player-media/sample.mp4"
+      poster="/player-media/poster.png"
+      title="Picture-in-picture product film"
+      controlsList={["play", "time", "volume", "pip", "fullscreen"]}
+    />
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <VideoPlayerStory
+      {...args}
+      description="Play the video, then use Picture in picture to keep watching in a floating window when your browser supports it. Use the same action to return."
+    />
+  ),
+}
+
+export const AdaptiveHLS: Story = {
+  args: {
+    src: { src: "/player-media/master.m3u8", type: "application/x-mpegurl" },
+    poster: "/player-media/poster.png",
+    onProviderChange: configurePlayerStreaming,
+    controlsList: ["play", "time", "volume", "fullscreen", "settings"],
+  },
+  argTypes: { src: { control: false } },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A real local HLS stream with 180p and 360p renditions. Install hls.js in the consuming app and supply it through onProviderChange. Settings → Video quality offers Auto and supported renditions; browsers using native HLS may manage quality themselves.",
+      },
+      source: {
+        code: `import { isHLSProvider, type MediaProviderAdapter } from "@vidstack/react"
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+import Hls from "hls.js"
+
+// Install hls.js@^1 in the app that owns this provider configuration.
+function configureHLS(provider: MediaProviderAdapter | null) {
+  if (isHLSProvider(provider)) {
+    provider.library = Hls
+  }
+}
+
+export function AdaptiveVideo() {
+  return (
+    <VideoPlayer
+      src={{ src: "/player-media/master.m3u8", type: "application/x-mpegurl" }}
+      poster="/player-media/poster.png"
+      title="Adaptive HLS product film"
+      onProviderChange={configureHLS}
+      controlsList={["play", "time", "volume", "fullscreen", "settings"]}
+    />
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <VideoPlayerStory
+      {...args}
+      description="This HLS recording has 180p and 360p renditions. Play it, then open Settings → Video quality to choose a supported rendition or return to Auto."
+    />
+  ),
+}
+
+export const AdaptiveDASH: Story = {
+  args: {
+    src: { src: "/player-media/stream.mpd", type: "application/dash+xml" },
+    poster: "/player-media/poster.png",
+    onProviderChange: configurePlayerStreaming,
+    controlsList: ["play", "time", "volume", "fullscreen", "settings"],
+  },
+  argTypes: { src: { control: false } },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A real local MPEG-DASH stream with 180p and 360p renditions. The pinned Vidstack provider supports dashjs 4.x; install that version in the consuming app. Settings → Video quality uses the provider's actual rendition list.",
+      },
+      source: {
+        code: `import { isDASHProvider, type MediaProviderAdapter } from "@vidstack/react"
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+// Install dashjs@^4 for the pinned Vidstack provider.
+function configureDASH(provider: MediaProviderAdapter | null) {
+  if (isDASHProvider(provider)) {
+    provider.library = async () => {
+      // Prevent dash.all from creating a second player for the same video.
+      Object.assign(window, {
+        dashjs: { ...Reflect.get(window, "dashjs"), skipAutoCreate: true },
+      })
+      const { default: dashjs } = await import("dashjs")
+      // This SDK version also reads the browser namespace after importing.
+      Object.assign(window, { dashjs })
+      return { default: dashjs }
+    }
+  }
+}
+
+export function AdaptiveVideo() {
+  return (
+    <VideoPlayer
+      src={{ src: "/player-media/stream.mpd", type: "application/dash+xml" }}
+      poster="/player-media/poster.png"
+      title="Adaptive DASH product film"
+      onProviderChange={configureDASH}
+      controlsList={["play", "time", "volume", "fullscreen", "settings"]}
+    />
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <VideoPlayerStory
+      {...args}
+      description="This MPEG-DASH recording has 180p and 360p renditions. Open Settings → Video quality to compare a manual quality choice with Auto while the real stream plays."
+    />
+  ),
 }

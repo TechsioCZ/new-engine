@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Player v1.3.0
+- Added chapter-segment timelines and thumbnail previews, native picture-in-picture controls, and available chapter/quality actions in Settings. Documented visible media loading and local HLS/DASH engine integration, including MIME-typed sources and the pinned DASH 4.x contract.
+
+### VideoPlayer v1.3.0
+- Added optional chapters, thumbnails and \`"pip"\` controls, and accepted Vidstack typed media sources. ChaptersAndPreviews, LazyLoading, PictureInPicture, AdaptiveHLS and AdaptiveDASH demonstrate real local media, preview images and two-rendition adaptive streams; existing defaults stay unchanged.
+
 ### Player v1.2.0
 - Added opt-in \`Player.SettingsMenu\` with SDK playback-speed choices and a captions-language submenu. Labels use the player message catalog. Menu interaction suspends media shortcuts and control hiding. Preserved enabled caption preferences when changing languages; documented SDK storage for app-owned keys and custom audio controls.
 

@@ -6,7 +6,7 @@ description: >
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -116,10 +116,10 @@ accessible label, with explicit `aria-label` taking precedence.
 | `Player.Provider` | Creates the native media/provider and registers the optional `tracks` array. |
 | `Player.Poster` | Decorative poster by default; a meaningful `alt` exposes informative content. |
 | `Player.Controls`, `Player.ControlGroup`, `Player.Control` | Own control visibility and group custom layouts. |
-| `Player.PlayButton`, `Player.MuteButton`, `Player.SeekButton`, `Player.FullscreenButton` | Keyboard-accessible actions; buttons never submit their enclosing form. |
-| `Player.TimeSlider`, `Player.VolumeSlider`, `Player.Time` | Horizontal seeking/volume controls and readable time. |
+| `Player.PlayButton`, `Player.MuteButton`, `Player.SeekButton`, `Player.FullscreenButton`, `Player.PictureInPictureButton` | Keyboard-accessible actions; buttons never submit their enclosing form. Picture-in-picture follows provider/browser support. |
+| `Player.TimeSlider`, `Player.VolumeSlider`, `Player.Time` | Horizontal seeking/volume controls and readable time; the timeline optionally renders chapter segments and thumbnail previews. |
 | `Player.Captions`, `Player.CaptionButton` | Render active cues and toggle available captions. |
-| `Player.SettingsMenu` | A settings button with fixed SDK playback-speed options and a captions-language submenu when tracks are available. |
+| `Player.SettingsMenu` | Playback speed plus available subtitle languages, chapters and provider video-quality choices. |
 | `Player.Loading` | Shows localized loading feedback while the provider waits; custom children replace its content. |
 | `Player.Error` | Shows a localized error alert with retry; custom children or `({ error, retry }) => ReactNode` replace its content. |
 | `Player.Gestures` | Adds pointer playback behavior on the media surface. |
@@ -169,6 +169,118 @@ Let Vidstack own saving and restoring these values. Avoid forcing initial
 The VideoPlayer RememberPreferences story demonstrates an ordinary React key
 remount using a Reload player button; it does not reload the page or implement
 its own storage layer. Omitting `storage` keeps persistence disabled.
+
+## Chapters and timeline previews
+
+Register a `kind: "chapters"` text track through `Player.Provider`, with a stable
+ID and timed WebVTT cues. Each cue's text is its chapter title. Pass `chapters`
+to `Player.TimeSlider` to divide the seek track into chapter segments; the
+Settings menu also offers the available chapter titles as seek actions.
+
+`Player.TimeSlider.thumbnails` accepts the SDK thumbnail source: a WebVTT URL
+or timestamped image objects. An image object's `url` identifies the image and
+`startTime` its first media time, in seconds. This is independent of captions.
+
+```tsx
+import { Player } from "@techsio/ui-kit/molecules/player"
+
+<Player src="/media/film.mp4" title="Product film">
+  <Player.Provider tracks={[{
+    id: "film-chapters", kind: "chapters", language: "en", label: "Chapters", default: true,
+    content: "WEBVTT\n\n00:00.000 --> 00:10.000\nIntroduction\n\n00:10.000 --> 00:30.000\nDetails\n",
+  }]} />
+  <Player.Controls>
+    <Player.ControlGroup>
+      <Player.PlayButton />
+      <Player.TimeSlider chapters thumbnails={[
+        { url: "/media/preview-intro.png", startTime: 0 },
+        { url: "/media/preview-details.png", startTime: 10 },
+      ]} />
+      <Player.SettingsMenu />
+    </Player.ControlGroup>
+  </Player.Controls>
+</Player>
+```
+
+## Adaptive streams
+
+The root's `src` supports MIME-typed sources, including
+`{ src: "/media/master.m3u8", type: "application/x-mpegurl" }` and
+`{ src: "/media/stream.mpd", type: "application/dash+xml" }`.
+`Player.SettingsMenu` exposes Auto and manual quality choices when the provider
+reports selectable renditions. An ordinary MP4 has no adaptive-quality menu.
+Native HLS playback may manage rendition choice itself.
+
+To bundle streaming engines locally, the consuming app installs `hls.js@^1`
+or `dashjs@^4` and assigns the appropriate provider's `library` from
+`onProviderChange`. Use `isHLSProvider` / `isDASHProvider` from `@vidstack/react`
+to narrow the provider. The UI-kit library does not require these engines for
+ordinary audio or MP4 playback.
+
+Import the HLS constructor eagerly for the pinned Vidstack provider. A dynamic
+import can finish after native HLS has already reported readiness in browsers
+that support both paths, causing the provider to skip its quality-list setup.
+
+```tsx
+import { isHLSProvider, type MediaProviderAdapter } from "@vidstack/react"
+import { Player } from "@techsio/ui-kit/molecules/player"
+import Hls from "hls.js"
+
+function configureProvider(provider: MediaProviderAdapter | null) {
+  if (isHLSProvider(provider)) provider.library = Hls
+}
+
+<Player src={{ src: "/media/master.m3u8", type: "application/x-mpegurl" }}
+  title="Adaptive film" onProviderChange={configureProvider}>
+  <Player.Provider />
+  <Player.Controls>
+    <Player.ControlGroup>
+      <Player.PlayButton />
+      <Player.SettingsMenu />
+    </Player.ControlGroup>
+  </Player.Controls>
+</Player>
+```
+
+For DASH, the pinned provider expects dashjs 4.x and also reads its browser
+namespace after a dynamic import. Set `skipAutoCreate` before importing:
+`dash.all` otherwise scans mounted video sources and can create a second engine
+that competes with Vidstack for the same video element.
+
+```tsx
+import { isDASHProvider, type MediaProviderAdapter } from "@vidstack/react"
+
+function configureProvider(provider: MediaProviderAdapter | null) {
+  if (isDASHProvider(provider)) {
+    provider.library = async () => {
+      Object.assign(window, {
+        dashjs: { ...Reflect.get(window, "dashjs"), skipAutoCreate: true },
+      })
+      const { default: dashjs } = await import("dashjs")
+      Object.assign(window, { dashjs })
+      return { default: dashjs }
+    }
+  }
+}
+```
+
+See the [HLS](https://vidstack.io/docs/player/api/providers/hls/) and
+[DASH](https://vidstack.io/docs/player/api/providers/dash/) provider contracts.
+The AdaptiveHLS and AdaptiveDASH stories use real local manifests and 180p/360p
+segments; their 30-second buffer configuration belongs to these finite demos.
+Choose buffering limits for the consuming app's memory and streaming needs.
+
+## Loading and picture-in-picture
+
+Use `load="visible"` for a player that is mounted below the viewport. Media
+requests begin when it becomes visible; `preload="metadata"` determines what
+the provider loads afterward. `posterLoad="eager"` may load the poster before
+the media. Rendering the player conditionally is a separate mounting decision.
+
+Compose `Player.PictureInPictureButton` in the control group to opt into native
+picture-in-picture. The SDK handles support detection, entry, exit and pressed
+state. Keep fullscreen available when it suits the task; picture-in-picture
+availability depends on the browser and current media provider.
 
 ## Core Patterns
 

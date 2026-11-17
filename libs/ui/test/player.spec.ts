@@ -4,6 +4,8 @@ import { installPlayerMediaFixture } from "./player-media-fixture"
 const PLAY_LABEL = /^(Play|Pause)$/
 const MUTE_LABEL = /^(Mute|Unmute)$/
 const LOCALIZED_TIME_VALUE = /^\d+ sekund z 30 sekund$/
+const FIRST_PREVIEW_IMAGE = /\/player-media\/thumbnail-0\.png$/
+const LAST_PREVIEW_IMAGE = /\/player-media\/thumbnail-20\.png$/
 const pageErrors = new WeakMap<Page, string[]>()
 
 async function updateStoryArgs(
@@ -865,6 +867,7 @@ test("localized seeking exposes a translated time value to screen readers", asyn
     ""
   )
   const seek = page.getByRole("slider", { name: "Pozice", exact: true })
+  await expect(seek).toHaveAttribute("aria-valuetext", "0 sekund z 30 sekund")
   await seek.focus()
   await page.keyboard.press("ArrowRight")
   await expect(seek).toHaveAttribute("aria-valuetext", "5 sekund z 30 sekund")
@@ -1182,3 +1185,476 @@ test("playback settings menus remain inside native fullscreen", async ({
     )
     .toBe(1.5)
 })
+
+test("chapter timelines preview real frames and seek through the chapter menu", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--chapters-and-previews&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  const seek = page.getByRole("slider", { name: "Seek", exact: true })
+  const chapters = seek.locator(".vds-slider-chapter")
+  await expect(chapters).toHaveCount(3)
+  for (const chapter of await chapters.all()) {
+    expect((await chapter.boundingBox())?.width).toBeGreaterThan(0)
+  }
+  const seekBox = await seek.boundingBox()
+  if (!seekBox) {
+    throw new Error("Chapter timeline has no visible bounds")
+  }
+  await page.mouse.move(
+    seekBox.x + seekBox.width * 0.15,
+    seekBox.y + seekBox.height / 2
+  )
+  await page.mouse.down()
+  await expect(seek).toHaveAttribute("data-dragging", "")
+  const preview = seek.locator(".player-preview")
+  const image = preview.locator(".vds-slider-thumbnail img")
+  await expect(preview).toHaveAttribute("data-visible", "")
+  await expect(image).toHaveAttribute("src", FIRST_PREVIEW_IMAGE)
+  await expect(preview).toContainText("Introduction")
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete && element.naturalWidth > 0
+      )
+    )
+    .toBe(true)
+  // The SDK's leading-only pointer throttle drops intermediate events in a burst.
+  for (const position of [0.35, 0.55, 0.8]) {
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        )
+    )
+    await page.mouse.move(
+      seekBox.x + seekBox.width * position,
+      seekBox.y + seekBox.height / 2
+    )
+  }
+  await expect(image).toHaveAttribute("src", LAST_PREVIEW_IMAGE)
+  await expect(preview).toContainText("Summary")
+  await expect
+    .poll(() =>
+      image.evaluate(
+        (element: HTMLImageElement) =>
+          element.complete && element.naturalWidth > 0
+      )
+    )
+    .toBe(true)
+  await page.mouse.up()
+  await page
+    .getByRole("button", { name: "Playback settings", exact: true })
+    .click()
+  await page.getByRole("menuitem", { name: "Chapters", exact: true }).click()
+  for (const title of ["Introduction", "Details", "Summary"]) {
+    await expect(
+      page.getByRole("menuitem", { name: title, exact: true })
+    ).toBeVisible()
+  }
+  await page.getByRole("menuitem", { name: "Details", exact: true }).click()
+  await expect
+    .poll(() =>
+      player
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.currentTime)
+    )
+    .toBeCloseTo(10, 2)
+  await expect(player).toHaveAttribute("data-paused", "")
+})
+
+test("visible loading defers media requests until Show video reveals the player", async ({
+  page,
+}) => {
+  let mediaRequests = 0
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/player-media/sample.mp4") {
+      mediaRequests += 1
+    }
+  })
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--lazy-loading&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  const reveal = page.getByRole("button", { name: "Show video", exact: true })
+  await expect(reveal).toBeVisible()
+  await expect(player).not.toBeInViewport()
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      )
+  )
+  expect(mediaRequests).toBe(0)
+  await expect(player).not.toHaveAttribute("data-can-play", "")
+  await reveal.click()
+  await expect(player).toBeInViewport()
+  await expect(player).toHaveAttribute("data-can-play", "")
+  expect(mediaRequests).toBeGreaterThan(0)
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await expect
+    .poll(() =>
+      player
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.currentTime)
+    )
+    .toBeGreaterThan(0)
+})
+
+test("picture-in-picture follows native support and enters and exits when available", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--picture-in-picture&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  const video = player.locator("video")
+  const supported = await video.evaluate((element: HTMLVideoElement) => {
+    const nativeVideo = element as HTMLVideoElement & {
+      webkitSupportsPresentationMode?: (mode: string) => boolean
+    }
+    return Boolean(
+      (document.pictureInPictureEnabled &&
+        typeof element.requestPictureInPicture === "function" &&
+        !element.disablePictureInPicture) ||
+        nativeVideo.webkitSupportsPresentationMode?.("picture-in-picture")
+    )
+  })
+  const enter = page.getByRole("button", {
+    name: "Enter picture-in-picture",
+    exact: true,
+  })
+  if (!supported) {
+    await expect(enter).toBeHidden()
+    return
+  }
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await enter.click()
+  await expect(player).toHaveAttribute("data-pip", "")
+  const exit = page.getByRole("button", {
+    name: "Exit picture-in-picture",
+    exact: true,
+  })
+  await expect(exit).toHaveAttribute("aria-pressed", "true")
+  await expect
+    .poll(() =>
+      video.evaluate((element: HTMLVideoElement) => {
+        const nativeVideo = element as HTMLVideoElement & {
+          webkitPresentationMode?: string
+        }
+        return (
+          document.pictureInPictureElement === element ||
+          nativeVideo.webkitPresentationMode === "picture-in-picture"
+        )
+      })
+    )
+    .toBe(true)
+  await exit.click()
+  await expect(player).not.toHaveAttribute("data-pip", "")
+  await expect(enter).toHaveAttribute("aria-pressed", "false")
+})
+
+test("adaptive HLS exposes actual qualities before starting playback", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--adaptive-hls&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await page
+    .getByRole("button", { name: "Playback settings", exact: true })
+    .click()
+  const quality = page.getByRole("menuitem", {
+    name: "Video quality",
+    exact: true,
+  })
+  const supportsMSE = await page.evaluate(
+    () =>
+      typeof MediaSource !== "undefined" &&
+      MediaSource.isTypeSupported('video/mp4; codecs="avc1.4d401e"')
+  )
+  if (!supportsMSE) {
+    const nativeHLS = await player
+      .locator("video")
+      .evaluate(
+        (element: HTMLVideoElement) =>
+          element.currentSrc.endsWith("/player-media/master.m3u8") &&
+          element.canPlayType("application/vnd.apple.mpegurl") !== ""
+      )
+    expect(
+      nativeHLS,
+      "An MSE HLS provider must expose its manifest qualities before playback"
+    ).toBe(true)
+    return
+  }
+  await quality.click()
+  await expect(page.getByRole("menuitemradio")).toHaveCount(3)
+  await expect(
+    page.getByRole("menuitemradio", { name: "Auto", exact: true })
+  ).toHaveAttribute("aria-checked", "true")
+  await expect(
+    page.getByRole("menuitemradio", { name: "180p", exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("menuitemradio", { name: "360p", exact: true })
+  ).toBeVisible()
+  await expect(player).toHaveAttribute("data-paused", "")
+  await expect(player.locator("video")).toHaveJSProperty("currentTime", 0)
+})
+
+for (const protocol of ["hls", "dash"]) {
+  test(`adaptive ${protocol} plays real segments and switches supported video qualities`, async ({
+    page,
+  }) => {
+    await page.goto(
+      `/iframe.html?id=molecules-videoplayer--adaptive-${protocol}&viewMode=story`
+    )
+    const player = page.locator("[data-media-player]")
+    await expect(player).toHaveAttribute("data-can-play", "")
+    const video = player.locator("video")
+    await expect
+      .poll(() =>
+        video.evaluate((element: HTMLVideoElement) => element.duration)
+      )
+      .toBeCloseTo(30, 4)
+    await page.getByRole("button", { name: "Play", exact: true }).click()
+    await expect
+      .poll(() =>
+        video.evaluate((element: HTMLVideoElement) => element.currentTime)
+      )
+      .toBeGreaterThan(0)
+    const settings = page.getByRole("button", {
+      name: "Playback settings",
+      exact: true,
+    })
+    await settings.click()
+    const quality = page.getByRole("menuitem", {
+      name: "Video quality",
+      exact: true,
+    })
+    if ((await quality.count()) === 0) {
+      const nativeHLS = await video.evaluate(
+        (element: HTMLVideoElement) =>
+          element.currentSrc.endsWith("/player-media/master.m3u8") &&
+          element.canPlayType("application/vnd.apple.mpegurl") !== ""
+      )
+      expect(protocol).toBe("hls")
+      expect(
+        nativeHLS,
+        "Only native HLS may delegate rendition selection to the browser"
+      ).toBe(true)
+      return
+    }
+    await quality.click()
+    const auto = page.getByRole("menuitemradio", { name: "Auto", exact: true })
+    await expect(auto).toHaveAttribute("aria-checked", "true")
+    for (const height of [180, 360]) {
+      const option = page.getByRole("menuitemradio", {
+        name: `${height}p`,
+        exact: true,
+      })
+      await option.click()
+      await expect
+        .poll(() =>
+          video.evaluate((element: HTMLVideoElement) => element.videoHeight)
+        )
+        .toBe(height)
+      await settings.click()
+      await quality.click()
+      await expect(option).toHaveAttribute("aria-checked", "true")
+    }
+    await auto.click()
+    await settings.click()
+    await quality.click()
+    await expect(auto).toHaveAttribute("aria-checked", "true")
+    await page.keyboard.press("Escape")
+    await page.keyboard.press("Escape")
+    await expect(player.getByRole("alert")).toHaveCount(0)
+    await expect(player).toHaveAttribute("data-playing", "")
+  })
+}
+
+type EngineQualitySnapshot = {
+  height: number | null
+  auto: boolean
+}
+
+test("unsupported volume controls stay unfocusable while browser capability initializes", async ({
+  page,
+  isMobile,
+}) => {
+  await page.addInitScript(() => {
+    const samples: { exposed: boolean }[] = []
+    const target = window as Window & {
+      __PLAYER_VOLUME_CAPABILITY__?: typeof samples
+    }
+    target.__PLAYER_VOLUME_CAPABILITY__ = samples
+    new MutationObserver(() => {
+      for (const slider of document.querySelectorAll(
+        '.vds-volume-slider[aria-hidden="true"][tabindex="0"]'
+      )) {
+        const style = getComputedStyle(slider)
+        const box = slider.getBoundingClientRect()
+        samples.push({
+          exposed:
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            box.width > 0 &&
+            box.height > 0,
+        })
+      }
+    }).observe(document, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["aria-hidden", "tabindex", "class"],
+    })
+  })
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--fixed-height&viewMode=story"
+  )
+  const volume = page.locator("[data-media-volume-slider]")
+  await expect(volume).toHaveAttribute("data-supported", "")
+  const samples = await page.evaluate(() => {
+    const target = window as Window & {
+      __PLAYER_VOLUME_CAPABILITY__?: { exposed: boolean }[]
+    }
+    return target.__PLAYER_VOLUME_CAPABILITY__ ?? []
+  })
+  expect(
+    samples.length,
+    "Observed the actual initial unsupported state"
+  ).toBeGreaterThan(0)
+  expect(samples.some((sample) => sample.exposed)).toBe(false)
+  if (isMobile) {
+    await expect(volume).toBeHidden()
+    return
+  }
+  await expect(page.locator("[data-media-player]")).toHaveAttribute(
+    "data-can-play",
+    ""
+  )
+  await expect(volume).toBeVisible()
+  await volume.focus()
+  await page.keyboard.press("ArrowLeft")
+  await expect(volume).toHaveAttribute("aria-valuenow", "95")
+  await expect
+    .poll(() =>
+      page.locator("video").evaluate((video: HTMLVideoElement) => video.volume)
+    )
+    .toBeCloseTo(0.95, 2)
+})
+
+type EngineQualityWindow = Window & {
+  __PLAYER_ENGINE_QUALITY__?: () => EngineQualitySnapshot
+}
+
+for (const protocol of ["hls", "dash"]) {
+  test(`selecting the current ${protocol} rendition disables engine Auto quality`, async ({
+    page,
+  }) => {
+    await page.addInitScript((engine) => {
+      const target = window as EngineQualityWindow
+      let selectedHeight: number | null = null
+      window.addEventListener(
+        "quality-change",
+        (event) => {
+          const quality = (event as CustomEvent<{ height: number } | null>)
+            .detail
+          selectedHeight = quality?.height ?? null
+        },
+        true
+      )
+      if (engine === "hls") {
+        type HLSInstance = {
+          autoLevelEnabled: boolean
+        }
+        window.addEventListener(
+          "hls-instance",
+          (event) => {
+            const instance = (event as CustomEvent<HLSInstance>).detail
+            target.__PLAYER_ENGINE_QUALITY__ = () => ({
+              height: selectedHeight,
+              auto: instance.autoLevelEnabled,
+            })
+          },
+          true
+        )
+      } else {
+        type DASHInstance = {
+          getSettings: () => {
+            streaming: { abr: { autoSwitchBitrate: { video: boolean } } }
+          }
+        }
+        window.addEventListener(
+          "dash-instance",
+          (event) => {
+            const instance = (event as CustomEvent<DASHInstance>).detail
+            target.__PLAYER_ENGINE_QUALITY__ = () => ({
+              height: selectedHeight,
+              auto: instance.getSettings().streaming.abr.autoSwitchBitrate
+                .video,
+            })
+          },
+          true
+        )
+      }
+    }, protocol)
+    await page.goto(
+      `/iframe.html?id=molecules-videoplayer--adaptive-${protocol}&viewMode=story`
+    )
+    const player = page.locator("[data-media-player]")
+    await expect(player).toHaveAttribute("data-can-play", "")
+    const video = player.locator("video")
+    const readEngine = () =>
+      page.evaluate(
+        () =>
+          (window as EngineQualityWindow).__PLAYER_ENGINE_QUALITY__?.() ?? null
+      )
+    await page.getByRole("button", { name: "Play", exact: true }).click()
+    await expect
+      .poll(() =>
+        video.evaluate((element: HTMLVideoElement) => element.currentTime)
+      )
+      .toBeGreaterThan(0)
+    await page.getByRole("button", { name: "Pause", exact: true }).click()
+    await expect
+      .poll(async () => (await readEngine())?.height ?? 0)
+      .toBeGreaterThan(0)
+    const current = await readEngine()
+    if (!current?.height) {
+      throw new Error("The SDK did not report a selected rendition")
+    }
+    expect(current.auto).toBe(true)
+    const settings = page.getByRole("button", {
+      name: "Playback settings",
+      exact: true,
+    })
+    const openQuality = async () => {
+      await settings.click()
+      await page
+        .getByRole("menuitem", { name: "Video quality", exact: true })
+        .click()
+    }
+    await openQuality()
+    const auto = page.getByRole("menuitemradio", { name: "Auto", exact: true })
+    await expect(auto).toHaveAttribute("aria-checked", "true")
+    const manual = page.getByRole("menuitemradio", {
+      name: `${current.height}p`,
+      exact: true,
+    })
+    await manual.click()
+    await expect.poll(async () => (await readEngine())?.auto).toBe(false)
+    await openQuality()
+    await expect(manual).toHaveAttribute("aria-checked", "true")
+    await expect(auto).toHaveAttribute("aria-checked", "false")
+    await auto.click()
+    await expect.poll(async () => (await readEngine())?.auto).toBe(true)
+  })
+}

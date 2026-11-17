@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { type ComponentProps, useState } from "react"
 import { expect, fn, userEvent, waitFor, within } from "storybook/test"
 import { UiMessagesProvider } from "../../src/messages/ui-messages-provider"
-import { Player } from "../../src/molecules/player"
+import { Player, type PlayerTextTrack } from "../../src/molecules/player"
 import {
   PlayerStates,
   playerStatesPlay,
@@ -315,4 +315,82 @@ export function AudioInsideForm() {
     await userEvent.click(mute)
     await waitFor(() => expect(mute).toHaveAccessibleName("Mute"))
   },
+}
+
+const TIMELINE_TRACKS: readonly PlayerTextTrack[] = [
+  {
+    id: "recording-chapters",
+    kind: "chapters",
+    language: "en",
+    label: "Chapters",
+    default: true,
+    content:
+      "WEBVTT\n\n00:00.000 --> 00:10.000\nIntroduction\n\n00:10.000 --> 00:20.000\nDetails\n\n00:20.000 --> 00:30.000\nSummary\n",
+  },
+]
+const TIMELINE_THUMBNAILS = [
+  { url: "/player-media/thumbnail-0.png", startTime: 0 },
+  { url: "/player-media/thumbnail-10.png", startTime: 10 },
+  { url: "/player-media/thumbnail-20.png", startTime: 20 },
+]
+
+export const TimelinePreviews: Story = {
+  args: {
+    src: "/player-media/sample.mp4",
+    title: "Chaptered recording",
+    viewType: "audio",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A compact compound control bar with chapter segments, real thumbnail previews and chapter navigation in Settings. Audio view keeps the recording inline while previews open above its timeline.",
+      },
+      source: {
+        code: `import { Player, type PlayerTextTrack } from "@techsio/ui-kit/molecules/player"
+
+const tracks: readonly PlayerTextTrack[] = ${JSON.stringify(TIMELINE_TRACKS, null, 2)}
+const thumbnails = ${JSON.stringify(TIMELINE_THUMBNAILS, null, 2)}
+
+export function RecordingControls() {
+  return (
+    <Player src="/player-media/sample.mp4" title="Chaptered recording" viewType="audio"
+      className="rounded-player border-(length:--border-width-player) border-player-border bg-player-bg">
+      <Player.Provider tracks={tracks} />
+      <Player.Controls>
+        <Player.ControlGroup>
+          <Player.PlayButton />
+          <Player.TimeSlider chapters thumbnails={thumbnails} />
+          <Player.Time type="current" />
+          <Player.SettingsMenu />
+        </Player.ControlGroup>
+      </Player.Controls>
+    </Player>
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-200 pt-950">
+      <p>
+        Preview frames above this compact timeline, or open Settings → Chapters
+        to jump between Introduction, Details and Summary.
+      </p>
+      <Player
+        {...args}
+        className="rounded-player border-(length:--border-width-player) border-player-border bg-player-bg"
+      >
+        <Player.Provider tracks={TIMELINE_TRACKS} />
+        <Player.Controls>
+          <Player.ControlGroup>
+            <Player.PlayButton />
+            <Player.TimeSlider chapters thumbnails={TIMELINE_THUMBNAILS} />
+            <Player.Time type="current" />
+            <Player.SettingsMenu />
+          </Player.ControlGroup>
+        </Player.Controls>
+      </Player>
+    </div>
+  ),
 }

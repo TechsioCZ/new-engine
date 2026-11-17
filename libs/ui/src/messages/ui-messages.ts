@@ -166,6 +166,9 @@ export type UiMessages = {
     normalSpeed: string
     subtitles: string
     subtitlesOff: string
+    videoQuality: string
+    autoQuality: string
+    chapters: string
     seekForward: (seconds: number) => string
     seekBackward: (seconds: number) => string
     seek: string
@@ -361,6 +364,9 @@ export const enUiMessages: UiMessages = {
     normalSpeed: "Normal",
     subtitles: "Subtitles",
     subtitlesOff: "Off",
+    videoQuality: "Video quality",
+    autoQuality: "Auto",
+    chapters: "Chapters",
     seekForward: (seconds) => `Seek forward ${seconds} seconds`,
     seekBackward: (seconds) => `Seek backward ${seconds} seconds`,
     seek: "Seek",

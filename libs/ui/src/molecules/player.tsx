@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.2.0
+ * @componentVersion v1.3.0
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -20,6 +20,7 @@ import {
   type MediaErrorDetail,
   FullscreenButton as MediaFullscreenButton,
   MuteButton as MediaMuteButton,
+  PIPButton as MediaPictureInPictureButton,
   PlayButton as MediaPlayButton,
   MediaPlayer,
   MediaProvider,
@@ -31,11 +32,13 @@ import {
   type TimeSliderInstance,
   type Track,
   useCaptionOptions,
+  useChapterOptions,
   useMediaContext,
   useMediaPlayer,
   useMediaState,
   usePlaybackRateOptions,
   useSliderState,
+  useVideoQualityOptions,
   VolumeSlider,
 } from "@vidstack/react"
 import {
@@ -75,12 +78,21 @@ const playerStyles = tv({
     iconButton:
       "bg-player-control-bg text-player-control-fg not-disabled:hover:bg-player-control-bg-hover focus-visible:outline-player-focus-ring not-disabled:active:bg-player-control-bg-active aria-hidden:hidden",
     timeSlider: "vds-time-slider vds-slider min-w-0 flex-1",
-    volumeSlider: "vds-volume-slider vds-slider player-volume-slider shrink-0",
+    volumeSlider:
+      "vds-volume-slider vds-slider player-volume-slider aria-hidden:hidden! shrink-0",
     track: "vds-slider-track",
     trackFill: "vds-slider-track vds-slider-track-fill",
     progress: "vds-slider-track vds-slider-progress",
     thumb: "vds-slider-thumb",
     time: "shrink-0 font-player-time text-player-time tabular-nums",
+    chapters: "vds-slider-chapters player-chapters",
+    chapter: "vds-slider-chapter",
+    preview:
+      "vds-slider-preview player-preview rounded-player-preview bg-player-preview-bg p-player-preview text-player-preview-fg",
+    thumbnail: "vds-thumbnail vds-slider-thumbnail",
+    previewInfo: "flex w-full items-center justify-between gap-player-preview",
+    chapterTitle: "min-w-0 flex-1 truncate",
+    previewTime: "vds-slider-value shrink-0 text-player-preview",
   },
   variants: {
     padding: {
@@ -150,6 +162,13 @@ export type PlayerFullscreenButtonProps = Omit<
   icon?: IconType
   exitIcon?: IconType
 }
+export type PlayerPictureInPictureButtonProps = Omit<
+  ComponentProps<typeof MediaPictureInPictureButton>,
+  "asChild" | "children"
+> & {
+  icon?: IconType
+  exitIcon?: IconType
+}
 export type PlayerSeekButtonProps = Omit<
   ComponentProps<typeof MediaSeekButton>,
   "asChild" | "children" | "seconds"
@@ -160,7 +179,10 @@ export type PlayerSeekButtonProps = Omit<
 export type PlayerTimeSliderProps = Omit<
   ComponentProps<typeof TimeSlider.Root>,
   "asChild" | "children" | "orientation"
->
+> & {
+  thumbnails?: ComponentProps<typeof TimeSlider.Thumbnail.Root>["src"]
+  chapters?: boolean
+}
 export type PlayerVolumeSliderProps = Omit<
   ComponentProps<typeof VolumeSlider.Root>,
   "asChild" | "children" | "orientation"
@@ -623,6 +645,8 @@ Player.SettingsMenu = function PlayerSettingsMenu({
   const { player: messages, locale } = useUiMessages()
   const captions = useCaptionOptions()
   const speeds = usePlaybackRateOptions({ normalLabel: messages.normalSpeed })
+  const qualities = useVideoQualityOptions()
+  const chapters = useChapterOptions()
   const [open, setOpen] = useState(false)
   const [triggerFocused, setTriggerFocused] = useState(false)
   const interacting = open || triggerFocused
@@ -666,6 +690,32 @@ Player.SettingsMenu = function PlayerSettingsMenu({
       })),
     })
   }
+  if (!qualities.disabled) {
+    items.push({
+      type: "submenu",
+      value: "quality",
+      label: messages.videoQuality,
+      items: qualities.map((option) => ({
+        type: "radio",
+        name: "quality",
+        value: `quality:${option.value}`,
+        label: option.quality ? option.label : messages.autoQuality,
+        checked: qualities.selectedValue === option.value,
+      })),
+    })
+  }
+  if (chapters.length) {
+    items.push({
+      type: "submenu",
+      value: "chapters",
+      label: messages.chapters,
+      items: chapters.map((option) => ({
+        type: "action",
+        value: `chapter:${option.value}`,
+        label: option.label,
+      })),
+    })
+  }
   const label = ariaLabel ?? messages.settings
   return (
     <Menu
@@ -686,6 +736,24 @@ Player.SettingsMenu = function PlayerSettingsMenu({
         if (!(checked && item.type === "radio")) {
           return
         }
+        if (item.name === "quality") {
+          const option = qualities.find(
+            (entry) => `quality:${entry.value}` === item.value
+          )
+          if (option && qualities.selectedValue !== option.value) {
+            // The pinned SDK skips its provider change event when selecting
+            // the active rendition from Auto. Reselect through the public
+            // property so the engine also leaves adaptive mode.
+            if (
+              qualities.selectedValue === "auto" &&
+              option.quality?.selected
+            ) {
+              option.quality.selected = false
+            }
+            option.select()
+          }
+          return
+        }
         const options = item.name === "speed" ? speeds : captions
         const option = options.find(
           (entry) => `${item.name}:${entry.value}` === item.value
@@ -695,6 +763,9 @@ Player.SettingsMenu = function PlayerSettingsMenu({
         }
       }}
       onOpenChange={(details) => setOpen(details.open)}
+      onSelect={({ value }) => {
+        chapters.find((option) => `chapter:${option.value}` === value)?.select()
+      }}
       positioning={{ placement: "top-end" }}
     />
   )
@@ -703,6 +774,8 @@ Player.SettingsMenu = function PlayerSettingsMenu({
 Player.TimeSlider = function PlayerTimeSlider({
   className,
   ref,
+  thumbnails,
+  chapters = false,
   "aria-label": ariaLabel,
   "aria-valuetext": ariaValueText,
   ...props
@@ -724,7 +797,12 @@ Player.TimeSlider = function PlayerTimeSlider({
     : messages.live
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reapply after every SDK value write, even when formatted whole seconds stay equal.
   useEffect(() => {
-    slider?.el?.setAttribute("aria-valuetext", ariaValueText ?? valueText)
+    // The SDK attaches attributes after its React ref is assigned. Apply the
+    // localized value once that first attachment has completed as well.
+    const frame = requestAnimationFrame(() => {
+      slider?.el?.setAttribute("aria-valuetext", ariaValueText ?? valueText)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [slider, value, valueText, ariaValueText])
   return (
     <TimeSlider.Root
@@ -734,11 +812,48 @@ Player.TimeSlider = function PlayerTimeSlider({
       className={styles.timeSlider({ className })}
       ref={composedRef}
     >
-      <TimeSlider.Track className={styles.track()}>
-        <TimeSlider.TrackFill className={styles.trackFill()} />
-        <TimeSlider.Progress className={styles.progress()} />
-      </TimeSlider.Track>
+      {chapters ? (
+        <TimeSlider.Chapters className={styles.chapters()}>
+          {(cues, chapterRef) =>
+            cues.map((cue) => (
+              <div
+                className={styles.chapter()}
+                key={cue.startTime}
+                ref={chapterRef}
+              >
+                <TimeSlider.Track className={styles.track()}>
+                  <TimeSlider.TrackFill className={styles.trackFill()} />
+                  <TimeSlider.Progress className={styles.progress()} />
+                </TimeSlider.Track>
+              </div>
+            ))
+          }
+        </TimeSlider.Chapters>
+      ) : (
+        <TimeSlider.Track className={styles.track()}>
+          <TimeSlider.TrackFill className={styles.trackFill()} />
+          <TimeSlider.Progress className={styles.progress()} />
+        </TimeSlider.Track>
+      )}
       <TimeSlider.Thumb className={styles.thumb()} />
+      {thumbnails || chapters ? (
+        <TimeSlider.Preview className={styles.preview()}>
+          {thumbnails ? (
+            <TimeSlider.Thumbnail.Root
+              className={styles.thumbnail()}
+              src={thumbnails}
+            >
+              <TimeSlider.Thumbnail.Img alt="" />
+            </TimeSlider.Thumbnail.Root>
+          ) : null}
+          <div className={styles.previewInfo()}>
+            {chapters ? (
+              <TimeSlider.ChapterTitle className={styles.chapterTitle()} />
+            ) : null}
+            <TimeSlider.Value className={styles.previewTime()} format="time" />
+          </div>
+        </TimeSlider.Preview>
+      ) : null}
     </TimeSlider.Root>
   )
 }
@@ -801,6 +916,38 @@ Player.FullscreenButton = function PlayerFullscreenButton({
           type="button"
         />
       </MediaFullscreenButton>
+    </Tooltip>
+  )
+}
+
+Player.PictureInPictureButton = function PlayerPictureInPictureButton({
+  icon = "token-icon-player-picture-in-picture",
+  exitIcon = "token-icon-player-picture-in-picture-exit",
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: PlayerPictureInPictureButtonProps) {
+  usePlayerContext()
+  const active = useMediaState("pictureInPicture")
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ??
+    (active ? messages.exitPictureInPicture : messages.enterPictureInPicture)
+  return (
+    <Tooltip content={label}>
+      <MediaPictureInPictureButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={active ? exitIcon : icon}
+          size="lg"
+          type="button"
+        />
+      </MediaPictureInPictureButton>
     </Tooltip>
   )
 }

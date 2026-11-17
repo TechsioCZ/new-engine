@@ -11,7 +11,7 @@ export function visibleFloatingSurfaces(page) {
   return page.evaluate(() => {
     const root = document.getElementById("storybook-root")
     const selector =
-      '[data-part="positioner"] [data-part="content"], [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [role="tree"], [role="application"]'
+      '[data-part="positioner"] [data-part="content"], [role="dialog"], [role="menu"], [role="listbox"], [role="tooltip"], [role="tree"], [role="application"], .player-preview[data-visible]'
     const isClipped = (element, box, includeScrollports = true) => {
       let clipped = false
       for (
@@ -219,6 +219,10 @@ export const popupCheckpointStories = [
   ["molecules-menu--nested-menu", "menu"],
   ["molecules-videoplayer--settings", "menu"],
   ["molecules-videoplayer--multiple-languages", "menu"],
+  ["molecules-videoplayer--chapters-and-previews", "menu"],
+  ["molecules-videoplayer--adaptive-hls", "menu"],
+  ["molecules-videoplayer--adaptive-dash", "menu"],
+  ["molecules-player--timeline-previews", "menu"],
   ["molecules-phoneinput--playground", "select"],
   ["molecules-cascadeselect--playground", "cascade-select"],
   ["molecules-datepicker--playground", "date-picker"],
@@ -270,10 +274,17 @@ export async function checkStoryPopupCheckpoints(page, id, capture) {
   }
   await page.mouse.move(0, 0)
   await capture("--popup-open")
-  if (id.startsWith("molecules-videoplayer--")) {
+  if (
+    id.startsWith("molecules-videoplayer--") ||
+    id === "molecules-player--timeline-previews"
+  ) {
     await content.press(id.endsWith("--settings") ? "Home" : "End")
     await content.press("ArrowRight")
-    const options = page.getByRole("menuitemradio")
+    const options =
+      id.endsWith("--chapters-and-previews") ||
+      id.endsWith("--timeline-previews")
+        ? page.getByRole("menuitem").filter({ visible: true })
+        : page.getByRole("menuitemradio")
     await expect(options.first()).toBeVisible()
     for (const option of await options.all()) {
       await expect(option).toBeInViewport({ ratio: 1 })
