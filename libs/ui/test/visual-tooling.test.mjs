@@ -1330,10 +1330,10 @@ test("the component image rejects a cache for a different Dockerfile", () => {
   const resolved = componentPlan({ PLAYWRIGHT_DOCKER_PLATFORM: "linux/amd64" })
   assert.equal(resolved.status, 0, resolved.stderr)
   assert.equal(resolved.plan().image, reference)
-  // Baselines were recorded against this base image's fonts.
+  // Baselines require DejaVu, not the full Node image that used to supply it.
   assert.match(
     read("../../../docker/development/playwright/Dockerfile"),
-    /^FROM node:26\.11\.1-bookworm$/m
+    /apt-get install -y --no-install-recommends fonts-dejavu-core/
   )
   // An image whose tag is not this Dockerfile's hash is a different artifact,
   // so restoring it would not be equivalent to building it.
