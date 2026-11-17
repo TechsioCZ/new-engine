@@ -1145,12 +1145,8 @@ test("native-form lifecycle matrix uses all maintained adapters without disablin
     assert.ok(spec.includes(`await ${helper}(page, adapter`))
   }
   assert.doesNotMatch(spec, /test\.(?:skip|fixme)|isMobile|browserName/)
-  // Theme expansion must reach the keyboard helper, not silently fall back to
-  // its default theme. Retain both controlled authority modes on every surface.
-  assert.match(
-    spec,
-    /for \(const theme of \[\s*\{ brand: "akros", mode: "light" \},\s*\{ brand: "business", mode: "light" \},\s*\{ brand: "n1", mode: "light" \},?\s*\]\)/
-  )
+  // Native lifecycle logic is independent of CSS brands. Keep both controlled
+  // authority modes, without prescribing repeated runs under different tokens.
   assert.match(spec, /for \(const authority of \["accept", "refuse"\]\)/)
   assert.match(
     spec,

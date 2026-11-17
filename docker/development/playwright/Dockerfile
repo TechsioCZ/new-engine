@@ -1,4 +1,4 @@
-FROM node:26.11.1-bookworm-slim
+FROM node:26.11.1-bookworm
 
 ARG PLAYWRIGHT_VERSION=1.64.0
 
