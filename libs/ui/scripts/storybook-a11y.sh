@@ -132,7 +132,8 @@ while read -r brand mode; do
   # --json puts Jest's machine-readable result on stdout and leaves every human message on stderr, so the log keeps the failures
   # and the report keeps the list of stories this shard ran.
   JEST_STDOUT="${THEME_DIR}/jest-stdout.log"
-  A11Y_STORYBOOK_BRAND="${brand}" A11Y_STORYBOOK_MODE="${mode}" A11Y_REPORT_OUTPUT_DIR="${THEME_DIR}" \
+  TIMEFORMAT="A11y workload ${theme}: wall %3R s, user %3U s, system %3S s"
+  time A11Y_STORYBOOK_BRAND="${brand}" A11Y_STORYBOOK_MODE="${mode}" A11Y_REPORT_OUTPUT_DIR="${THEME_DIR}" \
     pnpm -C "${ROOT_DIR}" exec test-storybook "${RUN_ARGS[@]}" "$@" \
     > "${JEST_STDOUT}" || STATUS=1
 

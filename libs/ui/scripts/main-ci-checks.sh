@@ -42,7 +42,7 @@ a11y_pid=""
 if [ "$UI_SCOPE" != none ]; then
   env PATH="$NODE26_BIN:$BASE_PATH" \
     A11Y_REPORT_FAIL_ON_VIOLATIONS=true A11Y_THEME_COUNT=3 A11Y_SHARD=1/1 \
-    A11Y_TEST_WORKERS=4 A11Y_SCOPE="$UI_SCOPE" \
+    A11Y_TEST_WORKERS=6 A11Y_SCOPE="$UI_SCOPE" \
     A11Y_CHANGED_FILES_FROM="$RUNNER_TEMP/ui-changed-files/changed-files.txt" \
     pnpm --dir libs/ui storybook:a11y &
   a11y_pid=$!
