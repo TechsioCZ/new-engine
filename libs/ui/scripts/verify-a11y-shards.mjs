@@ -21,7 +21,7 @@
  *   node scripts/verify-a11y-shards.mjs --expect <declared matrix> --reports <dir>
  *
  * The verify mode reads the matrix the plan job declared (its `a11y.themes` and
- * `a11y.shards_per_theme`) and the downloaded shard artifacts, so a theme or
+ * the per-theme `a11y.shards` counts) and the downloaded shard artifacts, so a theme or
  * shard that never ran fails the gate instead of passing as silence. It touches
  * nothing outside libs/ui and resolves nothing from node_modules, so it runs on
  * a bare checkout without an install.
@@ -752,9 +752,10 @@ function verifyTheme(expected, shards) {
 }
 
 /** The matrix the plan job declared, which is what makes a theme or shard that
- * never ran a failure rather than silence.
+ * never ran a failure rather than silence. Each theme declares its own shard
+ * count, so a long theme can be split while the others run whole.
  * @param {any} plan
- * @returns {{themes: string[], shards: number, total: number}}
+ * @returns {{themes: string[], shards: Map<string, number>, total: number}}
  */
 function declaredMatrix(plan) {
   const declared = plan?.a11y
@@ -762,11 +763,28 @@ function declaredMatrix(plan) {
     throw new Error("The declared matrix has no a11y.themes list")
   }
   const themes = declared.themes
-  const shards = Number(declared.shards_per_theme)
-  const total = Number(declared.total ?? themes.length * shards)
-  if (themes.length * shards !== total) {
+  const counts = declared.shards
+  if (!(counts && typeof counts === "object" && !Array.isArray(counts))) {
+    throw new Error("The declared matrix has no a11y.shards count per theme")
+  }
+  const keys = Object.keys(counts).sort()
+  if (JSON.stringify(keys) !== JSON.stringify([...themes].sort())) {
     throw new Error(
-      `The declared a11y matrix is inconsistent: ${themes.length} themes x ${shards} shards is not ${total}`
+      `The declared a11y shard counts name ${keys.join(", ") || "no theme"}, the matrix declares ${themes.join(", ") || "no theme"}`
+    )
+  }
+  const shards = new Map()
+  for (const theme of themes) {
+    const count = counts[theme]
+    if (!(Number.isInteger(count) && count > 0)) {
+      throw new Error(`Theme ${theme} declares an invalid shard count: ${count}`)
+    }
+    shards.set(theme, count)
+  }
+  const total = [...shards.values()].reduce((sum, count) => sum + count, 0)
+  if (declared.total !== total) {
+    throw new Error(
+      `The declared a11y matrix is inconsistent: its theme shard counts add up to ${total}, not ${declared.total}`
     )
   }
   return { themes, shards, total }
@@ -802,9 +820,9 @@ function verifyShards(argv) {
     if (!expected) {
       throw new Error(`Theme ${theme} reported no expected story set`)
     }
-    if (expected.shards !== declared.shards) {
+    if (expected.shards !== declared.shards.get(theme)) {
       throw new Error(
-        `Theme ${theme} planned ${expected.shards} shards, the matrix declares ${declared.shards}`
+        `Theme ${theme} planned ${expected.shards} shards, the matrix declares ${declared.shards.get(theme)}`
       )
     }
     if (expected.themeCount !== declared.themes.length) {

@@ -28,14 +28,15 @@ jobs:
       fail-fast: false
       max-parallel: 6
       # Six browser runners plus main: seven hosted runners at peak.
+      # a11y lists theme@shard scans, as ci-ui-plan.mjs declares them.
       matrix:
         include:
-          - {group: visual, shard: 1, total: 6, a11y_theme: ""}
-          - {group: visual, shard: 2, total: 6, a11y_theme: n1-light}
-          - {group: visual, shard: 3, total: 6, a11y_theme: ""}
-          - {group: visual, shard: 4, total: 6, a11y_theme: ""}
-          - {group: visual, shard: 5, total: 6, a11y_theme: ""}
-          - {group: visual, shard: 6, total: 6, a11y_theme: ""}
+          - {group: visual, shard: 1, total: 6, a11y: ""}
+          - {group: visual, shard: 2, total: 6, a11y: "n1-light@1/1 akros-light@2/2"}
+          - {group: visual, shard: 3, total: 6, a11y: ""}
+          - {group: visual, shard: 4, total: 6, a11y: ""}
+          - {group: visual, shard: 5, total: 6, a11y: ""}
+          - {group: visual, shard: 6, total: 6, a11y: ""}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,15 +58,16 @@ jobs:
           BASE_SHA: ${{ inputs.base_sha }}
           HEAD_SHA: ${{ inputs.sha }}
         run: node libs/ui/scripts/ci-ui-plan.mjs
-      # Only accessibility needs a host install. Screenshot dependencies live
-      # in the cached container; the shared build never comes from these jobs.
-      - if: steps.scope.outputs.scope != 'none' && matrix.a11y_theme != ''
+      # Only accessibility needs a host install, and only for this host's
+      # platform. Screenshot dependencies live in the cached container; the
+      # shared build never comes from these jobs.
+      - if: steps.scope.outputs.scope != 'none' && matrix.a11y != ''
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - name: Install only the accessibility dependencies
-        if: steps.scope.outputs.scope != 'none' && matrix.a11y_theme != ''
-        run: pnpm install --frozen-lockfile --prefer-offline --filter='@techsio/ui-kit...'
+        if: steps.scope.outputs.scope != 'none' && matrix.a11y != ''
+        run: pnpm install --frozen-lockfile --prefer-offline --os linux --cpu x64 --libc glibc --filter='@techsio/ui-kit...'
       - name: Install the accessibility browser
-        if: steps.scope.outputs.scope != 'none' && matrix.a11y_theme != ''
+        if: steps.scope.outputs.scope != 'none' && matrix.a11y != ''
         run: timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
       # Screenshot dependencies are in the content-addressed image; the build
       # comes from main.
@@ -113,23 +115,27 @@ jobs:
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
         run: bash libs/ui/scripts/component-ci-bundle.sh
-      - name: Scan this bundle's accessibility theme
-        if: steps.scope.outputs.scope != 'none' && matrix.a11y_theme != ''
+      - name: Scan this bundle's accessibility themes
+        if: steps.scope.outputs.scope != 'none' && matrix.a11y != ''
         env:
+          SCANS: ${{ matrix.a11y }}
           A11Y_STORYBOOK_REBUILD: "0"
-          A11Y_THEME: ${{ matrix.a11y_theme }}
           A11Y_THEME_COUNT: "3"
-          A11Y_SHARD: 1/1
           A11Y_TEST_WORKERS: "4"
           A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
           A11Y_SCOPE: ${{ steps.scope.outputs.scope }}
           A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
-        run: pnpm --dir libs/ui storybook:a11y
+        run: |
+          set -euo pipefail
+          for scan in $SCANS; do
+            A11Y_THEME="${scan%@*}" A11Y_SHARD="${scan#*@}" pnpm --dir libs/ui storybook:a11y
+            bash libs/ui/scripts/ci-cpu.sh "a11y $scan"
+          done
       - name: Upload accessibility coverage and calibration
-        if: always() && steps.scope.outputs.scope != 'none' && matrix.a11y_theme != ''
+        if: always() && steps.scope.outputs.scope != 'none' && matrix.a11y != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: storybook-a11y-${{ inputs.sha }}-${{ matrix.a11y_theme }}
+          name: storybook-a11y-${{ inputs.sha }}-bundle-${{ matrix.shard }}
           path: libs/ui/a11y-report
           overwrite: true
           if-no-files-found: error

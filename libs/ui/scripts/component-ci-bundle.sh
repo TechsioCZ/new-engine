@@ -17,6 +17,7 @@ run_group() {
     VISUAL_CHANGED_BEHAVIOR=1 PLAYWRIGHT_SHARD="$shard" node libs/ui/scripts/run-component-tests.mjs
   fi
   echo "CI timing: $group $((SECONDS - started))s"
+  bash libs/ui/scripts/ci-cpu.sh "$group screenshots"
   local out="$RUNNER_TEMP/component-reports/ui-$group-shard-${shard%/*}"
   mkdir -p "$out"
   cp "$PLAYWRIGHT_OUTPUT_DIR"/test-results/visual-reports/*.json "$out/"

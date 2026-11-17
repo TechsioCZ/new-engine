@@ -16,6 +16,21 @@ export function readyArtifact({ artifacts, jobs, name, producer }) {
   }
 }
 
+/** The wait's read schedule. The shared build usually lands within two
+ * minutes of a consumer starting to wait, so artifacts are read every 5 s
+ * then and every 15 s after. Producer state is read at most every 15 s, always
+ * before that iteration's artifact read, so a failed producer is still seen
+ * within 15 s. Six consumers make at most 336 calls over the five-minute
+ * budget (32 in the first two minutes each, then 24), against 240 at a flat
+ * 15 s; a normal wait of under 30 s is a dozen calls.
+ * @param {number} elapsed milliseconds since the wait started
+ * @param {number} poll zero-based iteration
+ */
+export function pollPlan(elapsed, poll) {
+  const fast = elapsed < 120_000
+  return { readJobs: !fast || poll % 3 === 0, interval: fast ? 5_000 : 15_000 }
+}
+
 /** Respect GitHub's primary and secondary rate-limit responses, not permission errors.
  * @param {{status: number, headers: Headers, message?: string, now: number}} response
  */
@@ -79,20 +94,19 @@ async function main() {
     console.log(Boolean(readyArtifact({ artifacts, jobs: [], name, producer: "" })))
     return
   }
-  while (true) {
+  for (let poll = 0; ; poll += 1) {
+    const { readJobs, interval } = pollPlan(Date.now() - start, poll)
     // Observe terminal producer state before reading its artifacts, so an
     // upload that finishes between API calls cannot look like a missing build.
-    const { jobs } = await read(`${root}/jobs?per_page=100`, deadline)
+    const { jobs } = readJobs ? await read(`${root}/jobs?per_page=100`, deadline) : { jobs: [] }
     const { artifacts } = await read(`${root}/artifacts?per_page=100`, deadline)
     const id = readyArtifact({ artifacts, jobs, name, producer })
     if (id) {
       console.log(`Artifact ${name} ready after ${((Date.now() - start) / 1000).toFixed(1)}s`)
       return
     }
-    if (Date.now() + 15_000 >= deadline) throw new Error(`Timed out waiting for ${producer} artifact ${name}`)
-    // Six consumers make at most 240 calls over the whole five-minute budget,
-    // leaving room for overlapping runs within the repository's default quota.
-    await setTimeout(15_000)
+    if (Date.now() + interval >= deadline) throw new Error(`Timed out waiting for ${producer} artifact ${name}`)
+    await setTimeout(interval)
   }
 }
 

@@ -282,7 +282,7 @@ function expectedPlan({ scope = "full", groups, total } = {}) {
       groups: declared,
       total: total ?? include.length,
     },
-    a11y: { themes: [], shards_per_theme: 0, total: 0 },
+    a11y: { themes: [], shards: {}, total: 0 },
   })
 }
 

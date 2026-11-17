@@ -41,46 +41,25 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
           HEAD_SHA: ${{ github.sha }}
         run: node libs/ui/scripts/ci-ui-plan.mjs
-      - name: Declare the required coverage
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ui-ci-expected-${{ github.sha }}
-          path: ${{ runner.temp }}/ui-build-plan/expected.json
-          overwrite: true
-          if-no-files-found: error
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      # Uncomment this line to enable task distribution
-      # - run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
-
+      # Every browser bundle waits for the shared Storybook build, so its path
+      # comes first: Node 26, one install, the build. Node 24 and Nx follow.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+      - id: node26-runtime
+        run: echo "bin=$(dirname "$(command -v node)")" >> "$GITHUB_OUTPUT"
 
       # Restoring the 1.36 GB workspace store took 25s before a 32s install;
       # a fresh install took 50s. Avoid that transfer on the build's critical path.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 24
+      # This host's platform only: supportedArchitectures also lists darwin,
+      # arm64 and musl for the shared Docker store (951 of 1,225 MB downloaded).
+      - run: pnpm install --frozen-lockfile --prefer-offline --os linux --cpu x64 --libc glibc
 
-      - id: node24-runtime
-        run: echo "bin=$(dirname "$(command -v node)")" >> "$GITHUB_OUTPUT"
-      - run: pnpm install --frozen-lockfile --prefer-offline
-      - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
-      - name: Determine affected projects
-        id: determine_affected
-        run: |
-          base="${NX_BASE:-origin/master}"
-          head="${NX_HEAD:-HEAD}"
-          projects_json="$(./node_modules/.bin/nubx --node nx show projects --affected --json --base="$base" --head="$head")"
-          projects="$(printf '%s' "$projects_json" | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const projects = input.trim() ? JSON.parse(input) : []; if (!Array.isArray(projects)) { throw new Error("Expected an array from nx show projects --json"); } process.stdout.write(projects.join(",")); });')"
-          echo "projects=${projects}" >> "$GITHUB_OUTPUT"
-          echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
-
-      # Start the shared Storybook build as soon as the workspace is installed.
-      # Browser runners prepare concurrently and consume it before this job's
-      # later lint/typecheck/unit checks finish. The quality gate still needs both.
+      # Browser runners prepare concurrently and consume this build before this
+      # job's later lint/typecheck/unit checks finish. The quality gate needs both.
       - id: ui-build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,10 +77,6 @@ jobs:
           fi
           echo "scope=$scope" >> "$GITHUB_OUTPUT"
           echo "build=$build" >> "$GITHUB_OUTPUT"
-      - if: steps.ui-build.outputs.build == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.11.1
       - name: Hash the Storybook inputs
         if: steps.ui-build.outputs.build == 'true'
         id: storybook
@@ -123,23 +98,46 @@ jobs:
           path: libs/ui/storybook-static
           include-hidden-files: true
           if-no-files-found: error
+
+      - name: Declare the required coverage
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-ci-expected-${{ github.sha }}
+          path: ${{ runner.temp }}/ui-build-plan/expected.json
+          overwrite: true
+          if-no-files-found: error
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - id: node24-runtime
+        run: echo "bin=$(dirname "$(command -v node)")" >> "$GITHUB_OUTPUT"
+      - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
+      - name: Determine affected projects
+        id: determine_affected
+        run: |
+          base="${NX_BASE:-origin/master}"
+          head="${NX_HEAD:-HEAD}"
+          projects_json="$(./node_modules/.bin/nubx --node nx show projects --affected --json --base="$base" --head="$head")"
+          projects="$(printf '%s' "$projects_json" | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const projects = input.trim() ? JSON.parse(input) : []; if (!Array.isArray(projects)) { throw new Error("Expected an array from nx show projects --json"); } process.stdout.write(projects.join(",")); });')"
+          echo "projects=${projects}" >> "$GITHUB_OUTPUT"
+          echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
       - name: Restore the same immutable build on a job retry
         if: steps.ui-build.outputs.scope != 'none' && steps.ui-build.outputs.build != 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ui-storybook-${{ github.sha }}
           path: libs/ui/storybook-static
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.11.1
-      # Two themes share this install; the n1 scan belongs to a visual runner.
+      # business-light and half of akros-light share this install; bundle 2
+      # scans n1-light and the other half.
       - name: Run workspace, UI package and accessibility checks
         env:
           NODE24_BIN: ${{ steps.node24-runtime.outputs.bin }}
+          NODE26_BIN: ${{ steps.node26-runtime.outputs.bin }}
           UI_SCOPE: ${{ steps.ui-build.outputs.scope }}
           A11Y_STORYBOOK_REBUILD: "0"
           AFFECTED_PROJECTS: ${{ steps.determine_affected.outputs.projects }}
-        run: NODE26_BIN="$(dirname "$(command -v node)")" bash libs/ui/scripts/main-ci-checks.sh
+        run: bash libs/ui/scripts/main-ci-checks.sh
       - name: Upload accessibility coverage and calibration
         if: always() && steps.ui-build.outputs.scope != 'none'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -157,8 +155,8 @@ jobs:
   # A push to master runs mode: full. That is the release-readiness gate and it
   # lives here now, because verifyFullShards -> assertVisualCompletion over every
   # story x every createVisualMatrix project is reachable only in full mode
-  # (libs/ui/scripts/verify-component-shards.mjs). ui-release.yml prepares in
-  # parallel but requires this workflow's success before publishing. This call must never
+  # (libs/ui/scripts/verify-component-shards.mjs). ui-release-trigger starts
+  # ui-release.yml, which requires this workflow's success before publishing. This call must never
   # be made conditional: a skipped need would take quality-gate with it.
   ui-quality:
     uses: ./.github/workflows/ui-quality.yml
@@ -166,6 +164,24 @@ jobs:
       sha: ${{ github.sha }}
       mode: ${{ github.event_name == 'push' && 'full' || 'changed' }}
       base_sha: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+
+  # The release prepares while the browser bundles finish, then publishes only
+  # after this run succeeds for its exact SHA. Started when main ends, it never
+  # holds an eighth hosted runner idle beside the six bundles and main.
+  ui-release-trigger:
+    needs: main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Start the UI release for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run ui-release.yml --ref master
 
   # Required status check for master (ruleset "Master"). It fails unless every
   # job in `needs` succeeded, so the ruleset has one stable name to require.

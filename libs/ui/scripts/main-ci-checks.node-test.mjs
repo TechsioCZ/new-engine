@@ -24,7 +24,7 @@ echo "$(basename "$(dirname "$(command -v node)")")|$*" >> "$RUNNER_TEMP/command
 if [ "$*" = "lint:nx" ] && [ "$FAIL_CHECKS" = 1 ]; then exit 7; fi
 if [ "$*" = "--dir libs/ui storybook:a11y" ]; then
   node -e 'setTimeout(()=>{},100)'
-  echo "$A11Y_THEME" >> "$RUNNER_TEMP/a11y-finished"
+  echo "$A11Y_THEME@$A11Y_SHARD" >> "$RUNNER_TEMP/a11y-finished"
   if [ "$MUTATE_INDEX" = 1 ]; then echo '{"bad":true}' > libs/ui/storybook-static/index.json; fi
   if [ "$FAIL_A11Y" = 1 ]; then exit 9; fi
 fi
@@ -45,16 +45,28 @@ exit 0
 test("the installed runner completes both workspace and accessibility checks", (t) => {
   const { root, result } = runChecks(t)
   assert.equal(result.status, 0, result.stderr)
-  assert.deepEqual(fs.readFileSync(path.join(root, "a11y-finished"), "utf8").trim().split("\n"), ["business-light", "akros-light"])
+  // bundle 2 scans n1-light 1/1 and akros-light 2/2 (ci-ui-plan.mjs).
+  assert.deepEqual(fs.readFileSync(path.join(root, "a11y-finished"), "utf8").trim().split("\n"), ["business-light@1/1", "akros-light@1/2"])
   const commands = fs.readFileSync(path.join(root, "commands"), "utf8")
   for (const command of [
-    "node24|lint:nx", "node24|--dir libs/ui check:package",
+    "node24|lint:nx",
     "node26|--dir libs/ui typecheck", "node26|--dir libs/ui test",
     "node26|--dir libs/ui validate:tokens", "node26|--dir libs/ui check:package",
     "node24|--dir libs/ui test:visual-assets", "node26|--dir libs/ui storybook:a11y",
+    "node24|--dir libs/ui check:consumer",
   ]) {
     assert.ok(commands.includes(command), command)
   }
+  // One package build, on Node 26; Node 24 imports that packed build.
+  const lines = commands.trim().split("\n")
+  assert.deepEqual(lines.filter((line) => line.endsWith("check:package")), ["node26|--dir libs/ui check:package"])
+  assert.ok(lines.indexOf("node26|--dir libs/ui check:package") < lines.indexOf("node24|--dir libs/ui check:consumer"))
+})
+
+test("an unaffected UI package skips the Node 24 consumer import", (t) => {
+  const { root, result } = runChecks(t, { AFFECTED_PROJECTS: "analytics" })
+  assert.equal(result.status, 0, result.stderr)
+  assert.ok(!fs.readFileSync(path.join(root, "commands"), "utf8").includes("check:consumer"))
 })
 
 test("a failed workspace check cannot be hidden by successful accessibility", (t) => {

@@ -16,9 +16,10 @@ const config: StorybookConfig = {
     name: 'storybook-react-rsbuild',
     options: {},
   },
+  // No type checker here: CI's main job runs `pnpm --dir libs/ui typecheck`
+  // over the same tsconfig.json, and every browser bundle waits on this build.
   typescript: {
     reactDocgen: 'react-docgen-typescript',
-    check: true,
   },
   rsbuildFinal: (rsbuildConfig) => {
     // Library declaration builds exclude stories; preview checks include them.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { readyArtifact, rateLimitDelay } from "./ci-artifact.mjs"
+import { pollPlan, readyArtifact, rateLimitDelay } from "./ci-artifact.mjs"
 
 const dependency = { name: "storybook-current-sha", producer: "main" }
 
@@ -48,4 +48,15 @@ test("rate limits respect the server's delay without retrying permission failure
   assert.equal(rateLimitDelay({
     status: 403, headers: new Headers(), message: "Resource not accessible", now: 100_000,
   }), undefined)
+})
+
+test("the wait reads artifacts every 5 s for two minutes, and producer state at most every 15 s", () => {
+  const schedule = Array.from({ length: 24 }, (_, poll) => pollPlan(poll * 5_000, poll))
+  assert.ok(schedule.every(({ interval }) => interval === 5_000))
+  assert.deepEqual(
+    schedule.map(({ readJobs }, poll) => readJobs ? poll : -1).filter((poll) => poll >= 0),
+    [0, 3, 6, 9, 12, 15, 18, 21],
+  )
+  assert.deepEqual(pollPlan(120_000, 24), { readJobs: true, interval: 15_000 })
+  assert.deepEqual(pollPlan(299_000, 31), { readJobs: true, interval: 15_000 })
 })

@@ -1,31 +1,10 @@
 name: Storybook A11y (APCA)
 
 on:
-  workflow_call:
-    inputs:
-      sha:
-        required: true
-        type: string
-      scope:
-        description: full or all scans every story; anything else narrows the scan to the changed files
-        type: string
-        default: full
-      workers:
-        description: Total Jest workers shared by concurrent themes
-        type: number
-        default: 4
-      changed_files_artifact:
-        description: Artifact holding the changed-file list a narrowed scan needs
-        type: string
-        default: ""
   workflow_dispatch:
     inputs:
-      scope:
-        description: full or all scans every story; anything else narrows the scan to the changed files
-        type: string
-        default: full
       workers:
-        description: Total Jest workers shared by concurrent themes
+        description: Jest workers per theme runner
         type: number
         default: 4
 
@@ -33,13 +12,21 @@ permissions:
   contents: read
 
 jobs:
-  storybook-a11y:
+  # One runner per theme: a scan keeps about 1.3 of 4 vCPUs busy, so themes in
+  # sequence on one runner (427s measured) wait on latency, not CPU. WCAG A/AA
+  # rules block; APCA gold and AAA contrast are reported only.
+  scan:
+    name: scan (${{ matrix.theme }})
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      # A11Y_THEME_COUNT fails every entry when a theme is added without one.
+      matrix:
+        theme: [business-light, akros-light, n1-light]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.sha || github.sha }}
           filter: blob:none
           sparse-checkout-cone-mode: false
           sparse-checkout: |
@@ -50,20 +37,15 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
-      # Only the UI library and what it depends on takes part in this scan.
-      - run: pnpm install --frozen-lockfile --prefer-offline --filter='@techsio/ui-kit...'
+      # Only the UI library and what it depends on, for this host's platform:
+      # supportedArchitectures otherwise downloads darwin, arm64 and musl too.
+      - run: pnpm install --frozen-lockfile --prefer-offline --os linux --cpu x64 --libc glibc --filter='@techsio/ui-kit...'
       - name: Restore the accessibility browser
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: ui-a11y-chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
-      - name: Download the changed-file list
-        if: inputs.scope != 'full' && inputs.scope != 'all' && inputs.changed_files_artifact != ''
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: ${{ inputs.changed_files_artifact }}
-          path: ${{ runner.temp }}/a11y-changed-files
       - name: Hash the shared Storybook inputs
         id: storybook
         run: echo "hash=$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)" >> "$GITHUB_OUTPUT"
@@ -72,33 +54,60 @@ jobs:
         with:
           path: libs/ui/storybook-static
           key: ui-storybook-node26-${{ steps.storybook.outputs.hash }}
-      # One install and Storybook build for all supported themes. WCAG A/AA rules block;
-      # APCA gold and AAA contrast are reported only. Story coverage and the
-      # calibration contract are asserted over the theme's shards together, by
-      # scripts/verify-a11y-shards.mjs over these artifacts.
+      - name: Build Storybook on a cache miss
+        run: node libs/ui/scripts/visual-storybook-build.mjs --ensure
       - name: Enforce product accessibility and reporter calibration
-        id: a11y
         env:
+          A11Y_STORYBOOK_REBUILD: "0"
           A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
+          A11Y_THEME: ${{ matrix.theme }}
           A11Y_THEME_COUNT: "3"
           A11Y_SHARD: 1/1
           A11Y_TEST_WORKERS: ${{ inputs.workers }}
-          A11Y_SCOPE: ${{ inputs.scope }}
-          A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/a11y-changed-files/changed-files.txt
-        run: bash libs/ui/scripts/storybook-a11y-themes.sh
+        run: pnpm --dir libs/ui storybook:a11y
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: storybook-a11y-${{ github.sha }}-${{ matrix.theme }}
+          path: libs/ui/a11y-report
+          overwrite: true
+          if-no-files-found: error
+
+  # Story coverage and the calibration contract over every supported theme,
+  # as CI's quality-gate proves them: a theme that never reported fails here.
+  verify:
+    needs: scan
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /libs/ui/scripts/
+            /libs/ui/test/*.mjs
+            /libs/ui/test/*.json
+            /libs/ui/src/theme/theme-config.ts
+            /libs/ui/.storybook/a11y-policy.mjs
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+      - name: Prepare the report directory
+        run: mkdir -p "$RUNNER_TEMP/a11y-shards"
+      - name: Download every theme's report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: storybook-a11y-${{ github.sha }}-*
+          path: ${{ runner.temp }}/a11y-shards
       - name: Verify all themes and calibration reported
         run: |
           node --input-type=module -e '
             import { createThemeMatrix } from "./libs/ui/test/visual-projects.mjs";
             const themes = createThemeMatrix().map(({brand,mode}) => brand + "-" + mode);
-            console.log(JSON.stringify({a11y:{themes,shards_per_theme:1,total:themes.length}}));
+            const shards = Object.fromEntries(themes.map((theme) => [theme, 1]));
+            console.log(JSON.stringify({scope:"full",a11y:{themes,shards,total:themes.length}}));
           ' > "$RUNNER_TEMP/a11y-expected.json"
           node libs/ui/scripts/verify-a11y-shards.mjs \
-            --expect "$RUNNER_TEMP/a11y-expected.json" --reports libs/ui/a11y-report
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
-        with:
-          name: storybook-a11y-${{ inputs.sha || github.sha }}-all-themes
-          path: libs/ui/a11y-report
-          overwrite: true
-          if-no-files-found: error
+            --expect "$RUNNER_TEMP/a11y-expected.json" --reports "$RUNNER_TEMP/a11y-shards"

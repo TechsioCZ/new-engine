@@ -1,10 +1,10 @@
 name: UI Release
 
-# Prepare alongside CI, then publish only after the exact commit's full gate.
-# Starting checkout/install after workflow_run added two minutes to the chain.
+# CI's ui-release-trigger job dispatches this on master when its main job
+# ends: preparation overlaps the browser bundles, and publishing still waits
+# for the exact commit's full push CI. A workflow_run start added two minutes;
+# a push start held an eighth hosted runner idle for ten.
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
     inputs:
       force_release:
@@ -36,7 +36,7 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
-      # Push and manual dispatch both validate and publish this immutable SHA.
+      # CI's dispatch and a manual one both validate and publish this immutable SHA.
       - name: Resolve the commit to release
         id: commit
         env:
@@ -51,11 +51,18 @@ jobs:
           echo "Releasing commit $sha"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
+      # Tags and history for the release, without the 264 MB of screenshot
+      # baselines that are most of the tree (41s for a full clone).
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.commit.outputs.sha }}
           fetch-depth: 0
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/libs/ui/test/visual.spec.ts-snapshots/
           persist-credentials: false
 
       # The thing that stops a silent SHA swap: everything below builds and
@@ -81,8 +88,10 @@ jobs:
           registry-url: https://registry.npmjs.org
           scope: '@techsio'
 
+      # This host's platform only; supportedArchitectures also lists darwin,
+      # arm64 and musl for the shared Docker store.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
+        run: pnpm install --frozen-lockfile --prefer-offline --os linux --cpu x64 --libc glibc
 
       - name: Compare against the last published UI release
         env:
@@ -135,8 +144,9 @@ jobs:
         if: steps.decide.outputs.publish == 'true'
         run: npm install -g npm@latest
 
-      # The last gate before npm publish: rslib build with output checks,
-      # validate-package-exports and check:consumer, 11s.
+      # The last gate before npm publish, with the npm that publishes: rslib
+      # build with output checks, validate-package-exports and check:consumer.
+      # semantic-release publishes exactly this build.
       - name: Check UI package output
         if: steps.decide.outputs.publish == 'true'
         run: pnpm -C libs/ui check:package
@@ -162,7 +172,7 @@ jobs:
               break
             fi
             echo "Waiting for exact-SHA push CI: $status"
-            sleep 10
+            sleep 5
           done
           tip="$(gh api "repos/${GITHUB_REPOSITORY}/commits/master" --jq .sha)"
           [ "$tip" = "$HEAD_SHA" ] || {
@@ -189,4 +199,6 @@ jobs:
             pnpm -C libs/ui exec semantic-release --dry-run
             exit 0
           fi
-          pnpm -C libs/ui semantic-release
+          # No lifecycle scripts: npm publish would otherwise run `prepare`
+          # and publish an unchecked rebuild instead of the build checked above.
+          npm_config_ignore_scripts=true pnpm -C libs/ui exec semantic-release

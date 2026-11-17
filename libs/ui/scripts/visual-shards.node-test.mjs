@@ -101,7 +101,7 @@ test("measured story files stay together, cover all stories, and fit the screens
     }
     assert.ok(selected.length > 0)
     assert.ok(
-      cost <= 330000 * 4,
+      cost <= costs.maxVisualCost,
       `Bundle ${index}: ${cost / 4000}s of screenshots`,
     )
     all.push(...selected)
