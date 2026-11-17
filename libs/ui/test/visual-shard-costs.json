@@ -2,14 +2,6 @@
   "sourceRun": "https://github.com/TechsioCZ/new-engine/actions/runs/43968686597",
   "storyCount": 918,
   "medianCost": 5728,
-  "desktopCosts": [
-    60478,
-    10987,
-    0,
-    24137,
-    28176
-  ],
-  "mobileCost": 128201,
   "stories": {
     "atoms-actionicon--playground": 6453,
     "atoms-actionicon--sizes": 6539,

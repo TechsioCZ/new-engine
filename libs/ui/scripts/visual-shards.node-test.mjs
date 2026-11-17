@@ -32,21 +32,11 @@ test("a changed subset smaller than the matrix leaves only explicitly empty shar
 
 test("measured heavy stories are spread without dropping any identity", () => {
   const stories = ["heavy-a", "heavy-b", "small-a", "small-b", "small-c", "small-d"]
-  const weights = { storyCount: 6, medianCost: 1, desktopCosts: [], mobileCost: 0, stories: { "heavy-a": 8, "heavy-b": 8 } }
+  const weights = { storyCount: 6, medianCost: 1, stories: { "heavy-a": 8, "heavy-b": 8 } }
   const shards = [1, 2].map(index => shardVisualStories(stories, { index, total: 2 }, weights))
   for (const shard of shards) {
     assert.equal(shard.filter(id => id.startsWith("heavy")).length, 1)
     assert.equal(shard.length, 3)
   }
   assert.deepEqual(shards.flat().sort(), [...stories].sort())
-})
-
-
-test("the last visual bundle leaves room for its mobile behavior suite", () => {
-  const stories = ["a", "b", "c", "d", "e", "f"]
-  const weights = { storyCount: 6, medianCost: 1, desktopCosts: [], mobileCost: 2, stories: {} }
-  const shards = [1, 2].map(index => shardVisualStories(stories, { index, total: 2 }, weights))
-  assert.equal(shards[0].length, 4)
-  assert.equal(shards[1].length, 2)
-  assert.deepEqual(shards.flat().sort(), stories)
 })

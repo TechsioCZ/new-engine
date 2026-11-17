@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
+      actions: read
       contents: read
     outputs:
       scope: ${{ steps.scope.outputs.scope }}
@@ -63,12 +64,12 @@ jobs:
             scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
             list=true
           fi
-          # Six bundles share checkout, install, Storybook and browser restore
-          # across visual and behavior work. Accessibility reuses the main install.
-          bundles=6
+          # Four visual runners and one behavior runner share the one build.
+          # Main also runs accessibility: six hosted runners at peak.
+          bundles=4
           case "$scope" in
             full | all | ui)
-              groups="$(jq -cn --argjson n "$bundles" '{visual:$n,desktop:$n,mobile:1}')"
+              groups="$(jq -cn --argjson n "$bundles" '{visual:$n,desktop:1,mobile:1}')"
               a11y_shards=1
               ;;
             none)
@@ -82,10 +83,10 @@ jobs:
               exit 1
               ;;
           esac
-          # The six bundles each own a visual and desktop quarter; the last
-          # also owns mobile behavior. Main scans all accessibility themes.
+          # Visual runners balance screenshots only; behavior owns both devices.
+          # Main scans all accessibility themes.
           component_matrix="$(jq -cn --argjson n "$bundles" \
-            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n}]}')"
+            '{include:([range(1;$n+1) | {group:"visual",shard:.,total:$n}] + [{group:"behavior",shard:1,total:1}])}')"
           {
             echo "scope=${scope}"
             echo "list=${list}"
@@ -155,8 +156,8 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 6
-      # Six runners, not a separate runner for each suite.
+      max-parallel: 5
+      # Five browser runners plus main: six hosted runners at peak.
       matrix: ${{ fromJson(needs.plan.outputs.component_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -200,6 +201,7 @@ jobs:
           name: ui-storybook-${{ inputs.sha }}
           path: libs/ui/storybook-static
       - name: Check out only this bundle's reviewed baselines
+        if: matrix.group == 'visual'
         env:
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           SCOPE: ${{ needs.plan.outputs.scope }}
@@ -207,18 +209,16 @@ jobs:
         run: node libs/ui/scripts/component-baselines.mjs
       - name: Run the bundle's component suites
         env:
-          CI_BUNDLE_CPU: "1"
+          BUNDLE_GROUP: ${{ matrix.group }}
           SCOPE: ${{ needs.plan.outputs.scope }}
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
-          BUNDLE: ${{ matrix.shard }}
-          BUNDLES: ${{ matrix.total }}
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
         run: bash libs/ui/scripts/component-ci-bundle.sh
       - name: Upload component coverage
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ui-component-report-${{ inputs.sha }}-bundle-${{ matrix.shard }}
+          name: ui-component-report-${{ inputs.sha }}-${{ matrix.group }}-${{ matrix.shard }}
           path: ${{ runner.temp }}/component-reports
           overwrite: true
           if-no-files-found: error
@@ -226,14 +226,14 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ui-component-results-${{ inputs.sha }}-bundle-${{ matrix.shard }}
+          name: ui-component-results-${{ inputs.sha }}-${{ matrix.group }}-${{ matrix.shard }}
           path: |
             ${{ runner.temp }}/component-results
           overwrite: true
           if-no-files-found: error
       - name: Export the component browser image
         id: exported-image
-        if: success() && matrix.shard == 6 && steps.browser-image.outputs.cache-hit != 'true'
+        if: success() && matrix.group == 'behavior' && steps.browser-image.outputs.cache-hit != 'true'
         run: |
           image="$(node libs/ui/scripts/run-component-tests.mjs --print-plan | jq -er .image)"
           # A changed run with no selected stories never needs a container.

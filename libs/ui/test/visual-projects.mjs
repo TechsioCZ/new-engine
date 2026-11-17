@@ -47,22 +47,16 @@ export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
 /**
  * Assign expensive stories first instead of balancing only test counts. Costs
  * come from full CI captures across all four projects. Unmeasured stories have
- * the median cost. Reserve the last bundle's share for its mobile behavior run.
+ * the median cost. Behavior has its own runner and consumes no visual budget.
  * @template T
  * @param {T[]} stories
  * @param {{index: number, total: number} | undefined} shard
- * @param {{storyCount: number, medianCost: number, desktopCosts: number[], mobileCost: number, stories: Record<string, number>}} [weights]
+ * @param {{storyCount: number, medianCost: number, stories: Record<string, number>}} [weights]
  * @returns {T[]}
  */
 export function shardVisualStories(stories, shard, weights = costs) {
   if (!shard) return stories
-  // For an unmeasured shard count the desktop estimate is uniform, which
-  // cancels out of the partition. The measured CI matrix includes its skew.
-  const scale = stories.length / weights.storyCount
-  const loads = Array.from({ length: shard.total }, (_, index) =>
-    weights.desktopCosts.length === shard.total ? weights.desktopCosts[index] * scale : 0
-  )
-  loads[shard.total - 1] += weights.mobileCost * scale
+  const loads = Array(shard.total).fill(0)
   const assigned = new Map()
   const ordered = stories.map((story, index) => {
     const id = typeof story === "string" ? story

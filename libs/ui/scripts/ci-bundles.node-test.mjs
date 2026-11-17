@@ -7,7 +7,7 @@ import test from "node:test"
 
 const repo = path.resolve(import.meta.dirname, "../../..")
 
-function runBundle(t, failGroup) {
+function runBundle(t, role, failGroup) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ci-bundle-"))
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
   const bin = path.join(directory, "bin")
@@ -48,31 +48,32 @@ if (process.argv.includes("--print-plan")) {
       PATH: `${bin}:${process.env.PATH}`,
       RUNNER_TEMP: directory,
       SCOPE: "full",
-      SHARD: "4/4",
-      BUNDLE: "4",
-      BUNDLES: "4",
+      SHARD: role === "visual" ? "4/4" : "1/1",
+      BUNDLE_GROUP: role,
       FAIL_GROUP: failGroup ?? "",
     },
   })
   return { directory, result }
 }
 
-test("component suites retain separate reports", (t) => {
-  const { directory, result } = runBundle(t)
+test("a visual runner executes only its screenshot shard", (t) => {
+  const { directory, result } = runBundle(t, "visual")
   assert.equal(result.status, 0, result.stderr)
-  for (const group of ["visual", "desktop", "mobile"]) {
-    const shard = group === "mobile" ? 1 : 4
-    const file = path.join(
-      directory, "component-reports", `ui-${group}-shard-${shard}`, "all.json"
-    )
+  const reports = fs.readdirSync(path.join(directory, "component-reports"))
+  assert.deepEqual(reports, ["ui-visual-shard-4"])
+})
+
+test("the behavior runner retains separate desktop and mobile reports", (t) => {
+  const { directory, result } = runBundle(t, "behavior")
+  assert.equal(result.status, 0, result.stderr)
+  for (const group of ["desktop", "mobile"]) {
+    const file = path.join(directory, "component-reports", `ui-${group}-shard-1`, "all.json")
     assert.deepEqual(JSON.parse(fs.readFileSync(file, "utf8")), { group })
   }
 })
 
-test("a failed suite fails the bundle before launching more browser work", (t) => {
-  const { directory, result } = runBundle(t, "desktop")
+test("a failed desktop suite fails before launching mobile browser work", (t) => {
+  const { directory, result } = runBundle(t, "behavior", "desktop")
   assert.equal(result.status, 7)
-  assert.ok(!fs.existsSync(path.join(
-    directory, "component-reports/ui-visual-shard-4/all.json"
-  )))
+  assert.ok(!fs.existsSync(path.join(directory, "component-reports/ui-mobile-shard-1/all.json")))
 })

@@ -1,6 +1,8 @@
 // Download a successful full run's ui-component-report-* artifacts, then:
-// node libs/ui/scripts/measure-visual-shard-costs.mjs <reports-directory> <run-url>
-// Redirect stdout to libs/ui/test/visual-shard-costs.json.
+// tmp="$(mktemp)"
+// node libs/ui/scripts/measure-visual-shard-costs.mjs <reports-directory> <run-url> > "$tmp" &&
+//   mv "$tmp" libs/ui/test/visual-shard-costs.json
+// Never truncate the imported cost configuration before measurement succeeds.
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
@@ -43,31 +45,19 @@ assertVisualCompletion(
 const costs = new Map()
 for (const { report } of visuals) {
   for (const item of tests(report.suites)) {
-    const story = item.annotations.find((annotation) => annotation.type === "visual-story-id").description
+    const annotation = item.annotations?.find((entry) => entry.type === "visual-story-id")
+    if (!annotation) continue // Non-visual specs do not contribute screenshot costs.
+    const story = annotation.description
     for (const result of item.results) {
       assert.equal(result.status, "passed", story)
       costs.set(story, (costs.get(story) ?? 0) + result.duration)
     }
   }
 }
-const desktop = Array(visuals.length)
-for (const { file, report } of reports) {
-  const match = /ui-desktop-shard-(\d+)[/\\]all.json$/.exec(file)
-  if (match) {
-    assert.equal(desktop[Number(match[1]) - 1], undefined, "Duplicate desktop shard")
-    desktop[Number(match[1]) - 1] = Math.round(report.stats.duration * 4)
-  }
-}
-assert.equal(desktop.filter(Number.isFinite).length, visuals.length, "Missing desktop shard")
-const mobile = reports.filter(({ file }) => /ui-mobile-shard-1[/\\]all.json$/.test(file))
-assert.equal(mobile.length, 1, "Expected one mobile behavior report")
 const values = [...costs.values()].sort((a, b) => a - b)
-const minimumDesktop = Math.min(...desktop)
 console.log(JSON.stringify({
   sourceRun,
   storyCount: costs.size,
   medianCost: values[Math.floor(values.length / 2)],
-  desktopCosts: desktop.map((cost) => cost - minimumDesktop),
-  mobileCost: Math.round(mobile[0].report.stats.duration * 4),
   stories: Object.fromEntries([...costs].sort(([a], [b]) => a.localeCompare(b, "en"))),
 }, null, 2))
