@@ -134,13 +134,14 @@ if (
     JSON.stringify(
       {
         // Costs are four-worker milliseconds, like the summed Playwright durations.
-        maxVisualCost: 342000 * 4,
+        maxVisualCost: 354000 * 4,
         storyCount,
         medianCost: Math.ceil(perStory[Math.floor(perStory.length / 2)]),
         // Bundle 1 runs the desktop and mobile behavior suites (271-285 s
         // on the visual cost scale, measured on three hosts); bundle 2 its
-        // host install and the n1-light scan (ci-ui-plan.mjs).
-        cohostedCosts: [280000 * 4, 150000 * 4, 0, 0, 0, 0],
+        // host install, n1-light and half of akros-light (ci-ui-plan.mjs;
+        // 122-134 s plus 72-73 s of scans and a 15-17 s later start).
+        cohostedCosts: [280000 * 4, 225000 * 4, 0, 0, 0, 0],
         files,
       },
       null,

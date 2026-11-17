@@ -84,16 +84,16 @@ test("pushes and unavailable bases keep the full six-bundle regression gate", (t
       "akros-light",
       "n1-light",
     ])
-    // main scans business-light and akros-light; bundle 2 n1-light.
+    // main scans business-light and akros-light 1/2; bundle 2 the rest.
     assert.deepEqual(run.expected.a11y.shards, {
       "business-light": 1,
-      "akros-light": 1,
+      "akros-light": 2,
       "n1-light": 1,
     })
-    assert.equal(run.expected.a11y.total, 3)
+    assert.equal(run.expected.a11y.total, 4)
     assert.deepEqual(
       run.expected.components.include.map((bundle) => bundle.a11y),
-      ["", "n1-light@1/1", "", "", "", ""],
+      ["", "n1-light@1/1 akros-light@2/2", "", "", "", ""],
     )
   }
 })
