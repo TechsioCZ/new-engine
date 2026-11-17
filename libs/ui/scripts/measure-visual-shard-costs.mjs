@@ -60,6 +60,6 @@ console.log(JSON.stringify({
   sourceRun,
   storyCount: costs.size,
   medianCost: values[Math.floor(values.length / 2)],
-  a11yCosts: measuredCosts.a11yCosts,
+  cohostedCosts: measuredCosts.cohostedCosts,
   stories: Object.fromEntries([...costs].sort(([a], [b]) => a.localeCompare(b, "en"))),
 }, null, 2))

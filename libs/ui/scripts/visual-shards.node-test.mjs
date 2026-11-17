@@ -43,7 +43,7 @@ test("measured heavy stories are spread without dropping any identity", () => {
 
 test("visual work leaves measured room for a cohosted accessibility scan", () => {
   const stories = ["a", "b", "c", "d", "e", "f"]
-  const weights = { storyCount: 6, medianCost: 1, a11yCosts: [2, 0], stories: {} }
+  const weights = { storyCount: 6, medianCost: 1, cohostedCosts: [2, 0], stories: {} }
   const shards = [1, 2].map(index => shardVisualStories(stories, { index, total: 2 }, weights))
   assert.equal(shards[0].length, 2)
   assert.equal(shards[1].length, 4)

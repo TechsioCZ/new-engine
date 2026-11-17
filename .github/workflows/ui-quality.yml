@@ -64,8 +64,8 @@ jobs:
             scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
             list=true
           fi
-          # Five visual runners share the build; three also scan one theme.
-          # Main runs behavior: six hosted runners at peak.
+          # Five visual runners share the build; one owns behavior and one
+          # scans n1. Main scans business/Akros: six runners at peak.
           bundles=5
           case "$scope" in
             full | all | ui)
@@ -86,7 +86,7 @@ jobs:
           # Reserve visual capacity for each cohosted accessibility theme.
           # Main owns desktop and mobile behavior.
           component_matrix="$(jq -cn --argjson n "$bundles" \
-            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n,a11y_theme:(["business-light","akros-light","n1-light","",""][.-1])}]}')"
+            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n,a11y_theme:(["","n1-light","","",""][.-1])}]}')"
           {
             echo "scope=${scope}"
             echo "list=${list}"
@@ -220,6 +220,7 @@ jobs:
       - name: Run the bundle's component suites
         env:
           BUNDLE_GROUP: ${{ matrix.group }}
+          BUNDLE_BEHAVIOR: ${{ matrix.shard == 1 }}
           SCOPE: ${{ needs.plan.outputs.scope }}
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt

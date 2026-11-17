@@ -123,7 +123,7 @@ jobs:
         with:
           name: ui-storybook-${{ github.sha }}
           path: libs/ui/storybook-static
-      - name: Download the changed-file list for behavior
+      - name: Download the changed-file list for accessibility
         if: steps.ui-build.outputs.scope != 'none' && steps.ui-build.outputs.scope != 'full'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -132,38 +132,19 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
-      - name: Restore the behavior browser image
-        id: behavior-image
-        if: steps.ui-build.outputs.scope != 'none'
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/ui-playwright.tar
-          key: ui-playwright-linux-amd64-${{ hashFiles('docker/development/playwright/Dockerfile') }}
-      - name: Load the behavior browser image
-        if: steps.behavior-image.outputs.cache-hit == 'true'
-        run: docker load --input "$RUNNER_TEMP/ui-playwright.tar"
-      # Behavior spends most of its wall time waiting on browser interactions,
-      # unlike the CPU-heavy Jest scan; it shares main's checks without a new VM.
-      - name: Run workspace, UI package and behavior checks
+      # Two themes share this install; the n1 scan belongs to a visual runner.
+      - name: Run workspace, UI package and accessibility checks
         env:
           NODE24_BIN: ${{ steps.node24-runtime.outputs.bin }}
           UI_SCOPE: ${{ steps.ui-build.outputs.scope }}
           AFFECTED_PROJECTS: ${{ steps.determine_affected.outputs.projects }}
         run: NODE26_BIN="$(dirname "$(command -v node)")" bash libs/ui/scripts/main-ci-checks.sh
-      - name: Upload behavior coverage
-        if: success() && steps.ui-build.outputs.scope != 'none'
+      - name: Upload accessibility coverage and calibration
+        if: always() && steps.ui-build.outputs.scope != 'none'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ui-component-report-${{ github.sha }}-behavior
-          path: ${{ runner.temp }}/component-reports
-          overwrite: true
-          if-no-files-found: error
-      - name: Upload behavior failure details
-        if: failure() && steps.ui-build.outputs.scope != 'none'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ui-component-results-${{ github.sha }}-behavior
-          path: ${{ runner.temp }}/component-results
+          name: storybook-a11y-${{ github.sha }}-main-themes
+          path: libs/ui/a11y-report
           overwrite: true
           if-no-files-found: error
 

@@ -6,8 +6,9 @@ AFFECTED_PROJECTS="${AFFECTED_PROJECTS-}"
 ui_affected=false
 if [[ ",$AFFECTED_PROJECTS," == *",ui-kit,"* ]]; then ui_affected=true; fi
 
-# Workspace asset tests need host Chromium; behavior uses the cached image.
-if [ "$ui_affected" = true ]; then
+# Both workloads use this runner's one install. Download Chromium once before
+# either workload starts, rather than racing two installs into the same cache.
+if [ "$UI_SCOPE" != none ] || [ "$ui_affected" = true ]; then
   timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
 fi
 index_hash() {
@@ -37,20 +38,25 @@ if [ "$UI_SCOPE" != none ]; then index_before="$(index_hash)"; fi
 ) &
 checks_pid=$!
 
-browser_pid=""
+a11y_pid=""
 if [ "$UI_SCOPE" != none ]; then
-  env PATH="$NODE26_BIN:$BASE_PATH" BUNDLE_GROUP=behavior SHARD=1/1 \
-    SCOPE="$UI_SCOPE" \
-    VISUAL_CHANGED_FILES_FROM="$RUNNER_TEMP/ui-changed-files/changed-files.txt" \
-    bash libs/ui/scripts/component-ci-bundle.sh &
-  browser_pid=$!
+  (
+    for theme in business-light akros-light; do
+      env PATH="$NODE26_BIN:$BASE_PATH" A11Y_THEME="$theme" \
+        A11Y_REPORT_FAIL_ON_VIOLATIONS=true A11Y_THEME_COUNT=3 A11Y_SHARD=1/1 \
+        A11Y_TEST_WORKERS=4 A11Y_SCOPE="$UI_SCOPE" \
+        A11Y_CHANGED_FILES_FROM="$RUNNER_TEMP/ui-changed-files/changed-files.txt" \
+        pnpm --dir libs/ui storybook:a11y
+    done
+  ) &
+  a11y_pid=$!
 fi
 
 # Wait for both children even when one fails. A later successful check must
 # never hide the other workload's failure.
 status=0
 wait "$checks_pid" || status=1
-if [ -n "$browser_pid" ]; then wait "$browser_pid" || status=1; fi
+if [ -n "$a11y_pid" ]; then wait "$a11y_pid" || status=1; fi
 if [ "$UI_SCOPE" != none ] && [ "$(index_hash)" != "$index_before" ]; then
   echo "::error::The shared Storybook index was mutated during validation"
   status=1

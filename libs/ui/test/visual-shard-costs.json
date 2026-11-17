@@ -922,10 +922,10 @@
     "verification-navigationdisclosure--tree-recovery": 7235,
     "verification-navigationdisclosure--vertical-tabs-layout": 5538
   },
-  "a11yCosts": [
-    604000,
-    564000,
-    588000,
+  "cohostedCosts": [
+    1040000,
+    520000,
+    0,
     0,
     0
   ]

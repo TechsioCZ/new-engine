@@ -47,18 +47,18 @@ export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
 /**
  * Assign expensive stories first instead of balancing only test counts. Costs
  * come from full CI captures across all four projects. Unmeasured stories have
- * the median cost. Reserve capacity for cohosted accessibility themes measured in full CI.
+ * the median cost. Reserve capacity for cohosted behavior/accessibility suites measured in full CI.
  * @template T
  * @param {T[]} stories
  * @param {{index: number, total: number} | undefined} shard
- * @param {{storyCount: number, medianCost: number, a11yCosts?: number[], stories: Record<string, number>}} [weights]
+ * @param {{storyCount: number, medianCost: number, cohostedCosts?: number[], stories: Record<string, number>}} [weights]
  * @returns {T[]}
  */
 export function shardVisualStories(stories, shard, weights = costs) {
   if (!shard) return stories
   const scale = stories.length / weights.storyCount
   const loads = Array.from({length: shard.total}, (_, index) =>
-    weights.a11yCosts?.length === shard.total ? weights.a11yCosts[index] * scale : 0
+    weights.cohostedCosts?.length === shard.total ? weights.cohostedCosts[index] * scale : 0
   )
   const assigned = new Map()
   const ordered = stories.map((story, index) => {
