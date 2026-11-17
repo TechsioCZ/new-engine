@@ -70,7 +70,7 @@ where actions and feedback live). This section applies them to `ActionIcon`.
 | Figma | Code |
 | --- | --- |
 | fixed ✕ glyph | `icon` (any `token-icon-*` / `icon-[…]`) |
-| `size=sm…lg`, `tone=neutral\|danger` | `size`, `severity` (same values as Figma `tone`) |
+| `size=sm…lg`, `severity=neutral\|danger` | `size`, `severity` (same values) |
 | — | `disabled` (removed from tab order) |
 | `state=hover` | not a prop (browser state) |
 | `Table.IconButton` | `ActionIcon` |

@@ -38,9 +38,12 @@ describe("Business status badges, outlined buttons and small Input padding", () 
         "--padding-input-inline-sm"
       )
     ).toBe("var(--padding-input-x-sm)")
-    expect(themeValues("figma/variables.css").get("--padding-input-x-sm")).toBe(
-      "var(--spacing-150)"
+    // Figma routes x/sm through the inline spacing token, which resolves to 10 px.
+    const figma = themeValues("figma/variables.css")
+    expect(figma.get("--padding-input-x-sm")).toBe(
+      "var(--spacing-input-inline-sm)"
     )
+    expect(figma.get("--spacing-input-inline-sm")).toBe("var(--spacing-150)")
   })
 
   it("lets Business inherit the 10 px small Input padding and keeps md and lg overrides", () => {

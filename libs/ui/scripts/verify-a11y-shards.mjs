@@ -28,7 +28,7 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import { calibrationIds } from "../.storybook/a11y-policy.mjs"
+import { a11yBrand, calibrationIds } from "../.storybook/a11y-policy.mjs"
 import { visualStories } from "../test/visual-completion.mjs"
 
 /** Written next to every shard's report: the theme's story set, and the stories
@@ -66,7 +66,7 @@ function readArg(argv, name) {
   }
   const at = argv.indexOf(name)
   if (at === -1) {
-    return undefined
+    return
   }
   const value = argv[at + 1]
   if (value === undefined || value.startsWith("--")) {
@@ -193,7 +193,8 @@ async function changedSuites(indexFile, changedFiles) {
   const selection = affectedStoriesFromDisk({
     repoRoot: path.resolve(import.meta.dirname, "../../.."),
     changedFiles: readPathList(changedFiles),
-    storybookDir: path.dirname(indexFile),
+    // The plan reads a per-run copy (index-full.json), not <storybook>/index.json.
+    indexPath: indexFile,
   })
   const reason = `${selection.mode}: ${selection.reason}`
   if (selection.mode === "all") {
@@ -279,8 +280,9 @@ function partitionSuites(selected, suites, total) {
  * @param {object} index
  * @param {Set<string>} storyIds
  */
-function assertCoversVisualStories(index, storyIds) {
+function assertCoversVisualStories(index, storyIds, theme) {
   const missing = visualStories(index.entries ?? index)
+    .filter((entry) => belongsToTheme(entry, theme))
     .map((entry) => entry.id)
     .filter((id) => !storyIds.has(id))
   if (missing.length > 0) {
@@ -288,6 +290,12 @@ function assertCoversVisualStories(index, storyIds) {
       `A full scan would skip ${missing.length} visual stories: ${examples(missing)}`
     )
   }
+}
+
+/** @param {{tags?: string[]}} entry @param {string} theme */
+function belongsToTheme(entry, theme) {
+  const brand = a11yBrand(entry.tags ?? [])
+  return brand === undefined || theme.startsWith(`${brand}-`)
 }
 
 /** @param {string[]} argv */
@@ -302,7 +310,14 @@ async function planShard(argv) {
     throw new Error(`Invalid --theme-count: ${themeCount}`)
   }
   const index = readJson(indexFile)
-  const suites = suiteStories(index)
+  const allSuites = suiteStories(index)
+  const themedIndex = {
+    ...index,
+    entries: Object.fromEntries(Object.entries(index.entries ?? index).filter(
+      ([, entry]) => belongsToTheme(entry, theme)
+    )),
+  }
+  const suites = suiteStories(themedIndex)
   if (suites.size === 0) {
     throw new Error(`No stories in the Storybook index ${indexFile}`)
   }
@@ -310,18 +325,19 @@ async function planShard(argv) {
     scope === "full"
       ? { suites: undefined, reason: "every supported story" }
       : await changedSuites(indexFile, readArg(argv, "--changed-files"))
-  const selected = [...(selection.suites ?? suites.keys())].sort()
-  const unknown = selected.filter((suite) => !suites.has(suite))
+  const requested = [...(selection.suites ?? allSuites.keys())]
+  const unknown = requested.filter((suite) => !allSuites.has(suite))
   if (unknown.length > 0) {
     throw new Error(
       `No Storybook suite for ${unknown.length} selected id(s): ${examples(unknown)}`
     )
   }
+  const selected = requested.filter((suite) => suites.has(suite)).sort()
   const themeStoryIds = selected
     .flatMap((suite) => suites.get(suite) ?? [])
     .sort()
   if (!selection.suites) {
-    assertCoversVisualStories(index, new Set(themeStoryIds))
+    assertCoversVisualStories(index, new Set(themeStoryIds), theme)
   }
   // This shard's own share of the theme, decided here rather than by Jest.
   const mine = partitionSuites(selected, suites, shard.total)[shard.index - 1]
@@ -352,13 +368,11 @@ async function planShard(argv) {
  */
 function parseJsonLine(line) {
   if (!line.startsWith("{")) {
-    return undefined
+    return
   }
   try {
     return JSON.parse(line)
-  } catch {
-    return undefined
-  }
+  } catch {}
 }
 
 /** Under --json Jest writes its result JSON as the last line of stdout and
@@ -443,6 +457,7 @@ function recordShard(argv) {
     [{ dir: out }],
     planned.filter((id) => calibrationIds.includes(id))
   )
+  assertScanEvidence(out, planned)
   writeJson(path.join(out, SCANNED_NAME), {
     theme,
     shard,
@@ -454,6 +469,31 @@ function recordShard(argv) {
   process.stderr.write(
     `A11y shard ${shard} of ${theme} scanned ${storyIds.length} stories (${skipped.length} skipped)\n`
   )
+}
+
+/** A passing render is not proof that its contrast scan ran.
+ * @param {string} directory
+ * @param {string[]} planned
+ */
+function assertScanEvidence(directory, planned) {
+  const file = path.join(directory, "report.ndjson")
+  const expected = new Set(planned.filter((id) => !calibrationIds.includes(id)))
+  const seen = new Set()
+  const lines = fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n") : []
+  for (const line of lines.filter(Boolean)) {
+    const entry = JSON.parse(line)
+    if (!expected.has(entry.storyId) || seen.has(entry.storyId)) {
+      throw new Error(`Unexpected or repeated accessibility scan: ${entry.storyId}`)
+    }
+    if (!Array.isArray(entry.results?.violations)) {
+      throw new Error(`Accessibility scan has no results: ${entry.storyId}`)
+    }
+    seen.add(entry.storyId)
+  }
+  const missing = [...expected].filter((id) => !seen.has(id))
+  if (missing.length) {
+    throw new Error(`No accessibility scan recorded for ${missing.length} planned stories: ${examples(missing)}`)
+  }
 }
 
 /**
@@ -658,7 +698,11 @@ function assertShardsRanTheirPlan(expected, byIndex) {
  * @param {{dir: string}[]} shards
  * @param {string[]} [requiredIds]
  */
-function assertCalibrationCoverage(expected, shards, requiredIds = calibrationIds) {
+function assertCalibrationCoverage(
+  expected,
+  shards,
+  requiredIds = calibrationIds
+) {
   const passes = new Map()
   for (const { dir } of shards) {
     for (const entry of calibrationEntries(dir)) {
@@ -699,6 +743,9 @@ function verifyTheme(expected, shards) {
   assertShardsRanTheirPlan(expected, byIndex)
   assertCoverage(expected, byIndex)
   assertCalibrationCoverage(expected, shards)
+  for (const [index, { dir }] of byIndex) {
+    assertScanEvidence(dir, expected.byShard.get(index))
+  }
   process.stdout.write(
     `Verified ${expected.theme}: ${expected.shards} shards, ${expected.storyIds.length} stories scanned exactly once (${expected.scope} scope), ${calibrationIds.length} calibration stories passed\n`
   )

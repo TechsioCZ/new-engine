@@ -1,13 +1,9 @@
 name: UI Release
 
-# Chained behind CI instead of racing it on the same push. CI's quality-gate
-# fails unless every blocking job succeeded, and on a push CI calls ui-quality
-# with mode: full, so a CI run that concluded success is itself the proof that
-# the strict release gate passed for that commit. Nothing here repeats it.
+# Prepare alongside CI, then publish only after the exact commit's full gate.
+# Starting checkout/install after workflow_run added two minutes to the chain.
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
     branches: [master]
   workflow_dispatch:
     inputs:
@@ -31,13 +27,8 @@ concurrency:
 
 jobs:
   release:
-    # Absent context never proceeds: only a manual dispatch, or a CI run that
-    # was itself triggered by a push and concluded success, gets past this.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     permissions:
       actions: read
       contents: write
@@ -45,40 +36,20 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
-      # Under workflow_run, GITHUB_SHA is the default branch tip at dispatch
-      # time, not the commit CI validated. head_sha is.
+      # Push and manual dispatch both validate and publish this immutable SHA.
       - name: Resolve the commit to release
         id: commit
         env:
-          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          DISPATCH_SHA: ${{ github.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          sha="${RUN_HEAD_SHA:-$DISPATCH_SHA}"
+          sha="$HEAD_SHA"
           if ! printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
             echo "::error::Resolved commit is not a full SHA: '$sha'"
             exit 1
           fi
           echo "Releasing commit $sha"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
-      # Manual releases used to go through validate too. Removing duplicate
-      # validation must not let a manual publish bypass the exact-SHA CI gate.
-      - name: Require successful push CI before a manual publish
-        if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
-        env:
-          HEAD_SHA: ${{ steps.commit.outputs.sha }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          count="$(gh api --method GET \
-            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
-            -f event=push -f head_sha="$HEAD_SHA" -f branch=master \
-            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
-          if [ "$count" -eq 0 ]; then
-            echo "::error::No successful master push CI for $HEAD_SHA; refusing to publish."
-            exit 1
-          fi
 
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -107,40 +78,28 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
-          cache: 'pnpm'
           registry-url: https://registry.npmjs.org
           scope: '@techsio'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Set Nx SHAs
-        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
-        with:
-          main-branch-name: master
-
-      # nx-set-shas derives NX_HEAD from GITHUB_SHA, which is wrong under
-      # workflow_run. Pin both ends explicitly instead of trusting the context.
-      - name: Pin the Nx SHAs to the resolved commit
+      - name: Compare against the last published UI release
         env:
           HEAD_SHA: ${{ steps.commit.outputs.sha }}
         run: |
           set -euo pipefail
-          if [ -z "${NX_BASE:-}" ]; then
-            echo "::error::nx-set-shas produced no NX_BASE"
-            exit 1
-          fi
-          git cat-file -e "${NX_BASE}^{commit}"
-          echo "NX_BASE=${NX_BASE}" >> "$GITHUB_ENV"
-          echo "NX_HEAD=${HEAD_SHA}" >> "$GITHUB_ENV"
-          echo "NX_BASE=${NX_BASE} NX_HEAD=${HEAD_SHA}"
+          tag="$(git describe --tags --match 'ui-kit-v*' --abbrev=0 "$HEAD_SHA")"
+          base="$(git rev-parse "${tag}^{commit}")"
+          echo "NX_BASE=$base" >> "$GITHUB_ENV"
+          echo "NX_HEAD=$HEAD_SHA" >> "$GITHUB_ENV"
+          echo "Unpublished changes since $tag ($base) through $HEAD_SHA"
 
       # Two reasons not to publish, both normal outcomes rather than failures:
       # a newer commit is already master's tip (that push's CI releases it, and
       # publishing a stale tree would be wrong), or Nx says ui-kit is untouched.
-      # semantic-release reads the branch from GITHUB_REF, which under
-      # workflow_run is refs/heads/master, so the tip assertion is also what
-      # makes that reading honest.
+      # semantic-release reads the branch from GITHUB_REF. Recheck the tip
+      # after the CI wait as well, so preparation cannot publish a stale tree.
       - name: Decide whether to publish this commit
         id: decide
         env:
@@ -181,6 +140,35 @@ jobs:
       - name: Check UI package output
         if: steps.decide.outputs.publish == 'true'
         run: pnpm -C libs/ui check:package
+
+      - name: Require successful push CI for this exact commit
+        if: steps.decide.outputs.publish == 'true' && !inputs.dry_run
+        env:
+          HEAD_SHA: ${{ steps.commit.outputs.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          while true; do
+            run="$(gh api --method GET \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+              -f event=push -f head_sha="$HEAD_SHA" -f branch=master \
+              --jq '.workflow_runs | first | {id, status, conclusion}')"
+            status="$(jq -r '.status // "pending"' <<< "$run")"
+            if [ "$status" = completed ]; then
+              [ "$(jq -r .conclusion <<< "$run")" = success ] || {
+                echo "::error::Push CI did not succeed for $HEAD_SHA: $run"
+                exit 1
+              }
+              break
+            fi
+            echo "Waiting for exact-SHA push CI: $status"
+            sleep 10
+          done
+          tip="$(gh api "repos/${GITHUB_REPOSITORY}/commits/master" --jq .sha)"
+          [ "$tip" = "$HEAD_SHA" ] || {
+            echo "::error::$HEAD_SHA is no longer master ($tip); refusing a stale publish."
+            exit 1
+          }
 
       - name: Fetch semantic-release notes
         if: steps.decide.outputs.publish == 'true'

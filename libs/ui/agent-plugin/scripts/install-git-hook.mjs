@@ -50,6 +50,32 @@ const git = (...args) =>
   }).trim()
 const note = (msg) => process.stderr.write(`ui-kit: ${msg}\n`)
 
+/**
+ * The session's project directory. Every harness passes it as `cwd` in the hook payload on
+ * stdin; the process cwd is not reliable — GitHub Copilot runs plugin hooks from the plugin
+ * root, so `git rev-parse` there would look at the plugin, not the user's repo.
+ */
+function sessionCwd() {
+  if (process.stdin.isTTY) {
+    return process.cwd() // run by hand, no payload
+  }
+  try {
+    const payload = JSON.parse(readFileSync(0, "utf8") || "{}")
+    if (typeof payload?.cwd === "string" && payload.cwd) {
+      return payload.cwd
+    }
+  } catch {
+    // no JSON payload — fall back to the process cwd
+  }
+  return process.cwd()
+}
+
+try {
+  process.chdir(sessionCwd())
+} catch {
+  process.exit(0) // the session directory no longer exists — nothing to install
+}
+
 let gitDir
 let topLevel
 try {

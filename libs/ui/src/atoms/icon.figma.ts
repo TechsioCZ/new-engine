@@ -13,7 +13,7 @@ const size = figma.selectedInstance.getEnum("size", {
   xl: "xl",
   "2xl": "2xl",
 })
-const color = figma.selectedInstance.getEnum("color", {
+const severity = figma.selectedInstance.getEnum("severity", {
   current: "current",
   primary: "primary",
   secondary: "secondary",
@@ -33,8 +33,8 @@ export default {
   id: "Icon",
   imports: ['import { Icon } from "@techsio/ui-kit/atoms/icon"'],
   example: figma.code`<Icon${figma.helpers.react.renderProp(
-    "color",
-    color
+    "severity",
+    severity
   )} icon="${icon}"${figma.helpers.react.renderProp("size", size)} />`,
   // expose the token so parents (Button, ActionIcon) can render `icon="…"`
   // instead of embedding this component's JSX into a string prop

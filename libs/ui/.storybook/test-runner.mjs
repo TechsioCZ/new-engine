@@ -8,6 +8,7 @@ import path from "node:path"
 import { getStoryContext } from "@storybook/test-runner"
 import {
   assertCalibration,
+  assertA11yBrand,
   assertSupportedTheme,
   blockingViolations,
   calibrationIds,
@@ -80,18 +81,20 @@ const testRunnerConfig = {
   },
   async postVisit(page, context) {
     const story =
-      /** @type {Awaited<ReturnType<typeof getStoryContext>> & {globals?: {brand?: string, mode?: string, a11y?: {manual?: boolean}}}} */ (
+      /** @type {Awaited<ReturnType<typeof getStoryContext>> & {tags?: string[], globals?: {brand?: string, mode?: string, a11y?: {manual?: boolean}}}} */ (
         await getStoryContext(page, context)
       )
+    assertA11yBrand(story.tags ?? [], story.parameters.brandLock)
     const effectiveBrand =
       story.parameters.brandLock ?? story.globals?.brand ?? brand
     const effectiveMode =
       effectiveBrand === "akros" || effectiveBrand === "business"
         ? "light"
         : (story.globals?.mode ?? mode)
-    // Pinned examples belong only to their actual matrix cell.
+    // The planner excludes other brands' locked examples. A mismatch is a
+    // broken plan, never a passing test with no accessibility scan.
     if (effectiveBrand !== brand || effectiveMode !== mode) {
-      return
+      throw new Error(`Story ${context.id} rendered ${effectiveBrand}/${effectiveMode} in the ${brand}/${mode} scan`)
     }
     await page.waitForFunction(
       ({ brand: expectedBrand, mode: expectedMode }) => {

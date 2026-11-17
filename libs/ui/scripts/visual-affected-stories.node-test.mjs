@@ -736,6 +736,24 @@ describe("affectedStoriesFromDisk storybookDir", () => {
   })
 })
 
+describe("affectedStoriesFromDisk indexPath", () => {
+  it("reads an index file that is not named index.json", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "visual-index-copy-"))
+    const copy = path.join(dir, "index-full.json")
+    fs.writeFileSync(copy, JSON.stringify({ v: 5, entries: {} }))
+    try {
+      const result = affectedStoriesFromDisk({
+        repoRoot: REAL_REPO,
+        changedFiles: ["libs/ui/README.md"],
+        indexPath: copy,
+      })
+      assert.ok(result.mode)
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
 describe("affectedStoriesFromDisk (real tree)", () => {
   it("selects a subset for a button atom change", { skip: REAL_SKIP }, () => {
     const total = visualStories(

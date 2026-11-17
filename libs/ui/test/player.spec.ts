@@ -677,6 +677,9 @@ test("updating an inline subtitle track preserves the active captions", async ({
   })
   await expect(enableCaptions).toHaveAttribute("aria-pressed", "false")
   await expect(caption).toBeHidden()
+  await page.setViewportSize({ width: 480, height: 650 })
+  await expect(enableCaptions).toHaveAttribute("aria-pressed", "false")
+  await expect(caption).toBeHidden()
   await enableCaptions.click()
   await expect(caption).toHaveText(
     "Captions stay off until explicitly enabled."
@@ -772,7 +775,7 @@ test("URL subtitle replacements preserve active and disabled caption state", asy
   await expect(caption).toHaveText(cueTexts.three)
 })
 
-test("custom video controls leave space for default captions", async ({
+test("custom video controls leave space for default captions after resizing", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 650 })
@@ -803,33 +806,54 @@ test("custom video controls leave space for default captions", async ({
     "Custom captions should stay above all playback controls."
   )
   const toolbar = page.locator(".player-controls")
+  const player = page.locator("[data-media-player]")
   await expect(toolbar).toBeVisible()
-  await expect
-    .poll(async () => {
-      const cueBox = await caption.boundingBox()
-      const toolbarBox = await toolbar.boundingBox()
-      if (!(cueBox && toolbarBox)) {
-        throw new Error("Caption or custom controls has no visible bounds")
-      }
-      return cueBox.y + cueBox.height - toolbarBox.y
-    })
-    .toBeLessThanOrEqual(0)
-  await expect(caption).toBeVisible()
-  await expect
-    .poll(async () => {
-      const cueBox = await caption.boundingBox()
-      const playerBox = await page.locator("[data-media-player]").boundingBox()
-      if (!(cueBox && playerBox)) {
-        throw new Error("Caption or player has no visible bounds")
-      }
-      return {
-        top: cueBox.y >= playerBox.y,
-        left: cueBox.x >= playerBox.x,
-        right: cueBox.x + cueBox.width <= playerBox.x + playerBox.width,
-        bottom: cueBox.y + cueBox.height <= playerBox.y + playerBox.height,
-      }
-    })
-    .toEqual({ top: true, left: true, right: true, bottom: true })
+  const assertCaptionFits = async () => {
+    await expect(caption).toBeVisible()
+    let previousGeometry: string | undefined
+    await expect
+      .poll(
+        async () => {
+          const cueBox = await caption.boundingBox()
+          const toolbarBox = await toolbar.boundingBox()
+          const playerBox = await player.boundingBox()
+          if (!(cueBox && toolbarBox && playerBox)) {
+            previousGeometry = undefined
+            return {
+              stable: false,
+              aboveControls: false,
+              insidePlayer: false,
+            }
+          }
+          const geometry = JSON.stringify({ cueBox, toolbarBox, playerBox })
+          const stable = geometry === previousGeometry
+          previousGeometry = geometry
+          return {
+            stable,
+            aboveControls: cueBox.y + cueBox.height <= toolbarBox.y,
+            insidePlayer:
+              cueBox.y >= playerBox.y &&
+              cueBox.x >= playerBox.x &&
+              cueBox.x + cueBox.width <= playerBox.x + playerBox.width &&
+              cueBox.y + cueBox.height <= playerBox.y + playerBox.height,
+          }
+        },
+        { intervals: [100] }
+      )
+      .toEqual({ stable: true, aboveControls: true, insidePlayer: true })
+  }
+  await assertCaptionFits()
+  for (const width of [480, 320]) {
+    const previousWidth = (await player.boundingBox())?.width
+    await page.setViewportSize({ width, height: 650 })
+    await expect
+      .poll(async () => (await player.boundingBox())?.width)
+      .not.toBe(previousWidth)
+    await expect(caption).toHaveText(
+      "Custom captions should stay above all playback controls."
+    )
+    await assertCaptionFits()
+  }
 })
 
 test("localized seeking exposes a translated time value to screen readers", async ({

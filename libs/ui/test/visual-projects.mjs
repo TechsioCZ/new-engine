@@ -1,4 +1,5 @@
 import { THEMES } from "../src/theme/theme-config.ts"
+import costs from "./visual-shard-costs.json" with { type: "json" }
 
 /** @typedef {"business" | "akros" | "n1"} VisualBrand */
 /** @typedef {"light" | "dark"} VisualColorScheme */
@@ -44,19 +45,77 @@ export const DEVICE_PROJECTS = ["desktop", "mobile"]
 export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
 
 /**
- * Give every screenshot shard the same share of every brand/browser project.
- * Playwright's contiguous --shard groups cheap Chromium tests on early runners
- * and expensive WebKit tests on late ones. Splitting the sorted story list
- * inside each project keeps all project identities while balancing that cost.
+ * Keep a story file together and assign measured expensive files first. Both
+ * baseline checkout and the browser spec call this function on the same index.
+ * Changed subsets pay only for their selected fraction of a file. New files use
+ * the measured median per story; no unmeasured story is omitted.
  * @template T
  * @param {T[]} stories
  * @param {{index: number, total: number} | undefined} shard
+ * @param {{storyCount: number, medianCost: number, maxVisualCost?: number, cohostedCosts?: number[], files: Record<string, {cost: number, storyCount: number}>}} [weights]
  * @returns {T[]}
  */
-export function shardVisualStories(stories, shard) {
-  return shard
-    ? stories.filter((_, index) => index % shard.total === shard.index - 1)
-    : stories
+export function shardVisualStories(stories, shard, weights = costs) {
+  if (!shard) {
+    return stories
+  }
+  const scale = stories.length / weights.storyCount
+  const loads = Array.from({ length: shard.total }, (_, index) =>
+    weights.cohostedCosts?.length === shard.total
+      ? weights.cohostedCosts[index] * scale
+      : 0
+  )
+  const visualLoads = loads.map(() => 0)
+  const files = new Map()
+  stories.forEach((story, index) => {
+    let file = String(index)
+    if (typeof story === "string") {
+      file = story
+    } else if (typeof story === "object" && story !== null) {
+      if ("importPath" in story && typeof story.importPath === "string") {
+        file = story.importPath
+      } else if ("id" in story && typeof story.id === "string") {
+        file = story.id
+      }
+    }
+    const indexes = files.get(file) ?? []
+    indexes.push(index)
+    files.set(file, indexes)
+  })
+  const ordered = [...files]
+    .map(([file, indexes]) => ({
+      file,
+      indexes,
+      cost:
+        indexes.length *
+        (weights.files[file]
+          ? weights.files[file].cost / weights.files[file].storyCount
+          : weights.medianCost),
+    }))
+    .sort((a, b) => b.cost - a.cost || a.file.localeCompare(b.file, "en"))
+  const assigned = new Map()
+  for (const { indexes, cost } of ordered) {
+    const available = loads
+      .map((_, index) => index)
+      .filter(
+        (index) =>
+          !weights.maxVisualCost ||
+          visualLoads[index] + cost <= weights.maxVisualCost * scale
+      )
+    // A growing suite can exceed the target budget, never the coverage budget.
+    const candidates = available.length
+      ? available
+      : loads.map((_, index) => index)
+    const bucket = candidates.reduce((best, index) =>
+      loads[index] < loads[best] ? index : best
+    )
+    for (const index of indexes) {
+      assigned.set(index, bucket)
+    }
+    loads[bucket] += cost
+    visualLoads[bucket] += cost
+  }
+  return stories.filter((_, index) => assigned.get(index) === shard.index - 1)
 }
 
 /** Specs the `mobile` project runs. Every other behavior spec asserts DOM,

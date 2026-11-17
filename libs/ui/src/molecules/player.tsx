@@ -10,6 +10,7 @@
  * the player-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
+  type CaptionsInstance,
   Gesture,
   isTrackCaptionKind,
   MediaAnnouncer,
@@ -797,15 +798,45 @@ Player.Error = function PlayerError({
 
 Player.Captions = function PlayerCaptions({
   className,
+  ref,
   ...props
 }: ComponentProps<typeof MediaCaptions>) {
   usePlayerContext()
   const hasCaptions = useMediaState("hasCaptions")
+  const viewType = useMediaState("viewType")
+  const [instance, setInstance] = useState<CaptionsInstance | null>(null)
+  const [layout, setLayout] = useState(0)
+  const viewport = useRef("")
+  const captionsRef = useComposedRefs(ref, setInstance)
+  useEffect(() => {
+    const element = instance?.el
+    if (!(element && hasCaptions && viewType === "video")) {
+      viewport.current = ""
+      return
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) {
+        return
+      }
+      const size = `${entry.contentRect.width}:${entry.contentRect.height}`
+      if (viewport.current === size) {
+        return
+      }
+      viewport.current = size
+      // The pinned renderer reuses cue coordinates after resizing. A fresh
+      // instance measures them against the actual reserved caption viewport.
+      setLayout((value) => value + 1)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [hasCaptions, instance, viewType])
   return (
     <MediaCaptions
       {...props}
       className={playerStyles().captions({ className })}
       data-available={hasCaptions ? "" : undefined}
+      key={layout}
+      ref={captionsRef}
     />
   )
 }

@@ -11,7 +11,7 @@ on:
         type: string
         default: full
       workers:
-        description: Jest workers per shard
+        description: Total Jest workers shared by concurrent themes
         type: number
         default: 4
       changed_files_artifact:
@@ -25,7 +25,7 @@ on:
         type: string
         default: full
       workers:
-        description: Jest workers per shard
+        description: Total Jest workers shared by concurrent themes
         type: number
         default: 4
 
@@ -41,21 +41,37 @@ jobs:
         with:
           ref: ${{ inputs.sha || github.sha }}
           filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/libs/ui/test/visual.spec.ts-snapshots/
           persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
-          cache: pnpm
       # Only the UI library and what it depends on takes part in this scan.
-      - run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
-      - run: timeout 420 pnpm exec playwright install --only-shell chromium
+      - run: pnpm install --frozen-lockfile --prefer-offline --filter='@techsio/ui-kit...'
+      - name: Restore the accessibility browser
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ui-a11y-chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
       - name: Download the changed-file list
         if: inputs.scope != 'full' && inputs.scope != 'all' && inputs.changed_files_artifact != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ${{ inputs.changed_files_artifact }}
           path: ${{ runner.temp }}/a11y-changed-files
+      - name: Hash the shared Storybook inputs
+        id: storybook
+        run: echo "hash=$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)" >> "$GITHUB_OUTPUT"
+      - name: Reuse the same Storybook content cache as CI
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: libs/ui/storybook-static
+          key: ui-storybook-node26-${{ steps.storybook.outputs.hash }}
       # One install and Storybook build for all supported themes. WCAG A/AA rules block;
       # APCA gold and AAA contrast are reported only. Story coverage and the
       # calibration contract are asserted over the theme's shards together, by
@@ -69,7 +85,7 @@ jobs:
           A11Y_TEST_WORKERS: ${{ inputs.workers }}
           A11Y_SCOPE: ${{ inputs.scope }}
           A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/a11y-changed-files/changed-files.txt
-        run: pnpm --dir libs/ui storybook:a11y
+        run: bash libs/ui/scripts/storybook-a11y-themes.sh
       - name: Verify all themes and calibration reported
         run: |
           node --input-type=module -e '
@@ -84,4 +100,5 @@ jobs:
         with:
           name: storybook-a11y-${{ inputs.sha || github.sha }}-all-themes
           path: libs/ui/a11y-report
+          overwrite: true
           if-no-files-found: error

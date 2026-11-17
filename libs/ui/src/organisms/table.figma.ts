@@ -4,8 +4,7 @@
 
 import figma from "figma"
 
-// Figma still names the property variant; code reads appearance.
-const appearance = figma.selectedInstance.getEnum("variant", {
+const appearance = figma.selectedInstance.getEnum("appearance", {
   line: "line",
   outline: "outline",
   striped: "striped",

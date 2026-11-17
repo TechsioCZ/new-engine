@@ -14,7 +14,7 @@ const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
 ### Player v1.1.1
-- Scoped Vidstack CSS to the player, kept tooltip portals inside fullscreen, preserved inline caption selection on updates, and localized spoken timeline values. Bottom control compositions can reserve their measured height for captions.
+- Scoped Vidstack CSS to the player, kept tooltip portals inside fullscreen, preserved inline caption selection on updates, and localized spoken timeline values. Bottom control compositions can reserve their measured height for captions; caption layout is rebuilt when its video viewport changes to avoid stale cue positions.
 
 ### VideoPlayer v1.1.1
 - Captions avoid the measured default toolbar and the documented custom toolbar, including responsive wrapping.

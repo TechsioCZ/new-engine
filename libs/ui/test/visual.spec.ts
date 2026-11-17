@@ -915,13 +915,24 @@ async function captureStory(run: StoryRun): Promise<void> {
         : page.locator("[data-media-player]")
       // Metadata-only preload can report canplay with an empty buffered range
       // in WebKit. Load the entire fixture before comparing its progress track.
-      await readyPlayer.locator("audio, video").evaluateAll((elements) => {
-        for (const element of elements) {
-          const media = element as HTMLMediaElement
-          media.preload = "auto"
-          media.load()
-        }
-      })
+      await readyPlayer
+        .locator("audio, video")
+        .evaluateAll(async (elements) => {
+          await Promise.all(
+            elements.map((element) => {
+              const media = element as HTMLMediaElement
+              return new Promise<void>((resolve) => {
+                // Await this reload, rather than accepting the previous buffered
+                // range while its loadstart event is still queued.
+                media.addEventListener("loadeddata", () => resolve(), {
+                  once: true,
+                })
+                media.preload = "auto"
+                media.load()
+              })
+            })
+          )
+        })
       await expect(readyPlayer).toHaveAttribute("data-can-play", "")
       // The buffered track is part of the screenshot, so wait for the whole
       // local recording rather than capturing a network-dependent progress bar.
@@ -938,6 +949,9 @@ async function captureStory(run: StoryRun): Promise<void> {
           )
         )
         .toBe(true)
+      await expect(
+        readyPlayer.locator(".player-feedback[role='status']")
+      ).toHaveCount(0)
     }
     await disposeAssets.whenIdle()
     await assertThemeTokens(page, expectedBrand, expectedMode)
@@ -1015,24 +1029,46 @@ async function captureStory(run: StoryRun): Promise<void> {
     // No truncation or coverage exemption: compare every tile, retaining
     // the primary name for the first and unique suffixes for the rest.
     for (const tile of tiles.length ? tiles : [null]) {
-      let actual: Buffer
       await beforeCapture?.()
-      if (tile) {
-        actual = await page.screenshot({
-          ...options,
-          fullPage: true,
-          clip: tile.clip,
-        })
-      } else if (fullPage) {
-        actual = await page.screenshot({ ...options, fullPage: true })
-      } else if (framing?.includesMarkers) {
-        actual = await page.screenshot({
-          ...options,
-          fullPage: true,
-          clip: framing.bounds,
-        })
-      } else {
-        actual = await root.screenshot(options)
+      const takeScreenshot = () => {
+        if (tile) {
+          return page.screenshot({
+            ...options,
+            fullPage: true,
+            clip: tile.clip,
+          })
+        }
+        if (fullPage) {
+          return page.screenshot({ ...options, fullPage: true })
+        }
+        if (framing?.includesMarkers) {
+          return page.screenshot({
+            ...options,
+            fullPage: true,
+            clip: framing.bounds,
+          })
+        }
+        return root.screenshot(options)
+      }
+      let actual = await takeScreenshot()
+      if (story.id === "molecules-videoplayer--captioned") {
+        // Wait for the SDK's debounced layout and composited caption backdrop.
+        // The baseline is compared once, after two identical painted frames.
+        await expect
+          .poll(
+            async () => {
+              const next = await takeScreenshot()
+              const settled = next.equals(actual)
+              actual = next
+              return settled
+            },
+            {
+              intervals: [100],
+              timeout: 5000,
+              message: "Caption painting did not settle",
+            }
+          )
+          .toBe(true)
       }
       await beforeCapture?.()
       if (fullPage) {

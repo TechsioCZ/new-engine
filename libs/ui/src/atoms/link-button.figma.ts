@@ -4,19 +4,18 @@
 
 import figma from "figma"
 
-// Figma still names these properties variant/theme; code reads severity/appearance.
-const severity = figma.selectedInstance.getEnum("variant", {
+const severity = figma.selectedInstance.getEnum("severity", {
   primary: "primary",
   secondary: "secondary",
   tertiary: "tertiary",
   warning: "warning",
   danger: "danger",
 })
-const appearance = figma.selectedInstance.getEnum("theme", {
+const appearance = figma.selectedInstance.getEnum("appearance", {
   solid: "solid",
-  light: "subtle",
-  outlined: "outline",
-  borderless: "ghost",
+  subtle: "subtle",
+  outline: "outline",
+  ghost: "ghost",
 })
 const size = figma.selectedInstance.getEnum("size", {
   sm: "sm",
