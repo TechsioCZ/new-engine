@@ -41,8 +41,9 @@ fi
 # Measured on 4-vCPU runners: CPU pressure stayed above 70% while both ran,
 # and business-light took 186-272s beside the checks, while one theme scan
 # alone takes 129-193s. Everything forked from here on (the checks) yields
-# the CPU to the scans.
-renice -n 10 -p $$ >/dev/null
+# the CPU to the scans. Absolute form: util-linux reads `-n` as a priority,
+# BSD as an increment, and this script may already run below priority 0.
+renice "$(( $(ps -o nice= -p $$) + 10 ))" -p $$ >/dev/null
 
 (
   export PATH="$NODE24_BIN:$BASE_PATH"
