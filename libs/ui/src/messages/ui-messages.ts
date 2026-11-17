@@ -161,6 +161,11 @@ export type UiMessages = {
     retry: string
     enableCaptions: string
     disableCaptions: string
+    settings: string
+    playbackSpeed: string
+    normalSpeed: string
+    subtitles: string
+    subtitlesOff: string
     seekForward: (seconds: number) => string
     seekBackward: (seconds: number) => string
     seek: string
@@ -351,6 +356,11 @@ export const enUiMessages: UiMessages = {
     retry: "Try again",
     enableCaptions: "Enable captions",
     disableCaptions: "Disable captions",
+    settings: "Playback settings",
+    playbackSpeed: "Playback speed",
+    normalSpeed: "Normal",
+    subtitles: "Subtitles",
+    subtitlesOff: "Off",
     seekForward: (seconds) => `Seek forward ${seconds} seconds`,
     seekBackward: (seconds) => `Seek backward ${seconds} seconds`,
     seek: "Seek",

@@ -6,6 +6,21 @@ import { Player } from "../src/molecules/player"
 import { VideoPlayer } from "../src/molecules/video-player"
 
 describe("player messages", () => {
+  it("keeps settings opt-in and names its trigger from the catalog", () => {
+    const preset = renderToStaticMarkup(<VideoPlayer src="sample.mp4" />)
+    expect(preset).not.toContain('aria-label="Playback settings"')
+    const settings = renderToStaticMarkup(
+      <UiMessagesProvider
+        messages={{ player: { settings: "Nastavení přehrávání" } }}
+      >
+        <VideoPlayer controlsList={["settings"]} src="sample.mp4" />
+      </UiMessagesProvider>
+    )
+    expect(settings).toContain('aria-label="Nastavení přehrávání"')
+    expect(settings).toContain('aria-haspopup="menu"')
+    expect(settings).not.toContain("controlsList=")
+  })
+
   it("reads control names from the app catalog", () => {
     const html = renderToStaticMarkup(
       <UiMessagesProvider

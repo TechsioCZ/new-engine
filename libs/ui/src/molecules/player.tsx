@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.1.1
+ * @componentVersion v1.2.0
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,9 +30,11 @@ import {
   TimeSlider,
   type TimeSliderInstance,
   type Track,
+  useCaptionOptions,
   useMediaContext,
   useMediaPlayer,
   useMediaState,
+  usePlaybackRateOptions,
   useSliderState,
   VolumeSlider,
 } from "@vidstack/react"
@@ -46,7 +48,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { ActionIcon } from "../atoms/action-icon"
+import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
 import { Tooltip } from "../atoms/tooltip"
@@ -55,6 +57,7 @@ import { OverlayContainerProvider } from "../internal/overlay-portal"
 import { formatPlayerTime } from "../internal/player-time"
 import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
+import { Menu, type MenuItem } from "./menu"
 
 const playerStyles = tv({
   slots: {
@@ -90,7 +93,10 @@ const playerStyles = tv({
   },
 })
 
-const PlayerContext = createContext<{ retry: () => void } | null>(null)
+const PlayerContext = createContext<{
+  retry: () => void
+  lockSettings: () => () => void
+} | null>(null)
 
 function usePlayerContext() {
   const context = useContext(PlayerContext)
@@ -159,6 +165,19 @@ export type PlayerVolumeSliderProps = Omit<
   ComponentProps<typeof VolumeSlider.Root>,
   "asChild" | "children" | "orientation"
 >
+export type PlayerSettingsMenuProps = {
+  icon?: IconType
+  className?: string
+  "aria-label"?: string
+}
+
+function SettingsTrigger(props: ActionIconProps) {
+  return (
+    <Tooltip content={props["aria-label"]}>
+      <ActionIcon {...props} />
+    </Tooltip>
+  )
+}
 
 export function Player({
   children,
@@ -169,8 +188,15 @@ export function Player({
 }: PlayerProps) {
   const messages = useUiMessages().player
   const [attempt, setAttempt] = useState(0)
+  const [activeSettings, setActiveSettings] = useState(0)
   const context = useMemo(
-    () => ({ retry: () => setAttempt((value) => value + 1) }),
+    () => ({
+      retry: () => setAttempt((value) => value + 1),
+      lockSettings: () => {
+        setActiveSettings((value) => value + 1)
+        return () => setActiveSettings((value) => value - 1)
+      },
+    }),
     []
   )
   const label = ariaLabel ?? mediaLabel ?? props.title ?? messages.label
@@ -182,16 +208,39 @@ export function Player({
         ariaLabel={label}
         className={playerStyles().root({ className })}
         key={attempt}
+        keyDisabled={props.keyDisabled || activeSettings > 0}
       >
-        <PlayerOverlays>{children}</PlayerOverlays>
+        <PlayerOverlays settingsActive={activeSettings > 0}>
+          {children}
+        </PlayerOverlays>
       </MediaPlayer>
     </PlayerContext.Provider>
   )
 }
 
-function PlayerOverlays({ children }: { children: ReactNode }) {
+function PlayerOverlays({
+  children,
+  settingsActive,
+}: {
+  children: ReactNode
+  settingsActive: boolean
+}) {
   const player = useMediaPlayer()
   const fullscreen = useMediaState("fullscreen")
+  useEffect(() => {
+    if (!(settingsActive && player)) {
+      return
+    }
+    const canIdle = player.controls.canIdle
+    player.controls.show()
+    player.controls.canIdle = false
+    return () => {
+      player.controls.canIdle = canIdle
+      if (canIdle && !player.state.paused) {
+        player.controls.hide()
+      }
+    }
+  }, [player, settingsActive])
   return (
     <OverlayContainerProvider
       container={fullscreen ? (player?.el ?? null) : null}
@@ -383,6 +432,15 @@ Player.Provider = function PlayerProvider({
     }
     const onModeChange = (event: { detail: TextTrack }) => {
       selection.modeChanged(event.detail)
+      if (
+        isTrackCaptionKind(event.detail) &&
+        event.detail.mode === "disabled" &&
+        media.textTracks.selected
+      ) {
+        // Vidstack 1.15 saves "off" when disabling the previous language,
+        // even though the newly selected captions are already showing.
+        media.storage?.setCaptions?.(true)
+      }
     }
     media.textTracks.addEventListener("mode-change", onModeChange)
     return () => {
@@ -553,6 +611,92 @@ Player.MuteButton = function PlayerMuteButton({
         />
       </MediaMuteButton>
     </Tooltip>
+  )
+}
+
+Player.SettingsMenu = function PlayerSettingsMenu({
+  icon = "token-icon-player-settings",
+  className,
+  "aria-label": ariaLabel,
+}: PlayerSettingsMenuProps) {
+  const { lockSettings } = usePlayerContext()
+  const { player: messages, locale } = useUiMessages()
+  const captions = useCaptionOptions()
+  const speeds = usePlaybackRateOptions({ normalLabel: messages.normalSpeed })
+  const [open, setOpen] = useState(false)
+  const [triggerFocused, setTriggerFocused] = useState(false)
+  const interacting = open || triggerFocused
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale])
+  useEffect(() => {
+    if (!interacting) {
+      return
+    }
+    // Zag focuses the menu container; its arrow keys must not seek the video.
+    return lockSettings()
+  }, [interacting, lockSettings])
+  const items: MenuItem[] = [
+    {
+      type: "submenu",
+      value: "speed",
+      label: messages.playbackSpeed,
+      disabled: speeds.disabled,
+      items: speeds.map((option) => ({
+        type: "radio",
+        name: "speed",
+        value: `speed:${option.value}`,
+        label:
+          option.rate === 1
+            ? messages.normalSpeed
+            : `${numberFormat.format(option.rate)}×`,
+        checked: option.selected,
+      })),
+    },
+  ]
+  if (!captions.disabled) {
+    items.push({
+      type: "submenu",
+      value: "subtitles",
+      label: messages.subtitles,
+      items: captions.map((option) => ({
+        type: "radio",
+        name: "subtitles",
+        value: `subtitles:${option.value}`,
+        label: option.track ? option.label : messages.subtitlesOff,
+        checked: option.selected,
+      })),
+    })
+  }
+  const label = ariaLabel ?? messages.settings
+  return (
+    <Menu
+      aria-label={label}
+      customTrigger={
+        <SettingsTrigger
+          aria-label={label}
+          className={playerStyles().iconButton({ className })}
+          icon={icon}
+          onBlur={() => setTriggerFocused(false)}
+          onFocus={() => setTriggerFocused(true)}
+          size="lg"
+          type="button"
+        />
+      }
+      items={items}
+      onCheckedChange={(item, checked) => {
+        if (!(checked && item.type === "radio")) {
+          return
+        }
+        const options = item.name === "speed" ? speeds : captions
+        const option = options.find(
+          (entry) => `${item.name}:${entry.value}` === item.value
+        )
+        if (option && !option.selected) {
+          option.select()
+        }
+      }}
+      onOpenChange={(details) => setOpen(details.open)}
+      positioning={{ placement: "top-end" }}
+    />
   )
 }
 

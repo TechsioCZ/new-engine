@@ -5,7 +5,7 @@ description: >
   VideoPlayer is an opinionated preset over Player with a Semi Design-shaped
   src/poster/controlsList API; controls overlay the video on a dark scrim.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -46,8 +46,9 @@ import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
 - `seekTime` — seconds for the forward/backward seek buttons (default `10`).
 - `controlsList` — which controls to render; defaults to
   `["play", "time", "volume", "captions", "fullscreen"]`. Supported values:
-  `play`, `time`, `volume`, `captions`, `fullscreen`. The captions button is
-  shown only when caption/subtitle tracks are available.
+  `play`, `time`, `volume`, `captions`, `fullscreen`, `settings`. The captions
+  button is shown only when caption/subtitle tracks are available. Settings
+  is opt-in and is not added to the default list.
 - `width`, `height`, `style` — sizing on the media player itself.
 - `className` — classes on the media player root.
 - `title` — accessible media title.
@@ -58,6 +59,8 @@ import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
   application needs the platform's native fullscreen playback behavior.
 - `tracks` — optional text tracks with a required stable `id` and `kind`;
   supply `language`, `label` and either `src` or inline `content`.
+- `storage` — optional Vidstack preference storage; a string names an
+  application-owned preference key. Omitted by default.
 - Other Vidstack `MediaPlayer` props, including `preload`, `playbackRate`,
   `currentTime`, `crossOrigin` and events, are forwarded. `children` stays
   internal to the preset; use named slots instead.
@@ -84,6 +87,57 @@ import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
 Use accurate captions for spoken content and meaningful sound. `default`
 requests the initial track; user preferences may choose another. Cross-origin
 track URLs must permit CORS; inline content needs no caption asset request.
+
+## Settings, languages and preference storage
+
+Add `"settings"` to `controlsList` for `Player.SettingsMenu`. Its speed submenu
+uses the SDK's fixed playback-rate options. Its captions submenu appears only
+when caption/subtitle tracks exist and offers the supplied track labels plus
+an off choice. The separate captions button toggles the selected language.
+Provide a unique stable ID for every language and mark only the intended
+initial language as `default`; saved preferences may choose another.
+
+```tsx
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+<VideoPlayer
+  src="https://example.com/media.mp4"
+  title="Product film"
+  controlsList={["play", "time", "volume", "captions", "fullscreen", "settings"]}
+  tracks={[
+    {
+      id: "english",
+      kind: "subtitles",
+      language: "en",
+      label: "English",
+      default: true,
+      content: "WEBVTT\n\n00:00.000 --> 00:30.000\nProduct film subtitles.\n",
+    },
+    {
+      id: "czech",
+      kind: "subtitles",
+      language: "cs",
+      label: "Čeština",
+      content: "WEBVTT\n\n00:00.000 --> 00:30.000\nTitulky produktového filmu.\n",
+    },
+  ]}
+/>
+```
+
+Persistence is independent of showing Settings. Opt in with an
+application-owned key, for example `storage="my-store-player-preferences-v1"`.
+Vidstack shares volume, mute, playback speed and caption preferences among
+players using that key; playback position is stored separately per media
+source. Select an app/account-specific key rather than recommending one
+global fixed key for every consumer. Omitting `storage` disables persistence.
+
+The RememberPreferences story uses the demo-only key
+`ui-kit-player-preferences-demo-v1`. Choose a speed or subtitle language, then
+select Reload player to remount the same player. It uses the SDK's storage
+without copying preference state into React or supplying initial speed,
+volume and mute values that compete with restoration. See MultipleLanguages
+for the same tracks without persistence and Settings for speed-only media.
+An audio composition can use `Player.SettingsMenu` inside its own controls.
 
 ## Slots, gestures and feedback
 
@@ -116,9 +170,10 @@ Wrong:
 <VideoPlayer controlsList={["playbackRate", "quality", "pictureInPicture"]} />
 ```
 
-Correct: the preset supports `play`, `time`, `volume`, `captions` and
-`fullscreen`. Set the engine's `playbackRate` prop to change speed; additional
-control UI belongs in `slots.controls` or a custom `Player` composition.
+Correct: the preset supports `play`, `time`, `volume`, `captions`, `fullscreen`
+and opt-in `settings`. Use Settings for playback-speed choices and caption
+languages, or set the engine's `playbackRate` directly. Other control UI belongs
+in `slots.controls` or a custom `Player` composition.
 
 Source: libs/ui/src/molecules/video-player.tsx
 

@@ -916,3 +916,269 @@ test("localized seeking exposes a translated time value to screen readers", asyn
     `Posun vpřed: ${currentTime} sekund z 30 sekund`
   )
 })
+
+test("playback settings support keyboard navigation and change the native rate", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--settings&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  const settings = page.getByRole("button", {
+    name: "Playback settings",
+    exact: true,
+  })
+  await settings.focus()
+  await page.keyboard.press("ArrowDown")
+  await expect(page.getByRole("menu")).toBeFocused()
+  await page.keyboard.press("ArrowRight")
+  const normal = page.getByRole("menuitemradio", {
+    name: "Normal",
+    exact: true,
+  })
+  await expect(normal).toBeVisible()
+  await expect(normal).toHaveAttribute("aria-checked", "true")
+  await page.keyboard.press("ArrowDown")
+  await page.keyboard.press("ArrowUp")
+  await page.keyboard.press("k")
+  await page.keyboard.press("Escape")
+  await expect(normal).toBeHidden()
+  await page.keyboard.press("Escape")
+  await expect(settings).toHaveAttribute("aria-expanded", "false")
+  await expect(settings).toBeFocused()
+  await expect(player).toHaveAttribute("data-paused", "")
+  expect(
+    await player
+      .locator("video")
+      .evaluate((video: HTMLVideoElement) => video.currentTime)
+  ).toBeCloseTo(0, 2)
+  await settings.click()
+  await page
+    .getByRole("menuitem", { name: "Playback speed", exact: true })
+    .click()
+  const faster = page.getByRole("menuitemradio", {
+    name: "1.5×",
+    exact: true,
+  })
+  await faster.click()
+  await expect
+    .poll(() =>
+      player
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.playbackRate)
+    )
+    .toBe(1.5)
+  await settings.click()
+  await page
+    .getByRole("menuitem", { name: "Playback speed", exact: true })
+    .click()
+  await expect(faster).toHaveAttribute("aria-checked", "true")
+  await page.keyboard.press("Escape")
+  await page.keyboard.press("Escape")
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  await expect(page.locator("[data-media-player]")).toHaveAttribute(
+    "data-can-play",
+    ""
+  )
+  await expect(settings).toHaveCount(0)
+  expect(
+    await page
+      .locator("video")
+      .evaluate((video: HTMLVideoElement) => video.playbackRate)
+  ).toBe(1)
+})
+
+test("subtitle settings select actual cues and keep Off idempotent", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--multiple-languages&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+  await page.keyboard.press("ArrowRight")
+  const cue = player.locator(".player-captions [data-part='cue']")
+  await expect(cue).toBeVisible()
+  const englishCue = await cue.innerText()
+  expect(englishCue.length).toBeGreaterThan(0)
+  const settings = page.getByRole("button", {
+    name: "Playback settings",
+    exact: true,
+  })
+  const openSubtitles = async () => {
+    await settings.click()
+    await page.getByRole("menuitem", { name: "Subtitles", exact: true }).click()
+  }
+  await openSubtitles()
+  await expect(
+    page.getByRole("menuitemradio", { name: "English", exact: true })
+  ).toHaveAttribute("aria-checked", "true")
+  if (isMobile) {
+    const viewport = page.viewportSize()
+    if (!viewport) {
+      throw new Error("Mobile viewport is unavailable")
+    }
+    for (const item of await page.getByRole("menuitemradio").all()) {
+      await expect
+        .poll(async () => {
+          const box = await item.boundingBox()
+          return Boolean(
+            box &&
+              box.width >= 24 &&
+              box.height >= 24 &&
+              box.x >= 0 &&
+              box.y >= 0 &&
+              box.x + box.width <= viewport.width &&
+              box.y + box.height <= viewport.height
+          )
+        })
+        .toBe(true)
+    }
+  }
+  const czech = page.getByRole("menuitemradio", {
+    name: "Čeština",
+    exact: true,
+  })
+  await czech.click()
+  await expect(cue).toBeVisible()
+  await expect(cue).not.toHaveText(englishCue)
+  const czechCue = await cue.innerText()
+  expect(czechCue.length).toBeGreaterThan(0)
+  await openSubtitles()
+  await expect(czech).toHaveAttribute("aria-checked", "true")
+  const off = page.getByRole("menuitemradio", { name: "Off", exact: true })
+  await off.click()
+  await expect(cue).toBeHidden()
+  await openSubtitles()
+  await expect(off).toHaveAttribute("aria-checked", "true")
+  await off.click()
+  await expect(cue).toBeHidden()
+  await expect(
+    page.getByRole("button", { name: "Enable captions", exact: true })
+  ).toHaveAttribute("aria-pressed", "false")
+  await openSubtitles()
+  await page
+    .getByRole("menuitemradio", { name: "English", exact: true })
+    .click()
+  await expect(cue).toHaveText(englishCue)
+})
+
+test("remembered player preferences restore rate, mute, language and captions Off", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--remember-preferences&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await page.getByRole("button", { name: "Play", exact: true }).click()
+  await page.getByRole("button", { name: "Pause", exact: true }).click()
+  await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+  await page.keyboard.press("ArrowRight")
+  const settings = page.getByRole("button", {
+    name: "Playback settings",
+    exact: true,
+  })
+  await settings.click()
+  await page
+    .getByRole("menuitem", { name: "Playback speed", exact: true })
+    .click()
+  await page.getByRole("menuitemradio", { name: "1.5×", exact: true }).click()
+  await page.getByRole("button", { name: "Mute", exact: true }).click()
+  await settings.click()
+  await page.getByRole("menuitem", { name: "Subtitles", exact: true }).click()
+  await page
+    .getByRole("menuitemradio", { name: "Čeština", exact: true })
+    .click()
+  const cue = player.locator(".player-captions [data-part='cue']")
+  await expect(cue).toBeVisible()
+  const czechCue = await cue.innerText()
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        localStorage.getItem("ui-kit-player-preferences-demo-v1")
+      )
+    )
+    .not.toBeNull()
+  const reload = page.getByRole("button", {
+    name: "Reload player",
+    exact: true,
+  })
+  await reload.click()
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await expect
+    .poll(() =>
+      player.locator("video").evaluate((video: HTMLVideoElement) => ({
+        rate: video.playbackRate,
+        muted: video.muted,
+      }))
+    )
+    .toEqual({ rate: 1.5, muted: true })
+  await expect(cue).toHaveText(czechCue)
+  await settings.click()
+  await page.getByRole("menuitem", { name: "Subtitles", exact: true }).click()
+  await expect(
+    page.getByRole("menuitemradio", { name: "Čeština", exact: true })
+  ).toHaveAttribute("aria-checked", "true")
+  await page.getByRole("menuitemradio", { name: "Off", exact: true }).click()
+  await expect(cue).toBeHidden()
+  await reload.click()
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await expect(cue).toBeHidden()
+  await settings.click()
+  await page.getByRole("menuitem", { name: "Subtitles", exact: true }).click()
+  await expect(
+    page.getByRole("menuitemradio", { name: "Off", exact: true })
+  ).toHaveAttribute("aria-checked", "true")
+})
+
+test("playback settings menus remain inside native fullscreen", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--settings&viewMode=story"
+  )
+  // biome-ignore lint/suspicious/noSkippedTests: Native element fullscreen requires the desktop project.
+  test.skip(
+    isMobile || !(await page.evaluate(() => document.fullscreenEnabled)),
+    "Settings overlay containment requires desktop element fullscreen"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await page
+    .getByRole("button", { name: "Enter Fullscreen", exact: true })
+    .click()
+  await expect(player).toHaveAttribute("data-fullscreen", "")
+  await page
+    .getByRole("button", { name: "Playback settings", exact: true })
+    .click()
+  await page
+    .getByRole("menuitem", { name: "Playback speed", exact: true })
+    .click()
+  await expect(
+    page.getByRole("menuitemradio", { name: "Normal", exact: true })
+  ).toBeVisible()
+  for (const menu of await page.getByRole("menu").all()) {
+    expect(
+      await menu.evaluate((element) =>
+        document.fullscreenElement?.contains(element)
+      )
+    ).toBe(true)
+  }
+  await page.getByRole("menuitemradio", { name: "1.5×", exact: true }).click()
+  await expect
+    .poll(() =>
+      player
+        .locator("video")
+        .evaluate((video: HTMLVideoElement) => video.playbackRate)
+    )
+    .toBe(1.5)
+})

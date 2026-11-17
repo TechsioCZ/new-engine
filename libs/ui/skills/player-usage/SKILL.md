@@ -6,7 +6,7 @@ description: >
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
 metadata:
-  component_version: "1.1.1"
+  component_version: "1.2.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -119,6 +119,7 @@ accessible label, with explicit `aria-label` taking precedence.
 | `Player.PlayButton`, `Player.MuteButton`, `Player.SeekButton`, `Player.FullscreenButton` | Keyboard-accessible actions; buttons never submit their enclosing form. |
 | `Player.TimeSlider`, `Player.VolumeSlider`, `Player.Time` | Horizontal seeking/volume controls and readable time. |
 | `Player.Captions`, `Player.CaptionButton` | Render active cues and toggle available captions. |
+| `Player.SettingsMenu` | A settings button with fixed SDK playback-speed options and a captions-language submenu when tracks are available. |
 | `Player.Loading` | Shows localized loading feedback while the provider waits; custom children replace its content. |
 | `Player.Error` | Shows a localized error alert with retry; custom children or `({ error, retry }) => ReactNode` replace its content. |
 | `Player.Gestures` | Adds pointer playback behavior on the media surface. |
@@ -127,6 +128,47 @@ accessible label, with explicit `aria-label` taking precedence.
 Default retry reloads the provider. A custom error action should call the
 provided `retry` callback rather than reloading the page. These parts react to
 real media state; do not fake loading or error state with CSS.
+
+## Settings and saved preferences
+
+`Player.SettingsMenu` belongs inside the same `Player` and its controls. It
+offers the SDK's fixed playback-speed choices. When caption/subtitle tracks
+are available, its captions submenu lists their labels and an off option;
+`Player.CaptionButton` remains the shortcut for toggling captions. Labels
+come from `UiMessagesProvider.messages.player`.
+
+The menu is opt-in. For video, add `"settings"` to `VideoPlayer.controlsList`;
+its default controls are unchanged. For audio, compose it in `Player` or in
+`AudioPlayer.slots.controls` rather than expecting a preset settings button:
+
+```tsx
+import { Player } from "@techsio/ui-kit/molecules/player"
+
+<Player src="https://example.com/audio.mp3" title="Episode preview" viewType="audio">
+  <Player.Provider />
+  <Player.Controls>
+    <Player.ControlGroup>
+      <Player.PlayButton />
+      <Player.TimeSlider />
+      <Player.SettingsMenu />
+    </Player.ControlGroup>
+  </Player.Controls>
+</Player>
+```
+
+Preference persistence is separately opt-in through the forwarded Vidstack
+`storage` prop. Pass an application-owned string such as
+`storage="my-store-player-preferences-v1"` to share volume, mute, speed and
+caption preferences between players using that key. Choose the key for the
+intended application/account scope; do not copy a universal fixed key into
+unrelated apps. Playback position is stored separately for each media source,
+not as one position shared by every player.
+
+Let Vidstack own saving and restoring these values. Avoid forcing initial
+`playbackRate`, `volume` or `muted` props in a preference-restoration example.
+The VideoPlayer RememberPreferences story demonstrates an ordinary React key
+remount using a Reload player button; it does not reload the page or implement
+its own storage layer. Omitting `storage` keeps persistence disabled.
 
 ## Core Patterns
 

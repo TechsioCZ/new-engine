@@ -3,7 +3,7 @@ import { type ComponentProps, useState } from "react"
 import { fn } from "storybook/test"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
-import { Player } from "../../src/molecules/player"
+import { Player, type PlayerTextTrack } from "../../src/molecules/player"
 import { VideoPlayer } from "../../src/molecules/video-player"
 import {
   PlayerStates,
@@ -13,6 +13,26 @@ import {
 
 const POSTER_SRC = new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
   .href
+const LANGUAGE_TRACKS: readonly PlayerTextTrack[] = [
+  {
+    id: "settings-english",
+    kind: "subtitles",
+    language: "en",
+    label: "English",
+    default: true,
+    content:
+      "WEBVTT\n\n00:00.000 --> 00:30.000\nChoose English or Czech subtitles in Settings.\n",
+  },
+  {
+    id: "settings-czech",
+    kind: "subtitles",
+    language: "cs",
+    label: "Čeština",
+    content:
+      "WEBVTT\n\n00:00.000 --> 00:30.000\nV Nastavení si vyberte české nebo anglické titulky.\n",
+  },
+]
+const LANGUAGE_TRACKS_SOURCE = `const tracks: readonly PlayerTextTrack[] = ${JSON.stringify(LANGUAGE_TRACKS, null, 2)}`
 
 // SDK events expose state proxies; record calls without serializing the event.
 const playSpy = fn().mockName("onPlay")
@@ -35,6 +55,7 @@ const publicProps = [
   ...controls,
   "tracks",
   "slots",
+  "storage",
   "onPlay",
   "onPause",
   "onEnded",
@@ -91,10 +112,15 @@ const meta: Meta<typeof VideoPlayer> = {
       description:
         "Replace loading, error, controls or overlay inside the media context. Set a slot to null to remove it.",
     },
+    storage: {
+      control: false,
+      description:
+        "Opt-in Vidstack preference storage. A string names the shared preference key; playback position is stored per media. See RememberPreferences.",
+    },
     seekTime: { control: { type: "number", min: 1, max: 60 } },
     controlsList: {
       control: "check",
-      options: ["play", "time", "volume", "captions", "fullscreen"],
+      options: ["play", "time", "volume", "captions", "fullscreen", "settings"],
     },
     height: { control: { type: "number", min: 200, max: 800 } },
   },
@@ -258,6 +284,167 @@ export function CaptionedVideo() {
   ),
 }
 
+export const Settings: Story = {
+  args: {
+    controlsList: ["play", "time", "volume", "fullscreen", "settings"],
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Opt into Settings to choose a playback speed from the SDK options; media without subtitle tracks has no captions submenu.",
+      },
+      source: {
+        code: `import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+export function VideoWithSettings() {
+  return (
+    <VideoPlayer
+      src="https://files.vidstack.io/sprite-fight/480p.mp4"
+      title="Sample video"
+      controlsList={["play", "time", "volume", "fullscreen", "settings"]}
+    />
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <VideoPlayerStory
+      {...args}
+      description="Open Settings and choose Playback speed. The preset keeps its usual controls; Settings is added only when controlsList includes it."
+    />
+  ),
+}
+
+export const MultipleLanguages: Story = {
+  args: {
+    controlsList: [
+      "play",
+      "time",
+      "volume",
+      "captions",
+      "fullscreen",
+      "settings",
+    ],
+    tracks: LANGUAGE_TRACKS,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Choose English or Czech subtitles in Settings, or use the captions button to turn the selected language off and on.",
+      },
+      source: {
+        code: `import type { PlayerTextTrack } from "@techsio/ui-kit/molecules/player"
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+${LANGUAGE_TRACKS_SOURCE}
+
+export function MultilingualVideo() {
+  return (
+    <VideoPlayer
+      src="https://files.vidstack.io/sprite-fight/480p.mp4"
+      title="Sample video"
+      tracks={tracks}
+      controlsList={["play", "time", "volume", "captions", "fullscreen", "settings"]}
+    />
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <VideoPlayerStory
+      {...args}
+      description="Play the sample, then open Settings → Subtitles to select English or Čeština. English is the default; the captions button toggles the selected language."
+    />
+  ),
+}
+
+function RememberPreferencesVideo({
+  src,
+  poster,
+  title,
+}: Pick<ComponentProps<typeof VideoPlayer>, "src" | "poster" | "title">) {
+  const [attempt, setAttempt] = useState(0)
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-200">
+      <p>
+        Choose a speed and subtitle language in Settings, then select Reload
+        player. Vidstack restores preferences from this demo's storage key.
+        Volume, mute, speed and captions are shared preferences; playback
+        position belongs to the individual media source.
+      </p>
+      <VideoPlayer
+        controlsList={[
+          "play",
+          "time",
+          "volume",
+          "captions",
+          "fullscreen",
+          "settings",
+        ]}
+        key={attempt}
+        poster={poster}
+        src={src}
+        storage="ui-kit-player-preferences-demo-v1"
+        title={title}
+        tracks={LANGUAGE_TRACKS}
+      />
+      <Button
+        appearance="outline"
+        onClick={() => setAttempt((value) => value + 1)}
+        type="button"
+      >
+        Reload player
+      </Button>
+    </div>
+  )
+}
+
+export const RememberPreferences: Story = {
+  parameters: {
+    controls: { include: ["src", "poster", "title"] },
+    docs: {
+      description: {
+        story:
+          "Opt into SDK storage and remount the player to restore its preferences; this example passes no initial speed, volume or mute props that would compete with restoration.",
+      },
+      source: {
+        code: `import { useState } from "react"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import type { PlayerTextTrack } from "@techsio/ui-kit/molecules/player"
+import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"
+
+${LANGUAGE_TRACKS_SOURCE}
+
+export function RememberVideoPreferences() {
+  const [attempt, setAttempt] = useState(0)
+  return (
+    <div>
+      <VideoPlayer
+        key={attempt}
+        src="https://files.vidstack.io/sprite-fight/480p.mp4"
+        title="Sample video"
+        tracks={tracks}
+        controlsList={["play", "time", "volume", "captions", "fullscreen", "settings"]}
+        storage="ui-kit-player-preferences-demo-v1"
+      />
+      <Button appearance="outline" type="button" onClick={() => setAttempt((value) => value + 1)}>
+        Reload player
+      </Button>
+    </div>
+  )
+}`,
+      },
+    },
+  },
+  render: ({ src, poster, title }) => (
+    <RememberPreferencesVideo poster={poster} src={src} title={title} />
+  ),
+}
+
 function TranscriptVideo(args: ComponentProps<typeof VideoPlayer>) {
   const [transcriptOpen, setTranscriptOpen] = useState(false)
   return (
@@ -270,7 +457,10 @@ function TranscriptVideo(args: ComponentProps<typeof VideoPlayer>) {
         {...args}
         slots={{
           controls: (
-            <Player.Controls className="player-overlay absolute inset-x-0 bottom-0 z-player-controls" reserveCaptionSpace>
+            <Player.Controls
+              className="player-overlay absolute inset-x-0 bottom-0 z-player-controls"
+              reserveCaptionSpace
+            >
               <Player.ControlGroup className="flex-col items-stretch">
                 <Player.TimeSlider className="player-video-timeline w-full flex-none self-stretch" />
                 <Player.Control className="justify-between">

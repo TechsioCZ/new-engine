@@ -2,7 +2,7 @@
  * VideoPlayer — @techsio/ui-kit molecule.
  *
  * @component VideoPlayer
- * @componentVersion v1.1.1
+ * @componentVersion v1.2.0
  * @skill video-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -40,6 +40,7 @@ export type VideoPlayerControls =
   | "volume"
   | "fullscreen"
   | "captions"
+  | "settings"
 
 export type VideoPlayerProps = Omit<
   PlayerProps,
@@ -106,9 +107,13 @@ function DefaultControls({
   const hasVolumeControl = controlsList.includes("volume")
   const hasCaptionsControl = controlsList.includes("captions")
   const hasFullscreenControl = controlsList.includes("fullscreen")
+  const hasSettingsControl = controlsList.includes("settings")
   const hasPlaybackControls = hasPlayControl || hasTimeControl
   const hasSecondaryControls =
-    hasVolumeControl || hasFullscreenControl || hasCaptionsControl
+    hasVolumeControl ||
+    hasFullscreenControl ||
+    hasCaptionsControl ||
+    hasSettingsControl
   const hasControls = hasPlaybackControls || hasSecondaryControls
 
   if (!hasControls) {
@@ -137,6 +142,7 @@ function DefaultControls({
                 </>
               ) : null}
               {hasCaptionsControl ? <Player.CaptionButton /> : null}
+              {hasSettingsControl ? <Player.SettingsMenu /> : null}
               {hasFullscreenControl ? <Player.FullscreenButton /> : null}
             </Player.Control>
           ) : null}

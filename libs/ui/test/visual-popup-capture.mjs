@@ -217,6 +217,8 @@ export const popupCheckpointStories = [
   ["molecules-select--playground", "select"],
   ["molecules-menu--playground", "menu"],
   ["molecules-menu--nested-menu", "menu"],
+  ["molecules-videoplayer--settings", "menu"],
+  ["molecules-videoplayer--multiple-languages", "menu"],
   ["molecules-phoneinput--playground", "select"],
   ["molecules-cascadeselect--playground", "cascade-select"],
   ["molecules-datepicker--playground", "date-picker"],
@@ -268,6 +270,16 @@ export async function checkStoryPopupCheckpoints(page, id, capture) {
   }
   await page.mouse.move(0, 0)
   await capture("--popup-open")
+  if (id.startsWith("molecules-videoplayer--")) {
+    await content.press(id.endsWith("--settings") ? "Home" : "End")
+    await content.press("ArrowRight")
+    const options = page.getByRole("menuitemradio")
+    await expect(options.first()).toBeVisible()
+    for (const option of await options.all()) {
+      await expect(option).toBeInViewport({ ratio: 1 })
+    }
+    await capture("--settings-submenu")
+  }
   if (id === "molecules-menu--nested-menu") {
     // Park before keyboard activation: moving off a pointer-opened submenu can
     // legitimately schedule its close while assets settle for the screenshot.

@@ -306,3 +306,7 @@
 @utility token-icon-player-captions-off {
   @apply icon-[mdi--closed-caption-outline];
 }
+
+@utility token-icon-player-settings {
+  @apply icon-[mdi--cog];
+}

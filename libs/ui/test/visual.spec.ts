@@ -34,6 +34,11 @@ type StorybookEntry = {
 type VisualBrand = "business" | "akros" | "n1"
 type StorybookIndex = { entries: Record<string, StorybookEntry> }
 const playerStoryId = /^molecules-(player|audioplayer|videoplayer)--/
+const captionStories = new Set([
+  "molecules-videoplayer--captioned",
+  "molecules-videoplayer--multiple-languages",
+  "molecules-videoplayer--remember-preferences",
+])
 type StoryReporter = { type?: string; status?: string }
 type StoryCompletion = {
   storyId: string
@@ -952,6 +957,11 @@ async function captureStory(run: StoryRun): Promise<void> {
       await expect(
         readyPlayer.locator(".player-feedback[role='status']")
       ).toHaveCount(0)
+      if (captionStories.has(story.id)) {
+        await expect(
+          readyPlayer.locator(".player-captions [data-part='cue']")
+        ).toBeVisible()
+      }
     }
     await disposeAssets.whenIdle()
     await assertThemeTokens(page, expectedBrand, expectedMode)
@@ -1051,7 +1061,7 @@ async function captureStory(run: StoryRun): Promise<void> {
         return root.screenshot(options)
       }
       let actual = await takeScreenshot()
-      if (story.id === "molecules-videoplayer--captioned") {
+      if (captionStories.has(story.id)) {
         // Wait for the SDK's debounced layout and composited caption backdrop.
         // The baseline is compared once, after two identical painted frames.
         await expect

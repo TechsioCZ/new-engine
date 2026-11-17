@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Player v1.2.0
+- Added opt-in \`Player.SettingsMenu\` with SDK playback-speed choices and a captions-language submenu. Labels use the player message catalog. Menu interaction suspends media shortcuts and control hiding. Preserved enabled caption preferences when changing languages; documented SDK storage for app-owned keys and custom audio controls.
+
+### VideoPlayer v1.2.0
+- Added opt-in \`"settings"\` to \`controlsList\` while preserving the default controls. New Settings, MultipleLanguages and RememberPreferences examples demonstrate speed, English/Czech subtitles and SDK preference restoration through a player remount.
+
 ### Player v1.1.1
 - Scoped Vidstack CSS to the player, kept tooltip portals inside fullscreen, preserved inline caption selection on updates, and localized spoken timeline values. Bottom control compositions can reserve their measured height for captions; caption layout is rebuilt when its video viewport changes to avoid stale cue positions.
 
@@ -2034,7 +2040,7 @@ function InlineCode({ text }: { text: string }) {
       </code>
     ) : (
       part
-    )
+    ),
   )
 }
 
