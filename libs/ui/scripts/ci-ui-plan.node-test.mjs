@@ -4,8 +4,9 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import test from "node:test"
+import { fileURLToPath } from "node:url"
 
-const script = new URL("./ci-ui-plan.mjs", import.meta.url).pathname
+const script = fileURLToPath(new URL("./ci-ui-plan.mjs", import.meta.url))
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "ui-plan-"))
   t.after(() => fs.rmSync(root, { recursive: true, force: true }))
@@ -53,7 +54,16 @@ function fixture(t) {
       temporary,
     }
   }
-  return { base, commit, plan }
+  function commitPaths(paths) {
+    const blob = git("rev-parse", `${base}:README.md`)
+    const tree = execFileSync("git", ["mktree", "-z"], {
+      cwd: root,
+      input: paths.map((file) => `100644 blob ${blob}\t${file}\0`).join(""),
+      encoding: "utf8",
+    }).trim()
+    return git("commit-tree", tree, "-p", base, "-m", "large diff")
+  }
+  return { base, commit, commitPaths, plan }
 }
 
 test("pushes and unavailable bases keep the full six-bundle regression gate", (t) => {
@@ -105,4 +115,24 @@ test("scope-neutral diffs declare zero heavy reports; workflow diffs require ful
     f.commit(".github/workflows/ui-quality.yml", "workflow"),
   )
   assert.equal(full.expected.scope, "full")
+})
+
+test("changed-file lists above one MiB still produce a complete plan", (t) => {
+  const f = fixture(t)
+  const paths = Array.from(
+    { length: 6000 },
+    (_, index) => `changed-${index}-${"x".repeat(180)}.md`,
+  )
+  const changed = paths.sort().join("\0") + "\0"
+  assert.ok(Buffer.byteLength(changed) > 1024 * 1024)
+  const head = f.commitPaths(["README.md", ...paths])
+  const run = f.plan("changed", head)
+  assert.equal(run.expected.scope, "none")
+  assert.equal(
+    fs.readFileSync(
+      path.join(run.temporary, "ui-changed-files/changed-files.txt"),
+      "utf8",
+    ),
+    changed,
+  )
 })

@@ -13,8 +13,8 @@ test("every screenshot shard runs every browser, without duplicate or omitted id
     .flatMap((project) => stories.map((story) => `${project}/${story}`))
     .sort()
   const actual = []
-  for (let index = 1; index <= 5; index++) {
-    const selected = shardVisualStories(stories, { index, total: 5 })
+  for (let index = 1; index <= 6; index++) {
+    const selected = shardVisualStories(stories, { index, total: 6 })
     assert.ok(selected.length > 0)
     for (const project of projects) {
       actual.push(...selected.map((story) => `${project}/${story}`))
@@ -26,8 +26,8 @@ test("every screenshot shard runs every browser, without duplicate or omitted id
 })
 
 test("a changed subset smaller than the matrix leaves only explicitly empty shards", () => {
-  const shards = Array.from({ length: 5 }, (_, index) =>
-    shardVisualStories(["only-story"], { index: index + 1, total: 5 }),
+  const shards = Array.from({ length: 6 }, (_, index) =>
+    shardVisualStories(["only-story"], { index: index + 1, total: 6 }),
   )
   assert.deepEqual(shards.flat(), ["only-story"])
   assert.equal(shards.filter((shard) => shard.length).length, 1)

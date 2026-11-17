@@ -1,5 +1,8 @@
 // Regenerate from downloaded component-report artifacts, never a local browser run:
-// node libs/ui/scripts/visual-shard-costs.mjs <report-root> [<report-root> ...]
+// tmp="$(mktemp)"
+// node libs/ui/scripts/visual-shard-costs.mjs <report-root> [<report-root> ...] > "$tmp" &&
+//   mv "$tmp" libs/ui/test/visual-shard-costs.json
+// Never truncate the imported cost configuration before measurement succeeds.
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"

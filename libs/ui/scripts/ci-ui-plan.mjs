@@ -3,7 +3,7 @@
 import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
-import { classifyScope } from "./visual-affected-stories.mjs"
+import { classifyScope, GIT_MAX_BUFFER } from "./visual-affected-stories.mjs"
 
 const temporary = process.env.RUNNER_TEMP
 if (!temporary) throw new Error("RUNNER_TEMP is required")
@@ -24,14 +24,18 @@ if (process.env.MODE === "changed" && process.env.BASE_SHA) {
     // An unavailable comparison must still run the full regression gate.
   }
   if (base) {
-    const changed = execFileSync("git", [
-      "diff",
-      "-z",
-      "--name-only",
-      "--no-renames",
-      base,
-      process.env.HEAD_SHA,
-    ])
+    const changed = execFileSync(
+      "git",
+      [
+        "diff",
+        "-z",
+        "--name-only",
+        "--no-renames",
+        base,
+        process.env.HEAD_SHA,
+      ],
+      { maxBuffer: GIT_MAX_BUFFER },
+    )
     fs.writeFileSync(path.join(changedDirectory, "changed-files.txt"), changed)
     scope = classifyScope(changed.toString().split("\0").filter(Boolean))
   }

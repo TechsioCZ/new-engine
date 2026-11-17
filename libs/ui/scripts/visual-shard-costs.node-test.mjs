@@ -1,9 +1,14 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import test from "node:test"
-import { createVisualMatrix } from "../test/visual-projects.mjs"
+import { fileURLToPath } from "node:url"
+import {
+  createVisualMatrix,
+  shardVisualStories,
+} from "../test/visual-projects.mjs"
 import { measureFiles } from "./visual-shard-costs.mjs"
 
 function fixture(t, duration = 4000) {
@@ -80,4 +85,24 @@ test("a fast but missing or retried screenshot cannot become a balancing weight"
   retry.report.suites[0].specs[0].tests[0].results[0].retry = 1
   retry.save()
   assert.throws(() => measureFiles([retry.root]), /retried screenshot/)
+})
+
+test("the generator CLI emits the file schema consumed by screenshot sharding", (t) => {
+  const f = fixture(t)
+  const result = spawnSync(
+    process.execPath,
+    [fileURLToPath(new URL("./visual-shard-costs.mjs", import.meta.url)), f.root],
+    { encoding: "utf8" },
+  )
+  assert.equal(result.status, 0, result.stderr)
+  const weights = JSON.parse(result.stdout)
+  const stories = ["a", "b"].map((id) => ({
+    id,
+    importPath: `./${id}.stories.tsx`,
+  }))
+  const selected = Array.from({ length: 6 }, (_, index) =>
+    shardVisualStories(stories, { index: index + 1, total: 6 }, weights),
+  ).flat()
+  assert.deepEqual(selected.map(({ id }) => id).sort(), ["a", "b"])
+  assert.equal(weights.storyCount, stories.length)
 })
