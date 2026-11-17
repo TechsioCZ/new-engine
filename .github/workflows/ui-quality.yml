@@ -83,8 +83,8 @@ jobs:
               exit 1
               ;;
           esac
-          # Reserve visual capacity for each cohosted accessibility theme.
-          # Main owns desktop and mobile behavior.
+          # Reserve visual capacity for behavior on shard 1 and n1 on shard 2.
+          # Main scans the other two accessibility themes.
           component_matrix="$(jq -cn --argjson n "$bundles" \
             '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n,a11y_theme:(["","n1-light","","",""][.-1])}]}')"
           {

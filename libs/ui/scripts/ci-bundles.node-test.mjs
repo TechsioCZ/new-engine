@@ -7,7 +7,7 @@ import test from "node:test"
 
 const repo = path.resolve(import.meta.dirname, "../../..")
 
-function runBundle(t, role, failGroup) {
+function runBundle(t, role, failGroup, cohosted = false) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ci-bundle-"))
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
   const bin = path.join(directory, "bin")
@@ -50,6 +50,7 @@ if (process.argv.includes("--print-plan")) {
       SCOPE: "full",
       SHARD: role === "visual" ? "4/4" : "1/1",
       BUNDLE_GROUP: role,
+      BUNDLE_BEHAVIOR: String(cohosted),
       FAIL_GROUP: failGroup ?? "",
     },
   })
@@ -76,4 +77,11 @@ test("a failed desktop suite fails before launching mobile browser work", (t) =>
   const { directory, result } = runBundle(t, "behavior", "desktop")
   assert.equal(result.status, 7)
   assert.ok(!fs.existsSync(path.join(directory, "component-reports/ui-mobile-shard-1/all.json")))
+})
+
+test("the cohosted runner retains one visual shard and both complete behavior groups", (t) => {
+  const { directory, result } = runBundle(t, "visual", undefined, true)
+  assert.equal(result.status, 0, result.stderr)
+  assert.deepEqual(fs.readdirSync(path.join(directory, "component-reports")).sort(),
+    ["ui-desktop-shard-1", "ui-mobile-shard-1", "ui-visual-shard-4"])
 })
