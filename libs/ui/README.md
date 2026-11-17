@@ -190,6 +190,42 @@ never rewrites data such as stored settings).
 Run your type checker afterwards; story `args`, wrapper components and
 data objects are reported there. The full table is in
 `codemods/unified-style-props/README.md`.
+## Shape utilities (`corner-shape`, `border-shape`)
+
+The kit ships utilities for two CSS properties that Tailwind and Figma do not
+cover yet. They are defined in `src/tokens/_shape.css` and included in the
+`tokens` and `tokens-with-tailwind` entry points (through `_tokens-base`). The
+`tokens/*` export maps to single files, so if you compose individual token
+files instead, import `@techsio/ui-kit/tokens/_shape` explicitly to get the
+`corner-*` and `border-shape-*` utilities.
+
+`corner-*` sets [`corner-shape`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/corner-shape)
+(Chrome/Edge 139+, Safari 27.3+). It reshapes the curve that `rounded-*`
+draws; background, border, outline and shadow follow it:
+
+```tsx
+<div className="rounded-2xl corner-squircle" />          {/* all corners */}
+<div className="rounded-lg corner-t-bevel" />            {/* top side */}
+<div className="rounded-lg corner-ss-scoop" />           {/* logical start-start corner */}
+<div className="rounded-2xl corner-[superellipse(1.5)]" /> {/* any curve */}
+<div className="rounded-lg corner-base" />               {/* brand default */}
+```
+
+- Values: `round` (default), `squircle`, `bevel`, `scoop`, `notch`, `square`,
+  or `superellipse(<number>)`. Sides `t r b l s e`, corners `tl tr br bl ss se es ee`.
+- Without a radius it does nothing. Browsers without support ignore it and keep
+  the rounded corner. Use `supports-[corner-shape:squircle]:` for another fallback.
+- `corner-base` reads `--corner-shape-base`; override it per brand to reshape
+  everything that uses it (see the `app-token-overrides` skill).
+- Figma's corner smoothing (~60%, iOS) is the nearest look: use `corner-squircle`.
+
+`border-shape-*` sets [`border-shape`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border-shape)
+and is **experimental** (Chrome 147+ only): `border-shape-[circle(50%)]` strokes
+the border along a shape, `border-shape-[<outer>_<inner>]` fills between two,
+`border-shape-none` resets it. It ignores `rounded-*`/`corner-*`, renders solid
+and changes the hit area; other browsers show the normal rectangular border.
+
+Live examples: Storybook → Overview → Shape.
 
 ## Source layout and token ownership
 
@@ -268,6 +304,8 @@ Pick the smallest run that answers your question:
 | The change is intended and I need new baselines | let CI fail, then `pnpm -C libs/ui baselines:pull --pr <number>` | one CI run |
 
 CI renders the committed Linux baselines on `linux/amd64` and is the authority for them.
+Each screenshot story owns a fresh browser context and gets one capture attempt.
+Neither full nor changed CI accepts a successful fallback after a failed first render.
 
 To keep screenshots stable across machines, comparisons against the committed baselines run inside Docker.
 
@@ -303,7 +341,7 @@ Optional environment overrides:
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
 - `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
 - `VISUAL_ASSET_HAR_PATH` (absolute path to an alternative HAR; its directory and attachments mount read-only)
-- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`, with an `-arm64` suffix on `linux/arm64`)
+- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright:<Playwright version>-<Dockerfile hash>`, with an `-arm64` suffix on `linux/arm64`; CI caches the image by Dockerfile content, and a cache miss builds it from that Dockerfile)
 - `PLAYWRIGHT_DOCKER_PLATFORM` (`linux/amd64` or `linux/arm64`; default: host architecture, or `linux/amd64` for snapshot updates and release runs)
 - `PLAYWRIGHT_DOCKER_SHM_SIZE` (default: `2g`, improves Playwright stability in Docker)
 - `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)
@@ -317,8 +355,8 @@ Optional environment overrides:
 
 Example: `VISUAL_CHANGED_SINCE=origin/master pnpm -C libs/ui test:components`
 
-Extra arguments are passed to `playwright test`, e.g. `pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
-Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. A full run must cover every story in every visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
+Extra arguments are passed to `playwright test`, e.g. `VISUAL_BRANDS=n1 pnpm -C libs/ui test:components -- --project=n1-mobile-light`.
+Comparison runs use the host architecture (native arm64 on Apple Silicon); snapshot updates and release runs always use `linux/amd64`, matching the committed baselines. `PLAYWRIGHT_DOCKER_PLATFORM` overrides both. CI checks every story on all three desktop brands and on business mobile WebKit; brand-locked stories retain their own brand on mobile. Brand × phone cross-products are not gated. Set `VISUAL_BRANDS=akros` or `VISUAL_BRANDS=n1` to diagnose those phone projects locally. A full run must cover every story in every declared visual project; component behavior specs (`test/*.spec.ts`) run once in the `desktop` and `mobile` projects.
 
 ### Known differences on `linux/arm64`
 
@@ -374,7 +412,7 @@ and serial Docker wrapper, never concurrent ad hoc browser launches.
 - Exports only, no barrel: import from explicit subpaths (e.g. `@techsio/ui-kit/atoms/button`, `@techsio/ui-kit/templates/accordion`, `@techsio/ui-kit/utils`). The package root is intentionally not exported.
 - Automated releases: `libs/ui/release.config.mjs` uses semantic-release (tag format `ui-kit-v<version>`) to publish to npm and create GitHub releases without pushing generated version/changelog commits back to the protected branch. While we are <1.0.0, `BREAKING CHANGE` commits are forced to “minor” bumps to stay in 0.x; remove that release rule when stabilizing for 1.0.0+ to restore SemVer majors.
 - Security posture: releases are restricted to GitHub Actions (`GITHUB_ACTIONS` required), npm publishes use trusted publishing through GitHub OIDC (`id-token: write`) and do not require an npm token.
-- CI and release share `.github/workflows/ui-quality.yml`: both TypeScript projects, unit/SSR/tooling tests, token/package checks, full Docker component visuals, and enforced three-theme accessibility. Publication depends on successful validation of the exact checked-out SHA. Manual `force_release` changes affected detection only; it cannot bypass quality checks.
+- CI's `main` job checks the workspace on Node 24 and the UI package's types, unit/SSR/tooling tests, tokens and package output on Node 26. `.github/workflows/ui-quality.yml` plans the Docker component and three-theme accessibility checks. Results append once per story; summaries are generated after the workers finish. Release follows successful master push CI for the exact SHA instead of repeating validation. Manual `force_release` changes affected detection only; it cannot bypass the exact-SHA CI gate.
 - Local semantic-release (including `--dry-run`) is intentionally unsupported. Use `pnpm -C libs/ui typecheck`, `test`, and `check:package` locally; never set `GITHUB_ACTIONS=true` to impersonate CI.
 - Commit format: follow Conventional Commits (`feat:`, `fix:`, `chore:`, `BREAKING CHANGE:`) so semantic-release can infer the correct version bump.
 - Required CI secrets: none for npm publishing; npm trusted publishing must be configured on npmjs.com for this repository and workflow path.

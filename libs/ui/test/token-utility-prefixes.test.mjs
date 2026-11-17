@@ -57,3 +57,33 @@ test("neither validator interprets legacy --border-* tokens as width utilities",
     []
   )
 })
+
+test("corner-shape utilities map to the --corner-shape-* scale in both validators", () => {
+  for (const [utility, token] of [
+    ["corner-squircle", "--corner-shape-squircle"],
+    ["corner-base", "--corner-shape-base"],
+    ["corner-t-bevel", "--corner-shape-bevel"],
+    ["corner-tl-scoop", "--corner-shape-scoop"],
+    ["md:corner-ss-notch", "--corner-shape-notch"],
+  ]) {
+    assert.deepEqual(mapClassToPossibleTokens(utility), [token])
+    assert.ok(
+      tokenToUtilityClasses(token).has(utility.replace(/^md:/, "")),
+      `${token} should be reachable from ${utility}`
+    )
+  }
+  assert.deepEqual(
+    findMissingTokens(
+      "corner-squircel",
+      new Set(["--corner-shape-squircle"]),
+      new Set()
+    ),
+    ["--corner-shape-squircel"]
+  )
+})
+
+test("border-shape utilities are never read as border color or width", () => {
+  for (const utility of ["border-shape-none", "border-shape-[circle(50%)]"]) {
+    assert.deepEqual(findMissingTokens(utility, new Set(), new Set()), [])
+  }
+})

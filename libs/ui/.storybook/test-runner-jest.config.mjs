@@ -13,6 +13,11 @@ export default {
   testTimeout: 60_000,
   // Recycle workers between suites before accumulated transforms exhaust V8.
   workerIdleMemoryLimit: "512MiB",
+  // A narrowed scan can select fewer story suites than there are shards, which
+  // leaves a shard with nothing to run. Coverage is proven over every shard's
+  // report by scripts/verify-a11y-shards.mjs, which also fails a full scan that
+  // ran no story, so an empty shard is a fact rather than a missing signal.
+  passWithNoTests: true,
   // Storybook eagerly registers a Node TypeScript loader for configuration,
   // which Jest's sandbox rejects. Load our executable hook inside Jest instead.
   moduleNameMapper: {

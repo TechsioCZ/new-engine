@@ -39,6 +39,33 @@ const renderTable = (overrides: Partial<DataTableProps<RecordRow>> = {}) =>
 const labelsOf = (html: string) =>
   [...html.matchAll(/aria-label="([^"]*)"/g)].map((match) => match[1])
 
+describe("grouped header semantics", () => {
+  it("exposes real labels, not layout placeholders, as column headers", () => {
+    const html = renderTable({
+      columns: [
+        { id: "identity", header: "Identity", columns },
+        { accessorKey: "id", header: "Identifier" },
+      ],
+    })
+    const headers = Array.from(
+      html.matchAll(/<th\b([^>]*)>([\s\S]*?)<\/th>/g),
+      ([, attributes = "", content = ""]) => ({ attributes, content })
+    )
+    const placeholders = headers.filter(({ attributes }) =>
+      attributes.includes('role="presentation"')
+    )
+    expect(placeholders).toHaveLength(1)
+    expect(placeholders[0]?.attributes).not.toContain("scope=")
+    const named = headers.filter(({ attributes }) =>
+      !attributes.includes('role="presentation"')
+    )
+    expect(named).toHaveLength(3)
+    for (const name of ["Identity", "Name", "Identifier"]) {
+      expect(named.some(({ content }) => content.includes(name))).toBe(true)
+    }
+  })
+})
+
 describe("row-level accessible names", () => {
   it("keeps the default selection checkbox name", () => {
     const html = renderTable({ enableRowSelection: true })

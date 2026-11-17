@@ -114,6 +114,12 @@ export function assertVisualCompletion(reports, stories, projects) {
           const key = `${test.projectName}\0${id}`
           assert.ok(required.has(key), `Unexpected screenshot identity: ${key}`)
           assert.ok(!seen.has(key), `Duplicate screenshot identity: ${key}`)
+          assert.ok(
+            !test.annotations?.some(
+              (item) => item.type === "visual-canonical-retry"
+            ),
+            `Screenshot recovered from a failed first render: ${key}`
+          )
           assert.equal(
             test.status,
             "expected",

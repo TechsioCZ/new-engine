@@ -17,13 +17,17 @@ concurrency:
 
 jobs:
   main:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       NX_NO_CLOUD: "true"
     steps:
+      # nx-set-shas needs the commit graph, not the file contents of every
+      # commit in it, so a blobless clone keeps full history at a third of the
+      # wall clock (measured 35s -> ~15s).
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -69,30 +73,50 @@ jobs:
           fi
           ./node_modules/.bin/nubx --node nx run-many -t typecheck --projects="$projects"
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
-      - run: ./node_modules/.bin/nubx --node nx affected -t lint test
-      - name: Typecheck affected UI package
-        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
-        run: pnpm --dir libs/ui typecheck
+      - run: ./node_modules/.bin/nubx --node nx affected -t lint
+      # ui-kit's test target is excluded here only: the identical
+      # `vitest run && pnpm test:node` runs on Node 26.11.1 below
+      # for this same SHA. Every other project's test target is unchanged.
+      - run: ./node_modules/.bin/nubx --node nx affected -t test --exclude=ui-kit
       - name: Test affected UI asset replay
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: |
           timeout 420 pnpm exec playwright install --only-shell chromium
           pnpm --dir libs/ui test:visual-assets
+      # Retained on purpose: the only Node-24 execution of the rslib build plus
+      # validate-package-exports plus check:consumer for a package we publish.
+      # 15s, and nowhere near the critical path.
       - name: Check affected UI package output
         if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
         run: pnpm --dir libs/ui check:package
 
-  # Runs only what the change can affect: a pull request against its base, a
-  # push against the previous tip. A change that cannot reach the UI library
-  # skips the components and accessibility jobs; workflow changes force the full
-  # run, and dependency or build-input changes count as "all". The full, strict
-  # run on every UI change is the release gate (ui-release.yml), so a push here
-  # does not repeat it. The reusable workflow validates this SHA.
+      # Reuse this runner and its install instead of acquiring another runner
+      # solely for the UI package. Node 24 above still exercises workspace
+      # consumers; the published UI package is also checked on its Node 26 line.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+      - run: pnpm --dir libs/ui typecheck
+      - run: pnpm --dir libs/ui test
+      - run: pnpm --dir libs/ui validate:tokens
+      - run: pnpm --dir libs/ui check:package
+
+  # A pull request runs only what its diff can affect, measured against its
+  # base; a change that cannot reach the UI library skips the components and
+  # accessibility jobs, workflow changes force the full run, and dependency or
+  # build-input changes count as "all".
+  #
+  # A push to master runs mode: full. That is the release-readiness gate and it
+  # lives here now, because verifyFullShards -> assertVisualCompletion over every
+  # story x every createVisualMatrix project is reachable only in full mode
+  # (libs/ui/scripts/verify-component-shards.mjs). ui-release.yml chains behind
+  # this workflow's conclusion instead of repeating it, so this call must never
+  # be made conditional: a skipped need would take quality-gate with it.
   ui-quality:
     uses: ./.github/workflows/ui-quality.yml
     with:
       sha: ${{ github.sha }}
-      mode: changed
+      mode: ${{ github.event_name == 'push' && 'full' || 'changed' }}
       base_sha: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
 
   # Required status check for master (ruleset "Master"). It fails unless every
@@ -104,8 +128,8 @@ jobs:
     needs:
       - main
       - ui-quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Require every blocking job to pass
         env:
@@ -117,3 +141,71 @@ jobs:
             echo "::error::Blocking jobs did not succeed: $failed"
             exit 1
           fi
+
+      # The heavy jobs prove their own shard ran clean. This is the only place
+      # that proves the matrix plan declared reported in full, so a shard that
+      # never ran cannot pass as silence. It replaces the separate
+      # components-complete job and its runner acquisition.
+      #
+      # libs/ui only and no install: both verifiers import node: builtins plus
+      # sibling files inside libs/ui (test/visual-completion.mjs,
+      # test/visual-projects.mjs, src/theme/theme-config.ts via Node's type
+      # stripping) and resolve nothing from node_modules.
+      - name: Check out the shard verifiers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /libs/ui/
+            !/libs/ui/test/visual.spec.ts-snapshots/
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+
+      # An existing but empty directory is a valid input: scope=none declares
+      # zero shards and uploads no reports.
+      - name: Prepare the report directories
+        run: mkdir -p "$RUNNER_TEMP/component-shards" "$RUNNER_TEMP/a11y-shards"
+
+      # Named, so a missing matrix plan fails the gate instead of passing it.
+      - name: Download the declared shard matrix
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ui-ci-expected-${{ github.sha }}
+          path: ${{ runner.temp }}/ui-expected
+
+      # Pattern downloads: this action's pattern path downloads zero artifacts
+      # without failing, which keeps "expected N, found 0" the verifiers' call
+      # rather than the download's.
+      - name: Download the component shard reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: ui-component-report-${{ github.sha }}*
+          path: ${{ runner.temp }}/component-shards
+
+      - name: Download the accessibility shard reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: storybook-a11y-${{ github.sha }}*
+          path: ${{ runner.temp }}/a11y-shards
+
+      - name: Flatten component bundle reports
+        run: |
+          mkdir -p "$RUNNER_TEMP/component-groups"
+          find "$RUNNER_TEMP/component-shards" -mindepth 2 -maxdepth 2 -type d \
+            -exec mv -t "$RUNNER_TEMP/component-groups" {} +
+
+      - name: Verify every declared component shard reported
+        run: |
+          node libs/ui/scripts/verify-component-shards.mjs \
+            --expect "$RUNNER_TEMP/ui-expected/expected.json" \
+            --reports "$RUNNER_TEMP/component-groups"
+
+      - name: Verify every declared accessibility shard reported
+        run: |
+          node libs/ui/scripts/verify-a11y-shards.mjs \
+            --expect "$RUNNER_TEMP/ui-expected/expected.json" \
+            --reports "$RUNNER_TEMP/a11y-shards"

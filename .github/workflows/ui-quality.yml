@@ -21,12 +21,14 @@ permissions:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
     outputs:
       scope: ${{ steps.scope.outputs.scope }}
+      list: ${{ steps.scope.outputs.list }}
+      component_matrix: ${{ steps.scope.outputs.component_matrix }}
     steps:
       - if: inputs.mode == 'changed'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,6 +36,10 @@ jobs:
           ref: ${{ inputs.sha }}
           fetch-depth: 0
           filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /libs/ui/scripts/
+            /libs/ui/test/visual-completion.mjs
           persist-credentials: false
       - if: inputs.mode == 'changed'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -46,6 +52,9 @@ jobs:
           MODE: ${{ inputs.mode }}
           BASE_SHA: ${{ inputs.base_sha }}
           HEAD_SHA: ${{ inputs.sha }}
+          # Must match storybook-a11y.yml's theme matrix; that scan fails on a
+          # count mismatch, so a drift here cannot pass silently.
+          A11Y_THEMES: '["business-light","akros-light","n1-light"]'
         run: |
           set -euo pipefail
           scope=full
@@ -55,43 +64,86 @@ jobs:
             scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
             list=true
           fi
-          echo "scope=${scope}" >> "$GITHUB_OUTPUT"
-          echo "list=${list}" >> "$GITHUB_OUTPUT"
+          # Four bundles share checkout, install, Storybook and browser restore
+          # across visual, behavior and accessibility work. No 11-job fan-out.
+          bundles=4
+          case "$scope" in
+            full | all | ui)
+              groups="$(jq -cn --argjson n "$bundles" '{visual:$n,desktop:$n,mobile:1}')"
+              a11y_shards=1
+              ;;
+            none)
+              # scope none keeps every heavy job skipped by its own `if`; the
+              # matrix expression still has to parse, so it carries this shape.
+              groups='{"visual":1,"desktop":2,"mobile":1}'
+              a11y_shards=1
+              ;;
+            *)
+              echo "::error::Unknown scope '${scope}' from the classifier"
+              exit 1
+              ;;
+          esac
+          # The four bundles each own a visual and desktop quarter; the last
+          # also owns mobile behavior, the first three own one a11y theme.
+          component_matrix="$(jq -cn --argjson n "$bundles" --argjson themes "$A11Y_THEMES" \
+            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n,theme:($themes[.-1] // "")}]}')"
+          {
+            echo "scope=${scope}"
+            echo "list=${list}"
+            echo "component_matrix=${component_matrix}"
+          } >> "$GITHUB_OUTPUT"
+          # quality-gate checks the reports it collected against this file, so a
+          # shard or theme that never reported fails loudly instead of passing.
+          # At scope none nothing runs, so the file declares nothing expected -
+          # the matrix output above keeps its shape only because the expression
+          # still has to parse for a job the `if` then skips.
+          jq -n \
+            --arg scope "$scope" \
+            --argjson matrix "$component_matrix" \
+            --argjson groups "$groups" \
+            --argjson themes "$A11Y_THEMES" \
+            --argjson shards "$a11y_shards" \
+            '($scope == "none") as $idle
+            | {
+                scope: $scope,
+                components: (
+                  if $idle then { include: [], groups: {}, total: 0 }
+                  else {
+                    include: $matrix.include,
+                    groups: $groups,
+                    total: ([$groups[]] | add)
+                  }
+                  end
+                ),
+                a11y: {
+                  themes: (if $idle then [] else $themes end),
+                  shards_per_theme: (if $idle then 0 else $shards end),
+                  total: (if $idle then 0 else (($themes | length) * $shards) end)
+                }
+              }' > "$RUNNER_TEMP/expected.json"
+          cat "$RUNNER_TEMP/expected.json"
       - if: steps.scope.outputs.list == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-changed-files-${{ inputs.sha }}
           path: ${{ runner.temp }}/changed-files.txt
           if-no-files-found: error
-
-  package:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          ref: ${{ inputs.sha }}
-          persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.11.1
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
-      - run: pnpm --dir libs/ui typecheck
-      - run: pnpm --dir libs/ui test
-      - run: pnpm --dir libs/ui validate:tokens
-      - run: pnpm --dir libs/ui check:package
+          name: ui-ci-expected-${{ inputs.sha }}
+          path: ${{ runner.temp }}/expected.json
+          if-no-files-found: error
 
   components:
     needs: plan
     if: needs.plan.outputs.scope != 'none'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     strategy:
       fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+      max-parallel: 4
+      # Four runners, not a separate runner for each suite.
+      matrix: ${{ fromJson(needs.plan.outputs.component_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -102,80 +154,98 @@ jobs:
         with:
           node-version: 26.11.1
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline --network-concurrency=4
-      - id: storybook-inputs
-        run: |
-          hash="$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)"
-          echo "hash=${hash}" >> "$GITHUB_OUTPUT"
-      # The runner checks the marker inside the build, so a restored build is used only when it matches these inputs.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+      # The image depends only on the Dockerfile, not this commit's stories.
+      # One shard saves it; all shards can restore it, including fork PRs.
+      - name: Restore the component browser image
+        id: browser-image
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: libs/ui/storybook-static
-          key: ui-storybook-v1-${{ steps.storybook-inputs.outputs.hash }}
-      # Full Docker suite: behavior on both devices and all 6 visual projects
-      # (3 brands, desktop and mobile), split across shards. Release mode rejects
-      # filters and baseline updates; components-complete asserts every identity
-      # over all shard reports.
-      - name: Full release suite
-        if: needs.plan.outputs.scope == 'full'
-        env:
-          PLAYWRIGHT_RELEASE_SHARD: ${{ matrix.shard }}/8
-        run: pnpm --dir libs/ui test:components:release
+          path: ${{ runner.temp }}/ui-playwright.tar
+          key: ui-playwright-linux-amd64-${{ hashFiles('docker/development/playwright/Dockerfile') }}
+      - name: Load the cached browser image
+        if: steps.browser-image.outputs.cache-hit == 'true'
+        run: docker load --input "$RUNNER_TEMP/ui-playwright.tar"
       - name: Download the changed-file list
-        if: needs.plan.outputs.scope == 'ui'
+        if: needs.plan.outputs.list == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ui-changed-files-${{ inputs.sha }}
           path: ${{ runner.temp }}/ui-changed-files
-      - name: Affected screenshots and behavior specs
-        if: needs.plan.outputs.scope == 'ui'
+      - name: Run the bundle's component suites
         env:
-          PLAYWRIGHT_SHARD: ${{ matrix.shard }}/8
-          VISUAL_CHANGED_BEHAVIOR: "1"
+          SCOPE: ${{ needs.plan.outputs.scope }}
+          SHARD: ${{ matrix.shard }}/${{ matrix.total }}
+          BUNDLE: ${{ matrix.shard }}
+          BUNDLES: ${{ matrix.total }}
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
-        run: pnpm --dir libs/ui test:components
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
+        run: |
+          set -euo pipefail
+          for group in desktop visual mobile; do
+            if [ "$group" = mobile ] && [ "$BUNDLE" != "$BUNDLES" ]; then continue; fi
+            shard="$SHARD"
+            if [ "$group" = mobile ]; then shard=1/1; fi
+            export PLAYWRIGHT_GROUP="$group" PLAYWRIGHT_WORKERS=4
+            if [ "$SCOPE" = full ]; then
+              unset VISUAL_CHANGED_FILES_FROM
+              PLAYWRIGHT_RELEASE_SHARD="$shard" pnpm --dir libs/ui test:components:release
+            else
+              VISUAL_CHANGED_BEHAVIOR=1 PLAYWRIGHT_SHARD="$shard" pnpm --dir libs/ui test:components
+            fi
+            index="${shard%/*}"
+            out="$RUNNER_TEMP/component-reports/ui-$group-shard-$index"
+            mkdir -p "$out"
+            cp libs/ui/test-results/visual-reports/*.json "$out/"
+          done
+      - name: Upload component coverage
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ui-component-results-${{ inputs.sha }}-shard-${{ matrix.shard }}
+          name: ui-component-report-${{ inputs.sha }}-bundle-${{ matrix.shard }}
+          path: ${{ runner.temp }}/component-reports
+          if-no-files-found: error
+      - name: Upload component failure details
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-component-results-${{ inputs.sha }}-bundle-${{ matrix.shard }}
           path: |
             libs/ui/playwright-report
             libs/ui/test-results
           if-no-files-found: error
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ui-component-report-${{ inputs.sha }}-shard-${{ matrix.shard }}
-          path: |
-            libs/ui/test-results/visual-reports/all.json
-            libs/ui/test-results/visual-reports/index.json
-            libs/ui/test-results/visual-reports/changed-none.json
-          if-no-files-found: error
-
-  components-complete:
-    needs: [plan, components]
-    if: needs.plan.outputs.scope != 'none'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 26.11.1
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: ui-component-report-${{ inputs.sha }}-shard-*
-          path: component-shards
-      - run: node libs/ui/scripts/verify-component-shards.mjs component-shards
+      - name: Install the accessibility browser
+        if: matrix.theme != ''
+        run: timeout 420 pnpm exec playwright install --only-shell chromium
+      - name: Enforce product accessibility and reporter calibration
+        if: matrix.theme != ''
         env:
-          PLAYWRIGHT_RELEASE_SHARDS: "8"
-          VISUAL_SHARD_MODE: ${{ needs.plan.outputs.scope == 'ui' && 'changed' || 'full' }}
-
-  accessibility:
-    uses: ./.github/workflows/storybook-a11y.yml
-    needs: plan
-    if: needs.plan.outputs.scope != 'none'
-    with:
-      sha: ${{ inputs.sha }}
+          A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
+          A11Y_THEME: ${{ matrix.theme }}
+          A11Y_THEME_COUNT: "3"
+          A11Y_SHARD: 1/1
+          A11Y_TEST_WORKERS: "4"
+          A11Y_SCOPE: ${{ needs.plan.outputs.scope }}
+          A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
+        run: pnpm --dir libs/ui storybook:a11y
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && matrix.theme != ''
+        with:
+          name: storybook-a11y-${{ inputs.sha }}-${{ matrix.theme }}-shard-1
+          path: libs/ui/a11y-report
+          if-no-files-found: error
+      - name: Export the component browser image
+        id: exported-image
+        if: success() && matrix.shard == 4 && steps.browser-image.outputs.cache-hit != 'true'
+        run: |
+          image="$(node libs/ui/scripts/run-component-tests.mjs --print-plan | jq -er .image)"
+          # A changed run with no selected stories never needs a container.
+          if docker image inspect "$image" >/dev/null 2>&1; then
+            docker image save "$image" --output "$RUNNER_TEMP/ui-playwright.tar"
+            echo "saved=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Save the component browser image
+        if: steps.exported-image.outputs.saved == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ui-playwright.tar
+          key: ui-playwright-linux-amd64-${{ hashFiles('docker/development/playwright/Dockerfile') }}

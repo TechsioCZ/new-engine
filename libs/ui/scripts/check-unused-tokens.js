@@ -25,6 +25,11 @@ export const publicExtensionTokens = new Set([
   "--font-sans",
   "--font-body",
   "--font-heading",
+  // corner-* utility scale (src/tokens/_shape.css): a public value set for
+  // apps; brands override --corner-shape-base to reshape `corner-base`.
+  ...["round", "squircle", "bevel", "scoop", "notch", "square", "base"].map(
+    (shape) => `--corner-shape-${shape}`
+  ),
 ])
 
 function sourceRoots(inventory, sources, publicTokens) {

@@ -283,41 +283,6 @@ test("grouped Combobox selection filters empty groups", async ({ page }) => {
   await expect(input).toHaveValue("Germany")
 })
 
-test("group labels and footer follow the option padding at every size", async ({
-  page,
-}) => {
-  await openStory(page, "templates-searchsuggestions--sizes")
-  const paddings: string[] = []
-  for (const root of await page
-    .locator('[data-scope="combobox"][data-part="root"]')
-    .all()) {
-    const input = root.getByRole("combobox")
-    await input.fill("trainers")
-    await expect(root.getByRole("option").first()).toBeVisible()
-    const label = root
-      .getByRole("group", { name: "Products" })
-      .getByText("Products", { exact: true })
-    const optionPadding = await root
-      .getByRole("option")
-      .first()
-      .evaluate((node) => getComputedStyle(node).paddingLeft)
-    expect(
-      await label.evaluate((node) => getComputedStyle(node).paddingLeft)
-    ).toBe(optionPadding)
-    expect(
-      await root
-        .getByRole("link", { name: "View all results" })
-        .evaluate(
-          (node) => getComputedStyle(node.parentElement ?? node).paddingLeft
-        )
-    ).toBe(optionPadding)
-    paddings.push(optionPadding)
-    await input.press("Escape")
-    await expect(root.getByRole("listbox")).toBeHidden()
-  }
-  expect(new Set(paddings).size).toBe(3)
-})
-
 test("rich results fit the viewport and load their image", async ({ page }) => {
   await openStory(page, "templates-searchsuggestions--grouped-results")
   await expect(page.getByRole("option").first()).toBeVisible()

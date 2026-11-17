@@ -1407,6 +1407,7 @@ test.describe("DatePicker browser behavior", () => {
       "title",
       /pondělí/i
     )
+    await popupKeyboardReady(page)
     await page.keyboard.press("Escape")
 
     root = page.locator(pickerRootSelector).nth(1)
@@ -1424,6 +1425,7 @@ test.describe("DatePicker browser behavior", () => {
       .locator('[data-scope="date-picker"][data-part="trigger"]')
       .click()
     await expect(page.getByLabel("Day period")).toBeVisible()
+    await popupKeyboardReady(page)
     await page.keyboard.press("Escape")
 
     root = pickerByLabel(page, "Appointment minute")
