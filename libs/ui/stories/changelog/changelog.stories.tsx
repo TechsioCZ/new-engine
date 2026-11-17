@@ -13,6 +13,12 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### AudioPlayer v1.2.0
+- Redesigned the audio card around a prominent play action and a wide timeline with current and total time below it. Optional cover and title sit above the controls. Added \`controlsList\` with optional seek and settings groups; the volume slider adapts to the card container. Podcast and NarrowContainer examples document spoken-word controls and responsive layout.
+
+### Player v1.4.0
+- Added optional \`icon\` and custom \`children\` to \`Player.SeekButton\` while preserving localized seek labels and the default video icons. Audio and video presets continue to share the same compound controls.
+
 ### Player v1.3.0
 - Added chapter-segment timelines and thumbnail previews, native picture-in-picture controls, and available chapter/quality actions in Settings. Documented visible media loading and local HLS/DASH engine integration, including MIME-typed sources and the pinned DASH 4.x contract.
 

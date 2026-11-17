@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.3.0
+ * @componentVersion v1.4.0
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -175,6 +175,8 @@ export type PlayerSeekButtonProps = Omit<
 > & {
   direction: "forward" | "backward"
   seconds?: number
+  icon?: IconType
+  children?: ReactNode
 }
 export type PlayerTimeSliderProps = Omit<
   ComponentProps<typeof TimeSlider.Root>,
@@ -955,6 +957,8 @@ Player.PictureInPictureButton = function PlayerPictureInPictureButton({
 Player.SeekButton = function PlayerSeekButton({
   direction,
   seconds = 10,
+  icon,
+  children,
   className,
   "aria-label": ariaLabel,
   ...props
@@ -975,16 +979,29 @@ Player.SeekButton = function PlayerSeekButton({
         className={playerStyles().iconButton({ className })}
         seconds={direction === "forward" ? seconds : -seconds}
       >
-        <ActionIcon
-          aria-label={label}
-          icon={
-            direction === "forward"
-              ? "token-icon-player-seek-forward"
-              : "token-icon-player-seek-backward"
-          }
-          size="lg"
-          type="button"
-        />
+        {children === undefined ? (
+          <ActionIcon
+            aria-label={label}
+            icon={
+              icon ??
+              (direction === "forward"
+                ? "token-icon-player-seek-forward"
+                : "token-icon-player-seek-backward")
+            }
+            size="lg"
+            type="button"
+          />
+        ) : (
+          <Button
+            aria-label={label}
+            composition
+            size="current"
+            type="button"
+            unstyled
+          >
+            {children}
+          </Button>
+        )}
       </MediaSeekButton>
     </Tooltip>
   )

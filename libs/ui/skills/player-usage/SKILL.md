@@ -6,7 +6,7 @@ description: >
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.4.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -129,6 +129,12 @@ Default retry reloads the provider. A custom error action should call the
 provided `retry` callback rather than reloading the page. These parts react to
 real media state; do not fake loading or error state with CSS.
 
+`Player.SeekButton` accepts an optional `icon` or custom `children`, for example
+`<Player.SeekButton direction="backward" seconds={10}>−10</Player.SeekButton>`.
+The amount is still controlled by `seconds`; the localized accessible label
+describes the direction and amount unless `aria-label` overrides it. The default
+icon remains available when custom content is omitted.
+
 ## Settings and saved preferences
 
 `Player.SettingsMenu` belongs inside the same `Player` and its controls. It
@@ -137,9 +143,11 @@ are available, its captions submenu lists their labels and an off option;
 `Player.CaptionButton` remains the shortcut for toggling captions. Labels
 come from `UiMessagesProvider.messages.player`.
 
-The menu is opt-in. For video, add `"settings"` to `VideoPlayer.controlsList`;
-its default controls are unchanged. For audio, compose it in `Player` or in
-`AudioPlayer.slots.controls` rather than expecting a preset settings button:
+The menu is opt-in. Add `"settings"` to `VideoPlayer.controlsList` or
+`AudioPlayer.controlsList` to enable it in a preset. Audio defaults to play,
+time and volume; seek and settings are optional. For a custom order or layout,
+compose the shared `Player.*` parts in either preset's `slots.controls`, or
+directly in `Player`:
 
 ```tsx
 import { Player } from "@techsio/ui-kit/molecules/player"

@@ -93,6 +93,77 @@ for (const component of ["player", "audioplayer", "videoplayer"]) {
   })
 }
 
+test("audio cover controls fit a narrow container on a wide viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.goto(
+    "/iframe.html?id=molecules-audioplayer--with-title-and-cover&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  // Reproduce embedding the preset in a narrow card, independently of viewport.
+  await player.evaluate((element) => {
+    let card = element
+    while (!card.querySelector("img") && card.parentElement) {
+      card = card.parentElement
+    }
+    card.style.width = "320px"
+    card.style.maxWidth = "320px"
+  })
+  const geometry = await player.evaluate((element) => {
+    let card = element
+    while (!card.querySelector("img") && card.parentElement) {
+      card = card.parentElement
+    }
+    const root = card.getBoundingClientRect()
+    const controls = [
+      ...card.querySelectorAll<HTMLElement>("button, [role='slider'], img"),
+    ]
+      .filter((control) => {
+        const style = getComputedStyle(control)
+        return style.display !== "none" && style.visibility !== "hidden"
+      })
+      .map((control) => ({
+        name: control.getAttribute("aria-label") ?? control.tagName,
+        box: control.getBoundingClientRect().toJSON(),
+      }))
+    return { root: root.toJSON(), controls }
+  })
+  for (const [index, control] of geometry.controls.entries()) {
+    expect(
+      control.box.x,
+      `${control.name} starts inside the card`
+    ).toBeGreaterThanOrEqual(geometry.root.x - 0.5)
+    expect(
+      control.box.right,
+      `${control.name} ends inside the card`
+    ).toBeLessThanOrEqual(geometry.root.right + 0.5)
+    for (const other of geometry.controls.slice(index + 1)) {
+      const overlapWidth =
+        Math.min(control.box.right, other.box.right) -
+        Math.max(control.box.x, other.box.x)
+      const overlapHeight =
+        Math.min(control.box.bottom, other.box.bottom) -
+        Math.max(control.box.y, other.box.y)
+      expect(
+        overlapWidth > 0.5 && overlapHeight > 0.5,
+        `${control.name} overlaps ${other.name}`
+      ).toBe(false)
+    }
+  }
+  await expect(
+    player.getByRole("slider", { name: "Volume", exact: true })
+  ).toBeHidden()
+  expect(
+    (
+      await player
+        .getByRole("slider", { name: "Seek", exact: true })
+        .boundingBox()
+    )?.width
+  ).toBeGreaterThanOrEqual(150)
+})
+
 test("audio cover leaves room for visible, usable sliders", async ({
   page,
 }) => {
@@ -106,9 +177,6 @@ test("audio cover leaves room for visible, usable sliders", async ({
   expect((await player.boundingBox())?.width).toBeGreaterThan(150)
   const cover = page.locator("img")
   expect((await cover.boundingBox())?.width).toBeLessThan(100)
-  const controls = player.locator("[role='group'] > div").first()
-  await expect(controls).toHaveCount(1)
-  await expect(controls).toHaveCSS("padding", "0px")
   for (const name of ["Seek", "Volume"]) {
     const slider = page.getByRole("slider", { name, exact: true })
     if (name === "Volume" && (page.viewportSize()?.width ?? 0) < 640) {
@@ -131,6 +199,17 @@ test("audio playback, seeking, mute and volume work with native media", async ({
   await page.goto(
     "/iframe.html?id=molecules-audioplayer--playground&viewMode=story"
   )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  await expect(
+    page.getByRole("button", { name: "Seek forward 10 seconds", exact: true })
+  ).toHaveCount(0)
+  await updateStoryArgs(page, "molecules-audioplayer--playground", {
+    controlsList: ["play", "seek", "time", "volume"],
+    skipDuration: 15,
+  })
+  await expect(player).not.toHaveAttribute("controlslist")
+  await expect(player).not.toHaveAttribute("skipduration")
   const play = page.getByRole("button", { name: PLAY_LABEL })
   await play.click()
   await expect(play).toHaveAttribute("aria-pressed", "true")
@@ -150,13 +229,29 @@ test("audio playback, seeking, mute and volume work with native media", async ({
   await play.click()
   await expect(play).toHaveAttribute("aria-pressed", "false")
   await page
-    .getByRole("button", { name: "Seek forward 10 seconds", exact: true })
+    .getByRole("button", { name: "Seek forward 15 seconds", exact: true })
     .click()
   await expect
     .poll(() =>
       page.evaluate(() => document.querySelector("audio")?.currentTime)
     )
-    .toBeGreaterThan(9)
+    .toBeGreaterThan(14)
+  await page
+    .getByRole("button", { name: "Seek backward 15 seconds", exact: true })
+    .click()
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector("audio")?.currentTime)
+    )
+    .toBeLessThan(1)
+  await page
+    .getByRole("button", { name: "Seek forward 15 seconds", exact: true })
+    .click()
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector("audio")?.currentTime)
+    )
+    .toBeGreaterThan(14)
   const seek = page.getByRole("slider", { name: "Seek", exact: true })
   await seek.focus()
   await page.keyboard.press("ArrowLeft")
@@ -164,8 +259,7 @@ test("audio playback, seeking, mute and volume work with native media", async ({
     .poll(() =>
       page.evaluate(() => document.querySelector("audio")?.currentTime)
     )
-    .toBeLessThan(9)
-  const player = page.locator("[data-media-player]")
+    .toBeLessThan(14)
   await player.focus()
   await expect(player).toHaveCSS("outline-style", "solid")
   await expect(player).not.toHaveCSS("outline-width", "0px")
@@ -187,6 +281,82 @@ test("audio playback, seeking, mute and volume work with native media", async ({
   } else {
     await expect(volume).toBeHidden()
   }
+})
+
+test("podcast seek labels and keyboard settings control the native audio", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-audioplayer--podcast&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  await expect(player).toHaveAttribute("data-can-play", "")
+  const forward = player.getByRole("button", {
+    name: "Seek forward 10 seconds",
+    exact: true,
+  })
+  const backward = player.getByRole("button", {
+    name: "Seek backward 10 seconds",
+    exact: true,
+  })
+  await expect(forward).toHaveText("+10")
+  await expect(backward).toHaveText("−10")
+  await forward.click()
+  await expect
+    .poll(() =>
+      player
+        .locator("audio")
+        .evaluate((media: HTMLAudioElement) => media.currentTime)
+    )
+    .toBeCloseTo(10, 1)
+  await backward.click()
+  await expect
+    .poll(() =>
+      player
+        .locator("audio")
+        .evaluate((media: HTMLAudioElement) => media.currentTime)
+    )
+    .toBeCloseTo(0, 1)
+  const settings = player.getByRole("button", {
+    name: "Playback settings",
+    exact: true,
+  })
+  await settings.focus()
+  await page.keyboard.press("ArrowDown")
+  await expect(page.getByRole("menu")).toBeFocused()
+  await page.keyboard.press("ArrowRight")
+  await expect(
+    page.getByRole("menuitemradio", { name: "Normal", exact: true })
+  ).toHaveAttribute("aria-checked", "true")
+  await page.keyboard.press("k")
+  await page.keyboard.press("Escape")
+  await page.keyboard.press("Escape")
+  await expect(settings).toBeFocused()
+  await expect(player).toHaveAttribute("data-paused", "")
+  expect(
+    await player
+      .locator("audio")
+      .evaluate((media: HTMLAudioElement) => media.currentTime)
+  ).toBeCloseTo(0, 1)
+  await settings.click()
+  await page
+    .getByRole("menuitem", { name: "Playback speed", exact: true })
+    .click()
+  await page.getByRole("menuitemradio", { name: "1.5×", exact: true }).click()
+  await expect
+    .poll(() =>
+      player
+        .locator("audio")
+        .evaluate((media: HTMLAudioElement) => media.playbackRate)
+    )
+    .toBe(1.5)
+  await settings.click()
+  await page
+    .getByRole("menuitem", { name: "Playback speed", exact: true })
+    .click()
+  await expect(
+    page.getByRole("menuitemradio", { name: "1.5×", exact: true })
+  ).toHaveAttribute("aria-checked", "true")
 })
 
 test("player controls do not submit their enclosing form", async ({ page }) => {
@@ -500,20 +670,50 @@ test("custom preset controls retain media context and forwarded playback props",
   )
 })
 
-test("audio errors fit a narrow cover layout and keep retry usable", async ({
+test("audio loading and errors fit a narrow cover layout and keep retry usable", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 320, height: 650 })
-  await page.route("**/sprite-fight/audio.mp3", (route) =>
-    route.fulfill({ status: 404, body: "Missing audio" })
-  )
+  await page.setViewportSize({ width: 1280, height: 720 })
+  let failRequest: () => void = () => undefined
+  const pendingResponse = new Promise<void>((resolve) => {
+    failRequest = resolve
+  })
+  await page.route("**/sprite-fight/audio.mp3", async (route) => {
+    await pendingResponse
+    await route.fulfill({ status: 404, body: "Missing audio" })
+  })
   await page.goto(
     "/iframe.html?id=molecules-audioplayer--with-title-and-cover&viewMode=story"
   )
+  const root = page.locator("[data-media-player]")
+  const card = root.locator("xpath=ancestor-or-self::div[.//img][1]")
+  await card.evaluate((element) => {
+    element.style.width = "320px"
+    element.style.maxWidth = "320px"
+  })
+  const cardBox = await card.boundingBox()
+  const loading = page
+    .getByRole("status")
+    .filter({ hasText: "Loading media..." })
+  await expect(loading).toBeVisible()
+  const loadingBox = await loading.boundingBox()
+  expect(loadingBox?.x).toBeGreaterThanOrEqual(cardBox?.x ?? 0)
+  expect((loadingBox?.x ?? 0) + (loadingBox?.width ?? 0)).toBeLessThanOrEqual(
+    (cardBox?.x ?? 0) + (cardBox?.width ?? 0)
+  )
+  expect(loadingBox?.y).toBeGreaterThanOrEqual(cardBox?.y ?? 0)
+  expect((loadingBox?.y ?? 0) + (loadingBox?.height ?? 0)).toBeLessThanOrEqual(
+    (cardBox?.y ?? 0) + (cardBox?.height ?? 0)
+  )
+  failRequest()
   const alert = page.getByRole("alert")
   await expect(alert).toBeVisible()
-  const player = await page.locator("[data-media-player]").boundingBox()
+  const player = await card.boundingBox()
   const feedback = await alert.boundingBox()
+  expect(feedback?.x).toBeGreaterThanOrEqual(player?.x ?? 0)
+  expect((feedback?.x ?? 0) + (feedback?.width ?? 0)).toBeLessThanOrEqual(
+    (player?.x ?? 0) + (player?.width ?? 0)
+  )
   expect(feedback?.y).toBeGreaterThanOrEqual(player?.y ?? 0)
   expect((feedback?.y ?? 0) + (feedback?.height ?? 0)).toBeLessThanOrEqual(
     (player?.y ?? 0) + (player?.height ?? 0)
@@ -524,6 +724,9 @@ test("audio errors fit a narrow cover layout and keep retry usable", async ({
   await expect(
     page.getByRole("button", { name: "Try again", exact: true })
   ).toBeVisible()
+  expect(
+    await card.evaluate((element) => element.scrollWidth <= element.clientWidth)
+  ).toBe(true)
 })
 
 test("player styles preserve square media outside the player", async ({

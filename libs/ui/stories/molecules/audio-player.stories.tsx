@@ -20,6 +20,7 @@ const controls = [
   "muted",
   "volume",
   "playbackRate",
+  "controlsList",
   "skipDuration",
   "loop",
   "preload",
@@ -48,7 +49,7 @@ const meta: Meta<typeof AudioPlayer> = {
       argTypes: { include: publicProps },
       description: {
         component:
-          "An audio preset with an optional title and cover, playback controls, loading/error feedback and content slots. Use Player for a fully custom composition or VideoPlayer for video.",
+          "An audio preset with an optional title and cover above a prominent play action and timeline. Choose its built-in control groups with controlsList, or replace slots.controls with a Player composition. Use VideoPlayer for video.",
       },
     },
   },
@@ -65,6 +66,13 @@ const meta: Meta<typeof AudioPlayer> = {
     volume: { control: { type: "range", min: 0, max: 1, step: 0.1 } },
     skipDuration: { control: { type: "number", min: 1, max: 60 } },
     playbackRate: { control: { type: "range", min: 0.5, max: 2, step: 0.25 } },
+    controlsList: {
+      control: "inline-check",
+      options: ["play", "seek", "time", "volume", "settings"],
+      description:
+        "Visible built-in control groups. Defaults to play, time and volume; seek and settings are opt-in. Use slots.controls to reorder the layout.",
+      table: { defaultValue: { summary: '["play", "time", "volume"]' } },
+    },
     slots: {
       control: false,
       description:
@@ -82,6 +90,7 @@ const meta: Meta<typeof AudioPlayer> = {
     muted: false,
     volume: 1,
     playbackRate: 1,
+    controlsList: ["play", "time", "volume"],
     loop: false,
     preload: "metadata",
     onPlay: () => playSpy(),
@@ -90,9 +99,9 @@ const meta: Meta<typeof AudioPlayer> = {
   render: (args) => (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-200">
       <p>
-        Play the sample, seek by {args.skipDuration} seconds, or adjust the
-        timeline and volume. Focus the player to use K for playback and M for
-        mute.
+        Play the sample or choose a position on the timeline. Enable seek or
+        settings in Controls for skip buttons or playback speed. Focus the
+        player to use K for playback and M for mute.
       </p>
       <AudioPlayer {...args} />
     </div>
@@ -109,12 +118,12 @@ export const Playground: Story = {
         code: `import { AudioPlayer } from "@techsio/ui-kit/molecules/audio-player"
 
 export function TrackPreview() {
-  return <AudioPlayer audioUrl="https://files.vidstack.io/sprite-fight/audio.mp3" skipDuration={10} />
+  return <AudioPlayer audioUrl="https://files.vidstack.io/sprite-fight/audio.mp3" />
 }`,
       },
       description: {
         story:
-          "The audio preset provides seeking, playback and mute at every width, with the volume slider hidden below the small breakpoint.",
+          "The default preset keeps play prominent, places readable current and total time below the timeline, and retains mute when a narrow container hides the volume slider.",
       },
     },
   },
@@ -173,11 +182,23 @@ export const CustomControls: Story = {
     slots: {
       controls: (
         <Player.Controls>
-          <Player.ControlGroup className="flex-wrap" padding="none">
-            <Player.PlayButton />
+          <Player.ControlGroup
+            className="flex-col items-stretch"
+            padding="none"
+          >
             <Player.TimeSlider />
-            <Player.Time type="current" />
-            <Player.MuteButton />
+            <Player.Control className="w-full justify-between">
+              <Player.Control>
+                <Player.MuteButton />
+                <Player.SettingsMenu />
+              </Player.Control>
+              <Player.Control>
+                <Player.Time type="current" />
+                <span aria-hidden="true">/</span>
+                <Player.Time type="duration" />
+                <Player.PlayButton />
+              </Player.Control>
+            </Player.Control>
           </Player.ControlGroup>
         </Player.Controls>
       ),
@@ -197,11 +218,20 @@ export function CompactAudio() {
       preload="none"
       slots={{ controls: (
         <Player.Controls>
-          <Player.ControlGroup className="flex-wrap" padding="none">
-            <Player.PlayButton />
+          <Player.ControlGroup className="flex-col items-stretch" padding="none">
             <Player.TimeSlider />
-            <Player.Time type="current" />
-            <Player.MuteButton />
+            <Player.Control className="w-full justify-between">
+              <Player.Control>
+                <Player.MuteButton />
+                <Player.SettingsMenu />
+              </Player.Control>
+              <Player.Control>
+                <Player.Time type="current" />
+                <span aria-hidden="true">/</span>
+                <Player.Time type="duration" />
+                <Player.PlayButton />
+              </Player.Control>
+            </Player.Control>
           </Player.ControlGroup>
         </Player.Controls>
       ) }}
@@ -211,8 +241,90 @@ export function CompactAudio() {
       },
       description: {
         story:
-          "A compact controls slot uses the preset media context; playbackRate is forwarded to the engine and starts this example at 1.25× speed.",
+          "Replace the default controls with a full-width timeline, mute and settings on the left, and time and play on the right. Every Player part shares the preset media context; playback starts at 1.25× speed.",
       },
     },
   },
+}
+
+export const Podcast: Story = {
+  args: {
+    audioUrl: {
+      src: AUDIO_SRC,
+      title: "Inside the workshop — Choosing a running shoe",
+      cover: COVER_SRC,
+    },
+    controlsList: ["play", "seek", "time", "volume", "settings"],
+    skipDuration: 10,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A wide podcast card keeps controls inline, while narrower containers reflow the layout. Visible skip amounts and a playback-speed menu support spoken-word listening; the recording uses the Playground sample media.",
+      },
+      source: {
+        code: `import { AudioPlayer } from "@techsio/ui-kit/molecules/audio-player"
+
+export function PodcastEpisode() {
+  return (
+    <div className="mx-auto w-full max-w-3xl">
+      <AudioPlayer
+        audioUrl={{
+          src: "https://files.vidstack.io/sprite-fight/audio.mp3",
+          title: "Inside the workshop — Choosing a running shoe",
+          cover: "/images/episode-cover.avif", // Your application's cover image.
+        }}
+        controlsList={["play", "seek", "time", "volume", "settings"]}
+        skipDuration={10}
+      />
+    </div>
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <div className="mx-auto w-full max-w-3xl">
+      <AudioPlayer {...args} />
+    </div>
+  ),
+}
+
+export const NarrowContainer: Story = {
+  args: {
+    audioUrl: {
+      src: AUDIO_SRC,
+      title: "A short guide to everyday shoe care",
+      cover: COVER_SRC,
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "A token-sized narrow panel keeps play, timeline, readable time and mute usable even on a wide desktop viewport; responsive audio controls follow their container.",
+      },
+      source: {
+        code: `import { AudioPlayer } from "@techsio/ui-kit/molecules/audio-player"
+
+export function SidebarAudio() {
+  return (
+    <div className="w-full max-w-xs">
+      <AudioPlayer audioUrl={{
+        src: "https://files.vidstack.io/sprite-fight/audio.mp3",
+        title: "A short guide to everyday shoe care",
+        cover: "/images/episode-cover.avif", // Your application's cover image.
+      }} />
+    </div>
+  )
+}`,
+      },
+    },
+  },
+  render: (args) => (
+    <div className="mx-auto w-full max-w-xs">
+      <AudioPlayer {...args} />
+    </div>
+  ),
 }

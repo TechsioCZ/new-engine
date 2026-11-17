@@ -35,6 +35,10 @@ type VisualBrand = "business" | "akros" | "n1"
 type StorybookIndex = { entries: Record<string, StorybookEntry> }
 const playerStoryId = /^molecules-(player|audioplayer|videoplayer)--/
 const adaptivePlayerStoryId = /--adaptive-(hls|dash)$/
+const chapterTimelineStories = new Set([
+  "molecules-player--timeline-previews",
+  "molecules-videoplayer--chapters-and-previews",
+])
 const middleThumbnail = /thumbnail-10\.png$/
 const captionStories = new Set([
   "molecules-videoplayer--captioned",
@@ -71,6 +75,13 @@ type StorybookWindow = Window & {
       userGlobals: Record<string, unknown>
     }
   }
+}
+
+function usesInitialChapterPreload(page: Page, storyId: string) {
+  return (
+    chapterTimelineStories.has(storyId) &&
+    page.context().browser()?.browserType().name() === "chromium"
+  )
 }
 type VisualAssets = Awaited<ReturnType<typeof installVisualAssets>>
 type StoryRun = {
@@ -551,12 +562,37 @@ function selectStory(
   brand: VisualBrand
 ) {
   return page.evaluate(
-    async ({ storyId, colorMode, colorBrand }) => {
+    async ({ storyId, colorMode, colorBrand, preloadChapter }) => {
       const storybookWindow = window as StorybookWindow
       const channel = storybookWindow.__STORYBOOK_ADDONS_CHANNEL__
       const preview = storybookWindow.__STORYBOOK_PREVIEW__
       if (!(channel && preview)) {
         throw new Error("Storybook preview channel did not initialize")
+      }
+      if (preloadChapter) {
+        // Initialize the public args before the first Chromium source load.
+        // Reloading a ready native element empties seekable while the SDK can
+        // retain canPlay, briefly treating this finite recording as live.
+        await preview.loadStory({ storyId })
+        await new Promise<void>((resolve, reject) => {
+          const updated = (value: unknown) => {
+            if ((value as { storyId?: string }).storyId !== storyId) {
+              return
+            }
+            clearTimeout(timeout)
+            channel.off("storyArgsUpdated", updated)
+            resolve()
+          }
+          const timeout = setTimeout(() => {
+            channel.off("storyArgsUpdated", updated)
+            reject(new Error(`Story ${storyId} preload args update timed out`))
+          }, 30_000)
+          channel.on("storyArgsUpdated", updated)
+          channel.emit("updateStoryArgs", {
+            storyId,
+            updatedArgs: { preload: "auto" },
+          })
+        })
       }
       const completion = await new Promise<StoryCompletion>(
         (resolve, reject) => {
@@ -648,7 +684,12 @@ function selectStory(
         visualTimedToasts: preparedStory.parameters.visualTimedToasts,
       }
     },
-    { storyId: id, colorMode: mode, colorBrand: brand }
+    {
+      storyId: id,
+      colorMode: mode,
+      colorBrand: brand,
+      preloadChapter: usesInitialChapterPreload(page, id),
+    }
   )
 }
 
@@ -924,9 +965,7 @@ async function captureStory(run: StoryRun): Promise<void> {
         ? page.getByRole("region", { name: "Ready", exact: true })
         : page.locator("[data-media-player]")
       await expect(readyPlayer).toHaveAttribute("data-can-play", "")
-      const hasChapterTimeline =
-        story.id === "molecules-player--timeline-previews" ||
-        story.id === "molecules-videoplayer--chapters-and-previews"
+      const hasChapterTimeline = chapterTimelineStories.has(story.id)
       if (hasChapterTimeline) {
         // The SDK first renders a single fallback segment. Finish loading the
         // declared chapter track before the fixture's native media reload.
@@ -934,7 +973,12 @@ async function captureStory(run: StoryRun): Promise<void> {
       }
       // Metadata-only preload can report canplay with an empty buffered range
       // in WebKit. Load the entire fixture before comparing its progress track.
-      if (!adaptivePlayerStoryId.test(story.id)) {
+      if (
+        !(
+          adaptivePlayerStoryId.test(story.id) ||
+          usesInitialChapterPreload(page, story.id)
+        )
+      ) {
         await readyPlayer
           .locator("audio, video")
           .evaluateAll(async (elements) => {

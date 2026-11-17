@@ -18,6 +18,7 @@
 @import "./atoms/_tooltip.css";
 
 @import "./molecules/_accordion.css";
+@import "./molecules/_audio-player.css";
 @import "./molecules/_availability-status.css";
 @import "./molecules/_breadcrumb.css";
 @import "./molecules/_carousel.css";

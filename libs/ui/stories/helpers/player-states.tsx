@@ -162,7 +162,13 @@ export function playerStatesSource(kind: PlayerKind) {
     video: "VideoPlayer",
     compound: "Player",
   }[kind]
-  const module = kind === "compound" ? "player" : `${kind}-player`
+  const importStatement = {
+    audio:
+      'import { AudioPlayer } from "@techsio/ui-kit/molecules/audio-player"',
+    video:
+      'import { VideoPlayer } from "@techsio/ui-kit/molecules/video-player"',
+    compound: 'import { Player } from "@techsio/ui-kit/molecules/player"',
+  }[kind]
   const error = `({ retry }) => (
         <>
           <span>This media could not be loaded.</span>
@@ -195,7 +201,7 @@ export function playerStatesSource(kind: PlayerKind) {
     />`
   return `import { useState } from "react"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { ${component} } from "@techsio/ui-kit/molecules/${module}"
+${importStatement}
 
 // Replace these paths with your application's unavailable and replacement assets.
 export function RecoverablePlayer() {
