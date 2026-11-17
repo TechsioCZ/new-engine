@@ -3,6 +3,7 @@
 // node libs/ui/scripts/measure-visual-shard-costs.mjs <reports-directory> <run-url> > "$tmp" &&
 //   mv "$tmp" libs/ui/test/visual-shard-costs.json
 // Never truncate the imported cost configuration before measurement succeeds.
+import measuredCosts from "../test/visual-shard-costs.json" with { type: "json" }
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
@@ -59,5 +60,6 @@ console.log(JSON.stringify({
   sourceRun,
   storyCount: costs.size,
   medianCost: values[Math.floor(values.length / 2)],
+  a11yCosts: measuredCosts.a11yCosts,
   stories: Object.fromEntries([...costs].sort(([a], [b]) => a.localeCompare(b, "en"))),
 }, null, 2))

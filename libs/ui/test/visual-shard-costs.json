@@ -921,5 +921,12 @@
     "verification-navigationdisclosure--tabs-recovery": 8137,
     "verification-navigationdisclosure--tree-recovery": 7235,
     "verification-navigationdisclosure--vertical-tabs-layout": 5538
-  }
+  },
+  "a11yCosts": [
+    604000,
+    564000,
+    588000,
+    0,
+    0
+  ]
 }

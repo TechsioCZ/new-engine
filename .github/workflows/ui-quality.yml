@@ -64,9 +64,9 @@ jobs:
             scope="$(node libs/ui/scripts/visual-affected-stories.mjs --scope --files-from "$RUNNER_TEMP/changed-files.txt")"
             list=true
           fi
-          # Four visual runners and one behavior runner share the one build.
-          # Main also runs accessibility: six hosted runners at peak.
-          bundles=4
+          # Five visual runners share the build; three also scan one theme.
+          # Main runs behavior: six hosted runners at peak.
+          bundles=5
           case "$scope" in
             full | all | ui)
               groups="$(jq -cn --argjson n "$bundles" '{visual:$n,desktop:1,mobile:1}')"
@@ -83,10 +83,10 @@ jobs:
               exit 1
               ;;
           esac
-          # Visual runners balance screenshots only; behavior owns both devices.
-          # Main scans all accessibility themes.
+          # Reserve visual capacity for each cohosted accessibility theme.
+          # Main owns desktop and mobile behavior.
           component_matrix="$(jq -cn --argjson n "$bundles" \
-            '{include:([range(1;$n+1) | {group:"visual",shard:.,total:$n}] + [{group:"behavior",shard:1,total:1}])}')"
+            '{include:[range(1;$n+1) | {group:"visual",shard:.,total:$n,a11y_theme:(["business-light","akros-light","n1-light","",""][.-1])}]}')"
           {
             echo "scope=${scope}"
             echo "list=${list}"
@@ -172,8 +172,18 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
-      # Only Node built-ins run on the host. Browser/test dependencies are
-      # already in the content-addressed image; Storybook comes from main.
+      # Only accessibility needs a host install. Screenshot dependencies live
+      # in the cached container; the shared build never comes from these jobs.
+      - if: matrix.a11y_theme != ''
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Install only the accessibility dependencies
+        if: matrix.a11y_theme != ''
+        run: pnpm install --frozen-lockfile --prefer-offline --filter='@techsio/ui-kit...'
+      - name: Install the accessibility browser
+        if: matrix.a11y_theme != ''
+        run: timeout 420 pnpm --dir libs/ui exec playwright install --only-shell chromium
+      # Screenshot dependencies are in the content-addressed image; the build
+      # comes from main.
       # The image depends only on the Dockerfile, not this commit's stories.
       # One shard saves it; all shards can restore it, including fork PRs.
       - name: Restore the component browser image
@@ -214,6 +224,25 @@ jobs:
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
         run: bash libs/ui/scripts/component-ci-bundle.sh
+      - name: Scan this bundle's accessibility theme
+        if: matrix.a11y_theme != ''
+        env:
+          A11Y_THEME: ${{ matrix.a11y_theme }}
+          A11Y_THEME_COUNT: "3"
+          A11Y_SHARD: 1/1
+          A11Y_TEST_WORKERS: "4"
+          A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
+          A11Y_SCOPE: ${{ needs.plan.outputs.scope }}
+          A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
+        run: pnpm --dir libs/ui storybook:a11y
+      - name: Upload accessibility coverage and calibration
+        if: always() && matrix.a11y_theme != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: storybook-a11y-${{ inputs.sha }}-${{ matrix.a11y_theme }}
+          path: libs/ui/a11y-report
+          overwrite: true
+          if-no-files-found: error
       - name: Upload component coverage
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -233,7 +262,7 @@ jobs:
           if-no-files-found: error
       - name: Export the component browser image
         id: exported-image
-        if: success() && matrix.group == 'behavior' && steps.browser-image.outputs.cache-hit != 'true'
+        if: success() && matrix.shard == 5 && steps.browser-image.outputs.cache-hit != 'true'
         run: |
           image="$(node libs/ui/scripts/run-component-tests.mjs --print-plan | jq -er .image)"
           # A changed run with no selected stories never needs a container.

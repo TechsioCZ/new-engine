@@ -4,8 +4,6 @@ set -euo pipefail
 
 # Each suite owns its container, server, and output. Running two browser pools
 # together slowed both on the hosted runner, so suites share one pool in turn.
-# Full visual runs used only 1.8–2.0 CPU-seconds per wall second at four
-# workers (43985617031); six workers overlap browser/frame waits on four cores.
 run_group() {
   local group="$1" workers="$2" shard="$SHARD"
   if [ "$group" = mobile ]; then shard=1/1; fi
@@ -31,7 +29,7 @@ if ! docker image inspect "$image" >/dev/null 2>&1; then
 fi
 
 case "$BUNDLE_GROUP" in
-  visual) run_group visual 6 ;;
+  visual) run_group visual 4 ;;
   behavior)
     run_group desktop 4
     run_group mobile 4

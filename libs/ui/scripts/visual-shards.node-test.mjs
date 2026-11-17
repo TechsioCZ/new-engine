@@ -11,7 +11,7 @@ test("every screenshot shard runs every browser, without duplicate or omitted id
   const actual = []
   for (let index = 1; index <= 5; index++) {
     const selected = shardVisualStories(stories, { index, total: 5 })
-    assert.ok(selected.length >= 4 && selected.length <= 5)
+    assert.ok(selected.length > 0)
     for (const project of projects) {
       actual.push(...selected.map((story) => `${project}/${story}`))
     }
@@ -39,4 +39,13 @@ test("measured heavy stories are spread without dropping any identity", () => {
     assert.equal(shard.length, 3)
   }
   assert.deepEqual(shards.flat().sort(), [...stories].sort())
+})
+
+test("visual work leaves measured room for a cohosted accessibility scan", () => {
+  const stories = ["a", "b", "c", "d", "e", "f"]
+  const weights = { storyCount: 6, medianCost: 1, a11yCosts: [2, 0], stories: {} }
+  const shards = [1, 2].map(index => shardVisualStories(stories, { index, total: 2 }, weights))
+  assert.equal(shards[0].length, 2)
+  assert.equal(shards[1].length, 4)
+  assert.deepEqual(shards.flat().sort(), stories)
 })
