@@ -72,11 +72,32 @@ test("standalone shards prove exactly their planned stories and calibration", (t
   assert.deepEqual(all.sort(), f.ids.sort())
   const expected = path.join(f.root, "expected.json")
   fs.writeFileSync(expected, JSON.stringify({
-    scope: "full", a11y: { themes: ["business-light"], shards_per_theme: 2, total: 2 },
+    scope: "full", a11y: { themes: ["business-light"], shards: { "business-light": 2 }, total: 2 },
   }))
   const verified = f.run(["--expect", expected, "--reports", f.root])
   assert.equal(verified.status, 0, verified.output)
   assert.match(verified.output, /stories scanned exactly once/)
+})
+
+test("each theme's declared shard count is strict", (t) => {
+  const f = fixture(t)
+  for (const shard of ["1/2", "2/2"]) {
+    assert.equal(f.record(f.plan(shard)).status, 0)
+  }
+  const expected = path.join(f.root, "expected.json")
+  for (const [a11y, message] of [
+    [{ themes: ["business-light"], shards: { "business-light": 1 }, total: 1 }, /planned 2 shards, the matrix declares 1/],
+    [{ themes: ["business-light"], shards: {}, total: 2 }, /shard counts name no theme/],
+    [{ themes: ["business-light"], shards: { "business-light": 2, "n1-light": 1 }, total: 3 }, /shard counts name business-light, n1-light/],
+    [{ themes: ["business-light"], shards: { "business-light": 2 }, total: 3 }, /add up to 2, not 3/],
+    [{ themes: ["business-light"], shards: { "business-light": 0 }, total: 0 }, /invalid shard count: 0/],
+    [{ themes: ["business-light"], shards_per_theme: 2, total: 2 }, /no a11y.shards count per theme/],
+  ]) {
+    fs.writeFileSync(expected, JSON.stringify({ scope: "full", a11y }))
+    const verified = f.run(["--expect", expected, "--reports", f.root])
+    assert.notEqual(verified.status, 0, JSON.stringify(a11y))
+    assert.match(verified.output, message)
+  }
 })
 
 test("a standalone scan fails when Jest silently omits a planned story", (t) => {
