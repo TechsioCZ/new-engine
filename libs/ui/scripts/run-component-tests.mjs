@@ -23,6 +23,7 @@ import {
   readPathList,
 } from "./visual-affected-stories.mjs"
 import { ensureStorybookBuild } from "./visual-storybook-build.mjs"
+import { trackedBaselines } from "./component-baselines.mjs"
 
 // Runs the Playwright visual tests inside Docker for reproducible snapshots.
 const uiRoot = path.resolve(import.meta.dirname, "..")
@@ -136,6 +137,8 @@ const activeShard = releaseShard ?? playwrightShard
 const containerName = `pw-visual-${crypto.randomUUID()}`
 // Each `playwright test` run empties test-results, so reports live beside it.
 const reportRoot = "/app/visual-reports"
+// Concurrent CI suites own separate output trees; no suite overwrites another.
+const outputRoot = process.env.PLAYWRIGHT_OUTPUT_DIR ?? uiRoot
 
 /** @param {string} command @param {string[]} args @param {import("node:child_process").SpawnSyncOptions} [options] */
 function run(command, args, options = {}) {
@@ -222,11 +225,10 @@ function verifyReviewedBaselines() {
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
   )
-  const directory = path.join(uiRoot, "test/visual.spec.ts-snapshots")
   assertPrimaryBaselines(
     entries,
     createVisualMatrix(),
-    new Set(fs.existsSync(directory) ? fs.readdirSync(directory) : [])
+    new Set(trackedBaselines(repoRoot).map((file) => path.posix.basename(file)))
   )
 }
 
@@ -462,6 +464,7 @@ function runPlaywrightProjects() {
 }
 
 function copyResultsToHost() {
+  fs.mkdirSync(outputRoot, { recursive: true })
   if (updatesSnapshots) {
     run("docker", [
       "cp",
@@ -474,13 +477,13 @@ function copyResultsToHost() {
     ["/app/test-results/.", "test-results"],
     [`${reportRoot}/.`, "test-results/visual-reports"],
   ]) {
-    docker(["cp", `${containerName}:${source}`, path.join(uiRoot, destination)])
+    docker(["cp", `${containerName}:${source}`, path.join(outputRoot, destination)])
   }
   if (activeShard) {
     // The shard verifier needs the exact story list this commit was built with.
     fs.copyFileSync(
       path.join(storybookDir, "index.json"),
-      path.join(uiRoot, "test-results/visual-reports/index.json")
+      path.join(outputRoot, "test-results/visual-reports/index.json")
     )
   }
 }
@@ -592,7 +595,7 @@ function readChangedFilesFile(file) {
  */
 function writeNoneReport(reason) {
   const file = path.join(
-    uiRoot,
+    outputRoot,
     "test-results/visual-reports/changed-none.json"
   )
   fs.mkdirSync(path.dirname(file), { recursive: true })

@@ -28,6 +28,10 @@ jobs:
         with:
           fetch-depth: 0
           filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/libs/ui/test/visual.spec.ts-snapshots/
           persist-credentials: false
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -39,12 +43,14 @@ jobs:
       # - run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
 
 
-      # Cache node_modules
+      # Restoring the 1.36 GB workspace store took 25s before a 32s install;
+      # a fresh install took 50s. Avoid that transfer on the build's critical path.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-          cache: 'pnpm'
 
+      - id: node24-runtime
+        run: echo "bin=$(dirname "$(command -v node)")" >> "$GITHUB_OUTPUT"
       - run: pnpm install --frozen-lockfile --prefer-offline
       - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
       - name: Determine affected projects
@@ -57,49 +63,90 @@ jobs:
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
 
-      # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
-      # - run: pnpm exec nx-cloud record -- echo Hello World
-      - name: Lint Nx module boundaries
-        run: pnpm lint:nx
-      - name: Typecheck affected prepared projects
+      # Start the shared Storybook build as soon as the workspace is installed.
+      # Browser runners prepare concurrently and consume it before this job's
+      # later lint/typecheck/unit checks finish. The quality gate still needs both.
+      - name: Wait for the UI scope plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node libs/ui/scripts/ci-artifact.mjs wait "ui-ci-expected-${{ github.sha }}" "ui-quality / plan"
+      - name: Read the UI scope plan
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ui-ci-expected-${{ github.sha }}
+          path: ${{ runner.temp }}/ui-build-plan
+      - id: ui-build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          affected="${{ steps.determine_affected.outputs.projects }}"
-          # Only run project-owned typecheck targets; inferred TypeScript targets use build mode.
-          prepared="@techsio/storefront-data"
-          projects="$(AFFECTED="$affected" PREPARED="$prepared" node -e 'const affected = (process.env.AFFECTED || "").split(",").filter(Boolean); const prepared = new Set((process.env.PREPARED || "").split(",").filter(Boolean)); process.stdout.write(affected.filter((project) => prepared.has(project)).join(","));')"
-          if [ -z "$projects" ]; then
-            echo "No affected projects with explicit typecheck targets."
-            exit 0
+          set -euo pipefail
+          scope="$(jq -er .scope "$RUNNER_TEMP/ui-build-plan/expected.json")"
+          build=false
+          if [ "$scope" != none ]; then
+            exists="$(node libs/ui/scripts/ci-artifact.mjs exists "ui-storybook-${{ github.sha }}")"
+            case "$exists" in
+              true) ;;
+              false) build=true ;;
+              *) echo "::error::Invalid artifact readiness: $exists"; exit 1 ;;
+            esac
           fi
-          ./node_modules/.bin/nubx --node nx run-many -t typecheck --projects="$projects"
-      # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
-      - run: ./node_modules/.bin/nubx --node nx affected -t lint
-      # ui-kit's test target is excluded here only: the identical
-      # `vitest run && pnpm test:node` runs on Node 26.11.1 below
-      # for this same SHA. Every other project's test target is unchanged.
-      - run: ./node_modules/.bin/nubx --node nx affected -t test --exclude=ui-kit
-      - name: Test affected UI asset replay
-        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
-        run: |
-          timeout 420 pnpm exec playwright install --only-shell chromium
-          pnpm --dir libs/ui test:visual-assets
-      # Retained on purpose: the only Node-24 execution of the rslib build plus
-      # validate-package-exports plus check:consumer for a package we publish.
-      # 15s, and nowhere near the critical path.
-      - name: Check affected UI package output
-        if: contains(steps.determine_affected.outputs.projects_csv, ',ui-kit,')
-        run: pnpm --dir libs/ui check:package
-
-      # Reuse this runner and its install instead of acquiring another runner
-      # solely for the UI package. Node 24 above still exercises workspace
-      # consumers; the published UI package is also checked on its Node 26 line.
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+      - if: steps.ui-build.outputs.build == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.11.1
+      - name: Hash the Storybook inputs
+        if: steps.ui-build.outputs.build == 'true'
+        id: storybook
+        run: echo "hash=$(node libs/ui/scripts/visual-storybook-build.mjs --inputs-hash)" >> "$GITHUB_OUTPUT"
+      - name: Restore Storybook for unchanged inputs
+        if: steps.ui-build.outputs.build == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: libs/ui/storybook-static
+          key: ui-storybook-node26-${{ steps.storybook.outputs.hash }}
+      - name: Build Storybook once
+        if: steps.ui-build.outputs.build == 'true'
+        run: node libs/ui/scripts/visual-storybook-build.mjs --ensure
+      - name: Share the immutable Storybook build
+        if: steps.ui-build.outputs.build == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-storybook-${{ github.sha }}
+          path: libs/ui/storybook-static
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Restore the same immutable build on a job retry
+        if: steps.ui-build.outputs.scope != 'none' && steps.ui-build.outputs.build != 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ui-storybook-${{ github.sha }}
+          path: libs/ui/storybook-static
+      - name: Download the changed-file list for accessibility
+        if: steps.ui-build.outputs.scope != 'none' && steps.ui-build.outputs.scope != 'full'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ui-changed-files-${{ github.sha }}
+          path: ${{ runner.temp }}/ui-changed-files
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.11.1
-      - run: pnpm --dir libs/ui typecheck
-      - run: pnpm --dir libs/ui test
-      - run: pnpm --dir libs/ui validate:tokens
-      - run: pnpm --dir libs/ui check:package
+      # Two themes share this install; the n1 scan belongs to a visual runner.
+      - name: Run workspace, UI package and accessibility checks
+        env:
+          NODE24_BIN: ${{ steps.node24-runtime.outputs.bin }}
+          UI_SCOPE: ${{ steps.ui-build.outputs.scope }}
+          AFFECTED_PROJECTS: ${{ steps.determine_affected.outputs.projects }}
+        run: NODE26_BIN="$(dirname "$(command -v node)")" bash libs/ui/scripts/main-ci-checks.sh
+      - name: Upload accessibility coverage and calibration
+        if: always() && steps.ui-build.outputs.scope != 'none'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: storybook-a11y-${{ github.sha }}-main-themes
+          path: libs/ui/a11y-report
+          overwrite: true
+          if-no-files-found: error
 
   # A pull request runs only what its diff can affect, measured against its
   # base; a change that cannot reach the UI library skips the components and
@@ -109,8 +156,8 @@ jobs:
   # A push to master runs mode: full. That is the release-readiness gate and it
   # lives here now, because verifyFullShards -> assertVisualCompletion over every
   # story x every createVisualMatrix project is reachable only in full mode
-  # (libs/ui/scripts/verify-component-shards.mjs). ui-release.yml chains behind
-  # this workflow's conclusion instead of repeating it, so this call must never
+  # (libs/ui/scripts/verify-component-shards.mjs). ui-release.yml prepares in
+  # parallel but requires this workflow's success before publishing. This call must never
   # be made conditional: a skipped need would take quality-gate with it.
   ui-quality:
     uses: ./.github/workflows/ui-quality.yml

@@ -174,7 +174,7 @@ const meta = {
       </div>
     ),
   ],
-  tags: ["autodocs"],
+  tags: ["autodocs", "a11y-brand:akros"],
 
   parameters: {
     brandLock: "akros",

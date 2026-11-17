@@ -48,6 +48,27 @@ export function assertSupportedTheme(brand, mode) {
   assert.ok(mode !== "dark", `${brand} has no dark mode`)
 }
 
+/** A theme-locked example has one actual contrast surface, not three.
+ * @param {string[]} tags
+ * @returns {string | undefined}
+ */
+export function a11yBrand(tags) {
+  const declared = tags.filter((tag) => tag.startsWith("a11y-brand:"))
+  assert.ok(declared.length <= 1, "A story cannot declare multiple accessibility brands")
+  const brand = declared[0]?.slice("a11y-brand:".length)
+  if (brand !== undefined) assertSupportedTheme(brand, "light")
+  return brand
+}
+
+/** Keep index planning and actual runtime parameters in agreement.
+ * @param {string[]} tags
+ * @param {unknown} brandLock
+ */
+export function assertA11yBrand(tags, brandLock) {
+  assert.equal(a11yBrand(tags), brandLock ?? undefined,
+    "Accessibility brand metadata must match the story's brandLock")
+}
+
 /** Exact calibration contracts, never a blanket contrast-rule exclusion.
  * @param {string} id
  * @param {string[]} browserLabels

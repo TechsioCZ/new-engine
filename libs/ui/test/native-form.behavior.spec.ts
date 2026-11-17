@@ -11,12 +11,11 @@ import {
 } from "./native-form-contracts.mjs"
 import { openContractStory } from "./visual-shared-contracts.mjs"
 
-// Keep all lifecycle channels identical in the supported brand/color surfaces.
-for (const theme of [
-  { brand: "akros", mode: "light" },
-  { brand: "business", mode: "light" },
-  { brand: "n1", mode: "light" },
-]) {
+// Native reset, ownership, fieldset and controlled-value semantics are the
+// same component code in every brand; CSS tokens cannot change these channels.
+// Run each contract once. All brands retain screenshots, accessibility, and
+// their dedicated visual/focus/disabled-presentation behavior specs.
+for (const theme of [{ brand: "business", mode: "light" }]) {
   test.describe(`${theme.brand}/${theme.mode}`, () => {
     test("rating: ProductCard aggregate is named, nonfocusable and not submitted", async ({
       page,
@@ -60,8 +59,8 @@ for (const theme of [
       })
     }
 
-    // The normal component projects execute every case in desktop Chromium AND
-    // mobile WebKit. Keep cases separate so failures retain component/scenario IDs.
+    // Desktop Chromium owns these device-independent native contracts. Keep
+    // cases separate so failures retain component/scenario IDs.
     for (const adapter of nativeFormAdapters) {
       for (const cancellation of nativeResetCancellations) {
         test(`${adapter.id}: native reset ${cancellation}`, async ({
