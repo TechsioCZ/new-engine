@@ -155,9 +155,10 @@ jobs:
   # A push to master runs mode: full. That is the release-readiness gate and it
   # lives here now, because verifyFullShards -> assertVisualCompletion over every
   # story x every createVisualMatrix project is reachable only in full mode
-  # (libs/ui/scripts/verify-component-shards.mjs). ui-release-trigger starts
-  # ui-release.yml, which requires this workflow's success before publishing. This call must never
-  # be made conditional: a skipped need would take quality-gate with it.
+  # (libs/ui/scripts/verify-component-shards.mjs). ui-release-trigger (or
+  # ui-release-retrigger on a re-run) starts ui-release.yml, which requires this
+  # workflow's success before publishing. This call must never be made
+  # conditional: a skipped need would take quality-gate with it.
   ui-quality:
     uses: ./.github/workflows/ui-quality.yml
     with:
@@ -168,9 +169,10 @@ jobs:
   # The release prepares while the browser bundles finish, then publishes only
   # after this run succeeds for its exact SHA. Started when main ends, it never
   # holds an eighth hosted runner idle beside the six bundles and main.
+  # First attempt only: a re-run starts the release from ui-release-retrigger.
   ui-release-trigger:
     needs: main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.run_attempt == '1' && github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -178,6 +180,27 @@ jobs:
       contents: read
     steps:
       - name: Start the UI release for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run ui-release.yml --ref master
+
+  # "Re-run failed jobs" repeats only failed jobs and their dependents, so a
+  # main that passed the first time never dispatches again, while the release
+  # that attempt started already failed on the red CI. Depending on
+  # quality-gate makes this job a dependent of every job that can fail, and it
+  # starts the release once a re-run is green. Skipped on the first attempt,
+  # so it takes no runner there.
+  ui-release-retrigger:
+    needs: quality-gate
+    if: github.run_attempt != '1' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Start the UI release for this re-run commit
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

@@ -125,12 +125,16 @@ jobs:
           A11Y_REPORT_FAIL_ON_VIOLATIONS: "true"
           A11Y_SCOPE: ${{ steps.scope.outputs.scope }}
           A11Y_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt
+        # Every scan runs even after one fails, so one push reports the
+        # violations of every theme this bundle owns.
         run: |
           set -euo pipefail
+          status=0
           for scan in $SCANS; do
-            A11Y_THEME="${scan%@*}" A11Y_SHARD="${scan#*@}" pnpm --dir libs/ui storybook:a11y
+            A11Y_THEME="${scan%@*}" A11Y_SHARD="${scan#*@}" pnpm --dir libs/ui storybook:a11y || status=1
             bash libs/ui/scripts/ci-cpu.sh "a11y $scan"
           done
+          exit "$status"
       - name: Upload accessibility coverage and calibration
         if: always() && steps.scope.outputs.scope != 'none' && matrix.a11y != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
