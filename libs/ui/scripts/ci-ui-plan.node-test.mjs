@@ -1,0 +1,108 @@
+import assert from "node:assert/strict"
+import { execFileSync, spawnSync } from "node:child_process"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import test from "node:test"
+
+const script = new URL("./ci-ui-plan.mjs", import.meta.url).pathname
+function fixture(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ui-plan-"))
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }))
+  const env = {
+    ...process.env,
+    GIT_AUTHOR_NAME: "CI",
+    GIT_AUTHOR_EMAIL: "ci@example.invalid",
+    GIT_COMMITTER_NAME: "CI",
+    GIT_COMMITTER_EMAIL: "ci@example.invalid",
+  }
+  const git = (...args) =>
+    execFileSync("git", args, {
+      cwd: root,
+      env,
+      encoding: "utf8",
+      stdio: "pipe",
+    }).trim()
+  git("init", "-q")
+  const commit = (file, content) => {
+    fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+    fs.writeFileSync(path.join(root, file), content)
+    git("add", ".")
+    git("commit", "-qm", "fixture")
+    return git("rev-parse", "HEAD")
+  }
+  const base = commit("README.md", "base")
+  function plan(mode, head, baseSha = base) {
+    const temporary = fs.mkdtempSync(path.join(root, "run-"))
+    const result = spawnSync(process.execPath, [script], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...env,
+        MODE: mode,
+        HEAD_SHA: head,
+        BASE_SHA: baseSha,
+        RUNNER_TEMP: temporary,
+      },
+    })
+    assert.equal(result.status, 0, result.stderr)
+    return {
+      expected: JSON.parse(
+        fs.readFileSync(path.join(temporary, "ui-build-plan/expected.json")),
+      ),
+      temporary,
+    }
+  }
+  return { base, commit, plan }
+}
+
+test("pushes and unavailable bases keep the full six-bundle regression gate", (t) => {
+  const f = fixture(t)
+  for (const run of [
+    f.plan("full", f.base),
+    f.plan("changed", f.base, "0".repeat(40)),
+  ]) {
+    assert.equal(run.expected.scope, "full")
+    assert.deepEqual(run.expected.components.groups, {
+      visual: 6,
+      desktop: 1,
+      mobile: 1,
+    })
+    assert.equal(run.expected.components.total, 8)
+    assert.deepEqual(run.expected.a11y.themes, [
+      "business-light",
+      "akros-light",
+      "n1-light",
+    ])
+  }
+})
+
+test("all consumers derive the same UI scope and NUL-separated changed paths", (t) => {
+  const f = fixture(t)
+  const file = "libs/ui/src/český button.tsx"
+  const head = f.commit(file, "export {}")
+  const a = f.plan("changed", head)
+  const b = f.plan("changed", head)
+  assert.deepEqual(a.expected, b.expected)
+  assert.equal(a.expected.scope, "ui")
+  assert.equal(
+    fs.readFileSync(
+      path.join(a.temporary, "ui-changed-files/changed-files.txt"),
+      "utf8",
+    ),
+    file + "\0",
+  )
+})
+
+test("scope-neutral diffs declare zero heavy reports; workflow diffs require full coverage", (t) => {
+  const f = fixture(t)
+  const none = f.plan("changed", f.commit("README.md", "docs only"))
+  assert.equal(none.expected.scope, "none")
+  assert.equal(none.expected.components.total, 0)
+  assert.equal(none.expected.a11y.total, 0)
+  const full = f.plan(
+    "changed",
+    f.commit(".github/workflows/ui-quality.yml", "workflow"),
+  )
+  assert.equal(full.expected.scope, "full")
+})

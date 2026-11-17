@@ -45,32 +45,75 @@ export const DEVICE_PROJECTS = ["desktop", "mobile"]
 export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
 
 /**
- * Assign expensive stories first instead of balancing only test counts. Costs
- * come from full CI captures across all four projects. Unmeasured stories have
- * the median cost. Reserve capacity for cohosted behavior/accessibility suites measured in full CI.
+ * Keep a story file together and assign measured expensive files first. Both
+ * baseline checkout and the browser spec call this function on the same index.
+ * Changed subsets pay only for their selected fraction of a file. New files use
+ * the measured median per story; no unmeasured story is omitted.
  * @template T
  * @param {T[]} stories
  * @param {{index: number, total: number} | undefined} shard
- * @param {{storyCount: number, medianCost: number, cohostedCosts?: number[], stories: Record<string, number>}} [weights]
+ * @param {{storyCount: number, medianCost: number, maxVisualCost?: number, cohostedCosts?: number[], files: Record<string, {cost: number, storyCount: number}>}} [weights]
  * @returns {T[]}
  */
 export function shardVisualStories(stories, shard, weights = costs) {
   if (!shard) return stories
   const scale = stories.length / weights.storyCount
-  const loads = Array.from({length: shard.total}, (_, index) =>
-    weights.cohostedCosts?.length === shard.total ? weights.cohostedCosts[index] * scale : 0
+  const loads = Array.from({ length: shard.total }, (_, index) =>
+    weights.cohostedCosts?.length === shard.total
+      ? weights.cohostedCosts[index] * scale
+      : 0,
   )
+  const visualLoads = loads.map(() => 0)
+  const files = new Map()
+  stories.forEach((story, index) => {
+    const file =
+      typeof story === "string"
+        ? story
+        : typeof story === "object" &&
+            story !== null &&
+            "importPath" in story &&
+            typeof story.importPath === "string"
+          ? story.importPath
+          : typeof story === "object" &&
+              story !== null &&
+              "id" in story &&
+              typeof story.id === "string"
+            ? story.id
+            : String(index)
+    const indexes = files.get(file) ?? []
+    indexes.push(index)
+    files.set(file, indexes)
+  })
+  const ordered = [...files]
+    .map(([file, indexes]) => ({
+      file,
+      indexes,
+      cost:
+        indexes.length *
+        (weights.files[file]
+          ? weights.files[file].cost / weights.files[file].storyCount
+          : weights.medianCost),
+    }))
+    .sort((a, b) => b.cost - a.cost || a.file.localeCompare(b.file, "en"))
   const assigned = new Map()
-  const ordered = stories.map((story, index) => {
-    const id = typeof story === "string" ? story
-      : typeof story === "object" && story !== null && "id" in story && typeof story.id === "string"
-        ? story.id : ""
-    return { index, cost: weights.stories[id] ?? weights.medianCost }
-  }).sort((a, b) => b.cost - a.cost || a.index - b.index)
-  for (const { index, cost } of ordered) {
-    const bucket = loads.indexOf(Math.min(...loads))
-    assigned.set(index, bucket)
+  for (const { indexes, cost } of ordered) {
+    const available = loads
+      .map((_, index) => index)
+      .filter(
+        (index) =>
+          !weights.maxVisualCost ||
+          visualLoads[index] + cost <= weights.maxVisualCost * scale,
+      )
+    // A growing suite can exceed the target budget, never the coverage budget.
+    const candidates = available.length
+      ? available
+      : loads.map((_, index) => index)
+    const bucket = candidates.reduce((best, index) =>
+      loads[index] < loads[best] ? index : best,
+    )
+    for (const index of indexes) assigned.set(index, bucket)
     loads[bucket] += cost
+    visualLoads[bucket] += cost
   }
   return stories.filter((_, index) => assigned.get(index) === shard.index - 1)
 }
