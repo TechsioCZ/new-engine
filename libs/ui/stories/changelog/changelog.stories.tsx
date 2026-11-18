@@ -13,6 +13,60 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### AudioPlayer v1.2.1
+- Aligned the audio preset with the official Vidstack AudioLayout composition: a full-width timeline above a toolbar with standard play, combined current/duration time beside transport, and mute, volume and optional settings on the right. Narrow containers move time above the actions; optional seek buttons keep visible skip amounts. Updated all six AudioPlayer examples and usage guidance.
+
+### AudioPlayer v1.2.0
+- Redesigned the audio card around a prominent play action and a wide timeline with current and total time below it. Optional cover and title sit above the controls. Added \`controlsList\` with optional seek and settings groups; the volume slider adapts to the card container. Podcast and NarrowContainer examples document spoken-word controls and responsive layout.
+
+### Player v1.4.0
+- Added optional \`icon\` and custom \`children\` to \`Player.SeekButton\` while preserving localized seek labels and the default video icons. Audio and video presets continue to share the same compound controls.
+
+### Player v1.3.0
+- Added chapter-segment timelines and thumbnail previews, native picture-in-picture controls, and available chapter/quality actions in Settings. Documented visible media loading and local HLS/DASH engine integration, including MIME-typed sources and the pinned DASH 4.x contract.
+
+### VideoPlayer v1.3.0
+- Added optional chapters, thumbnails and \`"pip"\` controls, and accepted Vidstack typed media sources. ChaptersAndPreviews, LazyLoading, PictureInPicture, AdaptiveHLS and AdaptiveDASH demonstrate real local media, preview images and two-rendition adaptive streams; existing defaults stay unchanged.
+
+### Player v1.2.0
+- Added opt-in \`Player.SettingsMenu\` with SDK playback-speed choices and a captions-language submenu. Labels use the player message catalog. Menu interaction suspends media shortcuts and control hiding. Preserved enabled caption preferences when changing languages; documented SDK storage for app-owned keys and custom audio controls.
+
+### VideoPlayer v1.2.0
+- Added opt-in \`"settings"\` to \`controlsList\` while preserving the default controls. New Settings, MultipleLanguages and RememberPreferences examples demonstrate speed, English/Czech subtitles and SDK preference restoration through a player remount.
+
+### Player v1.1.1
+- Scoped Vidstack CSS to the player, kept tooltip portals inside fullscreen, preserved inline caption selection on updates, and localized spoken timeline values. Bottom control compositions can reserve their measured height for captions; caption layout is rebuilt when its video viewport changes to avoid stale cue positions.
+
+### VideoPlayer v1.1.1
+- Captions avoid the measured default toolbar and the documented custom toolbar, including responsive wrapping.
+
+### Player v1.1.0
+- Added text tracks with stable IDs, rendered captions and caption toggles, localized loading/error feedback with provider retry, surface gestures and translated media announcements.
+
+### AudioPlayer v1.1.0
+- Forwarded media engine props and added loading, error, controls and overlay slots while keeping preset children internal. Custom controls retain media context and error content can receive a retry callback.
+
+### VideoPlayer v1.1.0
+- Added captions and content slots, inline playback by default, surface playback gestures and provider retry feedback. Mobile controls keep timeline seeking while hiding skip buttons and the volume slider.
+
+### Player v1.0.1
+- Updated for the current UI kit: accessible button names satisfy ActionIcon, control names and state changes read from the app message catalog, and usage documentation follows the current plugin format.
+
+### AudioPlayer v1.0.1
+- Playback controls inherit the player message catalog; mobile coverage keeps seek and mute usable while the volume slider is hidden.
+
+### VideoPlayer v1.0.1
+- Controls wrap inside narrow containers so playback and fullscreen buttons remain within the player.
+
+### Player v1.0.0
+- New token-driven media player molecule built on Vidstack (\`@vidstack/react\`). The engine stays headless; play/mute/fullscreen/seek buttons are the UI-kit's own atoms, while sliders, poster and time read from Vidstack's accessible primitives, themed through \`--color-player-*\` tokens and the \`--media-*\` bridge in \`_player.css\`.
+
+### AudioPlayer v1.0.0
+- New audio player preset over \`Player\` with a single \`audioUrl\` (string or \`{ src, title?, cover? }\`), a responsive control bar, and playback events. Playlist behaviour is out of scope.
+
+### VideoPlayer v1.0.0
+- New video player preset over \`Player\` with a Semi Design-shaped \`src\`/\`poster\`/\`controlsList\` API. Controls overlay the video on a dark scrim, and the visible control set is driven by \`controlsList\`.
+
 ### DataTable v2.0.1
 - Grouped-header layout placeholders are presentational cells, not unnamed column headers; the real leaf headers keep their labels and column scope.
 
@@ -2001,7 +2055,7 @@ function InlineCode({ text }: { text: string }) {
       </code>
     ) : (
       part
-    )
+    ),
   )
 }
 

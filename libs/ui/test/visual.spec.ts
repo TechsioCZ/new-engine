@@ -4,12 +4,13 @@ import path from "node:path"
 import {
   type Browser,
   type BrowserContextOptions,
-  test,
   expect,
   type Page,
   type TestInfo,
+  test,
 } from "@playwright/test"
 import { PNG } from "pngjs"
+import { installPlayerMediaFixture } from "./player-media-fixture"
 import { installVisualAssets } from "./visual-assets.mjs"
 import { visualCaptureTiles } from "./visual-capture.mjs"
 import { parseReleaseShard, visualStories } from "./visual-completion.mjs"
@@ -32,6 +33,18 @@ type StorybookEntry = {
 }
 type VisualBrand = "business" | "akros" | "n1"
 type StorybookIndex = { entries: Record<string, StorybookEntry> }
+const playerStoryId = /^molecules-(player|audioplayer|videoplayer)--/
+const adaptivePlayerStoryId = /--adaptive-(hls|dash)$/
+const chapterTimelineStories = new Set([
+  "molecules-player--timeline-previews",
+  "molecules-videoplayer--chapters-and-previews",
+])
+const middleThumbnail = /thumbnail-10\.png$/
+const captionStories = new Set([
+  "molecules-videoplayer--captioned",
+  "molecules-videoplayer--multiple-languages",
+  "molecules-videoplayer--remember-preferences",
+])
 type StoryReporter = { type?: string; status?: string }
 type StoryCompletion = {
   storyId: string
@@ -62,6 +75,13 @@ type StorybookWindow = Window & {
       userGlobals: Record<string, unknown>
     }
   }
+}
+
+function usesInitialChapterPreload(page: Page, storyId: string) {
+  return (
+    chapterTimelineStories.has(storyId) &&
+    page.context().browser()?.browserType().name() === "chromium"
+  )
 }
 type VisualAssets = Awaited<ReturnType<typeof installVisualAssets>>
 type StoryRun = {
@@ -442,7 +462,10 @@ const matchingStories = storyFilter.length
   : stories
 const selectedStories = shardVisualStories(
   matchingStories,
-  parseReleaseShard(process.env.PLAYWRIGHT_VISUAL_SHARD, "PLAYWRIGHT_VISUAL_SHARD")
+  parseReleaseShard(
+    process.env.PLAYWRIGHT_VISUAL_SHARD,
+    "PLAYWRIGHT_VISUAL_SHARD"
+  )
 )
 const missingStories = storyFilter.filter(
   (id) => !stories.some((story) => story.id === id)
@@ -495,11 +518,7 @@ async function openPreview(page: Page) {
   )
 }
 
-function applyGlobals(
-  page: Page,
-  mode: "light" | "dark",
-  brand: VisualBrand
-) {
+function applyGlobals(page: Page, mode: "light" | "dark", brand: VisualBrand) {
   return page.evaluate(
     async ({ colorMode, colorBrand }) => {
       const storybookWindow = window as StorybookWindow
@@ -543,12 +562,37 @@ function selectStory(
   brand: VisualBrand
 ) {
   return page.evaluate(
-    async ({ storyId, colorMode, colorBrand }) => {
+    async ({ storyId, colorMode, colorBrand, preloadChapter }) => {
       const storybookWindow = window as StorybookWindow
       const channel = storybookWindow.__STORYBOOK_ADDONS_CHANNEL__
       const preview = storybookWindow.__STORYBOOK_PREVIEW__
       if (!(channel && preview)) {
         throw new Error("Storybook preview channel did not initialize")
+      }
+      if (preloadChapter) {
+        // Initialize the public args before the first Chromium source load.
+        // Reloading a ready native element empties seekable while the SDK can
+        // retain canPlay, briefly treating this finite recording as live.
+        await preview.loadStory({ storyId })
+        await new Promise<void>((resolve, reject) => {
+          const updated = (value: unknown) => {
+            if ((value as { storyId?: string }).storyId !== storyId) {
+              return
+            }
+            clearTimeout(timeout)
+            channel.off("storyArgsUpdated", updated)
+            resolve()
+          }
+          const timeout = setTimeout(() => {
+            channel.off("storyArgsUpdated", updated)
+            reject(new Error(`Story ${storyId} preload args update timed out`))
+          }, 30_000)
+          channel.on("storyArgsUpdated", updated)
+          channel.emit("updateStoryArgs", {
+            storyId,
+            updatedArgs: { preload: "auto" },
+          })
+        })
       }
       const completion = await new Promise<StoryCompletion>(
         (resolve, reject) => {
@@ -640,7 +684,12 @@ function selectStory(
         visualTimedToasts: preparedStory.parameters.visualTimedToasts,
       }
     },
-    { storyId: id, colorMode: mode, colorBrand: brand }
+    {
+      storyId: id,
+      colorMode: mode,
+      colorBrand: brand,
+      preloadChapter: usesInitialChapterPreload(page, id),
+    }
   )
 }
 
@@ -850,6 +899,9 @@ async function captureStory(run: StoryRun): Promise<void> {
     waitForTimedToasts: completion.visualTimedToasts !== "capture",
   })
   const root = page.locator("#storybook-root")
+  if (story.id === "molecules-videoplayer--lazy-loading") {
+    await page.getByRole("button", { name: "Show video", exact: true }).click()
+  }
   const capture = async (suffix = "", fullPage = false) => {
     const beforeCapture =
       suffix === "--popup-submenu"
@@ -907,6 +959,82 @@ async function captureStory(run: StoryRun): Promise<void> {
       }
     })
     await waitForAssets(page, story.id)
+    if (playerStoryId.test(story.id)) {
+      // States deliberately includes a failed source alongside the ready one.
+      const readyPlayer = story.id.endsWith("--states")
+        ? page.getByRole("region", { name: "Ready", exact: true })
+        : page.locator("[data-media-player]")
+      await expect(readyPlayer).toHaveAttribute("data-can-play", "")
+      const hasChapterTimeline = chapterTimelineStories.has(story.id)
+      if (hasChapterTimeline) {
+        // The SDK first renders a single fallback segment. Finish loading the
+        // declared chapter track before the fixture's native media reload.
+        await expect(readyPlayer.locator(".vds-slider-chapter")).toHaveCount(3)
+      }
+      // Metadata-only preload can report canplay with an empty buffered range
+      // in WebKit. Load the entire fixture before comparing its progress track.
+      if (
+        !(
+          adaptivePlayerStoryId.test(story.id) ||
+          usesInitialChapterPreload(page, story.id)
+        )
+      ) {
+        await readyPlayer
+          .locator("audio, video")
+          .evaluateAll(async (elements) => {
+            await Promise.all(
+              elements.map((element) => {
+                const media = element as HTMLMediaElement
+                return new Promise<void>((resolve) => {
+                  // Await this reload, rather than accepting the previous buffered
+                  // range while its loadstart event is still queued.
+                  media.addEventListener("loadeddata", () => resolve(), {
+                    once: true,
+                  })
+                  media.preload = "auto"
+                  media.load()
+                })
+              })
+            )
+          })
+      }
+      await expect(readyPlayer).toHaveAttribute("data-can-play", "")
+      // The buffered track is part of the screenshot, so wait for the whole
+      // local recording rather than capturing a network-dependent progress bar.
+      await expect
+        .poll(() =>
+          readyPlayer.locator("audio, video").evaluateAll((elements) =>
+            elements.every((element) => {
+              const media = element as HTMLMediaElement
+              return (
+                media.buffered.length > 0 &&
+                Math.abs(media.buffered.end(media.buffered.length - 1) - 30) <
+                  0.1
+              )
+            })
+          )
+        )
+        .toBe(true)
+      await expect(
+        readyPlayer.locator(".player-feedback[role='status']")
+      ).toHaveCount(0)
+      if (hasChapterTimeline) {
+        const fills = readyPlayer.locator(
+          ".vds-slider-chapter .vds-slider-track-fill"
+        )
+        await expect(fills).toHaveCount(3)
+        // These paused stories start at zero. Readiness includes the SDK's
+        // chapter paint, not just the native buffered range.
+        for (const fill of await fills.all()) {
+          await expect(fill).toHaveCSS("width", "0px")
+        }
+      }
+      if (captionStories.has(story.id)) {
+        await expect(
+          readyPlayer.locator(".player-captions [data-part='cue']")
+        ).toBeVisible()
+      }
+    }
     await disposeAssets.whenIdle()
     await assertThemeTokens(page, expectedBrand, expectedMode)
     await page.evaluate(
@@ -983,24 +1111,46 @@ async function captureStory(run: StoryRun): Promise<void> {
     // No truncation or coverage exemption: compare every tile, retaining
     // the primary name for the first and unique suffixes for the rest.
     for (const tile of tiles.length ? tiles : [null]) {
-      let actual: Buffer
       await beforeCapture?.()
-      if (tile) {
-        actual = await page.screenshot({
-          ...options,
-          fullPage: true,
-          clip: tile.clip,
-        })
-      } else if (fullPage) {
-        actual = await page.screenshot({ ...options, fullPage: true })
-      } else if (framing?.includesMarkers) {
-        actual = await page.screenshot({
-          ...options,
-          fullPage: true,
-          clip: framing.bounds,
-        })
-      } else {
-        actual = await root.screenshot(options)
+      const takeScreenshot = () => {
+        if (tile) {
+          return page.screenshot({
+            ...options,
+            fullPage: true,
+            clip: tile.clip,
+          })
+        }
+        if (fullPage) {
+          return page.screenshot({ ...options, fullPage: true })
+        }
+        if (framing?.includesMarkers) {
+          return page.screenshot({
+            ...options,
+            fullPage: true,
+            clip: framing.bounds,
+          })
+        }
+        return root.screenshot(options)
+      }
+      let actual = await takeScreenshot()
+      if (captionStories.has(story.id)) {
+        // Wait for the SDK's debounced layout and composited caption backdrop.
+        // The baseline is compared once, after two identical painted frames.
+        await expect
+          .poll(
+            async () => {
+              const next = await takeScreenshot()
+              const settled = next.equals(actual)
+              actual = next
+              return settled
+            },
+            {
+              intervals: [100],
+              timeout: 5000,
+              message: "Caption painting did not settle",
+            }
+          )
+          .toBe(true)
       }
       await beforeCapture?.()
       if (fullPage) {
@@ -1017,6 +1167,25 @@ async function captureStory(run: StoryRun): Promise<void> {
     }
   }
   await capture()
+  if (
+    story.id === "molecules-videoplayer--chapters-and-previews" ||
+    story.id === "molecules-player--timeline-previews"
+  ) {
+    const timeline = page.getByRole("slider", { name: "Seek", exact: true })
+    const bounds = await timeline.boundingBox()
+    if (!bounds) {
+      throw new Error("Chapter timeline has no bounds")
+    }
+    await timeline.hover({
+      position: { x: bounds.width / 2, y: 4 },
+    })
+    const preview = page.locator(".player-preview")
+    await expect(preview).toHaveAttribute("data-visible", "")
+    await expect(preview.locator("img")).toHaveAttribute("src", middleThumbnail)
+    await expect(preview).toBeInViewport({ ratio: 1 })
+    await capture("--timeline-preview", true)
+    await page.mouse.move(0, 0)
+  }
   const hasVisiblePortal = (await visibleFloatingSurfaces(page)).some(
     (surface) => surface.external
   )
@@ -1055,7 +1224,6 @@ async function captureStory(run: StoryRun): Promise<void> {
       throw new Error(`Browser errors: ${errors.join("\n")}`)
     }
   }
-
 }
 
 const visualContextKeys: (keyof BrowserContextOptions)[] = [
@@ -1112,6 +1280,7 @@ async function runStoryCapture(
       harPath,
       origin,
     })
+    await installPlayerMediaFixture(context)
     const failures: unknown[] = []
     try {
       await captureStory({
@@ -1150,16 +1319,17 @@ async function runStoryCapture(
 // A story owns its browser context. Reusing pages leaked globals, listeners and
 // rendered state between unrelated tests; a fresh-page fallback hid 50 failures
 // in run 43914903156. There is one capture attempt and one verdict now.
-test.describe.parallel("storybook visual", () => {
-  for (const story of selectedStories) {
-    test(`${story.title} ${story.name} should not have visual regressions`, async ({
-      browser,
-    }, testInfo) => {
-      testInfo.annotations.push({
-        type: "visual-story-id",
-        description: story.id,
+test.describe
+  .parallel("storybook visual", () => {
+    for (const story of selectedStories) {
+      test(`${story.title} ${story.name} should not have visual regressions`, async ({
+        browser,
+      }, testInfo) => {
+        testInfo.annotations.push({
+          type: "visual-story-id",
+          description: story.id,
+        })
+        await runStoryCapture(browser, story, testInfo)
       })
-      await runStoryCapture(browser, story, testInfo)
-    })
-  }
-})
+    }
+  })

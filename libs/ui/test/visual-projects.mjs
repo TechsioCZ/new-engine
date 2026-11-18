@@ -1,5 +1,5 @@
-import costs from "./visual-shard-costs.json" with { type: "json" }
 import { THEMES } from "../src/theme/theme-config.ts"
+import costs from "./visual-shard-costs.json" with { type: "json" }
 
 /** @typedef {"business" | "akros" | "n1"} VisualBrand */
 /** @typedef {"light" | "dark"} VisualColorScheme */
@@ -56,30 +56,28 @@ export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
  * @returns {T[]}
  */
 export function shardVisualStories(stories, shard, weights = costs) {
-  if (!shard) return stories
+  if (!shard) {
+    return stories
+  }
   const scale = stories.length / weights.storyCount
   const loads = Array.from({ length: shard.total }, (_, index) =>
     weights.cohostedCosts?.length === shard.total
       ? weights.cohostedCosts[index] * scale
-      : 0,
+      : 0
   )
   const visualLoads = loads.map(() => 0)
   const files = new Map()
   stories.forEach((story, index) => {
-    const file =
-      typeof story === "string"
-        ? story
-        : typeof story === "object" &&
-            story !== null &&
-            "importPath" in story &&
-            typeof story.importPath === "string"
-          ? story.importPath
-          : typeof story === "object" &&
-              story !== null &&
-              "id" in story &&
-              typeof story.id === "string"
-            ? story.id
-            : String(index)
+    let file = String(index)
+    if (typeof story === "string") {
+      file = story
+    } else if (typeof story === "object" && story !== null) {
+      if ("importPath" in story && typeof story.importPath === "string") {
+        file = story.importPath
+      } else if ("id" in story && typeof story.id === "string") {
+        file = story.id
+      }
+    }
     const indexes = files.get(file) ?? []
     indexes.push(index)
     files.set(file, indexes)
@@ -102,16 +100,18 @@ export function shardVisualStories(stories, shard, weights = costs) {
       .filter(
         (index) =>
           !weights.maxVisualCost ||
-          visualLoads[index] + cost <= weights.maxVisualCost * scale,
+          visualLoads[index] + cost <= weights.maxVisualCost * scale
       )
     // A growing suite can exceed the target budget, never the coverage budget.
     const candidates = available.length
       ? available
       : loads.map((_, index) => index)
     const bucket = candidates.reduce((best, index) =>
-      loads[index] < loads[best] ? index : best,
+      loads[index] < loads[best] ? index : best
     )
-    for (const index of indexes) assigned.set(index, bucket)
+    for (const index of indexes) {
+      assigned.set(index, bucket)
+    }
     loads[bucket] += cost
     visualLoads[bucket] += cost
   }
@@ -120,12 +120,14 @@ export function shardVisualStories(stories, shard, weights = costs) {
 
 /** Specs the `mobile` project runs. Every other behavior spec asserts DOM,
  * keyboard or engine semantics that do not change with device emulation, or
- * sizes its own viewport, so Desktop Chrome covers it once. The three here
+ * sizes its own viewport, so Desktop Chrome covers it once. The specs here
  * cannot be covered there:
  * - cascade-select.behavior.spec.ts reads page.viewportSize() without setting
  *   it, so only the phone viewport can make the open column hierarchy overflow.
  * - drawer.behavior.spec.ts drives the snap-point drawer with touch pointer
  *   events; touch dragging is the drawer's mobile interaction contract.
+ * - player.spec.ts covers touch playback gestures, WebKit media seeking and
+ *   caption placement above wrapped controls at the phone viewport.
  * - search-suggestions.spec.ts asserts documentElement.scrollWidth <=
  *   innerWidth for rich results at the project viewport, which only a phone
  *   width can fail.
@@ -135,6 +137,7 @@ export function shardVisualStories(stories, shard, weights = costs) {
 export const MOBILE_VIEWPORT_SPECS = [
   "cascade-select.behavior.spec.ts",
   "drawer.behavior.spec.ts",
+  "player.spec.ts",
   "search-suggestions.spec.ts",
 ]
 
@@ -169,7 +172,9 @@ export function createVisualMatrix(
       )
     }
     const typedBrand = /** @type {VisualBrand} */ (brand)
-    return (brands.length === 1 || brand === "business" ? [false, true] : [false]).flatMap((isMobile) =>
+    return (
+      brands.length === 1 || brand === "business" ? [false, true] : [false]
+    ).flatMap((isMobile) =>
       THEMES[typedBrand].modes.map((colorScheme) => ({
         brand: typedBrand,
         name: `${brand}-${isMobile ? "mobile" : "desktop"}-${colorScheme}`,

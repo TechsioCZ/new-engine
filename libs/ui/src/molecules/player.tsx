@@ -1,0 +1,1258 @@
+/**
+ * Player — @techsio/ui-kit molecule.
+ *
+ * @component Player
+ * @componentVersion v1.4.0
+ * @skill player-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the player-usage skill's component_version and a changelog entry. Bump all three together.
+ */
+import {
+  type CaptionsInstance,
+  Gesture,
+  isTrackCaptionKind,
+  MediaAnnouncer,
+  CaptionButton as MediaCaptionButton,
+  Captions as MediaCaptions,
+  Controls as MediaControls,
+  type MediaErrorDetail,
+  FullscreenButton as MediaFullscreenButton,
+  MuteButton as MediaMuteButton,
+  PIPButton as MediaPictureInPictureButton,
+  PlayButton as MediaPlayButton,
+  MediaPlayer,
+  MediaProvider,
+  SeekButton as MediaSeekButton,
+  Poster,
+  TextTrack,
+  Time,
+  TimeSlider,
+  type TimeSliderInstance,
+  type Track,
+  useCaptionOptions,
+  useChapterOptions,
+  useMediaContext,
+  useMediaPlayer,
+  useMediaState,
+  usePlaybackRateOptions,
+  useSliderState,
+  useVideoQualityOptions,
+  VolumeSlider,
+} from "@vidstack/react"
+import {
+  type ComponentProps,
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
+import { Button } from "../atoms/button"
+import { Icon, type IconType } from "../atoms/icon"
+import { Tooltip } from "../atoms/tooltip"
+import { useComposedRefs } from "../internal/molecules/drawer.context"
+import { OverlayContainerProvider } from "../internal/overlay-portal"
+import { formatPlayerTime } from "../internal/player-time"
+import { useUiMessages } from "../messages/ui-messages-provider"
+import { tv } from "../utils"
+import { Menu, type MenuItem } from "./menu"
+
+const playerStyles = tv({
+  slots: {
+    root: "player-base player-focus-ring relative overflow-hidden rounded-player text-player-fg",
+    poster: "vds-poster",
+    feedback:
+      "player-feedback absolute inset-0 z-player-feedback flex flex-col items-center justify-center gap-player-feedback p-player-feedback text-center text-player-feedback",
+    loadingIcon: "text-player-loading-icon",
+    captions:
+      "vds-captions player-captions pointer-events-none absolute inset-0 z-player-captions",
+    gesture: "player-gesture absolute inset-0",
+    controls: "player-controls w-full",
+    control: "flex min-w-0 items-center gap-player-control",
+    controlGroup: "flex w-full min-w-0 items-center gap-player-control",
+    iconButton:
+      "bg-player-control-bg text-player-control-fg not-disabled:hover:bg-player-control-bg-hover focus-visible:outline-player-focus-ring not-disabled:active:bg-player-control-bg-active aria-hidden:hidden",
+    timeSlider: "vds-time-slider vds-slider min-w-0 flex-1",
+    volumeSlider:
+      "vds-volume-slider vds-slider player-volume-slider aria-hidden:hidden! shrink-0",
+    track: "vds-slider-track",
+    trackFill: "vds-slider-track vds-slider-track-fill",
+    progress: "vds-slider-track vds-slider-progress",
+    thumb: "vds-slider-thumb",
+    time: "shrink-0 font-player-time text-player-time tabular-nums",
+    chapters: "vds-slider-chapters player-chapters",
+    chapter: "vds-slider-chapter",
+    preview:
+      "vds-slider-preview player-preview rounded-player-preview bg-player-preview-bg p-player-preview text-player-preview-fg",
+    thumbnail: "vds-thumbnail vds-slider-thumbnail",
+    previewInfo: "flex w-full items-center justify-between gap-player-preview",
+    chapterTitle: "min-w-0 flex-1 truncate",
+    previewTime: "vds-slider-value shrink-0 text-player-preview",
+  },
+  variants: {
+    padding: {
+      default: { controlGroup: "p-player-control" },
+      none: { controlGroup: "p-0" },
+    },
+  },
+  defaultVariants: {
+    padding: "default",
+  },
+})
+
+const PlayerContext = createContext<{
+  retry: () => void
+  lockSettings: () => () => void
+} | null>(null)
+
+function usePlayerContext() {
+  const context = useContext(PlayerContext)
+  if (!context) {
+    throw new Error("Player components must be used within Player.Root")
+  }
+  return context
+}
+
+export type PlayerTextTrack = ComponentProps<typeof Track> & { id: string }
+export type PlayerErrorContentProps = {
+  error: MediaErrorDetail
+  retry: () => void
+}
+export type PlayerPresetSlots = {
+  loading?: ReactNode
+  error?: ReactNode | ((props: PlayerErrorContentProps) => ReactNode)
+  controls?: ReactNode
+  overlay?: ReactNode
+}
+export type PlayerProps = ComponentProps<typeof MediaPlayer>
+export type PlayerControlsProps = ComponentProps<typeof MediaControls.Root> & {
+  /** Reserve the toolbar's measured height above a bottom video overlay. */
+  reserveCaptionSpace?: boolean
+}
+export type PlayerControlProps = ComponentProps<"div">
+export type PlayerControlGroupProps = ComponentProps<
+  typeof MediaControls.Group
+> & {
+  padding?: "default" | "none"
+}
+export type PlayerPlayButtonProps = Omit<
+  ComponentProps<typeof MediaPlayButton>,
+  "asChild" | "children"
+> & {
+  icon?: IconType
+  pauseIcon?: IconType
+}
+export type PlayerMuteButtonProps = Omit<
+  ComponentProps<typeof MediaMuteButton>,
+  "asChild" | "children"
+> & {
+  icon?: IconType
+  mutedIcon?: IconType
+  lowVolumeIcon?: IconType
+}
+export type PlayerFullscreenButtonProps = Omit<
+  ComponentProps<typeof MediaFullscreenButton>,
+  "asChild" | "children"
+> & {
+  icon?: IconType
+  exitIcon?: IconType
+}
+export type PlayerPictureInPictureButtonProps = Omit<
+  ComponentProps<typeof MediaPictureInPictureButton>,
+  "asChild" | "children"
+> & {
+  icon?: IconType
+  exitIcon?: IconType
+}
+export type PlayerSeekButtonProps = Omit<
+  ComponentProps<typeof MediaSeekButton>,
+  "asChild" | "children" | "seconds"
+> & {
+  direction: "forward" | "backward"
+  seconds?: number
+  icon?: IconType
+  children?: ReactNode
+}
+export type PlayerTimeSliderProps = Omit<
+  ComponentProps<typeof TimeSlider.Root>,
+  "asChild" | "children" | "orientation"
+> & {
+  thumbnails?: ComponentProps<typeof TimeSlider.Thumbnail.Root>["src"]
+  chapters?: boolean
+}
+export type PlayerVolumeSliderProps = Omit<
+  ComponentProps<typeof VolumeSlider.Root>,
+  "asChild" | "children" | "orientation"
+>
+export type PlayerSettingsMenuProps = {
+  icon?: IconType
+  className?: string
+  "aria-label"?: string
+}
+
+function SettingsTrigger(props: ActionIconProps) {
+  return (
+    <Tooltip content={props["aria-label"]}>
+      <ActionIcon {...props} />
+    </Tooltip>
+  )
+}
+
+export function Player({
+  children,
+  className,
+  "aria-label": ariaLabel,
+  ariaLabel: mediaLabel,
+  ...props
+}: PlayerProps) {
+  const messages = useUiMessages().player
+  const [attempt, setAttempt] = useState(0)
+  const [activeSettings, setActiveSettings] = useState(0)
+  const context = useMemo(
+    () => ({
+      retry: () => setAttempt((value) => value + 1),
+      lockSettings: () => {
+        setActiveSettings((value) => value + 1)
+        return () => setActiveSettings((value) => value - 1)
+      },
+    }),
+    []
+  )
+  const label = ariaLabel ?? mediaLabel ?? props.title ?? messages.label
+  return (
+    <PlayerContext.Provider value={context}>
+      <MediaPlayer
+        {...props}
+        aria-label={label}
+        ariaLabel={label}
+        className={playerStyles().root({ className })}
+        key={attempt}
+        keyDisabled={props.keyDisabled || activeSettings > 0}
+      >
+        <PlayerOverlays settingsActive={activeSettings > 0}>
+          {children}
+        </PlayerOverlays>
+      </MediaPlayer>
+    </PlayerContext.Provider>
+  )
+}
+
+function PlayerOverlays({
+  children,
+  settingsActive,
+}: {
+  children: ReactNode
+  settingsActive: boolean
+}) {
+  const player = useMediaPlayer()
+  const fullscreen = useMediaState("fullscreen")
+  useEffect(() => {
+    if (!(settingsActive && player)) {
+      return
+    }
+    const canIdle = player.controls.canIdle
+    player.controls.show()
+    player.controls.canIdle = false
+    return () => {
+      player.controls.canIdle = canIdle
+      if (canIdle && !player.state.paused) {
+        player.controls.hide()
+      }
+    }
+  }, [player, settingsActive])
+  return (
+    <OverlayContainerProvider
+      container={fullscreen ? (player?.el ?? null) : null}
+      modal={false}
+    >
+      {children}
+    </OverlayContainerProvider>
+  )
+}
+
+function createTrackSelection(
+  media: NonNullable<ReturnType<typeof useMediaContext>>
+) {
+  const registered = new Set<TextTrack>()
+  const selection = {
+    definitions: [] as readonly PlayerTextTrack[],
+    enabled: null as boolean | null,
+    language: null as string | null,
+    selected: null as TextTrack | null,
+    ready: false,
+    changing: false,
+    revision: 0,
+    select() {
+      if (!selection.ready || selection.enabled === false) {
+        return
+      }
+      const current = media.textTracks.selected
+      if (current && !registered.has(current)) {
+        return
+      }
+      const candidates = selection.definitions.filter(
+        (track) => track.kind === "captions" || track.kind === "subtitles"
+      )
+      const desired =
+        candidates.find(
+          (track) =>
+            selection.language &&
+            (track.language ?? track.lang) === selection.language
+        ) ??
+        candidates.find((track) => track.default) ??
+        (selection.enabled ? candidates[0] : undefined)
+      // Wait for the declared preferred/default track, regardless of parse order.
+      const nextTrack = [...registered].find((item) => item.id === desired?.id)
+      if (!nextTrack || nextTrack === current) {
+        return
+      }
+      selection.changing = true
+      nextTrack.mode = "showing"
+      selection.changing = false
+      selection.selected = nextTrack
+      selection.enabled = true
+      selection.language = nextTrack.language
+    },
+    add(track: TextTrack) {
+      registered.add(track)
+      media.textTracks.add(track)
+      selection.select()
+    },
+    remove(track: TextTrack) {
+      selection.changing = true
+      media.textTracks.remove(track)
+      selection.changing = false
+      registered.delete(track)
+      if (selection.selected === track) {
+        selection.selected = null
+      }
+    },
+    modeChanged(track: TextTrack) {
+      if (selection.changing || !isTrackCaptionKind(track)) {
+        return
+      }
+      if (track.mode === "showing") {
+        selection.enabled = true
+        selection.language = track.language
+        selection.selected = track
+      } else if (selection.selected === track) {
+        selection.enabled = false
+        selection.selected = null
+      } else {
+        return
+      }
+      selection.revision += 1
+    },
+  }
+  return selection
+}
+
+const TrackSelectionContext = createContext<ReturnType<
+  typeof createTrackSelection
+> | null>(null)
+
+function PlayerTrack({
+  id,
+  src,
+  content,
+  type,
+  kind,
+  label,
+  default: isDefault,
+  language,
+  lang,
+  encoding,
+}: PlayerTextTrack) {
+  const player = useMediaPlayer()
+  const selection = useContext(TrackSelectionContext)
+  const attachedTrack = useRef<TextTrack | null>(null)
+  useEffect(
+    () => () => {
+      if (attachedTrack.current && selection) {
+        selection.remove(attachedTrack.current)
+        attachedTrack.current = null
+      }
+    },
+    [selection]
+  )
+  useEffect(() => {
+    if (!(player && selection)) {
+      return
+    }
+    // Vidstack 1.15 marks an attached inline track ready before its async parse
+    // finishes. Register it after parsing so renderers receive populated cues.
+    const track = new TextTrack({
+      id,
+      src,
+      content,
+      type,
+      kind,
+      label,
+      // Caption defaults are selected by the provider. Vidstack 1.15 cannot
+      // remove subtitle defaults reliably from its internal default registry.
+      default: kind === "captions" || kind === "subtitles" ? false : isDefault,
+      language: language ?? lang,
+      encoding,
+    })
+    let attached = false
+    const attach = () => {
+      if (attached || (content && track.readyState !== 2)) {
+        return
+      }
+      attached = true
+      const previousTrack = attachedTrack.current
+      if (previousTrack) {
+        selection.remove(previousTrack)
+      }
+      selection.add(track)
+      attachedTrack.current = track
+    }
+    track.addEventListener("load", attach)
+    if (!content || track.readyState === 2) {
+      attach()
+    }
+    return () => {
+      track.removeEventListener("load", attach)
+    }
+  }, [
+    player,
+    selection,
+    id,
+    src,
+    content,
+    type,
+    kind,
+    label,
+    isDefault,
+    language,
+    lang,
+    encoding,
+  ])
+  return null
+}
+
+Player.Provider = function PlayerProvider({
+  tracks,
+  children,
+  ...props
+}: ComponentProps<typeof MediaProvider> & {
+  tracks?: readonly PlayerTextTrack[]
+}) {
+  usePlayerContext()
+  const media = useMediaContext()
+  const canLoad = useMediaState("canLoad")
+  const selection = useMemo(
+    () => (media ? createTrackSelection(media) : null),
+    [media]
+  )
+  useEffect(() => {
+    if (!(media && selection)) {
+      return
+    }
+    const onModeChange = (event: { detail: TextTrack }) => {
+      selection.modeChanged(event.detail)
+      if (
+        isTrackCaptionKind(event.detail) &&
+        event.detail.mode === "disabled" &&
+        media.textTracks.selected
+      ) {
+        // Vidstack 1.15 saves "off" when disabling the previous language,
+        // even though the newly selected captions are already showing.
+        media.storage?.setCaptions?.(true)
+      }
+    }
+    media.textTracks.addEventListener("mode-change", onModeChange)
+    return () => {
+      media.textTracks.removeEventListener("mode-change", onModeChange)
+    }
+  }, [media, selection])
+  useEffect(() => {
+    if (!selection) {
+      return
+    }
+    selection.definitions = tracks ?? []
+    selection.select()
+  }, [selection, tracks])
+  useEffect(() => {
+    if (!(media && selection && canLoad)) {
+      return
+    }
+    let cancelled = false
+    const revision = selection.revision
+    Promise.allSettled([
+      media.storage?.getCaptions(),
+      media.storage?.getLang(),
+    ]).then(([enabled, language]) => {
+      if (cancelled) {
+        return
+      }
+      if (selection.revision === revision) {
+        selection.enabled =
+          (enabled.status === "fulfilled" ? enabled.value : null) ??
+          selection.enabled
+        selection.language =
+          (language.status === "fulfilled" ? language.value : null) ??
+          selection.language
+      }
+      selection.ready = true
+      selection.select()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [canLoad, media, selection])
+  return (
+    <MediaProvider {...props}>
+      <TrackSelectionContext.Provider value={selection}>
+        {tracks?.map((track) => (
+          <PlayerTrack {...track} key={track.id} />
+        ))}
+      </TrackSelectionContext.Provider>
+      {children}
+    </MediaProvider>
+  )
+}
+
+Player.Controls = function PlayerControls({
+  className,
+  ref,
+  reserveCaptionSpace = false,
+  ...props
+}: PlayerControlsProps) {
+  usePlayerContext()
+  const player = useMediaPlayer()
+  const [element, setElement] = useState<HTMLElement | null>(null)
+  const controlsRef = useComposedRefs(ref, setElement)
+  useEffect(() => {
+    const root = player?.el
+    if (!(reserveCaptionSpace && element && root)) {
+      return
+    }
+    const update = () => {
+      root.style.setProperty(
+        "--player-controls-height",
+        `${element.offsetHeight}px`
+      )
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty("--player-controls-height")
+    }
+  }, [element, player, reserveCaptionSpace])
+  return (
+    <MediaControls.Root
+      {...props}
+      className={playerStyles().controls({ className })}
+      ref={controlsRef}
+    />
+  )
+}
+
+Player.Poster = function PlayerPoster({
+  alt = "",
+  className,
+  "aria-hidden": ariaHidden,
+  ...props
+}: ComponentProps<typeof Poster>) {
+  usePlayerContext()
+  return (
+    <Poster
+      {...props}
+      alt={alt}
+      aria-hidden={ariaHidden ?? (alt === "" ? true : undefined)}
+      className={playerStyles().poster({ className })}
+    />
+  )
+}
+
+Player.PlayButton = function PlayerPlayButton({
+  icon = "token-icon-player-play",
+  pauseIcon = "token-icon-player-pause",
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: PlayerPlayButtonProps) {
+  usePlayerContext()
+  const paused = useMediaState("paused")
+  const messages = useUiMessages().player
+  const label = ariaLabel ?? (paused ? messages.play : messages.pause)
+  return (
+    <Tooltip content={label}>
+      <MediaPlayButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={paused ? icon : pauseIcon}
+          size="lg"
+          type="button"
+        />
+      </MediaPlayButton>
+    </Tooltip>
+  )
+}
+
+Player.MuteButton = function PlayerMuteButton({
+  icon = "token-icon-player-volume-high",
+  mutedIcon = "token-icon-player-mute",
+  lowVolumeIcon = "token-icon-player-volume-low",
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: PlayerMuteButtonProps) {
+  usePlayerContext()
+  const muted = useMediaState("muted")
+  const volume = useMediaState("volume")
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ?? (muted || volume === 0 ? messages.unmute : messages.mute)
+  const volumeIcon = volume >= 0.5 ? icon : lowVolumeIcon
+  const resolvedIcon = muted || volume === 0 ? mutedIcon : volumeIcon
+  return (
+    <Tooltip content={label}>
+      <MediaMuteButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={resolvedIcon}
+          size="lg"
+          type="button"
+        />
+      </MediaMuteButton>
+    </Tooltip>
+  )
+}
+
+Player.SettingsMenu = function PlayerSettingsMenu({
+  icon = "token-icon-player-settings",
+  className,
+  "aria-label": ariaLabel,
+}: PlayerSettingsMenuProps) {
+  const { lockSettings } = usePlayerContext()
+  const { player: messages, locale } = useUiMessages()
+  const captions = useCaptionOptions()
+  const speeds = usePlaybackRateOptions({ normalLabel: messages.normalSpeed })
+  const qualities = useVideoQualityOptions()
+  const chapters = useChapterOptions()
+  const [open, setOpen] = useState(false)
+  const [triggerFocused, setTriggerFocused] = useState(false)
+  const interacting = open || triggerFocused
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale])
+  useEffect(() => {
+    if (!interacting) {
+      return
+    }
+    // Zag focuses the menu container; its arrow keys must not seek the video.
+    return lockSettings()
+  }, [interacting, lockSettings])
+  const items: MenuItem[] = [
+    {
+      type: "submenu",
+      value: "speed",
+      label: messages.playbackSpeed,
+      disabled: speeds.disabled,
+      items: speeds.map((option) => ({
+        type: "radio",
+        name: "speed",
+        value: `speed:${option.value}`,
+        label:
+          option.rate === 1
+            ? messages.normalSpeed
+            : `${numberFormat.format(option.rate)}×`,
+        checked: option.selected,
+      })),
+    },
+  ]
+  if (!captions.disabled) {
+    items.push({
+      type: "submenu",
+      value: "subtitles",
+      label: messages.subtitles,
+      items: captions.map((option) => ({
+        type: "radio",
+        name: "subtitles",
+        value: `subtitles:${option.value}`,
+        label: option.track ? option.label : messages.subtitlesOff,
+        checked: option.selected,
+      })),
+    })
+  }
+  if (!qualities.disabled) {
+    items.push({
+      type: "submenu",
+      value: "quality",
+      label: messages.videoQuality,
+      items: qualities.map((option) => ({
+        type: "radio",
+        name: "quality",
+        value: `quality:${option.value}`,
+        label: option.quality ? option.label : messages.autoQuality,
+        checked: qualities.selectedValue === option.value,
+      })),
+    })
+  }
+  if (chapters.length) {
+    items.push({
+      type: "submenu",
+      value: "chapters",
+      label: messages.chapters,
+      items: chapters.map((option) => ({
+        type: "action",
+        value: `chapter:${option.value}`,
+        label: option.label,
+      })),
+    })
+  }
+  const label = ariaLabel ?? messages.settings
+  return (
+    <Menu
+      aria-label={label}
+      customTrigger={
+        <SettingsTrigger
+          aria-label={label}
+          className={playerStyles().iconButton({ className })}
+          icon={icon}
+          onBlur={() => setTriggerFocused(false)}
+          onFocus={() => setTriggerFocused(true)}
+          size="lg"
+          type="button"
+        />
+      }
+      items={items}
+      onCheckedChange={(item, checked) => {
+        if (!(checked && item.type === "radio")) {
+          return
+        }
+        if (item.name === "quality") {
+          const option = qualities.find(
+            (entry) => `quality:${entry.value}` === item.value
+          )
+          if (option && qualities.selectedValue !== option.value) {
+            // The pinned SDK skips its provider change event when selecting
+            // the active rendition from Auto. Reselect through the public
+            // property so the engine also leaves adaptive mode.
+            if (
+              qualities.selectedValue === "auto" &&
+              option.quality?.selected
+            ) {
+              option.quality.selected = false
+            }
+            option.select()
+          }
+          return
+        }
+        const options = item.name === "speed" ? speeds : captions
+        const option = options.find(
+          (entry) => `${item.name}:${entry.value}` === item.value
+        )
+        if (option && !option.selected) {
+          option.select()
+        }
+      }}
+      onOpenChange={(details) => setOpen(details.open)}
+      onSelect={({ value }) => {
+        chapters.find((option) => `chapter:${option.value}` === value)?.select()
+      }}
+      positioning={{ placement: "top-end" }}
+    />
+  )
+}
+
+Player.TimeSlider = function PlayerTimeSlider({
+  className,
+  ref,
+  thumbnails,
+  chapters = false,
+  "aria-label": ariaLabel,
+  "aria-valuetext": ariaValueText,
+  ...props
+}: PlayerTimeSliderProps) {
+  usePlayerContext()
+  const styles = playerStyles()
+  const { player: messages, locale } = useUiMessages()
+  const duration = useMediaState("duration")
+  const [slider, setSlider] = useState<TimeSliderInstance | null>(null)
+  const sliderRef = useMemo(() => ({ current: slider }), [slider])
+  const composedRef = useComposedRefs(ref, setSlider)
+  const value = useSliderState("value", sliderRef)
+  const time = (value / 100) * duration
+  const valueText = Number.isFinite(time)
+    ? messages.timeValueText({
+        currentTime: formatPlayerTime(time, locale),
+        duration: formatPlayerTime(duration, locale),
+      })
+    : messages.live
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Reapply after every SDK value write, even when formatted whole seconds stay equal.
+  useEffect(() => {
+    // The SDK attaches attributes after its React ref is assigned. Apply the
+    // localized value once that first attachment has completed as well.
+    const frame = requestAnimationFrame(() => {
+      slider?.el?.setAttribute("aria-valuetext", ariaValueText ?? valueText)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [slider, value, valueText, ariaValueText])
+  return (
+    <TimeSlider.Root
+      {...props}
+      aria-label={ariaLabel ?? messages.seek}
+      aria-valuetext={ariaValueText ?? valueText}
+      className={styles.timeSlider({ className })}
+      ref={composedRef}
+    >
+      {chapters ? (
+        <TimeSlider.Chapters className={styles.chapters()}>
+          {(cues, chapterRef) =>
+            cues.map((cue) => (
+              <div
+                className={styles.chapter()}
+                key={cue.startTime}
+                ref={chapterRef}
+              >
+                <TimeSlider.Track className={styles.track()}>
+                  <TimeSlider.TrackFill className={styles.trackFill()} />
+                  <TimeSlider.Progress className={styles.progress()} />
+                </TimeSlider.Track>
+              </div>
+            ))
+          }
+        </TimeSlider.Chapters>
+      ) : (
+        <TimeSlider.Track className={styles.track()}>
+          <TimeSlider.TrackFill className={styles.trackFill()} />
+          <TimeSlider.Progress className={styles.progress()} />
+        </TimeSlider.Track>
+      )}
+      <TimeSlider.Thumb className={styles.thumb()} />
+      {thumbnails || chapters ? (
+        <TimeSlider.Preview className={styles.preview()}>
+          {thumbnails ? (
+            <TimeSlider.Thumbnail.Root
+              className={styles.thumbnail()}
+              src={thumbnails}
+            >
+              <TimeSlider.Thumbnail.Img alt="" />
+            </TimeSlider.Thumbnail.Root>
+          ) : null}
+          <div className={styles.previewInfo()}>
+            {chapters ? (
+              <TimeSlider.ChapterTitle className={styles.chapterTitle()} />
+            ) : null}
+            <TimeSlider.Value className={styles.previewTime()} format="time" />
+          </div>
+        </TimeSlider.Preview>
+      ) : null}
+    </TimeSlider.Root>
+  )
+}
+
+Player.VolumeSlider = function PlayerVolumeSlider({
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: PlayerVolumeSliderProps) {
+  usePlayerContext()
+  const styles = playerStyles()
+  const messages = useUiMessages().player
+  return (
+    <VolumeSlider.Root
+      {...props}
+      aria-label={ariaLabel ?? messages.volume}
+      className={styles.volumeSlider({ className })}
+    >
+      <VolumeSlider.Track className={styles.track()}>
+        <VolumeSlider.TrackFill className={styles.trackFill()} />
+      </VolumeSlider.Track>
+      <VolumeSlider.Thumb className={styles.thumb()} />
+    </VolumeSlider.Root>
+  )
+}
+
+Player.Time = function PlayerTime({
+  className,
+  ...props
+}: ComponentProps<typeof Time>) {
+  usePlayerContext()
+  return <Time {...props} className={playerStyles().time({ className })} />
+}
+
+Player.FullscreenButton = function PlayerFullscreenButton({
+  icon = "token-icon-player-fullscreen",
+  exitIcon = "token-icon-player-fullscreen-exit",
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: PlayerFullscreenButtonProps) {
+  usePlayerContext()
+  const fullscreen = useMediaState("fullscreen")
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ??
+    (fullscreen ? messages.exitFullscreen : messages.enterFullscreen)
+  return (
+    <Tooltip content={label}>
+      <MediaFullscreenButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={fullscreen ? exitIcon : icon}
+          size="lg"
+          type="button"
+        />
+      </MediaFullscreenButton>
+    </Tooltip>
+  )
+}
+
+Player.PictureInPictureButton = function PlayerPictureInPictureButton({
+  icon = "token-icon-player-picture-in-picture",
+  exitIcon = "token-icon-player-picture-in-picture-exit",
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: PlayerPictureInPictureButtonProps) {
+  usePlayerContext()
+  const active = useMediaState("pictureInPicture")
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ??
+    (active ? messages.exitPictureInPicture : messages.enterPictureInPicture)
+  return (
+    <Tooltip content={label}>
+      <MediaPictureInPictureButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={active ? exitIcon : icon}
+          size="lg"
+          type="button"
+        />
+      </MediaPictureInPictureButton>
+    </Tooltip>
+  )
+}
+
+Player.SeekButton = function PlayerSeekButton({
+  direction,
+  seconds = 10,
+  icon,
+  children,
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: PlayerSeekButtonProps) {
+  usePlayerContext()
+  const messages = useUiMessages().player
+  const label =
+    ariaLabel ??
+    (direction === "forward"
+      ? messages.seekForward(seconds)
+      : messages.seekBackward(seconds))
+  return (
+    <Tooltip content={label}>
+      <MediaSeekButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+        seconds={direction === "forward" ? seconds : -seconds}
+      >
+        {children === undefined ? (
+          <ActionIcon
+            aria-label={label}
+            icon={
+              icon ??
+              (direction === "forward"
+                ? "token-icon-player-seek-forward"
+                : "token-icon-player-seek-backward")
+            }
+            size="lg"
+            type="button"
+          />
+        ) : (
+          <Button
+            aria-label={label}
+            composition
+            size="current"
+            type="button"
+            unstyled
+          >
+            {children}
+          </Button>
+        )}
+      </MediaSeekButton>
+    </Tooltip>
+  )
+}
+
+Player.Control = function PlayerControl({
+  className,
+  ...props
+}: PlayerControlProps) {
+  usePlayerContext()
+  return <div {...props} className={playerStyles().control({ className })} />
+}
+
+Player.ControlGroup = function PlayerControlGroup({
+  className,
+  padding = "default",
+  ...props
+}: PlayerControlGroupProps) {
+  usePlayerContext()
+  return (
+    <MediaControls.Group
+      {...props}
+      className={playerStyles({ padding }).controlGroup({ className })}
+    />
+  )
+}
+
+Player.Loading = function PlayerLoading({
+  children,
+  className,
+  ...props
+}: ComponentProps<"div">) {
+  usePlayerContext()
+  const canLoad = useMediaState("canLoad")
+  const canPlay = useMediaState("canPlay")
+  const waiting = useMediaState("waiting")
+  const preload = useMediaState("preload")
+  const error = useMediaState("error")
+  const messages = useUiMessages().player
+  if (!canLoad || (!waiting && (canPlay || preload === "none")) || error) {
+    return null
+  }
+  return (
+    <div
+      {...props}
+      className={playerStyles().feedback({ className })}
+      role="status"
+    >
+      {children ?? (
+        <>
+          <Icon
+            className={playerStyles().loadingIcon()}
+            icon="token-icon-loading"
+            size="current"
+          />
+          <span>{messages.loading}</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+Player.Error = function PlayerError({
+  children,
+  className,
+  ...props
+}: Omit<ComponentProps<"div">, "children"> & {
+  children?: PlayerPresetSlots["error"]
+}) {
+  const { retry } = usePlayerContext()
+  const error = useMediaState("error")
+  const messages = useUiMessages().player
+  const player = useMediaPlayer()
+  useEffect(() => {
+    // A failed source cannot reach can-play, where Vidstack normally clears busy.
+    if (error) {
+      player?.el?.setAttribute("aria-busy", "false")
+    }
+  }, [error, player])
+  if (!error) {
+    return null
+  }
+  return (
+    <div
+      {...props}
+      className={playerStyles().feedback({ className })}
+      role="alert"
+    >
+      {typeof children === "function"
+        ? children({ error, retry })
+        : (children ?? (
+            <>
+              <span>{messages.error}</span>
+              <Button onClick={retry} type="button">
+                {messages.retry}
+              </Button>
+            </>
+          ))}
+    </div>
+  )
+}
+
+Player.Captions = function PlayerCaptions({
+  className,
+  ref,
+  ...props
+}: ComponentProps<typeof MediaCaptions>) {
+  usePlayerContext()
+  const hasCaptions = useMediaState("hasCaptions")
+  const viewType = useMediaState("viewType")
+  const [instance, setInstance] = useState<CaptionsInstance | null>(null)
+  const [layout, setLayout] = useState(0)
+  const viewport = useRef("")
+  const captionsRef = useComposedRefs(ref, setInstance)
+  useEffect(() => {
+    const element = instance?.el
+    if (!(element && hasCaptions && viewType === "video")) {
+      viewport.current = ""
+      return
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) {
+        return
+      }
+      const size = `${entry.contentRect.width}:${entry.contentRect.height}`
+      if (viewport.current === size) {
+        return
+      }
+      viewport.current = size
+      // The pinned renderer reuses cue coordinates after resizing. A fresh
+      // instance measures them against the actual reserved caption viewport.
+      setLayout((value) => value + 1)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [hasCaptions, instance, viewType])
+  return (
+    <MediaCaptions
+      {...props}
+      className={playerStyles().captions({ className })}
+      data-available={hasCaptions ? "" : undefined}
+      key={layout}
+      ref={captionsRef}
+    />
+  )
+}
+
+Player.CaptionButton = function PlayerCaptionButton({
+  className,
+  "aria-label": ariaLabel,
+  ...props
+}: Omit<ComponentProps<typeof MediaCaptionButton>, "asChild" | "children">) {
+  usePlayerContext()
+  const hasCaptions = useMediaState("hasCaptions")
+  const textTrack = useMediaState("textTrack")
+  const messages = useUiMessages().player
+  if (!hasCaptions) {
+    return null
+  }
+  const captionsOn = textTrack !== null && isTrackCaptionKind(textTrack)
+  const label =
+    ariaLabel ??
+    (captionsOn ? messages.disableCaptions : messages.enableCaptions)
+  return (
+    <Tooltip content={label}>
+      <MediaCaptionButton
+        {...props}
+        aria-label={label}
+        asChild
+        className={playerStyles().iconButton({ className })}
+      >
+        <ActionIcon
+          aria-label={label}
+          icon={
+            captionsOn
+              ? "token-icon-player-captions"
+              : "token-icon-player-captions-off"
+          }
+          size="lg"
+          type="button"
+        />
+      </MediaCaptionButton>
+    </Tooltip>
+  )
+}
+
+Player.Gestures = function PlayerGestures() {
+  usePlayerContext()
+  return (
+    <Gesture
+      action="toggle:paused"
+      className={playerStyles().gesture()}
+      event="pointerup"
+    />
+  )
+}
+
+Player.Announcer = function PlayerAnnouncer({
+  ref,
+  onChange,
+  translations,
+  ...props
+}: ComponentProps<typeof MediaAnnouncer>) {
+  usePlayerContext()
+  const { player: messages, locale } = useUiMessages()
+  const player = useMediaPlayer()
+  const [element, setElement] = useState<HTMLElement | null>(null)
+  const composedRef = useComposedRefs(ref, setElement)
+  const forward =
+    translations?.["Seek Forward"] ?? messages.seekForwardAnnouncement
+  const backward =
+    translations?.["Seek Backward"] ?? messages.seekBackwardAnnouncement
+  return (
+    <MediaAnnouncer
+      {...props}
+      onChange={(detail, event) => {
+        // The SDK's seek announcement appends fixed English duration units.
+        const direction = [forward, backward].find(
+          (prefix) => prefix && detail.startsWith(`${prefix} `)
+        )
+        if (direction && element && player) {
+          const { currentTime, duration } = player.state
+          const position = Number.isFinite(duration)
+            ? messages.timeValueText({
+                currentTime: formatPlayerTime(currentTime, locale),
+                duration: formatPlayerTime(duration, locale),
+              })
+            : messages.live
+          element.setAttribute("aria-label", `${direction}: ${position}`)
+        }
+        onChange?.(detail, event)
+      }}
+      ref={composedRef}
+      translations={{
+        Play: messages.play,
+        Pause: messages.pause,
+        Mute: messages.mute,
+        Volume: messages.volume,
+        "Enter Fullscreen": messages.enterFullscreen,
+        "Exit Fullscreen": messages.exitFullscreen,
+        "Seek Forward": messages.seekForwardAnnouncement,
+        "Seek Backward": messages.seekBackwardAnnouncement,
+        "Enter PiP": messages.enterPictureInPicture,
+        "Exit PiP": messages.exitPictureInPicture,
+        "Closed-Captions On": messages.enableCaptions,
+        "Closed-Captions Off": messages.disableCaptions,
+        ...translations,
+      }}
+    />
+  )
+}
+
+Player.Root = Player
+Player.displayName = "Player"

@@ -300,6 +300,9 @@ function ComponentComparison() {
           <h2 className="font-semibold text-md">Companion checks</h2>
           <p className="text-fg-secondary text-sm">Use the toolbar to check Business/light, Akros/light and N1/light on each linked story. These focused stories cover the families intentionally omitted from this compact overview.</p>
           <ul className="grid gap-100 sm:grid-cols-2">
+            <li><Link href="./?path=/story/molecules-player--playground" target="_top">Player</Link> — custom media controls</li>
+            <li><Link href="./?path=/story/molecules-audioplayer--with-title-and-cover" target="_top">AudioPlayer</Link> — audio playback with title and cover</li>
+            <li><Link href="./?path=/story/molecules-videoplayer--playground" target="_top">VideoPlayer</Link> — video playback and fullscreen</li>
             <li><Link href="./?path=/story/overview-component-comparison--nested-form-popup" target="_top">Dialog with an editable popup</Link> — popup surface and Escape order</li>
             <li><Link href="./?path=/story/atoms-linkbutton--playground" target="_top">LinkButton</Link> — link focus and disabled state</li>
             <li><Link href="./?path=/story/molecules-priceblock--playground" target="_top">PriceBlock</Link> — price and currency</li>

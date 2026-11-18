@@ -71,6 +71,9 @@ Hierarchical choice -> cascade-select-usage
 Nested site/category links -> vertical-navigation-usage
 Tree widget with arrow-key selection -> tree-view-usage
 Loading placeholder -> skeleton-usage
+Custom audio or video controls -> player-usage
+Ready-made audio player -> audio-player-usage
+Ready-made video player -> video-player-usage
 Catalog search navigation -> search-suggestions-usage
 Catalog facet filtering -> facet-filter-panel-usage
 Cart/order product row -> line-item-usage

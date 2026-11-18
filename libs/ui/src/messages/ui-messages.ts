@@ -144,6 +144,38 @@ export type UiMessages = {
   numericInput: { translations?: Partial<NumberInputIntlTranslations> }
   accordion: Record<never, never>
   carousel: { translations?: Partial<CarouselIntlTranslations> }
+  player: {
+    label: string
+    play: string
+    pause: string
+    mute: string
+    unmute: string
+    enterFullscreen: string
+    exitFullscreen: string
+    seekForwardAnnouncement: string
+    seekBackwardAnnouncement: string
+    enterPictureInPicture: string
+    exitPictureInPicture: string
+    loading: string
+    error: string
+    retry: string
+    enableCaptions: string
+    disableCaptions: string
+    settings: string
+    playbackSpeed: string
+    normalSpeed: string
+    subtitles: string
+    subtitlesOff: string
+    videoQuality: string
+    autoQuality: string
+    chapters: string
+    seekForward: (seconds: number) => string
+    seekBackward: (seconds: number) => string
+    seek: string
+    timeValueText: (info: { currentTime: string; duration: string }) => string
+    live: string
+    volume: string
+  }
   cascadeSelect: {
     placeholder: string
     clear: string
@@ -310,6 +342,39 @@ export const enUiMessages: UiMessages = {
   numericInput: {},
   accordion: {},
   carousel: {},
+  player: {
+    label: "Media player",
+    play: "Play",
+    pause: "Pause",
+    mute: "Mute",
+    unmute: "Unmute",
+    enterFullscreen: "Enter Fullscreen",
+    exitFullscreen: "Exit Fullscreen",
+    seekForwardAnnouncement: "Seek forward",
+    seekBackwardAnnouncement: "Seek backward",
+    enterPictureInPicture: "Enter picture-in-picture",
+    exitPictureInPicture: "Exit picture-in-picture",
+    loading: "Loading media...",
+    error: "This media could not be loaded.",
+    retry: "Try again",
+    enableCaptions: "Enable captions",
+    disableCaptions: "Disable captions",
+    settings: "Playback settings",
+    playbackSpeed: "Playback speed",
+    normalSpeed: "Normal",
+    subtitles: "Subtitles",
+    subtitlesOff: "Off",
+    videoQuality: "Video quality",
+    autoQuality: "Auto",
+    chapters: "Chapters",
+    seekForward: (seconds) => `Seek forward ${seconds} seconds`,
+    seekBackward: (seconds) => `Seek backward ${seconds} seconds`,
+    seek: "Seek",
+    timeValueText: ({ currentTime, duration }) =>
+      `${currentTime} out of ${duration}`,
+    live: "Live",
+    volume: "Volume",
+  },
   cascadeSelect: {
     placeholder: "Select an option",
     clear: "Clear selection",

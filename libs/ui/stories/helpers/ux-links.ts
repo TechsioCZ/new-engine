@@ -23,6 +23,7 @@ export const UX_TOPIC_TITLES: Record<string, string> = {
 export const UX_COMPONENT_TITLES: Record<string, string> = {
   accordion: "Molecules/Accordion",
   "action-icon": "Atoms/ActionIcon",
+  "audio-player": "Molecules/AudioPlayer",
   "availability-status": "Molecules/AvailabilityStatus",
   badge: "Atoms/Badge",
   breadcrumb: "Molecules/Breadcrumb",
@@ -60,6 +61,7 @@ export const UX_COMPONENT_TITLES: Record<string, string> = {
   "numeric-input": "Atoms/NumericInput",
   pagination: "Molecules/Pagination",
   "phone-input": "Molecules/PhoneInput",
+  player: "Molecules/Player",
   popover: "Molecules/Popover",
   "price-block": "Molecules/PriceBlock",
   "product-card": "Molecules/ProductCard",
@@ -85,6 +87,7 @@ export const UX_COMPONENT_TITLES: Record<string, string> = {
   tour: "Molecules/Tour",
   "tree-view": "Molecules/TreeView",
   "vertical-navigation": "Molecules/VerticalNavigation",
+  "video-player": "Molecules/VideoPlayer",
 }
 
 const NON_ID_CHARACTERS = /[^a-z0-9]+/g

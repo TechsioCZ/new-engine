@@ -31,13 +31,15 @@ export function useActiveModalContainer() {
 export function OverlayContainerProvider({
   container,
   children,
+  modal = true,
 }: {
   container: HTMLElement | null
   children: ReactNode
+  modal?: boolean
 }) {
   const inheritedContainer = useContext(OverlayContainerContext)
   useLayoutEffect(() => {
-    if (!container) {
+    if (!(container && modal)) {
       return
     }
     modalContainers.push(container)
@@ -53,7 +55,7 @@ export function OverlayContainerProvider({
         listener()
       }
     }
-  }, [container])
+  }, [container, modal])
   return (
     <OverlayContainerContext.Provider value={container ?? inheritedContainer}>
       {children}

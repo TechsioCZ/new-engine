@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import type { StorybookConfig } from 'storybook-react-rsbuild'
 
 const config: StorybookConfig = {
+  staticDirs: [{ from: '../stories/assets/player-media', to: '/player-media' }],
   stories: [
     './getting-started.mdx',
     '../stories/**/*.mdx',

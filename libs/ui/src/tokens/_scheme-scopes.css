@@ -567,6 +567,27 @@
       var(--padding-accordion-content-x-md);
     --padding-accordion-content-lg: var(--padding-accordion-content-y-lg)
       var(--padding-accordion-content-x-lg);
+    --color-audio-player-surface: var(--color-surface);
+    --color-audio-player-content: var(--color-fg-primary);
+    --color-audio-player-outline: var(--color-border-primary);
+    --color-audio-player-track: var(--color-fg-secondary);
+    --color-audio-player-bg: var(--color-audio-player-surface);
+    --color-audio-player-fg: var(--color-audio-player-content);
+    --color-audio-player-border: var(--color-audio-player-outline);
+    --color-audio-player-track-bg: --alpha(
+      var(--color-audio-player-track) /
+      75%
+    );
+    --color-audio-player-track-progress-bg: var(--color-audio-player-track);
+    --padding-audio-player-root: var(--spacing-200);
+    --gap-audio-player-control: var(--spacing-100);
+    --gap-audio-player-row: var(--dimension-4);
+    --gap-audio-player-time: var(--spacing-50);
+    --radius-audio-player: var(--radius-md);
+    --radius-audio-player-cover: var(--radius-sm);
+    --border-width-audio-player: var(--border-width-sm);
+    --spacing-audio-player-cover: var(--dimension-48);
+    --spacing-audio-player-seek: var(--dimension-40);
     --color-availability-status-available: var(--color-fg-status-success);
     --color-availability-status-limited: var(--color-fg-status-warning);
     --color-availability-status-preorder: var(--color-fg-accent-primary);
@@ -1115,6 +1136,98 @@
     --font-weight-pagination: var(--font-weight-medium);
     --border-width-pagination-pressed: var(--border-width-sm);
     --font-weight-pagination-current: var(--font-weight-semibold);
+    --color-player-surface: var(--color-surface);
+    --color-player-content: var(--color-fg-primary);
+    --color-player-brand: var(--color-primary);
+    --color-player-media-surface: var(--color-base-dark);
+    --color-player-media-content: var(--color-base-light);
+    --color-player-bg: var(--color-player-surface);
+    --color-player-fg: var(--color-player-content);
+    --color-player-border: var(--color-border-primary);
+    --color-player-control-fg: var(--color-player-content);
+    --color-player-control-bg: var(--color-transparent);
+    --color-player-control-bg-hover: var(--color-fill-hover);
+    --color-player-control-bg-active: var(--color-fill-active);
+    --color-player-overlay-control-fg: var(--color-player-media-content);
+    --color-player-overlay-control-bg-hover: --alpha(
+      var(--color-player-media-content) /
+      20%
+    );
+    --color-player-overlay-control-bg-active: --alpha(
+      var(--color-player-media-content) /
+      30%
+    );
+    --color-player-video-bg: var(--color-player-media-surface);
+    --color-player-feedback-bg: var(--color-player-surface);
+    --color-player-feedback-fg: var(--color-player-content);
+    --color-player-video-feedback-bg: --alpha(
+      var(--color-player-media-surface) /
+      90%
+    );
+    --color-player-video-feedback-fg: var(--color-player-media-content);
+    --color-player-caption-bg: --alpha(var(--color-player-media-surface) / 90%);
+    --color-player-caption-fg: var(--color-player-media-content);
+    --color-player-preview-bg: var(--color-player-media-surface);
+    --color-player-preview-fg: var(--color-player-media-content);
+    --color-player-scrim-bg: --alpha(var(--color-player-media-surface) / 90%);
+    --color-player-track-bg: var(--color-fill-hover);
+    --color-player-track-progress-bg: var(--color-fill-active);
+    --color-player-track-fill-bg: var(--color-player-brand);
+    --color-player-thumb-bg: var(--color-player-content);
+    --color-player-thumb-border: var(--color-border-primary);
+    --color-player-overlay-track-bg: --alpha(
+      var(--color-player-media-content) /
+      30%
+    );
+    --color-player-overlay-track-progress-bg: --alpha(
+      var(--color-player-media-content) /
+      50%
+    );
+    --color-player-focus-ring: var(--default-ring-color);
+    --radius-player: var(--radius-md);
+    --radius-player-track: var(--radius-sm);
+    --radius-player-thumb: var(--radius-full);
+    --padding-player-root: var(--spacing-150);
+    --padding-player-control: var(--spacing-200);
+    --padding-player-video-control: var(--spacing-100);
+    --padding-player-feedback: var(--spacing-150);
+    --padding-player-caption: var(--spacing-100);
+    --padding-player-caption-cue: var(--spacing-50);
+    --padding-player-preview: var(--spacing-50);
+    --gap-player-control: var(--spacing-150);
+    --gap-player-video-control: var(--spacing-50);
+    --gap-player-feedback: var(--spacing-100);
+    --gap-player-preview: var(--spacing-50);
+    --gap-player-chapter: var(--spacing-50);
+    --size-player-slider: var(--spacing-400);
+    --size-player-track: var(--spacing-100);
+    --size-player-thumb: var(--spacing-200);
+    --size-player-cover: var(--spacing-600);
+    --size-player-caption-area: calc(
+      var(--text-player-caption) *
+      var(--leading-normal) *
+      3 +
+      var(--padding-player-caption) *
+      2
+    );
+    --spacing-player-volume: var(--spacing-750);
+    --spacing-player-preview: var(--spacing-950);
+    --spacing-player-preview-wide: calc(var(--spacing-750) * 2);
+    --border-width-player: var(--border-width-sm);
+    --text-player-time: var(--text-sm);
+    --text-player-title: var(--text-md);
+    --text-player-feedback: var(--text-sm);
+    --text-player-loading-icon: var(--text-xl);
+    --text-player-caption: var(--text-sm);
+    --text-player-preview: var(--text-xs);
+    --font-player-caption: var(--font-sans);
+    --radius-player-caption: var(--radius-sm);
+    --radius-player-preview: var(--radius-sm);
+    --font-weight-player-time: var(--font-weight-medium);
+    --font-weight-player-title: var(--font-weight-semibold);
+    --z-index-player-controls: calc(var(--z-index) + 1);
+    --z-index-player-captions: var(--z-index);
+    --z-index-player-feedback: calc(var(--z-index-player-controls) + 1);
     --arrow-size: var(--spacing-popover-arrow-size);
     --arrow-background: var(--color-popover-arrow);
     --padding-popover-trigger: var(--spacing-100) var(--spacing-150);

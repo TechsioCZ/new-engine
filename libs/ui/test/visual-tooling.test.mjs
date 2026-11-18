@@ -1348,6 +1348,7 @@ test("mobile WebKit runs only the touch and device-viewport behavior specs", () 
   assert.deepEqual(MOBILE_VIEWPORT_SPECS, [
     "cascade-select.behavior.spec.ts",
     "drawer.behavior.spec.ts",
+    "player.spec.ts",
     "search-suggestions.spec.ts",
   ])
   // Each listed spec must still contain the dependency that earns the second
