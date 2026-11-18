@@ -26,17 +26,23 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 6
-      # Six browser runners plus main: seven hosted runners at peak.
+      max-parallel: 10
+      # Ten browser runners plus main: eleven hosted runners at peak.
+      # Six balanced bundles still took 559s of browser work on a slow host;
+      # leave headroom for that 1.65x slowdown and the final quality gate.
       # a11y lists theme@shard scans, as ci-ui-plan.mjs declares them.
       matrix:
         include:
-          - {group: visual, shard: 1, total: 6, a11y: ""}
-          - {group: visual, shard: 2, total: 6, a11y: "n1-light@1/1 akros-light@2/2"}
-          - {group: visual, shard: 3, total: 6, a11y: ""}
-          - {group: visual, shard: 4, total: 6, a11y: ""}
-          - {group: visual, shard: 5, total: 6, a11y: ""}
-          - {group: visual, shard: 6, total: 6, a11y: ""}
+          - {group: visual, shard: 1, total: 10, a11y: ""}
+          - {group: visual, shard: 2, total: 10, a11y: "n1-light@1/1 akros-light@2/2"}
+          - {group: visual, shard: 3, total: 10, a11y: ""}
+          - {group: visual, shard: 4, total: 10, a11y: ""}
+          - {group: visual, shard: 5, total: 10, a11y: ""}
+          - {group: visual, shard: 6, total: 10, a11y: ""}
+          - {group: visual, shard: 7, total: 10, a11y: ""}
+          - {group: visual, shard: 8, total: 10, a11y: ""}
+          - {group: visual, shard: 9, total: 10, a11y: ""}
+          - {group: visual, shard: 10, total: 10, a11y: ""}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -161,7 +167,7 @@ jobs:
           if-no-files-found: error
       - name: Export the component browser image
         id: exported-image
-        if: success() && matrix.shard == 6 && steps.browser-image.outputs.cache-hit != 'true'
+        if: success() && matrix.shard == matrix.total && steps.browser-image.outputs.cache-hit != 'true'
         run: |
           image="$(node libs/ui/scripts/run-component-tests.mjs --print-plan | jq -er .image)"
           # A changed run with no selected stories never needs a container.

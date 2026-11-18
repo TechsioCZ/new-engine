@@ -230,7 +230,7 @@ export function measureBehaviorFiles(roots) {
   )
 }
 
-export function componentCosts(roots) {
+export function componentCosts(roots, { bundles = 10 } = {}) {
   const files = measureFiles(roots)
   const behaviorFiles = measureBehaviorFiles(roots)
   const median = (values) =>
@@ -238,8 +238,12 @@ export function componentCosts(roots) {
   const behavior = {
     storyCount: Object.keys(behaviorFiles).length,
     medianCost: median(Object.values(behaviorFiles).map(({ cost }) => cost)),
-    // Keep bundle 2's existing accessibility/install/later-start allowance.
-    cohostedCosts: [0, 225000 * 4, 0, 0, 0, 0],
+    // Keep bundle 2's accessibility/install allowance. Ten bundles leave room
+    // for the observed 1.65x browser slowdown, not just a balanced fast run.
+    cohostedCosts: Array.from(
+      { length: bundles },
+      (_, index) => index === 1 ? 225000 * 4 : 0
+    ),
     files: behaviorFiles,
   }
   // Behavior owns project/files; screenshots own stories from the live index.

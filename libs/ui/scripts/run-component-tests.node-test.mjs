@@ -1,6 +1,13 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import test from "node:test"
+import {
+  assertBehaviorCompletion,
+  behaviorShardPlan,
+} from "./component-behavior-shards.mjs"
 
 function plan(args = [], release = false, shard = "1/1") {
   const result = spawnSync(
@@ -67,4 +74,45 @@ test("allocated filters match only their exact case-sensitive container paths", 
     }
     assert.ok(!value.testArgs.some((arg) => arg.startsWith("--shard=")))
   }
+})
+
+test("an explicitly empty behavior allocation reports coverage without starting Docker", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "empty-behavior-"))
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }))
+  const storybook = path.join(root, "storybook")
+  fs.mkdirSync(storybook)
+  fs.writeFileSync(path.join(storybook, "iframe.html"), "")
+  const index = JSON.stringify({ entries: {} })
+  fs.writeFileSync(path.join(storybook, "index.json"), index)
+  // No executable is on PATH. Even probing Docker would fail this test.
+  const shard = Array.from({ length: 10 }, (_, i) => i + 1).find((index) =>
+    behaviorShardPlan("mobile", { index, total: 10 }).emptyAllocation
+  )
+  assert.ok(shard)
+  const inherited = Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]) => !/^(VISUAL_|PLAYWRIGHT_|TEST_)/.test(key)
+    )
+  )
+  const result = spawnSync(
+    process.execPath,
+    [new URL("./run-component-tests.mjs", import.meta.url).pathname],
+    {
+      encoding: "utf8",
+      env: {
+        ...inherited,
+        PATH: root,
+        PLAYWRIGHT_GROUP: "mobile",
+        PLAYWRIGHT_SHARD: `${shard}/10`,
+        PLAYWRIGHT_OUTPUT_DIR: root,
+        VISUAL_STORYBOOK_STATIC_DIR: storybook,
+      },
+    }
+  )
+  assert.equal(result.status, 0, result.stderr)
+  const reports = path.join(root, "test-results/visual-reports")
+  const report = JSON.parse(fs.readFileSync(path.join(reports, "all.json")))
+  assertBehaviorCompletion([report], "mobile", [])
+  assert.equal(report.stats.duration, 0)
+  assert.equal(fs.readFileSync(path.join(reports, "index.json"), "utf8"), index)
 })

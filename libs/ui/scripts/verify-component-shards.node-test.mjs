@@ -628,17 +628,17 @@ describe("behavior allocation coverage gate", () => {
     )
   })
 
-  it("accepts all six desktop/mobile assignments, including explicit empty allocations", () => {
+  it("accepts all ten desktop/mobile assignments, including explicit empty allocations", () => {
     const files = {
       "expected.json": expectedPlan({
         scope: "ui",
-        groups: { desktop: 6, mobile: 6 },
+        groups: { desktop: 10, mobile: 10 },
       }),
     }
     for (const group of ["desktop", "mobile"]) {
-      for (let index = 1; index <= 6; index++) {
+      for (let index = 1; index <= 10; index++) {
         files[`${shardFolder(group, index)}/all.json`] = JSON.stringify(
-          behaviorReport(group, index, 6)
+          behaviorReport(group, index, 10)
         )
       }
     }

@@ -802,6 +802,26 @@ function main() {
   if (process.env.VISUAL_RELEASE_READINESS === "1") {
     verifyReviewedBaselines()
   }
+  // The allocator and the gate independently agree that this project owns no
+  // files. Launching a container/server/browser cannot exercise a test here.
+  // Still leave the normal report and immutable index: silence is not coverage.
+  if (behaviorPlan?.emptyAllocation) {
+    const report = {
+      errors: [],
+      suites: [],
+      stats: { expected: 0, unexpected: 0, flaky: 0, skipped: 0, duration: 0 },
+    }
+    verifyCompletion([report])
+    const directory = path.join(outputRoot, "test-results/visual-reports")
+    fs.mkdirSync(directory, { recursive: true })
+    fs.writeFileSync(path.join(directory, "all.json"), JSON.stringify(report))
+    fs.copyFileSync(
+      path.join(storybookDir, "index.json"),
+      path.join(directory, "index.json")
+    )
+    console.log(`No ${group} files assigned; no browser started`)
+    return 0
+  }
   ensureDockerImage()
   startContainer()
   const { reportNames, status } = runPlaywrightProjects()
