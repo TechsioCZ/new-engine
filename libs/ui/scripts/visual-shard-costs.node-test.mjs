@@ -234,6 +234,29 @@ test("intentional skip-only shards receive zero cost, not missing timing errors"
   )
 })
 
+test("a timed passing result does not vouch for an untimed one in the same report", (t) => {
+  for (const duration of [0, undefined]) {
+    const f = fixture(t)
+    const file = path.join(f.root, "ui-mobile-shard-1/all.json")
+    const report = JSON.parse(fs.readFileSync(file))
+    report.suites[0].specs.push({
+      file: "tour.spec.ts",
+      tests: [
+        {
+          projectName: "mobile",
+          status: "expected",
+          results: [{ status: "passed", duration, retry: 0 }],
+        },
+      ],
+    })
+    fs.writeFileSync(file, JSON.stringify(report))
+    assert.throws(
+      () => measureBehaviorFiles([f.root]),
+      /Unmeasured passing behavior test: mobile\/tour\.spec\.ts/
+    )
+  }
+})
+
 test("behavior measurements require the declared complete shard set", (t) => {
   for (const group of ["desktop", "mobile"]) {
     const f = fixture(t)

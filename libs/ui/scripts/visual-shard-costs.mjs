@@ -172,7 +172,11 @@ export function measureBehaviorFiles(roots) {
         (sum, { test }) =>
           sum +
           test.results.reduce(
-            (sum, item) => sum + (item.status === "passed" ? item.duration : 0),
+            (sum, item) =>
+              sum +
+              (item.status === "passed" && Number.isFinite(item.duration)
+                ? item.duration
+                : 0),
             0
           ),
         0
@@ -190,7 +194,11 @@ export function measureBehaviorFiles(roots) {
         owners.set(identity, reportPath)
         const duration = test.results.reduce((sum, item) => {
           if (item.retry) throw new Error(`Retried behavior test: ${identity}`)
-          return sum + (item.status === "passed" ? item.duration : 0)
+          if (item.status !== "passed") return sum
+          // One timed result must not vouch for an untimed one: its file would weigh too little.
+          if (!(Number.isFinite(item.duration) && item.duration > 0))
+            throw new Error(`Unmeasured passing behavior test: ${identity}`)
+          return sum + item.duration
         }, 0)
         observation.set(
           identity,
