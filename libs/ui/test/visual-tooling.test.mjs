@@ -1244,7 +1244,8 @@ function behaviorAllocation(group, shard) {
     testArgs: plan.emptyAllocation
       ? ["$^", "--pass-with-no-tests"]
       : plan.testFiles.map(
-          (file) => `test/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`
+          (file) =>
+            `/^/app/test/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
         ),
   }
 }

@@ -83,13 +83,13 @@ const platformTag =
 // CI caches this content-addressed image, with no registry or credentials.
 const imageTag = `${playwrightVersion ? `${playwrightVersion}-` : ""}${dockerfileHash}${platformTag}`
 const imageName =
-  process.env.PLAYWRIGHT_DOCKER_IMAGE ??
-  `new-engine-ui-playwright:${imageTag}`
+  process.env.PLAYWRIGHT_DOCKER_IMAGE ?? `new-engine-ui-playwright:${imageTag}`
 const projects = createVisualMatrix(process.env.VISUAL_BRANDS).map(
   (project) => project.name
 )
 // CI separates mobile/desktop behavior and visual projects. Behavior uses
 // the same measured file allocator as visuals, without native re-sharding.
+// Focused CLI calls retain native selection and sharding instead.
 const group = (process.env.PLAYWRIGHT_GROUP ?? "").trim() || undefined
 const sequentialProjects =
   (process.env.PLAYWRIGHT_DOCKER_SEQUENTIAL ?? "0") !== "0"
@@ -139,7 +139,7 @@ const playwrightShard = parseReleaseShard(
 )
 const activeShard = releaseShard ?? playwrightShard
 const behaviorPlan =
-  group === "desktop" || group === "mobile"
+  (group === "desktop" || group === "mobile") && extraArgs.length === 0
     ? behaviorShardPlan(group, activeShard)
     : undefined
 const containerName = `pw-visual-${crypto.randomUUID()}`
@@ -413,7 +413,8 @@ function shardArgs() {
   if (behaviorPlan && activeShard) {
     return behaviorPlan.testFiles.length
       ? behaviorPlan.testFiles.map(
-          (file) => `test/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`
+          (file) =>
+            `/^/app/test/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
         )
       : ["$^", "--pass-with-no-tests"]
   }
@@ -468,9 +469,11 @@ function runPlaywrightProjects() {
         containerName,
         ...(measured
           ? [
-              "bash", "-c",
+              "bash",
+              "-c",
               'TIMEFORMAT="Playwright workload: wall %3R s, user %3U s, system %3S s"; time "$@"',
-              "--", ...command,
+              "--",
+              ...command,
             ]
           : command),
       ],
@@ -498,7 +501,11 @@ function copyResultsToHost() {
     ["/app/test-results/.", "test-results"],
     [`${reportRoot}/.`, "test-results/visual-reports"],
   ]) {
-    docker(["cp", `${containerName}:${source}`, path.join(outputRoot, destination)])
+    docker([
+      "cp",
+      `${containerName}:${source}`,
+      path.join(outputRoot, destination),
+    ])
   }
   if (activeShard) {
     // The shard verifier needs the exact story list this commit was built with.
@@ -765,10 +772,12 @@ function main() {
         shard: activeShard ?? null,
         release: process.env.VISUAL_RELEASE_READINESS === "1",
         changed: changedMode,
+        ...(group === "desktop" || group === "mobile"
+          ? { testArgs: [...shardArgs(), ...extraArgs] }
+          : {}),
         ...(behaviorPlan
           ? {
               ...behaviorPlan,
-              testArgs: shardArgs(),
             }
           : {}),
       })

@@ -76,7 +76,7 @@ test("six release and changed shards preserve the full behavior file multiset", 
           for (const file of desktop) {
             assert.equal(
               p.testArgs.some((arg) =>
-                new RegExp(arg).test(`/app/test/${file}`)
+                new RegExp(arg.slice(1, -1)).test(`/app/test/${file}`)
               ),
               p.testFiles.includes(file),
               `${group} shard ${index}: ${file}`
