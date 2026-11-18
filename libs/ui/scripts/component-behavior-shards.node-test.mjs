@@ -30,24 +30,33 @@ function plan(group, shard, release = true) {
   return JSON.parse(result.stdout)
 }
 
-test("six release and changed shards preserve the full behavior file multiset", () => {
-  // This inventory independently mirrors the unchanged Playwright config:
-  // desktop's *.spec.ts + visual-*.spec.mjs except screenshots; four mobile specs.
+function expectedBehaviorFiles(testRoot) {
   const desktop = fs
-    .readdirSync(root)
+    .readdirSync(testRoot, { recursive: true })
     .filter(
       (file) =>
         file.endsWith(".spec.ts") ||
-        (file.startsWith("visual-") && file.endsWith(".spec.mjs"))
+        (path.basename(file).startsWith("visual-") &&
+          file.endsWith(".spec.mjs"))
     )
-    .filter((file) => file !== "visual.spec.ts")
+    .filter((file) => path.basename(file) !== "visual.spec.ts")
     .sort()
-  const mobile = [
+  const mobileNames = [
     "cascade-select.behavior.spec.ts",
     "drawer.behavior.spec.ts",
     "player.spec.ts",
     "search-suggestions.spec.ts",
   ]
+  const mobile = desktop.filter((file) =>
+    mobileNames.includes(path.basename(file))
+  )
+  return { desktop, mobile }
+}
+
+test("six release and changed shards preserve the full behavior file multiset", () => {
+  // This inventory independently mirrors the unchanged Playwright config:
+  // desktop's *.spec.ts + visual-*.spec.mjs except screenshots; four mobile specs.
+  const { desktop, mobile } = expectedBehaviorFiles(root)
   for (const release of [true, false]) {
     for (const [group, expected] of [
       ["desktop", desktop],
@@ -153,7 +162,7 @@ test("an empty report cannot hide an assigned file, even with pass-with-no-tests
 
 test("completion checks every assigned file and its actual project and result", () => {
   assert.doesNotThrow(() =>
-    assertBehaviorCompletion([report("test/player.spec.ts")], "mobile", [
+    assertBehaviorCompletion([report("player.spec.ts")], "mobile", [
       "player.spec.ts",
     ])
   )
@@ -213,4 +222,45 @@ test("generated visual reservations match behavior assignments and balance the c
     loads.push(visual + behavior + a11y)
   }
   assert.ok(Math.max(...loads) - Math.min(...loads) < 2, JSON.stringify(loads))
+})
+
+test("completion preserves test directories relative to the report root", () => {
+  for (const file of ["checkout/test/address.spec.ts", "test/player.spec.ts"]) {
+    for (const absolute of [false, true]) {
+      const value = report(absolute ? `/app/test/${file}` : file)
+      value.config = { rootDir: "/app/test" }
+      assert.doesNotThrow(() =>
+        assertBehaviorCompletion([value], "mobile", [file])
+      )
+    }
+  }
+})
+
+test("independent inventory includes nested desktop and mobile specs", (t) => {
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "behavior-inventory-")
+  )
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  fs.mkdirSync(path.join(directory, "checkout/test"), { recursive: true })
+  for (const file of [
+    "checkout/address.spec.ts",
+    "checkout/test/player.spec.ts",
+    "checkout/visual-extra.spec.mjs",
+    "checkout/visual.spec.ts",
+  ]) {
+    fs.writeFileSync(path.join(directory, file), "")
+  }
+  const expected = expectedBehaviorFiles(directory)
+  assert.deepEqual(expected.desktop, [
+    "checkout/address.spec.ts",
+    "checkout/test/player.spec.ts",
+    "checkout/visual-extra.spec.mjs",
+  ])
+  assert.deepEqual(expected.mobile, ["checkout/test/player.spec.ts"])
+  for (const group of ["desktop", "mobile"]) {
+    assert.deepEqual(
+      behaviorShardPlan(group, undefined, directory).testFiles.sort(),
+      expected[group]
+    )
+  }
 })

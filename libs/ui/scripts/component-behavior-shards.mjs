@@ -64,12 +64,13 @@ export function behaviorShardPlan(
 export function assertBehaviorCompletion(reports, group, testFiles) {
   const expected = new Set(testFiles)
   const seen = new Set()
-  const visit = (suites) => {
+  const visit = (suites, rootDir) => {
     for (const suite of suites ?? []) {
       for (const spec of suite.specs ?? []) {
-        const file = spec.file
-          .replaceAll("\\", "/")
-          .replace(/^(?:.*\/)?test\//, "")
+        const reportedFile = spec.file.replaceAll("\\", "/")
+        const file = path.posix.isAbsolute(reportedFile)
+          ? path.posix.relative(rootDir, reportedFile)
+          : reportedFile
         for (const test of spec.tests ?? []) {
           assert.equal(
             test.projectName,
@@ -91,7 +92,7 @@ export function assertBehaviorCompletion(reports, group, testFiles) {
           seen.add(file)
         }
       }
-      visit(suite.suites)
+      visit(suite.suites, rootDir)
     }
   }
   for (const report of reports) {
@@ -102,7 +103,10 @@ export function assertBehaviorCompletion(reports, group, testFiles) {
       "Unexpected behavior failures"
     )
     assert.equal(report.stats?.flaky ?? 0, 0, "Flaky behavior tests")
-    visit(report.suites)
+    visit(
+      report.suites,
+      (report.config?.rootDir ?? "/app/test").replaceAll("\\", "/")
+    )
   }
   assert.deepEqual(
     [...seen].sort(),
