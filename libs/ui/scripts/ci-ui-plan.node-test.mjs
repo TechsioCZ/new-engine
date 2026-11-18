@@ -66,7 +66,7 @@ function fixture(t) {
   return { base, commit, commitPaths, plan }
 }
 
-test("pushes and unavailable bases keep the full six-bundle regression gate", (t) => {
+test("pushes and unavailable bases keep the full ten-bundle regression gate", (t) => {
   const f = fixture(t)
   for (const run of [
     f.plan("full", f.base),
@@ -74,11 +74,11 @@ test("pushes and unavailable bases keep the full six-bundle regression gate", (t
   ]) {
     assert.equal(run.expected.scope, "full")
     assert.deepEqual(run.expected.components.groups, {
-      visual: 6,
-      desktop: 6,
-      mobile: 6,
+      visual: 10,
+      desktop: 10,
+      mobile: 10,
     })
-    assert.equal(run.expected.components.total, 18)
+    assert.equal(run.expected.components.total, 30)
     assert.deepEqual(run.expected.a11y.themes, [
       "business-light",
       "akros-light",
@@ -93,8 +93,21 @@ test("pushes and unavailable bases keep the full six-bundle regression gate", (t
     assert.equal(run.expected.a11y.total, 4)
     assert.deepEqual(
       run.expected.components.include.map((bundle) => bundle.a11y),
-      ["", "n1-light@1/1 akros-light@2/2", "", "", "", ""],
+      ["", "n1-light@1/1 akros-light@2/2", "", "", "", "", "", "", "", ""],
     )
+    // The reusable workflow actually starts this matrix. A stale YAML count
+    // would either omit suites or leave the required gate waiting for reports.
+    const workflow = fs.readFileSync(
+      new URL("../../../.github/workflows/ui-quality.yml", import.meta.url),
+      "utf8"
+    )
+    const matrix = [...workflow.matchAll(
+      /\{group: (\w+), shard: (\d+), total: (\d+), a11y: "([^"]*)"\}/g
+    )].map(([, group, shard, total, a11y]) => ({
+      group, shard: Number(shard), total: Number(total), a11y,
+    }))
+    assert.deepEqual(matrix, run.expected.components.include)
+    assert.equal(Number(workflow.match(/max-parallel: (\d+)/)[1]), matrix.length)
   }
 })
 

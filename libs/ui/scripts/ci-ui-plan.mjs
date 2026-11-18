@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { classifyScope, GIT_MAX_BUFFER } from "./visual-affected-stories.mjs"
+import costs from "../test/visual-shard-costs.json" with { type: "json" }
 
 const temporary = process.env.RUNNER_TEMP
 if (!temporary) throw new Error("RUNNER_TEMP is required")
@@ -41,7 +42,7 @@ if (process.env.MODE === "changed" && process.env.BASE_SHA) {
   }
 }
 const idle = scope === "none"
-const bundles = 6
+const bundles = costs.cohostedCosts.length
 // Accessibility scans as theme@shard. main scans business-light beside its
 // lower-priority checks, then half of akros-light; bundle 2 already installs
 // the scanner and takes n1-light and the other half (main-ci-checks.sh,

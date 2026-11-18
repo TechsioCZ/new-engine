@@ -156,8 +156,10 @@ test("behavior and screenshots reserve the same generated per-bundle costs", (t)
     "desktop/player.spec.ts": { cost: 4000, storyCount: 1 },
     "mobile/player.spec.ts": { cost: 4000, storyCount: 1 },
   })
-  for (let index = 1; index <= 6; index++) {
-    const shard = { index, total: 6 }
+  const total = weights.cohostedCosts.length
+  assert.equal(total, 10)
+  for (let index = 1; index <= total; index++) {
+    const shard = { index, total }
     const seconds = ["desktop", "mobile"].reduce(
       (sum, group) =>
         sum +

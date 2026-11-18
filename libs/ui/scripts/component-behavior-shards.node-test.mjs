@@ -53,19 +53,24 @@ function expectedBehaviorFiles(testRoot) {
   return { desktop, mobile }
 }
 
-test("six release and changed shards preserve the full behavior file multiset", () => {
+test("release and changed shards preserve the full behavior file multiset at both bundle counts", () => {
   // This inventory independently mirrors the unchanged Playwright config:
   // desktop's *.spec.ts + visual-*.spec.mjs except screenshots; four mobile specs.
   const { desktop, mobile } = expectedBehaviorFiles(root)
-  for (const release of [true, false]) {
+  for (const [release, total] of [
+    [true, 6],
+    [false, 6],
+    [true, costs.cohostedCosts.length],
+    [false, costs.cohostedCosts.length],
+  ]) {
     for (const [group, expected] of [
       ["desktop", desktop],
       ["mobile", mobile],
     ]) {
       assert.deepEqual(plan(group, "1/1", release).testFiles.sort(), expected)
       const selected = []
-      for (let index = 1; index <= 6; index++) {
-        const p = plan(group, `${index}/6`, release)
+      for (let index = 1; index <= total; index++) {
+        const p = plan(group, `${index}/${total}`, release)
         assert.deepEqual(p.projects, [group])
         assert.ok(!p.testArgs.some((arg) => arg.startsWith("--shard")))
         if (!p.testFiles.length) {
@@ -200,8 +205,9 @@ test("generated visual reservations match behavior assignments and balance the c
       }))
   )
   const loads = []
-  for (let index = 1; index <= 6; index++) {
-    const shard = { index, total: 6 }
+  const total = costs.cohostedCosts.length
+  for (let index = 1; index <= total; index++) {
+    const shard = { index, total }
     const behavior = ["desktop", "mobile"].reduce(
       (sum, group) => sum + behaviorShardPlan(group, shard).estimatedSeconds,
       0
@@ -222,6 +228,7 @@ test("generated visual reservations match behavior assignments and balance the c
     loads.push(visual + behavior + a11y)
   }
   assert.ok(Math.max(...loads) - Math.min(...loads) < 2, JSON.stringify(loads))
+  assert.ok(Math.max(...loads) < 350, JSON.stringify(loads))
 })
 
 test("completion preserves test directories relative to the report root", () => {

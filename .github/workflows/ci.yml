@@ -168,7 +168,7 @@ jobs:
 
   # The release prepares while the browser bundles finish, then publishes only
   # after this run succeeds for its exact SHA. Started when main ends, it never
-  # holds an eighth hosted runner idle beside the six bundles and main.
+  # holds a twelfth hosted runner idle beside the ten bundles and main.
   # First attempt only: a re-run starts the release from ui-release-retrigger.
   ui-release-trigger:
     needs: main

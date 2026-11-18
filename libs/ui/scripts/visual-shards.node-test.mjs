@@ -87,8 +87,9 @@ test("measured story files stay together, cover all stories, and fit the screens
   assert.equal(stories.length, costs.storyCount)
   const owners = new Map()
   const all = []
-  for (let index = 1; index <= 6; index++) {
-    const selected = shardVisualStories(stories, { index, total: 6 })
+  const total = costs.cohostedCosts.length
+  for (let index = 1; index <= total; index++) {
+    const selected = shardVisualStories(stories, { index, total })
     let cost = 0
     for (const story of selected) {
       assert.ok(
