@@ -465,12 +465,12 @@ describe("verifyShards", () => {
     )
   })
 
-  it("passes a changed run where every shard reported or left a marker", () => {
+  it("passes a changed run where sibling shards agree on reports and markers", () => {
     withShardTree(
       {
         "expected.json": expectedPlan({
           scope: "ui",
-          groups: { visual: 1, desktop: 2, mobile: 1 },
+          groups: { visual: 2, desktop: 2, mobile: 2 },
         }),
         [`${shardFolder("visual", 1)}/all.json`]: JSON.stringify(cleanReport()),
         [`${shardFolder("desktop", 1)}/all.json`]: JSON.stringify(
@@ -479,7 +479,13 @@ describe("verifyShards", () => {
         [`${shardFolder("desktop", 2)}/changed-none.json`]: JSON.stringify({
           mode: "none",
         }),
-        [`${shardFolder("mobile", 1)}/changed-none.json`]: JSON.stringify({
+        [`${shardFolder("mobile", 1)}/all.json`]: JSON.stringify(
+          behaviorReport("mobile", 1, 2)
+        ),
+        [`${shardFolder("visual", 2)}/changed-none.json`]: JSON.stringify({
+          mode: "none",
+        }),
+        [`${shardFolder("mobile", 2)}/changed-none.json`]: JSON.stringify({
           mode: "none",
         }),
       },
@@ -674,5 +680,106 @@ describe("behavior allocation coverage gate", () => {
           )
       )
     }
+  })
+})
+
+describe("bundle artifact evidence", () => {
+  it("requires changed-none decisions to agree with the visual sibling", () => {
+    for (const group of ["desktop", "mobile"]) {
+      for (const visualNone of [true, false]) {
+        const files = {
+          "expected.json": expectedPlan({
+            scope: "ui",
+            groups: { visual: 1, desktop: 1, mobile: 1 },
+          }),
+        }
+        for (const sibling of ["visual", "desktop", "mobile"]) {
+          const none = sibling === group ? !visualNone : visualNone
+          files[
+            `${shardFolder(sibling, 1)}/${none ? "changed-none.json" : "all.json"}`
+          ] = JSON.stringify(
+            none
+              ? { mode: "none" }
+              : sibling === "visual"
+                ? cleanReport()
+                : behaviorReport(sibling, 1, 1)
+          )
+        }
+        withShardTree(files, (root) =>
+          assertThrowsText(
+            () =>
+              verifyShards({
+                expect: path.join(root, "expected.json"),
+                reports: root,
+              }),
+            "changed-none disagrees"
+          )
+        )
+      }
+    }
+  })
+
+  it("requires each empty full-scope shard to own its one clean report", () => {
+    const files = {
+      "expected.json": expectedPlan({
+        groups: { visual: 1, desktop: 6, mobile: 6 },
+      }),
+      [`${shardFolder("visual", 1)}/index.json`]: JSON.stringify({
+        entries: { a: { id: "a", type: "story" } },
+      }),
+      [`${shardFolder("visual", 1)}/all.json`]: JSON.stringify({
+        ...cleanReport(),
+        suites: [
+          {
+            specs: [
+              {
+                file: "visual.spec.ts",
+                tests: createVisualMatrix().map(({ name }) => ({
+                  projectName: name,
+                  status: "expected",
+                  annotations: [{ type: "visual-story-id", description: "a" }],
+                  results: [{ status: "passed" }],
+                })),
+              },
+            ],
+          },
+        ],
+      }),
+    }
+    let emptyIndex
+    for (const group of ["desktop", "mobile"]) {
+      for (let index = 1; index <= 6; index++) {
+        files[`${shardFolder(group, index)}/all.json`] = JSON.stringify(
+          behaviorReport(group, index, 6)
+        )
+        if (
+          group === "mobile" &&
+          behaviorShardPlan(group, { index, total: 6 }).emptyAllocation
+        )
+          emptyIndex = index
+      }
+    }
+    assert.ok(emptyIndex)
+    withShardTree(files, (root) => {
+      const options = {
+        expect: path.join(root, "expected.json"),
+        reports: root,
+      }
+      assert.doesNotThrow(() => verifyShards(options))
+      const misplaced = path.join(
+        root,
+        shardFolder("desktop", 1),
+        "misplaced/all.json"
+      )
+      fs.mkdirSync(path.dirname(misplaced), { recursive: true })
+      fs.renameSync(
+        path.join(root, shardFolder("mobile", emptyIndex), "all.json"),
+        misplaced
+      )
+      assertThrowsText(
+        () => verifyShards(options),
+        "must contain exactly one all.json"
+      )
+    })
   })
 })

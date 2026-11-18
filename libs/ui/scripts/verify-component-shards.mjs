@@ -324,8 +324,29 @@ export function verifyShards({ expect: expectFile, reports }) {
   }
   // Reconstruct the assignment from this checkout, not from a shard's claim.
   // A clean empty all.json cannot stand in for work it was assigned to run.
-  for (const shard of loadChangedShards(reports)) {
+  const shards = loadChangedShards(reports)
+  for (const shard of shards) {
     const { group, shard: index } = SHARD_FOLDER.exec(shard.name).groups
+    if (scope === "full") {
+      assert(
+        shard.reports.length === 1 && shard.markers.length === 0,
+        `Shard ${shard.name} must contain exactly one all.json and no changed-none.json`
+      )
+    }
+    if (scope === "ui" && group !== "visual" && groups.visual) {
+      const visual = shards.find((sibling) => {
+        const identity = SHARD_FOLDER.exec(sibling.name).groups
+        return (
+          identity.group === "visual" &&
+          Number(identity.shard) === Number(index)
+        )
+      })
+      assert(
+        visual !== undefined &&
+          Boolean(shard.markers.length) === Boolean(visual.markers.length),
+        `Shard ${shard.name} changed-none disagrees with its visual sibling`
+      )
+    }
     if (group === "visual" || (scope === "ui" && shard.markers.length)) continue
     const plan = behaviorShardPlan(group, {
       index: Number(index),
