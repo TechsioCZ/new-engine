@@ -6,6 +6,7 @@
 import { appendFileSync, mkdirSync } from "node:fs"
 import path from "node:path"
 import { getStoryContext } from "@storybook/test-runner"
+import { installPlayerMediaFixture } from "../test/player-media-fixture.mjs"
 import {
   assertCalibration,
   assertA11yBrand,
@@ -40,6 +41,10 @@ const testRunnerConfig = {
     browserContext,
     testRunnerConfig: activeRunnerConfig,
   }) {
+    // Player stories reference sample media on a third-party CDN. Their play
+    // functions wait for it to become playable, so serve the same local media
+    // as the visual and behaviour suites instead of depending on the network.
+    await installPlayerMediaFixture(page)
     const iframeUrl = new URL(
       "iframe.html",
       process.env.TARGET_URL ?? "http://127.0.0.1:6006"
