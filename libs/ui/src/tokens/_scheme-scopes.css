@@ -570,34 +570,23 @@
     --color-audio-player-surface: var(--color-surface);
     --color-audio-player-content: var(--color-fg-primary);
     --color-audio-player-outline: var(--color-border-primary);
-    --color-audio-player-accent: var(--color-bg-primary-base);
-    --color-audio-player-accent-hover: var(--color-bg-primary-hover);
-    --color-audio-player-accent-active: var(--color-bg-primary-active);
-    --color-audio-player-on-accent: var(--color-fg-on-primary-solid-neo);
     --color-audio-player-track: var(--color-fg-secondary);
     --color-audio-player-bg: var(--color-audio-player-surface);
     --color-audio-player-fg: var(--color-audio-player-content);
     --color-audio-player-border: var(--color-audio-player-outline);
-    --color-audio-player-play-bg: var(--color-audio-player-accent);
-    --color-audio-player-play-hover-bg: var(--color-audio-player-accent-hover);
-    --color-audio-player-play-active-bg: var(
-      --color-audio-player-accent-active
-    );
-    --color-audio-player-play-fg: var(--color-audio-player-on-accent);
     --color-audio-player-track-bg: --alpha(
       var(--color-audio-player-track) /
       75%
     );
     --color-audio-player-track-progress-bg: var(--color-audio-player-track);
     --padding-audio-player-root: var(--spacing-200);
-    --gap-audio-player-control: var(--spacing-150);
-    --gap-audio-player-timeline: var(--spacing-50);
+    --gap-audio-player-control: var(--spacing-100);
+    --gap-audio-player-row: var(--dimension-4);
+    --gap-audio-player-time: var(--spacing-50);
     --radius-audio-player: var(--radius-md);
     --radius-audio-player-cover: var(--radius-sm);
-    --radius-audio-player-play: var(--radius-full);
     --border-width-audio-player: var(--border-width-sm);
     --spacing-audio-player-cover: var(--dimension-48);
-    --spacing-audio-player-play: var(--dimension-48);
     --spacing-audio-player-seek: var(--dimension-40);
     --color-availability-status-available: var(--color-fg-status-success);
     --color-availability-status-limited: var(--color-fg-status-warning);

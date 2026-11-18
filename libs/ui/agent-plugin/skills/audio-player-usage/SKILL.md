@@ -5,13 +5,13 @@ description: >
   AudioPlayer is an opinionated preset over Player with a Semi Design-shaped
   audioUrl prop (string or { src, title?, cover? }); v1 accepts a single source.
 metadata:
-  component_version: "1.2.0"
+  component_version: "1.2.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   requires: "component-usage-ux player-usage app-token-overrides"
   resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
-  sources: "https://semi.design/en-US/plus/audioPlayer"
+  sources: "https://semi.design/en-US/plus/audioPlayer https://github.com/vidstack/examples/blob/main/player/react/default-theme/src/layouts/audio-layout.tsx https://github.com/vidstack/examples/blob/main/player/react/default-theme/src/layouts/shared/time-group.tsx"
   contributor_sources: "libs/ui/src/molecules/audio-player.tsx libs/ui/stories/molecules/audio-player.stories.tsx"
   audience: "consumer"
 ---
@@ -20,11 +20,18 @@ metadata:
 
 # @techsio/ui-kit AudioPlayer Usage
 
-`AudioPlayer` is the pre-assembled audio card. It places the optional cover and
-title above a prominent play action and timeline, with readable current and
-total time below the bar. It uses `Player`, with loading/error feedback and media
-announcements. Use `slots` for local layout customization, or `Player` when
-the whole composition should be app-owned.
+`AudioPlayer` is the pre-assembled audio card. Optional cover and title sit
+above a full-width timeline and a separate toolbar. The toolbar uses standard
+play controls, keeps current and duration together (`0:00 / 10:26`) beside the
+transport, and places mute, volume and optional settings on the right. It uses
+`Player`, with loading/error feedback and media announcements. Use `slots` for
+local layout customization, or `Player` when the whole composition should be
+app-owned.
+
+This composition adapts the official Vidstack [AudioLayout](https://github.com/vidstack/examples/blob/main/player/react/default-theme/src/layouts/audio-layout.tsx)
+and [TimeGroup](https://github.com/vidstack/examples/blob/main/player/react/default-theme/src/layouts/shared/time-group.tsx)
+examples through the kit's `Player.*` parts and tokens; it does not import the
+SDK's complete default-theme styles.
 
 ## Setup
 
@@ -119,16 +126,18 @@ import { Player } from "@techsio/ui-kit/molecules/player"
       <Player.Controls>
         <Player.ControlGroup className="flex-col items-stretch" padding="none">
           <Player.TimeSlider />
-          <Player.Control className="w-full justify-between">
+          <Player.Control className="w-full flex-wrap justify-between">
+            <Player.Control>
+              <Player.PlayButton />
+              <Player.Control>
+                <Player.Time type="current" />
+                <span aria-hidden="true">/</span>
+                <Player.Time type="duration" />
+              </Player.Control>
+            </Player.Control>
             <Player.Control>
               <Player.MuteButton />
               <Player.SettingsMenu />
-            </Player.Control>
-            <Player.Control>
-              <Player.Time type="current" />
-              <span aria-hidden="true">/</span>
-              <Player.Time type="duration" />
-              <Player.PlayButton />
             </Player.Control>
           </Player.Control>
         </Player.ControlGroup>
@@ -142,11 +151,14 @@ import { Player } from "@techsio/ui-kit/molecules/player"
 owns a separate family of control parts. Reuse `Player.*` inside their
 `slots.controls`; preset `children` remain internal.
 
-The default timeline, play and mute remain usable in a narrow container. The
-auxiliary volume slider adapts to the audio card's available width rather than
-the viewport alone. A narrow sidebar on desktop therefore uses the same compact
-layout as a narrow mobile card. Preserve seeking and keyboard playback when
-replacing the default controls.
+The default timeline always occupies a full-width row above the toolbar.
+When seek controls are enabled, below a `24rem` card width the combined time
+group moves to its own full row
+above the transport and auxiliary actions. The volume slider appears from a
+`32rem` card width; mute remains available below that threshold. These are
+container widths, so a narrow desktop sidebar uses the same compact layout as
+a narrow mobile card. Preserve seeking and keyboard playback when replacing
+the default controls; custom slots own their responsive grouping.
 
 ## Common Mistakes
 

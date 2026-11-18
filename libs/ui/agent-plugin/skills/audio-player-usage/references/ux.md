@@ -14,14 +14,17 @@ control parts; there is no separate audio compound API.
 - Prefer a meaningful title. The cover repeats the track identity and is
   decorative, so its image has empty alt text.
 - Keep the default `controlsList={["play", "time", "volume"]}` for short
-  previews. The timeline is part of the preset; `"time"` exposes current and
-  total time below it.
+  previews. The full-width timeline occupies a row above the toolbar.
+  `"time"` exposes current and duration together, for example `0:00 / 10:26`,
+  beside the standard play/transport controls.
 - For podcasts or other spoken-word listening, add `"seek"` and `"settings"`.
   Skip amounts follow `skipDuration` in seconds, and settings exposes playback
   speed. Do not imply previous/next-track navigation with skip controls.
 - The timeline stays available in narrow containers. The auxiliary volume
-  slider hides when the audio card needs a compact layout; mute remains
-  available. Check a narrow desktop sidebar as well as a mobile viewport.
+  slider hides below a `32rem` card width; mute remains available. With seek controls enabled, below
+  `24rem`, the combined time group takes a full row above the transport and
+  auxiliary actions. Check a narrow desktop sidebar as well as a mobile
+  viewport; these thresholds follow the container.
 - Use `slots.controls` when the order or grouping needs to change;
   `controlsList` selects groups in the existing preset layout.
 - Localize controls with `UiMessagesProvider.messages.player`.
@@ -41,6 +44,15 @@ control parts; there is no separate audio compound API.
 Retry restarts the media provider and resets playback to its initial state. Keep recovery copy concise; audio error feedback grows with its content instead of clipping it.
 
 ## Research and accessibility references
+
+The composition follows the official Vidstack examples below through the kit's
+`Player.*` components and design tokens. It does not import the SDK's complete
+default-theme styles. Optional title and cover remain above the controls.
+
+- [Vidstack default-theme AudioLayout](https://github.com/vidstack/examples/blob/main/player/react/default-theme/src/layouts/audio-layout.tsx)
+  places the timeline above a toolbar with transport, time and auxiliary controls.
+- [Vidstack TimeGroup](https://github.com/vidstack/examples/blob/main/player/react/default-theme/src/layouts/shared/time-group.tsx)
+  keeps current time, a slash divider and duration together.
 
 - [WAI: Media Players](https://www.w3.org/WAI/media/av/player/) — preserve
   keyboard access, visible focus and clear control labels when composing a

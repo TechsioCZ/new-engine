@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### AudioPlayer v1.2.1
+- Aligned the audio preset with the official Vidstack AudioLayout composition: a full-width timeline above a toolbar with standard play, combined current/duration time beside transport, and mute, volume and optional settings on the right. Narrow containers move time above the actions; optional seek buttons keep visible skip amounts. Updated all six AudioPlayer examples and usage guidance.
+
 ### AudioPlayer v1.2.0
 - Redesigned the audio card around a prominent play action and a wide timeline with current and total time below it. Optional cover and title sit above the controls. Added \`controlsList\` with optional seek and settings groups; the volume slider adapts to the card container. Podcast and NarrowContainer examples document spoken-word controls and responsive layout.
 

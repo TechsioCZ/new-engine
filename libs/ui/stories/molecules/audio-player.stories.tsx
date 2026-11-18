@@ -49,7 +49,7 @@ const meta: Meta<typeof AudioPlayer> = {
       argTypes: { include: publicProps },
       description: {
         component:
-          "An audio preset with an optional title and cover above a prominent play action and timeline. Choose its built-in control groups with controlsList, or replace slots.controls with a Player composition. Use VideoPlayer for video.",
+          "An audio preset with an optional title and cover, a full-width timeline, and an aligned toolbar below it. Play and combined current/duration time sit beside the transport controls; mute, volume and optional settings sit on the right. Choose groups with controlsList or replace slots.controls with Player parts. Use VideoPlayer for video.",
       },
     },
   },
@@ -123,7 +123,7 @@ export function TrackPreview() {
       },
       description: {
         story:
-          "The default preset keeps play prominent, places readable current and total time below the timeline, and retains mute when a narrow container hides the volume slider.",
+          "The default preset places a full-width timeline above the toolbar, with standard play and combined current/duration time beside the transport. Below a 24rem card width, time moves onto its own row above the actions. Mute remains available when the volume slider hides below 32rem.",
       },
     },
   },
@@ -187,16 +187,18 @@ export const CustomControls: Story = {
             padding="none"
           >
             <Player.TimeSlider />
-            <Player.Control className="w-full justify-between">
+            <Player.Control className="w-full flex-wrap justify-between">
+              <Player.Control>
+                <Player.PlayButton />
+                <Player.Control>
+                  <Player.Time type="current" />
+                  <span aria-hidden="true">/</span>
+                  <Player.Time type="duration" />
+                </Player.Control>
+              </Player.Control>
               <Player.Control>
                 <Player.MuteButton />
                 <Player.SettingsMenu />
-              </Player.Control>
-              <Player.Control>
-                <Player.Time type="current" />
-                <span aria-hidden="true">/</span>
-                <Player.Time type="duration" />
-                <Player.PlayButton />
               </Player.Control>
             </Player.Control>
           </Player.ControlGroup>
@@ -220,16 +222,18 @@ export function CompactAudio() {
         <Player.Controls>
           <Player.ControlGroup className="flex-col items-stretch" padding="none">
             <Player.TimeSlider />
-            <Player.Control className="w-full justify-between">
+            <Player.Control className="w-full flex-wrap justify-between">
+              <Player.Control>
+                <Player.PlayButton />
+                <Player.Control>
+                  <Player.Time type="current" />
+                  <span aria-hidden="true">/</span>
+                  <Player.Time type="duration" />
+                </Player.Control>
+              </Player.Control>
               <Player.Control>
                 <Player.MuteButton />
                 <Player.SettingsMenu />
-              </Player.Control>
-              <Player.Control>
-                <Player.Time type="current" />
-                <span aria-hidden="true">/</span>
-                <Player.Time type="duration" />
-                <Player.PlayButton />
               </Player.Control>
             </Player.Control>
           </Player.ControlGroup>
@@ -241,7 +245,7 @@ export function CompactAudio() {
       },
       description: {
         story:
-          "Replace the default controls with a full-width timeline, mute and settings on the left, and time and play on the right. Every Player part shares the preset media context; playback starts at 1.25× speed.",
+          "Compose a full-width timeline above a wrapping toolbar, with standard play and combined current/duration time on the left, and mute and settings on the right. Every Player part shares the preset media context; playback starts at 1.25x speed.",
       },
     },
   },
@@ -261,7 +265,7 @@ export const Podcast: Story = {
     docs: {
       description: {
         story:
-          "A wide podcast card keeps controls inline, while narrower containers reflow the layout. Visible skip amounts and a playback-speed menu support spoken-word listening; the recording uses the Playground sample media.",
+          "The timeline keeps its own full-width row above the toolbar. Opt-in skip buttons show their ten-second amounts beside play, and settings exposes playback speed. Below a 24rem card width, combined current/duration time moves above the transport and auxiliary actions. The recording uses the Playground sample media.",
       },
       source: {
         code: `import { AudioPlayer } from "@techsio/ui-kit/molecules/audio-player"
@@ -303,7 +307,7 @@ export const NarrowContainer: Story = {
     docs: {
       description: {
         story:
-          "A token-sized narrow panel keeps play, timeline, readable time and mute usable even on a wide desktop viewport; responsive audio controls follow their container.",
+          "A token-sized narrow panel puts combined current/duration time on its own row above the transport and mute, with the full-width timeline above the toolbar. The container, including a narrow desktop sidebar, determines this reflow; the volume slider hides below 32rem.",
       },
       source: {
         code: `import { AudioPlayer } from "@techsio/ui-kit/molecules/audio-player"

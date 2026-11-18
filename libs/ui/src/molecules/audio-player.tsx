@@ -2,7 +2,7 @@
  * AudioPlayer — @techsio/ui-kit molecule.
  *
  * @component AudioPlayer
- * @componentVersion v1.2.0
+ * @componentVersion v1.2.1
  * @skill audio-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -27,15 +27,14 @@ const audioPlayerStyles = tv({
       "size-audio-player-cover shrink-0 rounded-audio-player-cover object-cover",
     title: "min-w-0 truncate font-player-title text-player-title",
     player: "w-full overflow-visible",
-    layout:
-      "audio-player-layout grid w-full items-center gap-audio-player-control",
+    controls: "flex-col items-stretch gap-audio-player-row",
+    toolbar:
+      "audio-player-toolbar grid w-full min-w-0 items-center gap-audio-player-control",
     transport: "audio-player-transport shrink-0 gap-audio-player-control",
-    timeline:
-      "audio-player-timeline flex min-w-0 flex-col gap-audio-player-timeline",
-    timePair:
-      "flex w-full items-center justify-between gap-audio-player-control",
+    timeline: "audio-player-timeline w-full min-w-0",
+    timeGroup:
+      "audio-player-time-group shrink-0 gap-audio-player-time whitespace-nowrap",
     auxiliary: "audio-player-auxiliary shrink-0 gap-audio-player-control",
-    play: "audio-player-play",
     seek: "audio-player-seek shrink-0",
     volumeSlider: "audio-player-volume",
   },
@@ -60,6 +59,40 @@ const DEFAULT_CONTROLS: readonly AudioPlayerControls[] = [
   "volume",
 ]
 
+function DefaultTransportControls({
+  hasPlay,
+  hasSeek,
+  skipDuration,
+}: {
+  hasPlay: boolean
+  hasSeek: boolean
+  skipDuration: number
+}) {
+  const styles = audioPlayerStyles()
+  return (
+    <Player.Control className={styles.transport()}>
+      {hasSeek ? (
+        <Player.SeekButton
+          className={styles.seek()}
+          direction="backward"
+          seconds={skipDuration}
+        >
+          −{skipDuration}
+        </Player.SeekButton>
+      ) : null}
+      {hasPlay ? <Player.PlayButton /> : null}
+      {hasSeek ? (
+        <Player.SeekButton
+          className={styles.seek()}
+          direction="forward"
+          seconds={skipDuration}
+        >
+          +{skipDuration}
+        </Player.SeekButton>
+      ) : null}
+    </Player.Control>
+  )
+}
 function DefaultControls({
   controlsList,
   skipDuration,
@@ -82,57 +115,45 @@ function DefaultControls({
 
   return (
     <Player.Controls>
-      <Player.ControlGroup
-        className={styles.layout()}
-        data-auxiliary={hasAuxiliary || undefined}
-        data-seek={hasSeek || undefined}
-        data-timeline={hasTime || undefined}
-        data-transport={hasTransport || undefined}
-        padding="none"
-      >
-        {hasTransport ? (
-          <Player.Control className={styles.transport()}>
-            {hasSeek ? (
-              <Player.SeekButton
-                className={styles.seek()}
-                direction="backward"
-                seconds={skipDuration}
-              >
-                −{skipDuration}
-              </Player.SeekButton>
-            ) : null}
-            {hasPlay ? <Player.PlayButton className={styles.play()} /> : null}
-            {hasSeek ? (
-              <Player.SeekButton
-                className={styles.seek()}
-                direction="forward"
-                seconds={skipDuration}
-              >
-                +{skipDuration}
-              </Player.SeekButton>
-            ) : null}
-          </Player.Control>
-        ) : null}
+      <Player.ControlGroup className={styles.controls()} padding="none">
         {hasTime ? (
           <div className={styles.timeline()}>
             <Player.TimeSlider />
-            <div className={styles.timePair()}>
-              <Player.Time type="current" />
-              <Player.Time type="duration" />
-            </div>
           </div>
         ) : null}
-        {hasAuxiliary ? (
-          <Player.Control className={styles.auxiliary()}>
-            {hasVolume ? (
-              <>
-                <Player.MuteButton />
-                <Player.VolumeSlider className={styles.volumeSlider()} />
-              </>
-            ) : null}
-            {hasSettings ? <Player.SettingsMenu /> : null}
-          </Player.Control>
-        ) : null}
+        <div
+          className={styles.toolbar()}
+          data-auxiliary={hasAuxiliary || undefined}
+          data-seek={hasSeek || undefined}
+          data-time={hasTime || undefined}
+          data-transport={hasTransport || undefined}
+        >
+          {hasTransport ? (
+            <DefaultTransportControls
+              hasPlay={hasPlay}
+              hasSeek={hasSeek}
+              skipDuration={skipDuration}
+            />
+          ) : null}
+          {hasTime ? (
+            <Player.Control className={styles.timeGroup()}>
+              <Player.Time type="current" />
+              <span aria-hidden="true">/</span>
+              <Player.Time type="duration" />
+            </Player.Control>
+          ) : null}
+          {hasAuxiliary ? (
+            <Player.Control className={styles.auxiliary()}>
+              {hasVolume ? (
+                <>
+                  <Player.MuteButton />
+                  <Player.VolumeSlider className={styles.volumeSlider()} />
+                </>
+              ) : null}
+              {hasSettings ? <Player.SettingsMenu /> : null}
+            </Player.Control>
+          ) : null}
+        </div>
       </Player.ControlGroup>
     </Player.Controls>
   )

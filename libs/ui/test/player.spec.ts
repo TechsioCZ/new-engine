@@ -191,6 +191,65 @@ test("audio cover leaves room for visible, usable sliders", async ({
       (await slider.locator(".vds-slider-track").first().boundingBox())?.height
     ).toBeGreaterThan(0)
   }
+  const timeline = await player
+    .getByRole("slider", { name: "Seek", exact: true })
+    .boundingBox()
+  const media = await player.boundingBox()
+  const play = await player
+    .getByRole("button", { name: PLAY_LABEL })
+    .boundingBox()
+  const mute = await player
+    .getByRole("button", { name: MUTE_LABEL })
+    .boundingBox()
+  if (!(timeline && media && play && mute)) {
+    throw new Error(
+      "The audio timeline and playback controls need visible bounds"
+    )
+  }
+  // Vidstack reserves half a thumb at either end. Those margins belong to the
+  // full-width slider span and keep the thumb inside the media bounds.
+  const timelineMargins = await player
+    .getByRole("slider", { name: "Seek", exact: true })
+    .evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        start: Number.parseFloat(style.marginInlineStart),
+        end: Number.parseFloat(style.marginInlineEnd),
+      }
+    })
+  expect(
+    Math.abs(
+      timeline.width + timelineMargins.start + timelineMargins.end - media.width
+    ),
+    "timeline including its thumb margins spans the full media width"
+  ).toBeLessThanOrEqual(2)
+  expect(
+    Math.abs(timeline.x - timelineMargins.start - media.x)
+  ).toBeLessThanOrEqual(2)
+  expect(
+    timeline.y + timeline.height,
+    "timeline sits above the control row"
+  ).toBeLessThanOrEqual(Math.min(play.y, mute.y) + 0.5)
+  expect(play.height, "Play uses the standard control size").toBeCloseTo(40, 0)
+  expect(mute.height, "Mute uses the standard control size").toBeCloseTo(40, 0)
+  const current = await player.getByText("0:00", { exact: true }).boundingBox()
+  const duration = await player.getByText("0:30", { exact: true }).boundingBox()
+  const separator = await player.getByText("/", { exact: true }).boundingBox()
+  if (!(current && duration && separator)) {
+    throw new Error("Current time and duration need an inline separator")
+  }
+  expect(
+    Math.abs(current.y + current.height / 2 - (play.y + play.height / 2))
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(duration.y + duration.height / 2 - (play.y + play.height / 2))
+  ).toBeLessThanOrEqual(1)
+  expect(separator.x).toBeGreaterThanOrEqual(current.x + current.width)
+  expect(duration.x).toBeGreaterThanOrEqual(separator.x + separator.width)
+  expect(
+    duration.x - (current.x + current.width),
+    "times form one adjacent group"
+  ).toBeLessThan(40)
 })
 
 test("audio playback, seeking, mute and volume work with native media", async ({
@@ -286,11 +345,74 @@ test("audio playback, seeking, mute and volume work with native media", async ({
 test("podcast seek labels and keyboard settings control the native audio", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
   await page.goto(
     "/iframe.html?id=molecules-audioplayer--podcast&viewMode=story"
   )
   const player = page.locator("[data-media-player]")
   await expect(player).toHaveAttribute("data-can-play", "")
+  await updateStoryArgs(page, "molecules-audioplayer--podcast", {
+    style: { width: 320 },
+  })
+  const card = player.locator("xpath=ancestor-or-self::div[.//img][1]")
+  await expect(card).toHaveCSS("width", "320px")
+  const currentTime = player.getByText("0:00", { exact: true })
+  const durationTime = player.getByText("0:30", { exact: true })
+  const separator = player.getByText("/", { exact: true })
+  await expect(separator).toBeVisible()
+  const currentBox = await currentTime.boundingBox()
+  const durationBox = await durationTime.boundingBox()
+  const separatorBox = await separator.boundingBox()
+  const mediaBox = await player.boundingBox()
+  const timeGroup = await currentTime.locator("..").boundingBox()
+  if (!(currentBox && durationBox && separatorBox && mediaBox && timeGroup)) {
+    throw new Error("Narrow podcast times need visible bounds")
+  }
+  expect(
+    timeGroup.width,
+    "narrow podcast times own a full row"
+  ).toBeGreaterThanOrEqual(mediaBox.width - 2)
+  expect(separatorBox.x).toBeGreaterThanOrEqual(currentBox.x + currentBox.width)
+  expect(durationBox.x).toBeGreaterThanOrEqual(
+    separatorBox.x + separatorBox.width
+  )
+  expect(durationBox.x - (currentBox.x + currentBox.width)).toBeLessThan(40)
+  const buttons = player.getByRole("button")
+  await expect(buttons).toHaveCount(5)
+  const buttonBoxes: NonNullable<typeof mediaBox>[] = []
+  for (const button of await buttons.all()) {
+    await expect(button).toBeVisible()
+    const box = await button.boundingBox()
+    if (!box) {
+      throw new Error("Podcast buttons need visible bounds")
+    }
+    expect(
+      Math.max(
+        currentBox.y + currentBox.height,
+        durationBox.y + durationBox.height
+      ),
+      "time row sits above transport and auxiliary controls"
+    ).toBeLessThanOrEqual(box.y + 0.5)
+    expect(box.x).toBeGreaterThanOrEqual(mediaBox.x - 0.5)
+    expect(box.x + box.width).toBeLessThanOrEqual(
+      mediaBox.x + mediaBox.width + 0.5
+    )
+    buttonBoxes.push(box)
+  }
+  for (const [index, box] of buttonBoxes.entries()) {
+    for (const other of buttonBoxes.slice(index + 1)) {
+      const overlapWidth =
+        Math.min(box.x + box.width, other.x + other.width) -
+        Math.max(box.x, other.x)
+      const overlapHeight =
+        Math.min(box.y + box.height, other.y + other.height) -
+        Math.max(box.y, other.y)
+      expect(
+        overlapWidth > 0.5 && overlapHeight > 0.5,
+        "podcast controls do not overlap"
+      ).toBe(false)
+    }
+  }
   const forward = player.getByRole("button", {
     name: "Seek forward 10 seconds",
     exact: true,

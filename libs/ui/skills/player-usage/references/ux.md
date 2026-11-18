@@ -32,7 +32,7 @@ Use `AudioPlayer` or `VideoPlayer` for the ready-made layout.
 - Supply a transcript or other accessible alternative where the content
   requires it. Playlist navigation is outside this version's scope.
 
-The current engine is `@vidstack/react` 1.15.6. Upstream has deprecated Vidstack
+The current engine is `@vidstack/react` 1.15.7. Upstream has deprecated Vidstack
 in favor of Video.js 10; a future engine migration is separate from this API.
 
 Retry restarts the media provider and resets playback to its initial state. Keep recovery copy concise; audio error feedback grows with its content instead of clipping it.
