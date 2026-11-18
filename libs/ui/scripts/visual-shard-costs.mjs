@@ -2,6 +2,7 @@
 // tmp="$(mktemp)"
 // node libs/ui/scripts/visual-shard-costs.mjs <report-root> [<report-root> ...] > "$tmp" &&
 //   mv "$tmp" libs/ui/test/visual-shard-costs.json
+// Each report root must also contain the run's downloaded expected.json matrix.
 // Never truncate the imported cost configuration before measurement succeeds.
 import fs from "node:fs"
 import path from "node:path"
@@ -15,6 +16,8 @@ import {
   assertBehaviorCompletion,
   behaviorShardPlan,
 } from "./component-behavior-shards.mjs"
+
+import { readExpectedComponents } from "./verify-component-shards.mjs"
 
 function find(directory, name) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -126,11 +129,31 @@ export function measureFiles(roots) {
 export function measureBehaviorFiles(roots) {
   const result = {}
   for (const root of roots) {
+    const manifests = find(root, "expected.json")
+    if (manifests.length !== 1)
+      throw new Error(`Expected exactly one expected.json matrix in ${root}`)
+    const { scope, groups } = readExpectedComponents(manifests[0])
+    if (scope !== "full" || !groups.desktop || !groups.mobile)
+      throw new Error(`Expected a full desktop/mobile shard matrix in ${root}`)
+    const missing = new Set(
+      ["desktop", "mobile"].flatMap((group) =>
+        Array.from(
+          { length: groups[group] },
+          (_, index) => `${group}/${index + 1}`
+        )
+      )
+    )
     const observation = new Map()
     const owners = new Map()
     for (const reportPath of find(root, "all.json")) {
-      const group = /ui-(desktop|mobile)-shard-\d+/.exec(reportPath)?.[1]
-      if (!group) continue
+      const match = /(?:^|\/)[^/]*-(desktop|mobile)-shard-(\d+)\//.exec(
+        reportPath.replaceAll("\\", "/")
+      )
+      if (!match) continue
+      const [, group, index] = match
+      const shard = `${group}/${Number(index)}`
+      if (!missing.delete(shard))
+        throw new Error(`Repeated or undeclared behavior shard: ${shard}`)
       const report = JSON.parse(fs.readFileSync(reportPath, "utf8"))
       const tests = []
       const visit = (suites) => {
@@ -154,7 +177,10 @@ export function measureBehaviorFiles(roots) {
           ),
         0
       )
-      if (!total && files.length)
+      const onlySkipped = tests.every(({ test }) =>
+        test.results.every((item) => item.status === "skipped")
+      )
+      if (!total && files.length && !onlySkipped)
         throw new Error(`No measured behavior work in ${reportPath}`)
       const scale = total ? (4 * report.stats.duration) / total : 0
       for (const { file, test } of tests) {
@@ -172,6 +198,10 @@ export function measureBehaviorFiles(roots) {
         )
       }
     }
+    if (missing.size)
+      throw new Error(
+        `Missing behavior shard reports: ${[...missing].join(", ")}`
+      )
     for (const group of ["desktop", "mobile"]) {
       if (
         ![...observation.keys()].some((identity) =>

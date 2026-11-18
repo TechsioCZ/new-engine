@@ -19,6 +19,13 @@ import {
 function fixture(t, duration = 4000) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "visual-costs-"))
   t.after(() => fs.rmSync(root, { recursive: true, force: true }))
+  fs.writeFileSync(
+    path.join(root, "expected.json"),
+    JSON.stringify({
+      scope: "full",
+      components: { groups: { visual: 1, desktop: 1, mobile: 1 }, total: 3 },
+    })
+  )
   const directory = path.join(root, "ui-visual-shard-1")
   fs.mkdirSync(directory)
   const entries = Object.fromEntries(
@@ -168,7 +175,10 @@ test("behavior and screenshots reserve the same generated per-bundle costs", (t)
 test("behavior measurements reject missing groups, failures and duplicate file owners", (t) => {
   const f = fixture(t)
   fs.rmSync(path.join(f.root, "ui-mobile-shard-1"), { recursive: true })
-  assert.throws(() => measureBehaviorFiles([f.root]), /No mobile reports/)
+  assert.throws(
+    () => measureBehaviorFiles([f.root]),
+    /Missing behavior shard reports: mobile\/1/
+  )
   const bad = fixture(t)
   const file = path.join(bad.root, "ui-mobile-shard-1/all.json")
   const report = JSON.parse(fs.readFileSync(file))
@@ -179,6 +189,11 @@ test("behavior measurements reject missing groups, failures and duplicate file o
     /Unexpected behavior failures/
   )
   const duplicate = fixture(t)
+  const manifest = path.join(duplicate.root, "expected.json")
+  const expected = JSON.parse(fs.readFileSync(manifest))
+  expected.components.groups.desktop = 2
+  expected.components.total = 4
+  fs.writeFileSync(manifest, JSON.stringify(expected))
   fs.cpSync(
     path.join(duplicate.root, "ui-desktop-shard-1"),
     path.join(duplicate.root, "ui-desktop-shard-2"),
@@ -188,4 +203,60 @@ test("behavior measurements reject missing groups, failures and duplicate file o
     () => measureBehaviorFiles([duplicate.root]),
     /Repeated behavior file/
   )
+})
+
+test("intentional skip-only shards receive zero cost, not missing timing errors", (t) => {
+  const f = fixture(t)
+  const file = path.join(f.root, "ui-mobile-shard-1/all.json")
+  const report = JSON.parse(fs.readFileSync(file))
+  const entry = report.suites[0].specs[0].tests[0]
+  entry.status = "skipped"
+  entry.results = [{ status: "skipped", duration: 0, retry: 0 }]
+  report.stats.skipped = 1
+  fs.writeFileSync(file, JSON.stringify(report))
+  assert.deepEqual(measureBehaviorFiles([f.root])["mobile/player.spec.ts"], {
+    cost: 0,
+    storyCount: 1,
+  })
+  entry.status = "expected"
+  entry.results = [{ status: "passed", duration: 0, retry: 0 }]
+  report.stats.skipped = 0
+  fs.writeFileSync(file, JSON.stringify(report))
+  assert.throws(
+    () => measureBehaviorFiles([f.root]),
+    /No measured behavior work/
+  )
+  delete entry.results[0].duration
+  fs.writeFileSync(file, JSON.stringify(report))
+  assert.throws(
+    () => measureBehaviorFiles([f.root]),
+    /No measured behavior work/
+  )
+})
+
+test("behavior measurements require the declared complete shard set", (t) => {
+  for (const group of ["desktop", "mobile"]) {
+    const f = fixture(t)
+    const manifest = path.join(f.root, "expected.json")
+    const expected = JSON.parse(fs.readFileSync(manifest))
+    expected.components.groups[group] = 2
+    expected.components.total = 4
+    fs.writeFileSync(manifest, JSON.stringify(expected))
+    assert.throws(
+      () => measureBehaviorFiles([f.root]),
+      /Missing behavior shard/
+    )
+    const directory = path.join(f.root, `ui-${group}-shard-2`)
+    fs.mkdirSync(directory)
+    fs.writeFileSync(
+      path.join(directory, "all.json"),
+      JSON.stringify({ errors: [], stats: { duration: 0 }, suites: [] })
+    )
+    assert.doesNotThrow(() => measureBehaviorFiles([f.root]))
+    fs.rmSync(manifest)
+    assert.throws(
+      () => measureBehaviorFiles([f.root]),
+      /exactly one expected.json/
+    )
+  }
 })
