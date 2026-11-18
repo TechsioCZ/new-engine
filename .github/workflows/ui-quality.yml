@@ -110,7 +110,6 @@ jobs:
         if: steps.scope.outputs.scope != 'none'
         env:
           BUNDLE_GROUP: ${{ matrix.group }}
-          BUNDLE_BEHAVIOR: ${{ matrix.shard == 1 }}
           SCOPE: ${{ steps.scope.outputs.scope }}
           SHARD: ${{ matrix.shard }}/${{ matrix.total }}
           VISUAL_CHANGED_FILES_FROM: ${{ runner.temp }}/ui-changed-files/changed-files.txt

@@ -24,6 +24,10 @@ import {
 } from "./visual-affected-stories.mjs"
 import { ensureStorybookBuild } from "./visual-storybook-build.mjs"
 import { trackedBaselines } from "./component-baselines.mjs"
+import {
+  assertBehaviorCompletion,
+  behaviorShardPlan,
+} from "./component-behavior-shards.mjs"
 
 // Runs the Playwright visual tests inside Docker for reproducible snapshots.
 const uiRoot = path.resolve(import.meta.dirname, "..")
@@ -79,13 +83,13 @@ const platformTag =
 // CI caches this content-addressed image, with no registry or credentials.
 const imageTag = `${playwrightVersion ? `${playwrightVersion}-` : ""}${dockerfileHash}${platformTag}`
 const imageName =
-  process.env.PLAYWRIGHT_DOCKER_IMAGE ??
-  `new-engine-ui-playwright:${imageTag}`
+  process.env.PLAYWRIGHT_DOCKER_IMAGE ?? `new-engine-ui-playwright:${imageTag}`
 const projects = createVisualMatrix(process.env.VISUAL_BRANDS).map(
   (project) => project.name
 )
 // CI separates mobile/desktop behavior and visual projects. Behavior uses
-// Playwright's native shard; visuals split the story list in each project.
+// the same measured file allocator as visuals, without native re-sharding.
+// Focused CLI calls retain native selection and sharding instead.
 const group = (process.env.PLAYWRIGHT_GROUP ?? "").trim() || undefined
 const sequentialProjects =
   (process.env.PLAYWRIGHT_DOCKER_SEQUENTIAL ?? "0") !== "0"
@@ -134,6 +138,10 @@ const playwrightShard = parseReleaseShard(
   "PLAYWRIGHT_SHARD"
 )
 const activeShard = releaseShard ?? playwrightShard
+const behaviorPlan =
+  (group === "desktop" || group === "mobile") && extraArgs.length === 0
+    ? behaviorShardPlan(group, activeShard)
+    : undefined
 const containerName = `pw-visual-${crypto.randomUUID()}`
 // Each `playwright test` run empties test-results, so reports live beside it.
 const reportRoot = "/app/visual-reports"
@@ -197,6 +205,10 @@ function uniqueSorted(values) {
 
 /** @param {{errors: unknown[], stats: {unexpected: number, flaky: number}, suites: ReportSuite[]}[]} reports */
 function verifyCompletion(reports) {
+  if (behaviorPlan && extraArgs.length === 0) {
+    assertBehaviorCompletion(reports, group, behaviorPlan.testFiles)
+    return
+  }
   const stories = visualStories(
     JSON.parse(fs.readFileSync(path.join(storybookDir, "index.json"), "utf8"))
       .entries
@@ -392,19 +404,29 @@ function projectRunList() {
 }
 
 /**
- * Shard flags for one Playwright run. A non-release shard may match no tests,
- * so it also passes --pass-with-no-tests.
+ * File selection uses the screenshot allocator for behavior too. Never pass
+ * --shard after selecting files: that would partition the selection twice.
+ * Empty mobile allocations are explicit, not an unfiltered Playwright run.
  * @returns {string[]}
  */
 function shardArgs() {
+  if (behaviorPlan && activeShard) {
+    return behaviorPlan.testFiles.length
+      ? behaviorPlan.testFiles.map(
+          (file) =>
+            `/^/app/test/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
+        )
+      : ["$^", "--pass-with-no-tests"]
+  }
   if (!activeShard) {
     return []
   }
   // Screenshot specs split stories inside each project. Native sharding would
   // partition the already narrowed tests a second time and omit identities.
-  const flags = group === "visual"
-    ? []
-    : [`--shard=${activeShard.index}/${activeShard.total}`]
+  const flags =
+    group === "visual"
+      ? []
+      : [`--shard=${activeShard.index}/${activeShard.total}`]
   return playwrightShard ? [...flags, "--pass-with-no-tests"] : flags
 }
 
@@ -447,9 +469,11 @@ function runPlaywrightProjects() {
         containerName,
         ...(measured
           ? [
-              "bash", "-c",
+              "bash",
+              "-c",
               'TIMEFORMAT="Playwright workload: wall %3R s, user %3U s, system %3S s"; time "$@"',
-              "--", ...command,
+              "--",
+              ...command,
             ]
           : command),
       ],
@@ -477,7 +501,11 @@ function copyResultsToHost() {
     ["/app/test-results/.", "test-results"],
     [`${reportRoot}/.`, "test-results/visual-reports"],
   ]) {
-    docker(["cp", `${containerName}:${source}`, path.join(outputRoot, destination)])
+    docker([
+      "cp",
+      `${containerName}:${source}`,
+      path.join(outputRoot, destination),
+    ])
   }
   if (activeShard) {
     // The shard verifier needs the exact story list this commit was built with.
@@ -744,6 +772,14 @@ function main() {
         shard: activeShard ?? null,
         release: process.env.VISUAL_RELEASE_READINESS === "1",
         changed: changedMode,
+        ...(group === "desktop" || group === "mobile"
+          ? { testArgs: [...shardArgs(), ...extraArgs] }
+          : {}),
+        ...(behaviorPlan
+          ? {
+              ...behaviorPlan,
+            }
+          : {}),
       })
     )
     return 0

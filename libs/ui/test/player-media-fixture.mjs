@@ -1,6 +1,12 @@
-import type { BrowserContext, Page } from "@playwright/test"
+// @ts-check
+import { Buffer } from "node:buffer"
+
+/** @import { BrowserContext, Page } from "@playwright/test" */
 
 // Thirty seconds of silent PCM: exercise the real media element without a CDN.
+// Every browser harness that renders the player stories installs this route
+// (visual, behaviour and the Storybook accessibility scan), so their screenshots
+// and play functions see the same local media and never the network.
 const BYTE_RANGE = /^bytes=(\d+)-(\d*)$/
 const sampleRate = 8000
 const audio = Buffer.alloc(44 + sampleRate * 30 * 2)
@@ -17,7 +23,8 @@ audio.writeUInt16LE(16, 34)
 audio.write("data", 36)
 audio.writeUInt32LE(audio.length - 44, 40)
 
-export async function installPlayerMediaFixture(target: BrowserContext | Page) {
+/** @param {BrowserContext | Page} target */
+export async function installPlayerMediaFixture(target) {
   await target.route("**/sprite-fight/{audio.mp3,480p.mp4}", (route) => {
     const headers = { "Accept-Ranges": "bytes" }
     const range = route.request().headers().range?.match(BYTE_RANGE)

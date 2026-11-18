@@ -17,6 +17,11 @@ import {
   PLAYWRIGHT_GROUPS,
 } from "../test/visual-projects.mjs"
 
+import {
+  assertBehaviorCompletion,
+  behaviorShardPlan,
+} from "./component-behavior-shards.mjs"
+
 const REPORT_NAME = "all.json"
 const NONE_MARKER_NAME = "changed-none.json"
 const USAGE =
@@ -276,13 +281,21 @@ function assertDeclaredGroupsReported(root, groups) {
       group !== undefined,
       `Shard artifact folder "${entry.name}" does not end in -<group>-shard-<index>`
     )
-    found.set(group, [...(found.get(group) ?? []), entry.name])
-  }
-  for (const group of found.keys()) {
     assert(
       group in groups,
       `Group ${group} reported shards that the plan did not declare`
     )
+    const shard = Number(SHARD_FOLDER.exec(entry.name).groups.shard)
+    assert(
+      shard >= 1 && shard <= groups[group],
+      `Out-of-range ${group} shard: ${shard}`
+    )
+    const identity = `${group}/${shard}`
+    assert(
+      !(found.get(group) ?? []).includes(identity),
+      `Duplicate shard: ${identity}`
+    )
+    found.set(group, [...(found.get(group) ?? []), identity])
   }
   for (const [group, count] of Object.entries(groups)) {
     const reported = found.get(group) ?? []
@@ -306,9 +319,41 @@ export function verifyShards({ expect: expectFile, reports }) {
   }
   if (scope === "ui") {
     verifyChangedShards(reports, total)
-    return
+  } else {
+    verifyFullShards(reports, total)
   }
-  verifyFullShards(reports, total)
+  // Reconstruct the assignment from this checkout, not from a shard's claim.
+  // A clean empty all.json cannot stand in for work it was assigned to run.
+  const shards = loadChangedShards(reports)
+  for (const shard of shards) {
+    const { group, shard: index } = SHARD_FOLDER.exec(shard.name).groups
+    if (scope === "full") {
+      assert(
+        shard.reports.length === 1 && shard.markers.length === 0,
+        `Shard ${shard.name} must contain exactly one all.json and no changed-none.json`
+      )
+    }
+    if (scope === "ui" && group !== "visual" && groups.visual) {
+      const visual = shards.find((sibling) => {
+        const identity = SHARD_FOLDER.exec(sibling.name).groups
+        return (
+          identity.group === "visual" &&
+          Number(identity.shard) === Number(index)
+        )
+      })
+      assert(
+        visual !== undefined &&
+          Boolean(shard.markers.length) === Boolean(visual.markers.length),
+        `Shard ${shard.name} changed-none disagrees with its visual sibling`
+      )
+    }
+    if (group === "visual" || (scope === "ui" && shard.markers.length)) continue
+    const plan = behaviorShardPlan(group, {
+      index: Number(index),
+      total: groups[group],
+    })
+    assertBehaviorCompletion(shard.reports, group, plan.testFiles)
+  }
 }
 
 /**

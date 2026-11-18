@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test"
-import { installPlayerMediaFixture } from "./player-media-fixture"
+import { installPlayerMediaFixture } from "./player-media-fixture.mjs"
 
 const PLAY_LABEL = /^(Play|Pause)$/
 const MUTE_LABEL = /^(Mute|Unmute)$/

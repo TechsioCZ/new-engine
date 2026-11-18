@@ -10,7 +10,7 @@ import {
   test,
 } from "@playwright/test"
 import { PNG } from "pngjs"
-import { installPlayerMediaFixture } from "./player-media-fixture"
+import { installPlayerMediaFixture } from "./player-media-fixture.mjs"
 import { installVisualAssets } from "./visual-assets.mjs"
 import { visualCaptureTiles } from "./visual-capture.mjs"
 import { parseReleaseShard, visualStories } from "./visual-completion.mjs"

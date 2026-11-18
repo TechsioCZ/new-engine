@@ -6,7 +6,7 @@ description: >
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
 metadata:
-  component_version: "1.4.0"
+  component_version: "1.4.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -15,6 +15,7 @@ import {
 } from "../.storybook/a11y-policy.mjs"
 import { curateControls } from "../.storybook/controls.ts"
 import { applyPreviewTheme, bindDocsTheme } from "../.storybook/theme.mjs"
+import { behaviorShardPlan } from "../scripts/component-behavior-shards.mjs"
 import {
   nativeFormAdapters,
   nativeResetCancellations,
@@ -1229,6 +1230,26 @@ function componentPlan(env) {
   }
 }
 
+/** The behavior allocation the runner must print for a device group, derived
+ * from the allocator so a regenerated cost table never stales this test. A
+ * shard selects its files by anchored path, never with Playwright's --shard.
+ */
+function behaviorAllocation(group, shard) {
+  if (group === "visual") {
+    return {}
+  }
+  const plan = behaviorShardPlan(group, shard)
+  return {
+    ...plan,
+    testArgs: plan.emptyAllocation
+      ? ["$^", "--pass-with-no-tests"]
+      : plan.testFiles.map(
+          (file) =>
+            `/^/app/test/${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/`
+        ),
+  }
+}
+
 test("the three component groups cover every Playwright project exactly once", () => {
   assert.deepEqual(PLAYWRIGHT_GROUPS, ["mobile", "desktop", "visual"])
   assert.deepEqual(DEVICE_PROJECTS, ["desktop", "mobile"])
@@ -1291,6 +1312,7 @@ test("a group narrows the release run and the changed run through one code path"
       shard: { index: 2, total: 5 },
       release: true,
       changed: false,
+      ...behaviorAllocation(group, { index: 2, total: 5 }),
     })
     // Changed mode used to ignore projects entirely, so every behavior spec ran
     // once per shard and only the shard folder count noticed.
@@ -1303,6 +1325,12 @@ test("a group narrows the release run and the changed run through one code path"
     assert.deepEqual(subset.plan().projects, projects)
     assert.equal(subset.plan().changed, true)
     assert.deepEqual(subset.plan().shard, { index: 1, total: 2 })
+    const { testFiles, testArgs } = behaviorAllocation(group, {
+      index: 1,
+      total: 2,
+    })
+    assert.deepEqual(subset.plan().testFiles, testFiles)
+    assert.deepEqual(subset.plan().testArgs, testArgs)
   }
   // Either shard variable requires a group: a count-based shard over the whole
   // project list is a contiguous partition of a heterogeneous suite.
