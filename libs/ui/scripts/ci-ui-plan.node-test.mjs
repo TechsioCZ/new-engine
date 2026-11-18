@@ -75,10 +75,10 @@ test("pushes and unavailable bases keep the full six-bundle regression gate", (t
     assert.equal(run.expected.scope, "full")
     assert.deepEqual(run.expected.components.groups, {
       visual: 6,
-      desktop: 1,
-      mobile: 1,
+      desktop: 6,
+      mobile: 6,
     })
-    assert.equal(run.expected.components.total, 8)
+    assert.equal(run.expected.components.total, 18)
     assert.deepEqual(run.expected.a11y.themes, [
       "business-light",
       "akros-light",

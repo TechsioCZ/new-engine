@@ -9,7 +9,12 @@ import {
   createVisualMatrix,
   shardVisualStories,
 } from "../test/visual-projects.mjs"
-import { measureFiles } from "./visual-shard-costs.mjs"
+import { behaviorShardPlan } from "./component-behavior-shards.mjs"
+import {
+  componentCosts,
+  measureBehaviorFiles,
+  measureFiles,
+} from "./visual-shard-costs.mjs"
 
 function fixture(t, duration = 4000) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "visual-costs-"))
@@ -20,11 +25,11 @@ function fixture(t, duration = 4000) {
     ["a", "b"].map((id) => [
       id,
       { id, type: "story", importPath: `./${id}.stories.tsx` },
-    ]),
+    ])
   )
   fs.writeFileSync(
     path.join(directory, "index.json"),
-    JSON.stringify({ entries }),
+    JSON.stringify({ entries })
   )
   const report = {
     errors: [],
@@ -48,13 +53,40 @@ function fixture(t, duration = 4000) {
                 ],
               },
             ],
-          })),
+          }))
         ),
       },
     ],
   }
   const file = path.join(directory, "all.json")
   fs.writeFileSync(file, JSON.stringify(report))
+  for (const group of ["desktop", "mobile"]) {
+    const directory = path.join(root, `ui-${group}-shard-1`)
+    fs.mkdirSync(directory)
+    fs.writeFileSync(
+      path.join(directory, "all.json"),
+      JSON.stringify({
+        errors: [],
+        stats: { duration: 1000, unexpected: 0, flaky: 0 },
+        suites: [
+          {
+            specs: [
+              {
+                file: "player.spec.ts",
+                tests: [
+                  {
+                    projectName: group,
+                    status: "expected",
+                    results: [{ status: "passed", duration: 100, retry: 0 }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+    )
+  }
   return {
     root,
     report,
@@ -72,7 +104,7 @@ test("costs conserve actual four-worker wall time and keep the slower file obser
   const costs = measureFiles([a.root, b.root])
   assert.equal(
     Object.values(costs).reduce((sum, item) => sum + item.cost, 0) / 4,
-    8000,
+    8000
   )
 })
 
@@ -91,8 +123,11 @@ test("the generator CLI emits the file schema consumed by screenshot sharding", 
   const f = fixture(t)
   const result = spawnSync(
     process.execPath,
-    [fileURLToPath(new URL("./visual-shard-costs.mjs", import.meta.url)), f.root],
-    { encoding: "utf8" },
+    [
+      fileURLToPath(new URL("./visual-shard-costs.mjs", import.meta.url)),
+      f.root,
+    ],
+    { encoding: "utf8" }
   )
   assert.equal(result.status, 0, result.stderr)
   const weights = JSON.parse(result.stdout)
@@ -101,8 +136,56 @@ test("the generator CLI emits the file schema consumed by screenshot sharding", 
     importPath: `./${id}.stories.tsx`,
   }))
   const selected = Array.from({ length: 6 }, (_, index) =>
-    shardVisualStories(stories, { index: index + 1, total: 6 }, weights),
+    shardVisualStories(stories, { index: index + 1, total: 6 }, weights)
   ).flat()
   assert.deepEqual(selected.map(({ id }) => id).sort(), ["a", "b"])
   assert.equal(weights.storyCount, stories.length)
+})
+
+test("behavior and screenshots reserve the same generated per-bundle costs", (t) => {
+  const f = fixture(t)
+  const weights = componentCosts([f.root])
+  assert.deepEqual(measureBehaviorFiles([f.root]), {
+    "desktop/player.spec.ts": { cost: 4000, storyCount: 1 },
+    "mobile/player.spec.ts": { cost: 4000, storyCount: 1 },
+  })
+  for (let index = 1; index <= 6; index++) {
+    const shard = { index, total: 6 }
+    const seconds = ["desktop", "mobile"].reduce(
+      (sum, group) =>
+        sum +
+        behaviorShardPlan(group, shard, undefined, weights.behavior)
+          .estimatedSeconds,
+      0
+    )
+    assert.equal(
+      weights.cohostedCosts[index - 1],
+      weights.behavior.cohostedCosts[index - 1] + Math.round(seconds * 4000)
+    )
+  }
+})
+
+test("behavior measurements reject missing groups, failures and duplicate file owners", (t) => {
+  const f = fixture(t)
+  fs.rmSync(path.join(f.root, "ui-mobile-shard-1"), { recursive: true })
+  assert.throws(() => measureBehaviorFiles([f.root]), /No mobile reports/)
+  const bad = fixture(t)
+  const file = path.join(bad.root, "ui-mobile-shard-1/all.json")
+  const report = JSON.parse(fs.readFileSync(file))
+  report.stats.unexpected = 1
+  fs.writeFileSync(file, JSON.stringify(report))
+  assert.throws(
+    () => measureBehaviorFiles([bad.root]),
+    /Unexpected behavior failures/
+  )
+  const duplicate = fixture(t)
+  fs.cpSync(
+    path.join(duplicate.root, "ui-desktop-shard-1"),
+    path.join(duplicate.root, "ui-desktop-shard-2"),
+    { recursive: true }
+  )
+  assert.throws(
+    () => measureBehaviorFiles([duplicate.root]),
+    /Repeated behavior file/
+  )
 })

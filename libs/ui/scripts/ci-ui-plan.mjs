@@ -75,8 +75,8 @@ fs.writeFileSync(
         ? { include: [], groups: {}, total: 0 }
         : {
             include: matrix.include,
-            groups: { visual: bundles, desktop: 1, mobile: 1 },
-            total: bundles + 2,
+            groups: { visual: bundles, desktop: bundles, mobile: bundles },
+            total: bundles * 3,
           },
       a11y: {
         themes: idle ? [] : themes,

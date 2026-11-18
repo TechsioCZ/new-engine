@@ -6,7 +6,6 @@ set -euo pipefail
 # together slowed both on the hosted runner, so suites share one pool in turn.
 run_group() {
   local group="$1" workers="$2" shard="$SHARD"
-  if [ "$group" != visual ]; then shard=1/1; fi
   export PLAYWRIGHT_GROUP="$group" PLAYWRIGHT_WORKERS="$workers"
   export PLAYWRIGHT_OUTPUT_DIR="$RUNNER_TEMP/component-results/$group"
   local started=$SECONDS
@@ -32,12 +31,6 @@ fi
 case "$BUNDLE_GROUP" in
   visual)
     run_group visual 4
-    if [ "${BUNDLE_BEHAVIOR:-}" = true ]; then
-      run_group desktop 4
-      run_group mobile 4
-    fi
-    ;;
-  behavior)
     run_group desktop 4
     run_group mobile 4
     ;;

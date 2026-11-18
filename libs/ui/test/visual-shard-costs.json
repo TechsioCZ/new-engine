@@ -1,479 +1,674 @@
 {
-  "maxVisualCost": 1416000,
-  "storyCount": 918,
-  "medianCost": 6569,
-  "cohostedCosts": [
-    1120000,
-    900000,
-    0,
-    0,
-    0,
-    0
+  "sources": [
+    "44283074503",
+    "44141603583"
   ],
+  "measurement": "Four-worker milliseconds: distribute each clean Playwright report's wall duration across passing test durations; keep the slower observation per file. Behavior is allocated first; screenshots reserve that allocation plus bundle 2's existing accessibility allowance.",
+  "maxVisualCost": 1416000,
+  "storyCount": 943,
+  "medianCost": 7214,
+  "cohostedCosts": [
+    375770,
+    900000,
+    375910,
+    374922,
+    376659,
+    377821
+  ],
+  "behavior": {
+    "storyCount": 42,
+    "medianCost": 25267,
+    "cohostedCosts": [
+      0,
+      900000,
+      0,
+      0,
+      0,
+      0
+    ],
+    "files": {
+      "desktop/action-icon-caller-surfaces.spec.ts": {
+        "cost": 10312,
+        "storyCount": 1
+      },
+      "desktop/actions.spec.ts": {
+        "cost": 23057,
+        "storyCount": 1
+      },
+      "desktop/business-atoms.behavior.spec.ts": {
+        "cost": 113818,
+        "storyCount": 1
+      },
+      "desktop/business-field-focus.spec.ts": {
+        "cost": 20555,
+        "storyCount": 1
+      },
+      "desktop/carousel.behavior.spec.ts": {
+        "cost": 27338,
+        "storyCount": 1
+      },
+      "desktop/cascade-select.behavior.spec.ts": {
+        "cost": 27494,
+        "storyCount": 1
+      },
+      "desktop/combobox.behavior.spec.ts": {
+        "cost": 24484,
+        "storyCount": 1
+      },
+      "desktop/command-hotkeys.spec.ts": {
+        "cost": 11507,
+        "storyCount": 1
+      },
+      "desktop/command.spec.ts": {
+        "cost": 17794,
+        "storyCount": 1
+      },
+      "desktop/data-table-reorder.spec.ts": {
+        "cost": 5582,
+        "storyCount": 1
+      },
+      "desktop/date-picker.behavior.spec.ts": {
+        "cost": 116399,
+        "storyCount": 1
+      },
+      "desktop/disabled-action-treatments.spec.ts": {
+        "cost": 38409,
+        "storyCount": 1
+      },
+      "desktop/drawer.behavior.spec.ts": {
+        "cost": 12776,
+        "storyCount": 1
+      },
+      "desktop/facet-filter-panel.spec.ts": {
+        "cost": 21381,
+        "storyCount": 1
+      },
+      "desktop/field-guidance-presentation.spec.ts": {
+        "cost": 48649,
+        "storyCount": 1
+      },
+      "desktop/field-inactive-presentation.spec.ts": {
+        "cost": 59510,
+        "storyCount": 1
+      },
+      "desktop/hotkeys.spec.ts": {
+        "cost": 24409,
+        "storyCount": 1
+      },
+      "desktop/label-hierarchy.spec.ts": {
+        "cost": 16462,
+        "storyCount": 1
+      },
+      "desktop/line-item.spec.ts": {
+        "cost": 4952,
+        "storyCount": 1
+      },
+      "desktop/link-inline-focus.spec.ts": {
+        "cost": 25585,
+        "storyCount": 1
+      },
+      "desktop/menu.behavior.spec.ts": {
+        "cost": 1629,
+        "storyCount": 1
+      },
+      "desktop/native-form.behavior.spec.ts": {
+        "cost": 352408,
+        "storyCount": 1
+      },
+      "desktop/numeric-input.spec.ts": {
+        "cost": 18599,
+        "storyCount": 1
+      },
+      "desktop/player.spec.ts": {
+        "cost": 115335,
+        "storyCount": 1
+      },
+      "desktop/price-availability.spec.ts": {
+        "cost": 6103,
+        "storyCount": 1
+      },
+      "desktop/quantity-field.spec.ts": {
+        "cost": 8727,
+        "storyCount": 1
+      },
+      "desktop/rating-focus-ownership.spec.ts": {
+        "cost": 14079,
+        "storyCount": 1
+      },
+      "desktop/search-suggestions.spec.ts": {
+        "cost": 36403,
+        "storyCount": 1
+      },
+      "desktop/sidebar.behavior.spec.ts": {
+        "cost": 25267,
+        "storyCount": 1
+      },
+      "desktop/supporting-atoms-polish.spec.ts": {
+        "cost": 14635,
+        "storyCount": 1
+      },
+      "desktop/tabs.behavior.spec.ts": {
+        "cost": 1021,
+        "storyCount": 1
+      },
+      "desktop/text-inputs.behavior.spec.ts": {
+        "cost": 52703,
+        "storyCount": 1
+      },
+      "desktop/tooltip.behavior.spec.ts": {
+        "cost": 1556,
+        "storyCount": 1
+      },
+      "desktop/totals-summary.spec.ts": {
+        "cost": 4581,
+        "storyCount": 1
+      },
+      "desktop/tour.spec.ts": {
+        "cost": 44093,
+        "storyCount": 1
+      },
+      "desktop/vertical-navigation.behavior.spec.ts": {
+        "cost": 27701,
+        "storyCount": 1
+      },
+      "desktop/visual-popups.spec.mjs": {
+        "cost": 68497,
+        "storyCount": 1
+      },
+      "desktop/visual-shared.spec.mjs": {
+        "cost": 30905,
+        "storyCount": 1
+      },
+      "mobile/cascade-select.behavior.spec.ts": {
+        "cost": 72775,
+        "storyCount": 1
+      },
+      "mobile/drawer.behavior.spec.ts": {
+        "cost": 34475,
+        "storyCount": 1
+      },
+      "mobile/player.spec.ts": {
+        "cost": 215440,
+        "storyCount": 1
+      },
+      "mobile/search-suggestions.spec.ts": {
+        "cost": 83677,
+        "storyCount": 1
+      }
+    }
+  },
   "files": {
     "./stories/atoms/action-icon.stories.tsx": {
-      "cost": 26186,
+      "cost": 27890,
       "storyCount": 4
     },
     "./stories/atoms/badge.stories.tsx": {
-      "cost": 28589,
+      "cost": 24778,
       "storyCount": 4
     },
     "./stories/atoms/button.stories.tsx": {
-      "cost": 55095,
+      "cost": 45770,
       "storyCount": 7
     },
     "./stories/atoms/checkbox.stories.tsx": {
-      "cost": 42475,
+      "cost": 58590,
       "storyCount": 6
     },
     "./stories/atoms/hotkeys.stories.tsx": {
-      "cost": 87564,
+      "cost": 77981,
       "storyCount": 14
     },
     "./stories/atoms/icon.stories.tsx": {
-      "cost": 50734,
+      "cost": 48009,
       "storyCount": 8
     },
     "./stories/atoms/image.stories.tsx": {
-      "cost": 52194,
+      "cost": 46516,
       "storyCount": 8
     },
     "./stories/atoms/input.stories.tsx": {
-      "cost": 28887,
+      "cost": 25985,
       "storyCount": 5
     },
     "./stories/atoms/label.stories.tsx": {
-      "cost": 17786,
+      "cost": 21758,
       "storyCount": 3
     },
     "./stories/atoms/link-button.stories.tsx": {
-      "cost": 26732,
+      "cost": 28830,
       "storyCount": 5
     },
     "./stories/atoms/link.stories.tsx": {
-      "cost": 27452,
+      "cost": 34257,
       "storyCount": 5
     },
     "./stories/atoms/numeric-input.stories.tsx": {
-      "cost": 158928,
+      "cost": 148951,
       "storyCount": 23
     },
     "./stories/atoms/rating.stories.tsx": {
-      "cost": 80102,
+      "cost": 75755,
       "storyCount": 14
     },
     "./stories/atoms/skeleton.stories.tsx": {
-      "cost": 102905,
+      "cost": 95002,
       "storyCount": 18
     },
     "./stories/atoms/status-text.stories.tsx": {
-      "cost": 36837,
+      "cost": 58040,
       "storyCount": 6
     },
     "./stories/atoms/textarea.stories.tsx": {
-      "cost": 32203,
+      "cost": 46137,
       "storyCount": 6
     },
     "./stories/atoms/tooltip.stories.tsx": {
-      "cost": 37237,
+      "cost": 33763,
       "storyCount": 6
     },
     "./stories/changelog/changelog.stories.tsx": {
-      "cost": 5642,
+      "cost": 5488,
       "storyCount": 1
     },
     "./stories/molecules/accordion.stories.tsx": {
-      "cost": 61160,
+      "cost": 55721,
       "storyCount": 9
     },
+    "./stories/molecules/audio-player.stories.tsx": {
+      "cost": 38437,
+      "storyCount": 6
+    },
     "./stories/molecules/availability-status.stories.tsx": {
-      "cost": 15401,
+      "cost": 23068,
       "storyCount": 3
     },
     "./stories/molecules/breadcrumb.stories.tsx": {
-      "cost": 41219,
+      "cost": 51057,
       "storyCount": 7
     },
     "./stories/molecules/carousel-regressions.stories.tsx": {
-      "cost": 26539,
+      "cost": 26501,
       "storyCount": 4
     },
     "./stories/molecules/carousel.stories.tsx": {
-      "cost": 125466,
+      "cost": 157872,
       "storyCount": 17
     },
     "./stories/molecules/cascade-select.stories.tsx": {
-      "cost": 103815,
+      "cost": 139892,
       "storyCount": 15
     },
     "./stories/molecules/chart.stories.tsx": {
-      "cost": 78421,
+      "cost": 67637,
       "storyCount": 11
     },
     "./stories/molecules/color-select.stories.tsx": {
-      "cost": 73852,
+      "cost": 65369,
       "storyCount": 11
     },
     "./stories/molecules/combobox-input.stories.tsx": {
-      "cost": 37139,
+      "cost": 41702,
       "storyCount": 6
     },
     "./stories/molecules/combobox.stories.tsx": {
-      "cost": 161181,
+      "cost": 200521,
       "storyCount": 22
     },
     "./stories/molecules/command-hotkeys.stories.tsx": {
-      "cost": 27286,
+      "cost": 40951,
       "storyCount": 4
     },
     "./stories/molecules/command.stories.tsx": {
-      "cost": 54831,
+      "cost": 50903,
       "storyCount": 9
     },
     "./stories/molecules/date-picker.stories.tsx": {
-      "cost": 156629,
+      "cost": 140495,
       "storyCount": 23
     },
     "./stories/molecules/dialog.stories.tsx": {
-      "cost": 110058,
+      "cost": 112347,
       "storyCount": 13
     },
     "./stories/molecules/drawer.stories.tsx": {
-      "cost": 70323,
+      "cost": 66002,
       "storyCount": 9
     },
     "./stories/molecules/file-upload.stories.tsx": {
-      "cost": 159365,
+      "cost": 165719,
       "storyCount": 25
     },
     "./stories/molecules/form-checkbox.stories.tsx": {
-      "cost": 62405,
+      "cost": 87044,
       "storyCount": 11
     },
     "./stories/molecules/form-error-summary.stories.tsx": {
-      "cost": 41602,
+      "cost": 37374,
       "storyCount": 7
     },
     "./stories/molecules/form-input.stories.tsx": {
-      "cost": 37514,
+      "cost": 39445,
       "storyCount": 7
     },
     "./stories/molecules/form-numeric-input.stories.tsx": {
-      "cost": 77089,
+      "cost": 103362,
       "storyCount": 14
     },
     "./stories/molecules/form-textarea.stories.tsx": {
-      "cost": 49079,
+      "cost": 43327,
       "storyCount": 8
     },
     "./stories/molecules/menu.stories.tsx": {
-      "cost": 78823,
+      "cost": 72550,
       "storyCount": 12
     },
     "./stories/molecules/nav-disclosure-regressions.stories.tsx": {
-      "cost": 61369,
+      "cost": 61353,
       "storyCount": 9
     },
     "./stories/molecules/overlay-regressions.stories.tsx": {
-      "cost": 29220,
+      "cost": 35298,
       "storyCount": 3
     },
     "./stories/molecules/pagination.stories.tsx": {
-      "cost": 47606,
+      "cost": 45655,
       "storyCount": 8
     },
     "./stories/molecules/phone-input.stories.tsx": {
-      "cost": 151865,
+      "cost": 151183,
       "storyCount": 21
     },
+    "./stories/molecules/player.stories.tsx": {
+      "cost": 37410,
+      "storyCount": 5
+    },
     "./stories/molecules/popover.stories.tsx": {
-      "cost": 103428,
+      "cost": 99250,
       "storyCount": 16
     },
     "./stories/molecules/price-block.stories.tsx": {
-      "cost": 13041,
+      "cost": 14043,
       "storyCount": 3
     },
     "./stories/molecules/product-card.stories.tsx": {
-      "cost": 106150,
+      "cost": 105905,
       "storyCount": 15
     },
     "./stories/molecules/quantity-field.stories.tsx": {
-      "cost": 72889,
+      "cost": 63068,
       "storyCount": 12
     },
     "./stories/molecules/radio-card.stories.tsx": {
-      "cost": 93791,
+      "cost": 79345,
       "storyCount": 11
     },
     "./stories/molecules/radio-group.stories.tsx": {
-      "cost": 78702,
+      "cost": 65206,
       "storyCount": 11
     },
     "./stories/molecules/search-form.stories.tsx": {
-      "cost": 68413,
+      "cost": 60928,
       "storyCount": 12
     },
     "./stories/molecules/select.stories.tsx": {
-      "cost": 90404,
+      "cost": 84270,
       "storyCount": 15
     },
     "./stories/molecules/slider.stories.tsx": {
-      "cost": 118685,
+      "cost": 157226,
       "storyCount": 20
     },
     "./stories/molecules/steps.stories.tsx": {
-      "cost": 76525,
+      "cost": 71232,
       "storyCount": 13
     },
     "./stories/molecules/switch.stories.tsx": {
-      "cost": 71639,
+      "cost": 85898,
       "storyCount": 9
     },
     "./stories/molecules/tabs.stories.tsx": {
-      "cost": 78893,
+      "cost": 90549,
       "storyCount": 13
     },
     "./stories/molecules/toast.stories.tsx": {
-      "cost": 50230,
+      "cost": 53969,
       "storyCount": 9
     },
     "./stories/molecules/totals-summary.stories.tsx": {
-      "cost": 36613,
+      "cost": 36199,
       "storyCount": 7
     },
     "./stories/molecules/tour.stories.tsx": {
-      "cost": 48034,
+      "cost": 43688,
       "storyCount": 8
     },
     "./stories/molecules/tree-view.stories.tsx": {
-      "cost": 62427,
+      "cost": 66449,
       "storyCount": 12
     },
     "./stories/molecules/vertical-navigation.stories.tsx": {
-      "cost": 60739,
+      "cost": 57418,
       "storyCount": 10
     },
+    "./stories/molecules/video-player.stories.tsx": {
+      "cost": 149524,
+      "storyCount": 14
+    },
     "./stories/organisms/data-table.stories.tsx": {
-      "cost": 561115,
+      "cost": 502362,
       "storyCount": 65
     },
     "./stories/organisms/footer.stories.tsx": {
-      "cost": 19149,
+      "cost": 23696,
       "storyCount": 3
     },
     "./stories/organisms/gallery.stories.tsx": {
-      "cost": 50414,
+      "cost": 47876,
       "storyCount": 6
     },
     "./stories/organisms/header.stories.tsx": {
-      "cost": 20791,
+      "cost": 21114,
       "storyCount": 4
     },
     "./stories/organisms/line-item.stories.tsx": {
-      "cost": 50188,
+      "cost": 69823,
       "storyCount": 9
     },
     "./stories/organisms/sidebar.stories.tsx": {
-      "cost": 52143,
+      "cost": 51801,
       "storyCount": 9
     },
     "./stories/organisms/table.stories.tsx": {
-      "cost": 80803,
+      "cost": 77964,
       "storyCount": 15
     },
     "./stories/overview/apca-contrast-test.stories.tsx": {
-      "cost": 17976,
+      "cost": 14683,
       "storyCount": 3
     },
     "./stories/overview/color-palette.stories.tsx": {
-      "cost": 5669,
+      "cost": 6992,
       "storyCount": 1
     },
     "./stories/overview/component-comparison.stories.tsx": {
-      "cost": 35131,
+      "cost": 36628,
       "storyCount": 3
     },
     "./stories/overview/shape.stories.tsx": {
-      "cost": 35749,
+      "cost": 32663,
       "storyCount": 6
     },
     "./stories/pages/akros/banner.stories.tsx": {
-      "cost": 10976,
+      "cost": 12862,
       "storyCount": 1
     },
     "./stories/pages/akros/carts.stories.tsx": {
-      "cost": 41914,
+      "cost": 35992,
       "storyCount": 2
     },
     "./stories/pages/akros/categories.stories.tsx": {
-      "cost": 34452,
+      "cost": 34779,
       "storyCount": 1
     },
     "./stories/pages/akros/content.stories.tsx": {
-      "cost": 29749,
+      "cost": 31818,
       "storyCount": 2
     },
     "./stories/pages/akros/customers.stories.tsx": {
-      "cost": 25044,
+      "cost": 25285,
       "storyCount": 3
     },
     "./stories/pages/akros/dashboard.stories.tsx": {
-      "cost": 22638,
+      "cost": 18061,
       "storyCount": 2
     },
     "./stories/pages/akros/emails.stories.tsx": {
-      "cost": 38309,
+      "cost": 39958,
       "storyCount": 2
     },
     "./stories/pages/akros/feeds.stories.tsx": {
-      "cost": 31882,
+      "cost": 32481,
       "storyCount": 1
     },
     "./stories/pages/akros/order-detail.stories.tsx": {
-      "cost": 37042,
+      "cost": 34291,
       "storyCount": 3
     },
     "./stories/pages/akros/orders.stories.tsx": {
-      "cost": 26037,
+      "cost": 40756,
       "storyCount": 3
     },
     "./stories/pages/akros/products.stories.tsx": {
-      "cost": 50647,
+      "cost": 46622,
       "storyCount": 4
     },
     "./stories/pages/akros/shipping-payments.stories.tsx": {
-      "cost": 39972,
+      "cost": 37511,
       "storyCount": 3
     },
     "./stories/pages/auth.stories.tsx": {
-      "cost": 29016,
+      "cost": 29017,
       "storyCount": 4
     },
     "./stories/pages/board.stories.tsx": {
-      "cost": 26220,
+      "cost": 25240,
       "storyCount": 2
     },
     "./stories/pages/checkout.stories.tsx": {
-      "cost": 22868,
+      "cost": 24626,
       "storyCount": 2
     },
     "./stories/pages/cms-content-list.stories.tsx": {
-      "cost": 22441,
+      "cost": 21434,
       "storyCount": 3
     },
     "./stories/pages/cms-record-editor.stories.tsx": {
-      "cost": 42970,
+      "cost": 50596,
       "storyCount": 2
     },
     "./stories/pages/crm-customer-workspace.stories.tsx": {
-      "cost": 7247,
+      "cost": 7281,
       "storyCount": 1
     },
     "./stories/pages/crud-workflow.stories.tsx": {
-      "cost": 30148,
+      "cost": 28144,
       "storyCount": 1
     },
     "./stories/pages/dashboard.stories.tsx": {
-      "cost": 12523,
+      "cost": 10707,
       "storyCount": 2
     },
     "./stories/pages/ecommerce-orders.stories.tsx": {
-      "cost": 8704,
+      "cost": 8951,
       "storyCount": 1
     },
     "./stories/pages/layouts.stories.tsx": {
-      "cost": 71372,
+      "cost": 74596,
       "storyCount": 10
     },
     "./stories/pages/media-library.stories.tsx": {
-      "cost": 7226,
+      "cost": 11423,
       "storyCount": 1
     },
     "./stories/pages/order-detail.stories.tsx": {
-      "cost": 18423,
+      "cost": 24108,
       "storyCount": 1
     },
     "./stories/pages/settings.stories.tsx": {
-      "cost": 24067,
+      "cost": 22196,
       "storyCount": 1
     },
     "./stories/pages/storefront-category.stories.tsx": {
-      "cost": 19576,
+      "cost": 23441,
       "storyCount": 2
     },
     "./stories/pages/storefront-product.stories.tsx": {
-      "cost": 33356,
+      "cost": 47478,
       "storyCount": 1
     },
     "./stories/pages/system-states.stories.tsx": {
-      "cost": 45103,
+      "cost": 47349,
       "storyCount": 7
     },
     "./stories/templates/accordion.stories.tsx": {
-      "cost": 11876,
+      "cost": 10786,
       "storyCount": 2
     },
     "./stories/templates/akros-product-card.stories.tsx": {
-      "cost": 55258,
+      "cost": 83931,
       "storyCount": 7
     },
     "./stories/templates/breadcrumb.stories.tsx": {
-      "cost": 48658,
+      "cost": 39960,
       "storyCount": 8
     },
     "./stories/templates/carousel.stories.tsx": {
-      "cost": 51268,
+      "cost": 64087,
       "storyCount": 7
     },
     "./stories/templates/cart-presentation.stories.tsx": {
-      "cost": 23243,
+      "cost": 28789,
       "storyCount": 3
     },
     "./stories/templates/comprehensive-form.stories.tsx": {
-      "cost": 94592,
+      "cost": 133739,
       "storyCount": 11
     },
     "./stories/templates/facet-filter-panel.stories.tsx": {
-      "cost": 82279,
+      "cost": 112421,
       "storyCount": 13
     },
     "./stories/templates/gallery.stories.tsx": {
-      "cost": 31094,
+      "cost": 30380,
       "storyCount": 3
     },
     "./stories/templates/numeric-input.stories.tsx": {
-      "cost": 58792,
+      "cost": 53144,
       "storyCount": 9
     },
     "./stories/templates/popover.stories.tsx": {
-      "cost": 27828,
+      "cost": 43983,
       "storyCount": 5
     },
     "./stories/templates/product-card.stories.tsx": {
-      "cost": 34168,
+      "cost": 32169,
       "storyCount": 5
     },
     "./stories/templates/search-suggestions.stories.tsx": {
-      "cost": 80227,
+      "cost": 74755,
       "storyCount": 13
     },
     "./stories/templates/select.stories.tsx": {
-      "cost": 38016,
+      "cost": 37401,
       "storyCount": 7
     },
     "./stories/templates/tabs.stories.tsx": {
-      "cost": 26627,
+      "cost": 39053,
       "storyCount": 5
     },
     "./stories/testing/native-form-contracts.stories.tsx": {
-      "cost": 5395,
+      "cost": 9007,
       "storyCount": 1
     }
-  },
-  "sourceRuns": [
-    "https://github.com/TechsioCZ/new-engine/actions/runs/43994939809",
-    "https://github.com/TechsioCZ/new-engine/actions/runs/43993498360"
-  ]
+  }
 }

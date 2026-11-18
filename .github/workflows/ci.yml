@@ -246,6 +246,8 @@ jobs:
           sparse-checkout: |
             /libs/ui/scripts/
             /libs/ui/test/*.mjs
+            /libs/ui/test/**/*.spec.ts
+            /libs/ui/test/**/visual-*.spec.mjs
             /libs/ui/test/*.json
             /libs/ui/src/theme/theme-config.ts
             /libs/ui/.storybook/a11y-policy.mjs

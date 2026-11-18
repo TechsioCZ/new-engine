@@ -39,7 +39,7 @@ export function createThemeMatrix() {
 export const DEVICE_PROJECTS = ["desktop", "mobile"]
 
 /** CI separates mobile/desktop behavior from screenshots. Behavior groups use
- * Playwright's native shard; screenshot groups split stories inside each
+ * the measured file allocator too; screenshot groups split stories inside each
  * project so Chromium and WebKit costs are spread over every runner.
  * Shard counts per group are decided by the CI plan job. */
 export const PLAYWRIGHT_GROUPS = ["mobile", "desktop", "visual"]
