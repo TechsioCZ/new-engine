@@ -13,6 +13,9 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Player v1.4.1
+- The time slider's spoken position (\`aria-valuetext\`) now stays in the app's language after every seek. Vidstack rewrote it in English on each value change, and a drag seek could leave the English text in place while playback was paused.
+
 ### AudioPlayer v1.2.1
 - Aligned the audio preset with the official Vidstack AudioLayout composition: a full-width timeline above a toolbar with standard play, combined current/duration time beside transport, and mute, volume and optional settings on the right. Narrow containers move time above the actions; optional seek buttons keep visible skip amounts. Updated all six AudioPlayer examples and usage guidance.
 

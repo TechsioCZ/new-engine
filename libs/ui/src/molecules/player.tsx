@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.4.0
+ * @componentVersion v1.4.1
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -58,6 +58,7 @@ import { Tooltip } from "../atoms/tooltip"
 import { useComposedRefs } from "../internal/molecules/drawer.context"
 import { OverlayContainerProvider } from "../internal/overlay-portal"
 import { formatPlayerTime } from "../internal/player-time"
+import type { UiMessages } from "../messages/ui-messages"
 import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
 import { Menu, type MenuItem } from "./menu"
@@ -773,6 +774,22 @@ Player.SettingsMenu = function PlayerSettingsMenu({
   )
 }
 
+/** The localized spoken position of a time slider at `percent` of `duration`. */
+function seekValueText(
+  messages: UiMessages["player"],
+  locale: UiMessages["locale"],
+  percent: number,
+  duration: number
+) {
+  const time = (percent / 100) * duration
+  return Number.isFinite(time)
+    ? messages.timeValueText({
+        currentTime: formatPlayerTime(time, locale),
+        duration: formatPlayerTime(duration, locale),
+      })
+    : messages.live
+}
+
 Player.TimeSlider = function PlayerTimeSlider({
   className,
   ref,
@@ -785,27 +802,40 @@ Player.TimeSlider = function PlayerTimeSlider({
   usePlayerContext()
   const styles = playerStyles()
   const { player: messages, locale } = useUiMessages()
+  const player = useMediaPlayer()
   const duration = useMediaState("duration")
   const [slider, setSlider] = useState<TimeSliderInstance | null>(null)
   const sliderRef = useMemo(() => ({ current: slider }), [slider])
   const composedRef = useComposedRefs(ref, setSlider)
   const value = useSliderState("value", sliderRef)
-  const time = (value / 100) * duration
-  const valueText = Number.isFinite(time)
-    ? messages.timeValueText({
-        currentTime: formatPlayerTime(time, locale),
-        duration: formatPlayerTime(duration, locale),
-      })
-    : messages.live
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reapply after every SDK value write, even when formatted whole seconds stay equal.
+  const valueText = seekValueText(messages, locale, value, duration)
   useEffect(() => {
-    // The SDK attaches attributes after its React ref is assigned. Apply the
-    // localized value once that first attachment has completed as well.
-    const frame = requestAnimationFrame(() => {
-      slider?.el?.setAttribute("aria-valuetext", ariaValueText ?? valueText)
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [slider, value, valueText, ariaValueText])
+    const element = slider?.el
+    if (!(slider && element && player)) {
+      return
+    }
+    // The SDK rewrites aria-valuetext in English ("19 sec out of 30 sec") on
+    // every value or duration change and offers no way to localize it. Replace
+    // each of its writes before assistive technology can read it, from the
+    // slider's live state: a React render can skip an SDK write entirely.
+    const localize = () => {
+      const text =
+        ariaValueText ??
+        seekValueText(
+          messages,
+          locale,
+          slider.state.value,
+          player.state.duration
+        )
+      if (element.getAttribute("aria-valuetext") !== text) {
+        element.setAttribute("aria-valuetext", text)
+      }
+    }
+    const observer = new MutationObserver(localize)
+    observer.observe(element, { attributeFilter: ["aria-valuetext"] })
+    localize()
+    return () => observer.disconnect()
+  }, [slider, player, messages, locale, ariaValueText])
   return (
     <TimeSlider.Root
       {...props}
