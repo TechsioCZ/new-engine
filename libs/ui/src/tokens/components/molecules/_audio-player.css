@@ -14,7 +14,6 @@
   --padding-audio-player-root: var(--spacing-200);
   --gap-audio-player-control: var(--spacing-100);
   --gap-audio-player-row: var(--dimension-4);
-  --gap-audio-player-time: var(--spacing-50);
   --radius-audio-player: var(--radius-md);
   --radius-audio-player-cover: var(--radius-sm);
   --border-width-audio-player: var(--border-width-sm);
@@ -95,10 +94,6 @@
 
 @utility audio-player-time-group {
   grid-area: time;
-  display: flex;
-  align-items: center;
-  justify-content: start;
-  white-space: nowrap;
 }
 
 @utility audio-player-auxiliary {

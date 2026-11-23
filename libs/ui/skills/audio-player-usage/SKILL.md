@@ -5,7 +5,7 @@ description: >
   AudioPlayer is an opinionated preset over Player with a Semi Design-shaped
   audioUrl prop (string or { src, title?, cover? }); v1 accepts a single source.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.2.2"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"

@@ -2,7 +2,7 @@
  * VideoPlayer — @techsio/ui-kit molecule.
  *
  * @component VideoPlayer
- * @componentVersion v1.3.0
+ * @componentVersion v1.3.1
  * @skill video-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -89,9 +89,7 @@ function PlaybackControls({
             <Player.SeekButton direction="backward" seconds={seekTime} />
             <Player.SeekButton direction="forward" seconds={seekTime} />
           </span>
-          <Player.Time type="current" />
-          <span aria-hidden="true">/</span>
-          <Player.Time type="duration" />
+          <Player.TimeRange />
         </>
       ) : null}
     </Player.Control>

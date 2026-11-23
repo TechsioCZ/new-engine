@@ -2,7 +2,7 @@
  * Player — @techsio/ui-kit molecule.
  *
  * @component Player
- * @componentVersion v1.4.1
+ * @componentVersion v1.5.0
  * @skill player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -23,6 +23,7 @@ import {
   PIPButton as MediaPictureInPictureButton,
   PlayButton as MediaPlayButton,
   MediaPlayer,
+  type MediaPlayerInstance,
   MediaProvider,
   SeekButton as MediaSeekButton,
   Poster,
@@ -86,6 +87,8 @@ const playerStyles = tv({
     progress: "vds-slider-track vds-slider-progress",
     thumb: "vds-slider-thumb",
     time: "shrink-0 font-player-time text-player-time tabular-nums",
+    timeRange:
+      "flex shrink-0 items-center gap-player-control whitespace-nowrap",
     chapters: "vds-slider-chapters player-chapters",
     chapter: "vds-slider-chapter",
     preview:
@@ -136,6 +139,10 @@ export type PlayerControlsProps = ComponentProps<typeof MediaControls.Root> & {
   reserveCaptionSpace?: boolean
 }
 export type PlayerControlProps = ComponentProps<"div">
+export type PlayerTimeRangeProps = Omit<ComponentProps<"div">, "children"> & {
+  /** Visual separator between the current time and the duration. */
+  separator?: ReactNode
+}
 export type PlayerControlGroupProps = ComponentProps<
   typeof MediaControls.Group
 > & {
@@ -207,6 +214,7 @@ function SettingsTrigger(props: ActionIconProps) {
 export function Player({
   children,
   className,
+  ref,
   "aria-label": ariaLabel,
   ariaLabel: mediaLabel,
   ...props
@@ -214,9 +222,28 @@ export function Player({
   const messages = useUiMessages().player
   const [attempt, setAttempt] = useState(0)
   const [activeSettings, setActiveSettings] = useState(0)
+  const instance = useRef<MediaPlayerInstance | null>(null)
+  const playerRef = useComposedRefs(ref, instance)
+  // Retry remounts the media root, which removes the focused Retry button.
+  // When focus was inside the player, return it to the new root so K/M and Tab
+  // continue from the player instead of the start of the document.
+  const [restoreFocus, setRestoreFocus] = useState(false)
+  useEffect(() => {
+    if (!restoreFocus) {
+      return
+    }
+    setRestoreFocus(false)
+    instance.current?.el?.focus()
+  }, [restoreFocus])
   const context = useMemo(
     () => ({
-      retry: () => setAttempt((value) => value + 1),
+      retry: () => {
+        const root = instance.current?.el
+        setRestoreFocus(
+          Boolean(root?.contains(root.ownerDocument.activeElement))
+        )
+        setAttempt((value) => value + 1)
+      },
       lockSettings: () => {
         setActiveSettings((value) => value + 1)
         return () => setActiveSettings((value) => value - 1)
@@ -234,6 +261,7 @@ export function Player({
         className={playerStyles().root({ className })}
         key={attempt}
         keyDisabled={props.keyDisabled || activeSettings > 0}
+        ref={playerRef}
       >
         <PlayerOverlays settingsActive={activeSettings > 0}>
           {children}
@@ -918,6 +946,22 @@ Player.Time = function PlayerTime({
 }: ComponentProps<typeof Time>) {
   usePlayerContext()
   return <Time {...props} className={playerStyles().time({ className })} />
+}
+
+/** Current time and duration with the shared control gap between them. */
+Player.TimeRange = function PlayerTimeRange({
+  className,
+  separator = "/",
+  ...props
+}: PlayerTimeRangeProps) {
+  usePlayerContext()
+  return (
+    <div {...props} className={playerStyles().timeRange({ className })}>
+      <Player.Time type="current" />
+      <span aria-hidden="true">{separator}</span>
+      <Player.Time type="duration" />
+    </div>
+  )
 }
 
 Player.FullscreenButton = function PlayerFullscreenButton({

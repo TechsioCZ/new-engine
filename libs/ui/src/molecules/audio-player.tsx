@@ -2,7 +2,7 @@
  * AudioPlayer — @techsio/ui-kit molecule.
  *
  * @component AudioPlayer
- * @componentVersion v1.2.1
+ * @componentVersion v1.2.2
  * @skill audio-player-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -32,8 +32,7 @@ const audioPlayerStyles = tv({
       "audio-player-toolbar grid w-full min-w-0 items-center gap-audio-player-control",
     transport: "audio-player-transport shrink-0 gap-audio-player-control",
     timeline: "audio-player-timeline w-full min-w-0",
-    timeGroup:
-      "audio-player-time-group shrink-0 gap-audio-player-time whitespace-nowrap",
+    timeGroup: "audio-player-time-group",
     auxiliary: "audio-player-auxiliary shrink-0 gap-audio-player-control",
     seek: "audio-player-seek shrink-0",
     volumeSlider: "audio-player-volume",
@@ -135,13 +134,7 @@ function DefaultControls({
               skipDuration={skipDuration}
             />
           ) : null}
-          {hasTime ? (
-            <Player.Control className={styles.timeGroup()}>
-              <Player.Time type="current" />
-              <span aria-hidden="true">/</span>
-              <Player.Time type="duration" />
-            </Player.Control>
-          ) : null}
+          {hasTime ? <Player.TimeRange className={styles.timeGroup()} /> : null}
           {hasAuxiliary ? (
             <Player.Control className={styles.auxiliary()}>
               {hasVolume ? (

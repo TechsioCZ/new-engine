@@ -2,7 +2,7 @@
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v2.0.0
+ * @componentVersion v2.0.1
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -85,12 +85,14 @@ export type TooltipProps = VariantProps<typeof tooltipVariants> &
 
 function describeTooltipChildren(
   children: ReactNode,
-  describedBy: string | undefined
+  describedBy: string | undefined,
+  content: ReactNode
 ): ReactNode {
   return Children.map(children, (child) => {
     if (
       !isValidElement<{
         children?: ReactNode
+        "aria-label"?: string
         "aria-describedby"?: string
       }>(child)
     ) {
@@ -101,14 +103,19 @@ function describeTooltipChildren(
       return cloneElement(
         child,
         {},
-        describeTooltipChildren(child.props.children, describedBy)
+        describeTooltipChildren(child.props.children, describedBy, content)
       )
     }
 
+    // A tooltip that repeats the trigger's accessible name (icon buttons) adds
+    // no description; referencing it would make screen readers say it twice.
+    const repeatsName =
+      typeof content === "string" &&
+      child.props["aria-label"]?.trim() === content.trim()
     const props = {
       "aria-describedby": joinDescribedBy(
         child.props["aria-describedby"],
-        describedBy
+        repeatsName ? undefined : describedBy
       ),
     }
 
@@ -116,7 +123,7 @@ function describeTooltipChildren(
       ? cloneElement(
           child,
           props,
-          describeTooltipChildren(child.props.children, describedBy)
+          describeTooltipChildren(child.props.children, describedBy, content)
         )
       : cloneElement(child, props)
   })
@@ -238,7 +245,11 @@ export function Tooltip({
   return (
     <>
       <span {...triggerProps} className={trigger()} ref={ref}>
-        {describeTooltipChildren(children, triggerProps["aria-describedby"])}
+        {describeTooltipChildren(
+          children,
+          triggerProps["aria-describedby"],
+          content
+        )}
       </span>
       <Portal getRootNode={machineProps.getRootNode}>
         {api.open && (

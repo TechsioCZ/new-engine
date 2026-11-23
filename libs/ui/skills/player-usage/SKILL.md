@@ -6,7 +6,7 @@ description: >
   compose Player.Provider, Player.Poster, Player.Controls and the control parts
   to build their own audio/video UI, themed through --color-player-* tokens.
 metadata:
-  component_version: "1.4.1"
+  component_version: "1.5.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -307,6 +307,28 @@ Its measured height reserves space above the toolbar for captions, including
 when controls wrap or the viewport changes. Top overlays should omit it.
 Padding defaults to the component token; pass `padding="none"` when the surrounding
 layout already provides the spacing (as `AudioPlayer` does).
+
+`Player.Controls` is also the `player` size container
+(`container: player / inline-size`). Responsive player parts query the width of
+the controls bar, never the viewport, so a player in a sidebar, card or dialog
+adapts to its own slot. Timeline previews widen from a 40rem bar. For your own
+responsive rules inside custom controls, use `@container player (…)` the same
+way. Keep `Player.Controls` full width: its width must come from the player,
+not from its content.
+
+### Show the time range with Player.TimeRange
+
+`Player.TimeRange` renders the current time and duration with the shared
+control gap and an `aria-hidden` separator (`separator`, default `/`). Prefer it
+over composing two `Player.Time` parts so spacing matches both presets and the
+Figma components.
+
+```tsx
+<Player.ControlGroup>
+  <Player.PlayButton />
+  <Player.TimeRange />
+</Player.ControlGroup>
+```
 
 ### Reuse the preset tokens
 
