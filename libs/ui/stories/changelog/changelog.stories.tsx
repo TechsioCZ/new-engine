@@ -27,7 +27,7 @@ const CHANGELOG = `
 - The volume and timeline fills now keep at least 3:1 contrast against the card and the unfilled track in every brand. The time readout uses \`Player.TimeRange\`; the unused \`--gap-audio-player-time\` token was removed (the rendered gap is unchanged).
 
 ### Tooltip v2.0.1
-- A tooltip whose text repeats the trigger's \`aria-label\` no longer sets \`aria-describedby\`, so screen readers stop announcing icon-button names twice. Tooltips that add information still describe their trigger.
+- A tooltip whose text repeats the trigger's \`aria-label\` no longer sets \`aria-describedby\`, so screen readers stop announcing icon-button names twice. Tooltips that add information, and triggers named by \`aria-labelledby\` (which outranks \`aria-label\`), still get the description.
 
 ### Player v1.4.1
 - The time slider's spoken position (\`aria-valuetext\`) now stays in the app's language after every seek. Vidstack rewrote it in English on each value change, and a drag seek could leave the English text in place while playback was paused.

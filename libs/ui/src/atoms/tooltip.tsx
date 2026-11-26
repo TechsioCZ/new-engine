@@ -93,6 +93,7 @@ function describeTooltipChildren(
       !isValidElement<{
         children?: ReactNode
         "aria-label"?: string
+        "aria-labelledby"?: string
         "aria-describedby"?: string
       }>(child)
     ) {
@@ -109,8 +110,11 @@ function describeTooltipChildren(
 
     // A tooltip that repeats the trigger's accessible name (icon buttons) adds
     // no description; referencing it would make screen readers say it twice.
+    // aria-labelledby outranks aria-label, so only an aria-label-named trigger
+    // can be repeated by its tooltip text.
     const repeatsName =
       typeof content === "string" &&
+      !child.props["aria-labelledby"] &&
       child.props["aria-label"]?.trim() === content.trim()
     const props = {
       "aria-describedby": joinDescribedBy(
