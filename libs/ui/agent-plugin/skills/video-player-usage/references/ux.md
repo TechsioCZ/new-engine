@@ -9,8 +9,9 @@ content slots for local layout changes, or `Player` for a custom composition.
 - `controlsList` supports `play`, `time`, `volume`, `captions` and `fullscreen`.
   The captions button appears only when a caption/subtitle track is available.
   Keep the controls needed to complete the task; their order follows the layout.
-- The toolbar wraps inside narrow containers. Below `sm`, skip buttons and the
-  volume slider are hidden; the timeline and mute remain usable.
+- The toolbar wraps inside narrow containers. When the player is narrower
+  than 40rem (its own width, not the viewport), skip buttons and the volume
+  slider are hidden; the timeline and mute remain usable.
 - Clicking or tapping the media surface toggles playback; retain keyboard and
   button alternatives. `playsInline` defaults to true, with false available
   for apps that need native platform fullscreen behavior.

@@ -1983,3 +1983,159 @@ for (const protocol of ["hls", "dash"]) {
     await expect.poll(async () => (await readEngine())?.auto).toBe(true)
   })
 }
+
+test("retry returns keyboard focus to the reloaded player", async ({
+  page,
+}) => {
+  let requests = 0
+  await page.route("**/sprite-fight/480p.mp4", async (route) => {
+    requests += 1
+    if (requests === 1) {
+      await route.fulfill({ status: 404, body: "Missing media" })
+    } else {
+      await route.fallback()
+    }
+  })
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  const retry = page.getByRole("button", { name: "Try again", exact: true })
+  await retry.focus()
+  await page.keyboard.press("Enter")
+  await expect(page.getByRole("alert")).toHaveCount(0)
+  await expect(page.locator("[data-media-player]")).toBeFocused()
+})
+
+test("video controls follow the player width, not the viewport", async ({
+  page,
+}) => {
+  // A compact player inside a wide viewport (sidebar, card, modal) must use
+  // its own width; the viewport stays wide for the whole test.
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  const player = page.locator("[data-media-player]")
+  const seek = page.getByRole("button", {
+    name: "Seek forward 10 seconds",
+    exact: true,
+  })
+  const volume = page.getByRole("slider", { name: "Volume", exact: true })
+  await player.evaluate((element) => {
+    element.style.width = "48rem"
+  })
+  await expect(seek).toBeVisible()
+  await player.evaluate((element) => {
+    element.style.width = "22.5rem"
+  })
+  await expect(seek).toBeHidden()
+  await expect(volume).toBeHidden()
+  await expect(page.getByRole("button", { name: PLAY_LABEL })).toBeVisible()
+  await expect(page.getByRole("button", { name: MUTE_LABEL })).toBeVisible()
+  await expect(
+    page.getByRole("slider", { name: "Seek", exact: true })
+  ).toBeVisible()
+})
+
+test("icon control tooltips do not repeat the name as a description", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-videoplayer--playground&viewMode=story"
+  )
+  // Keyboard focus opens the tooltip on every device, unlike hover.
+  await page.getByRole("slider", { name: "Seek", exact: true }).focus()
+  await page.keyboard.press("Tab")
+  const play = page.getByRole("button", { name: "Play", exact: true })
+  await expect(play).toBeFocused()
+  await expect(page.getByRole("tooltip")).toHaveText("Play")
+  await expect(play).toHaveAccessibleDescription("")
+})
+
+test("audio slider values keep 3:1 contrast against the card and track", async ({
+  page,
+}) => {
+  await page.goto(
+    "/iframe.html?id=molecules-audioplayer--podcast&viewMode=story"
+  )
+  const volume = page.locator(".audio-player-card .vds-volume-slider")
+  await expect(volume).toBeAttached()
+  const ratios = await page.evaluate(() => {
+    const canvas = document.createElement("canvas").getContext("2d", {
+      willReadFrequently: true,
+    })
+    if (!canvas) {
+      throw new Error("Canvas is unavailable")
+    }
+    const rgba = (color: string) => {
+      canvas.clearRect(0, 0, 1, 1)
+      canvas.fillStyle = color
+      canvas.fillRect(0, 0, 1, 1)
+      return [...canvas.getImageData(0, 0, 1, 1).data]
+    }
+    const over = (front: number[], back: number[]) => {
+      const alpha = (front[3] ?? 255) / 255
+      return [0, 1, 2].map(
+        (index) =>
+          (front[index] ?? 0) * alpha + (back[index] ?? 0) * (1 - alpha)
+      )
+    }
+    const luminance = (color: number[]) =>
+      color
+        .map((value) => {
+          const channel = value / 255
+          return channel <= 0.040_45
+            ? channel / 12.92
+            : ((channel + 0.055) / 1.055) ** 2.4
+        })
+        .reduce(
+          (sum, value, index) =>
+            sum + value * ([0.2126, 0.7152, 0.0722][index] ?? 0),
+          0
+        )
+    const contrast = (first: number[], second: number[]) => {
+      const [high, low] = [luminance(first), luminance(second)].sort(
+        (a, b) => b - a
+      )
+      return ((high ?? 0) + 0.05) / ((low ?? 0) + 0.05)
+    }
+    const card = document.querySelector(".audio-player-card")
+    if (!card) {
+      throw new Error("Audio card is missing")
+    }
+    const surface = rgba(getComputedStyle(card).backgroundColor)
+    return [".vds-volume-slider", ".vds-time-slider"].map((selector) => {
+      const slider = card.querySelector(selector)
+      const trackElement = slider?.querySelector(
+        ".vds-slider-track:not(.vds-slider-track-fill):not(.vds-slider-progress)"
+      )
+      const fillElement = slider?.querySelector(".vds-slider-track-fill")
+      if (!(trackElement && fillElement)) {
+        throw new Error(`${selector} parts are missing`)
+      }
+      const track = over(
+        rgba(getComputedStyle(trackElement).backgroundColor),
+        surface
+      )
+      const fill = over(
+        rgba(getComputedStyle(fillElement).backgroundColor),
+        track
+      )
+      return {
+        selector,
+        fillToCard: contrast(fill, surface),
+        fillToTrack: contrast(fill, track),
+      }
+    })
+  })
+  for (const ratio of ratios) {
+    expect(
+      ratio.fillToCard,
+      `${ratio.selector} fill / card`
+    ).toBeGreaterThanOrEqual(3)
+    expect(
+      ratio.fillToTrack,
+      `${ratio.selector} fill / track`
+    ).toBeGreaterThanOrEqual(3)
+  }
+})

@@ -5,7 +5,7 @@ description: >
   VideoPlayer is an opinionated preset over Player with a Semi Design-shaped
   src/poster/controlsList API; controls overlay the video on a dark scrim.
 metadata:
-  component_version: "1.3.0"
+  component_version: "1.3.1"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -225,9 +225,12 @@ height. The default toolbar already does this. `slots.overlay` adds content insi
 root. Both retain media context for `Player.*` parts.
 
 Clicking or tapping the media surface toggles playback. Keyboard playback and
-mute shortcuts remain available. Below `sm`, the preset hides backward/forward
-skip buttons and the volume slider; seeking stays available on the timeline,
-and mute remains visible. Custom control slots own their responsive layout.
+mute shortcuts remain available. When the player's controls bar is narrower
+than 40rem, the preset hides backward/forward skip buttons and the volume
+slider; seeking stays available on the timeline, and mute remains visible. The
+breakpoint is a container query on the player, not the viewport, so a compact
+player in a wide page behaves like a phone-sized one. Custom control slots own
+their responsive layout and can query the same `player` container.
 
 ## Common Mistakes
 

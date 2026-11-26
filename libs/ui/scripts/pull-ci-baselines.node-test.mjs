@@ -10,6 +10,7 @@ import {
   chooseRun,
   collectActualAttachments,
   explainGhFailure,
+  findShardFolders,
   invalidReason,
   isPng,
   parseCli,
@@ -493,5 +494,31 @@ describe("explainGhFailure", () => {
       explainGhFailure({ stderr: "could not find run\n" }),
       "gh failed: could not find run"
     )
+  })
+})
+
+describe("findShardFolders", () => {
+  it("finds reports at an artifact root and inside its group folders", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pull-ci-shards-"))
+    try {
+      const report = path.join("test-results", "visual-reports", "all.json")
+      const write = (...segments) => {
+        const file = path.join(root, ...segments, report)
+        fs.mkdirSync(path.dirname(file), { recursive: true })
+        fs.writeFileSync(file, "{}")
+      }
+      write("legacy-artifact")
+      write("grouped-artifact", "visual")
+      fs.mkdirSync(path.join(root, "grouped-artifact", "behavior"), {
+        recursive: true,
+      })
+      fs.mkdirSync(path.join(root, "empty-artifact"), { recursive: true })
+      assert.deepEqual(findShardFolders(root).sort(), [
+        path.join(root, "grouped-artifact", "visual"),
+        path.join(root, "legacy-artifact"),
+      ])
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
   })
 })

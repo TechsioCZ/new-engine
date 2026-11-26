@@ -13,6 +13,22 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Player v1.5.0
+- Added \`Player.TimeRange\`: current time and duration with the shared control gap and an \`aria-hidden\` separator, used by both presets.
+- \`Player.Controls\` is now the \`player\` size container. Timeline previews widen from a 40rem controls bar instead of the \`sm\` viewport, so a compact player in a wide page no longer gets an oversized preview.
+- The slider value fill on light surfaces uses the content ink instead of the brand colour, keeping at least 3:1 against both the surface and the unfilled track in every brand (WCAG 1.4.11). Overlay sliders use the media content ink.
+- Retrying failed media returns keyboard focus to the reloaded player instead of dropping it to the document.
+
+### VideoPlayer v1.3.1
+- Skip buttons and the volume slider now follow the player's own width (a 40rem container query) instead of the viewport, so a compact player in a wide page hides them like a phone-sized one.
+- The time readout uses \`Player.TimeRange\`, matching the Figma spacing (\`0:00 / 10:29\`).
+
+### AudioPlayer v1.2.2
+- The volume and timeline fills now keep at least 3:1 contrast against the card and the unfilled track in every brand. The time readout uses \`Player.TimeRange\`; the unused \`--gap-audio-player-time\` token was removed (the rendered gap is unchanged).
+
+### Tooltip v2.0.1
+- A tooltip whose text repeats the trigger's \`aria-label\` no longer sets \`aria-describedby\`, so screen readers stop announcing icon-button names twice. Tooltips that add information, and triggers named by \`aria-labelledby\` (which outranks \`aria-label\`), still get the description.
+
 ### Player v1.4.1
 - The time slider's spoken position (\`aria-valuetext\`) now stays in the app's language after every seek. Vidstack rewrote it in English on each value change, and a drag seek could leave the English text in place while playback was paused.
 

@@ -582,7 +582,6 @@
     --padding-audio-player-root: var(--spacing-200);
     --gap-audio-player-control: var(--spacing-100);
     --gap-audio-player-row: var(--dimension-4);
-    --gap-audio-player-time: var(--spacing-50);
     --radius-audio-player: var(--radius-md);
     --radius-audio-player-cover: var(--radius-sm);
     --border-width-audio-player: var(--border-width-sm);
@@ -1172,7 +1171,7 @@
     --color-player-scrim-bg: --alpha(var(--color-player-media-surface) / 90%);
     --color-player-track-bg: var(--color-fill-hover);
     --color-player-track-progress-bg: var(--color-fill-active);
-    --color-player-track-fill-bg: var(--color-player-brand);
+    --color-player-track-fill-bg: var(--color-player-content);
     --color-player-thumb-bg: var(--color-player-content);
     --color-player-thumb-border: var(--color-border-primary);
     --color-player-overlay-track-bg: --alpha(
@@ -1183,6 +1182,7 @@
       var(--color-player-media-content) /
       50%
     );
+    --color-player-overlay-track-fill-bg: var(--color-player-media-content);
     --color-player-focus-ring: var(--default-ring-color);
     --radius-player: var(--radius-md);
     --radius-player-track: var(--radius-sm);

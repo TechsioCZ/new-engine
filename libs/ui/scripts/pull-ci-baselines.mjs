@@ -415,11 +415,17 @@ function writeAtomically(dest, bytes) {
  * @param {string} downloadDir
  * @returns {string[]} shard folders that hold a Playwright JSON report
  */
-function findShardFolders(downloadDir) {
-  return fs
-    .readdirSync(downloadDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(downloadDir, entry.name))
+export function findShardFolders(downloadDir) {
+  const subfolders = (directory) =>
+    fs
+      .readdirSync(directory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(directory, entry.name))
+  // The component job uploads its whole results root, so an artifact holds
+  // each test group it ran in a `<group>/` folder (`visual/test-results/…`).
+  // Older artifacts kept the report at their root; accept both layouts.
+  return subfolders(downloadDir)
+    .flatMap((artifact) => [artifact, ...subfolders(artifact)])
     .filter((folder) => fs.existsSync(path.join(folder, REPORT_PATH)))
 }
 

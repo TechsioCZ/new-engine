@@ -52,7 +52,10 @@
   --color-player-scrim-bg: --alpha(var(--color-player-media-surface) / 90%);
   --color-player-track-bg: var(--color-fill-hover);
   --color-player-track-progress-bg: var(--color-fill-active);
-  --color-player-track-fill-bg: var(--color-player-brand);
+  /* The played/volume fill is the slider's value indicator (WCAG 1.4.11):
+   * content ink keeps >= 3:1 against both the surface and the unfilled track in
+   * every brand, where a light brand primary (Business, Akros, N1) does not. */
+  --color-player-track-fill-bg: var(--color-player-content);
   --color-player-thumb-bg: var(--color-player-content);
   --color-player-thumb-border: var(--color-border-primary);
   --color-player-overlay-track-bg: --alpha(
@@ -63,6 +66,7 @@
     var(--color-player-media-content) /
     50%
   );
+  --color-player-overlay-track-fill-bg: var(--color-player-media-content);
   --color-player-focus-ring: var(--default-ring-color);
 
   --radius-player: var(--radius-md);
@@ -156,6 +160,9 @@
 }
 
 @utility player-video {
+  --color-player-feedback-bg: var(--color-player-video-feedback-bg);
+  --color-player-feedback-fg: var(--color-player-video-feedback-fg);
+
   &:has(.player-captions[data-available]) {
     min-height: calc(
       var(--player-controls-height, 0px) +
@@ -182,6 +189,7 @@
   --media-slider-track-progress-bg: var(
     --color-player-overlay-track-progress-bg
   );
+  --media-slider-track-fill-bg: var(--color-player-overlay-track-fill-bg);
   --media-slider-thumb-bg: var(--color-player-overlay-control-fg);
   --media-focus-ring: 0 0 0 var(--default-ring-width)
     var(--color-player-overlay-control-fg);
@@ -199,16 +207,17 @@
   }
 }
 
+/* The controls bar is the query container for every responsive player part, so
+ * a player sized by its slot (sidebar, card, modal) adapts to its own width
+ * instead of the viewport. Its width always comes from the player, never from
+ * its content, so inline-size containment is safe. */
 @utility player-controls {
+  container: player / inline-size;
+
   [data-media-player][data-error]:has(:where(.player-feedback[role="alert"]))
     & {
     display: none;
   }
-}
-
-@utility player-video {
-  --color-player-feedback-bg: var(--color-player-video-feedback-bg);
-  --color-player-feedback-fg: var(--color-player-video-feedback-fg);
 }
 
 @utility player-feedback {
@@ -254,10 +263,12 @@
   touch-action: manipulation;
 }
 
+/* Compact players keep play, time, mute and the timeline; skip buttons and the
+ * volume slider join from a 40rem-wide controls bar (the former sm viewport). */
 @utility player-video-seek {
   display: none;
 
-  @variant sm {
+  @container player (width >= 40rem) {
     display: inline-flex;
   }
 }
@@ -292,18 +303,21 @@
   font-size: var(--text-player-preview);
   gap: var(--gap-player-preview);
 
-  @variant sm {
+  @container player (width >= 40rem) {
     --spacing-player-preview: var(--spacing-player-preview-wide);
   }
 }
 
 /* Vidstack's unlayered slider display rule outranks normal Tailwind display
- * utilities, so the responsive preset rule must be explicit. */
+ * utilities, so the responsive preset rule must be explicit. An SDK-hidden
+ * slider (aria-hidden) stays hidden at every width. */
 @utility player-responsive-volume {
   display: none !important;
 
-  @variant sm {
-    display: inline-flex !important;
+  @container player (width >= 40rem) {
+    &:not([aria-hidden="true"]) {
+      display: inline-flex !important;
+    }
   }
 }
 
