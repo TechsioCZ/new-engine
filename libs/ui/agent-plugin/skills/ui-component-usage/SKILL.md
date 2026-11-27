@@ -53,7 +53,9 @@ import { Select } from "@techsio/ui-kit/molecules/select"
 Token CSS in the app entry: `@techsio/ui-kit/tokens` (tokens only) or
 `@techsio/ui-kit/tokens-with-tailwind`, or the precompiled
 `@techsio/ui-kit/styles.css` for a host without Tailwind; app bootstrap per the bundled
-`app-token-initialization` skill.
+`app-token-initialization` skill. An app on `styles.css` with no Tailwind may use exactly
+the kit components plus the token-backed consumer vocabulary listed in the bundled
+`framework-consumer-integration` skill; anything else needs a kit change.
 
 ## Rules of thumb
 

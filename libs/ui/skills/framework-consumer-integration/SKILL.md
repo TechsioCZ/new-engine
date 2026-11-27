@@ -132,8 +132,18 @@ strings into app source. If the app already imports Tailwind, use this instead:
 
 A host without Tailwind (for example a Module Federation shell) loads the
 precompiled `@import "@techsio/ui-kit/styles.css";` instead: every component
-variant and kit utility (all `token-icon-*`), but no app-authored utilities and
-no arbitrary iconify classes (`icon-[mdi--close]`).
+variant, every kit utility (all `token-icon-*`) and the token-backed consumer vocabulary: spacing (`p-*`, `m-*`, `gap-*`,
+`space-*` on the `--spacing-*` scale), sizing (`w-*`, `h-*`, `size-*`, `min-*`/`max-*`,
+`max-w-5xl`-style container tokens), semantic colours (`text-`, `bg-`, `border-`, `ring-`,
+`outline-`, `fill-`, `stroke-`, `divide-`, `placeholder-`, bare and with `hover:`,
+`focus-visible:`, `disabled:`), typography (token text sizes and weights, alignment,
+tracking, leading, truncation), shape (`rounded-*`, `shadow-*`, borders), layout
+(display, flex, grid, position, overflow, `z-*`, `aspect-*`), and breakpoint prefixes on
+layout, spacing, sizing and text size and alignment, generated
+from the token files at build time. An app that loads styles.css and runs no
+Tailwind may use exactly the kit components plus this vocabulary. Any other
+class, including arbitrary iconify classes (`icon-[mdi--close]`), styles nothing
+and needs a kit change.
 
 Choose one recipe, not both. See README and Storybook Guide/Getting Started for
 installation, the PostCSS config, and the packed-consumer smoke check.
