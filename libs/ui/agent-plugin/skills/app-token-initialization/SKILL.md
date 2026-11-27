@@ -37,7 +37,9 @@ Tailwind, use only `@techsio/ui-kit/tokens-with-tailwind` instead of the two
 imports below. Both public CSS entries register shipped package JavaScript via
 package-relative `@source`; no app-side copying of component classes is needed.
 A host without Tailwind loads the precompiled `@techsio/ui-kit/styles.css`
-instead and puts its plain-CSS overrides after it.
+instead and puts its plain-CSS overrides after it. Such an app may use exactly
+the kit components plus the token-backed consumer vocabulary styles.css carries
+(see framework-consumer-integration); anything else needs a kit change.
 Select built-in brands with data-theme (business, akros, n1) and .light/.dark.
 All built-in brands are light-only; Business is the default; start fixed Akros with
 `<html class="light" data-theme="akros">`. AppThemeProvider defaults do not

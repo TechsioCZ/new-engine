@@ -51,6 +51,11 @@ Agents must understand how CSS tokens become Tailwind v4 utility classes.
 - Prefer semantic spacing classes like `p-100`, `gap-50`, `mt-150` over raw
   Tailwind scale classes like `p-2`, `gap-1`, `mt-3`.
 - Do not use arbitrary values for normal design-system styling.
+- An app that loads the precompiled `@techsio/ui-kit/styles.css` and runs no
+  Tailwind may use exactly the kit components plus the consumer vocabulary that
+  stylesheet carries (token spacing, sizing, semantic colours, typography,
+  shape, layout and breakpoints; see the framework-consumer-integration skill).
+  Any other class styles nothing and needs a kit change.
 
 ## Component Usage Orchestration
 

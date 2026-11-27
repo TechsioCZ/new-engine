@@ -50,11 +50,20 @@ instead, with no Tailwind or PostCSS:
 ```
 
 `styles.css` holds preflight, tw-animate-css, every token and brand, each class
-the shipped components use in every variant, and every utility the kit defines
-(all `token-icon-*` glyphs, so `<Icon icon="token-icon-…">` works). Nothing
-else: utilities the app writes itself and arbitrary iconify classes such as
-`icon-[mdi--close]` need a Tailwind recipe. Use it instead of those recipes,
-not beside them; `theme.css` is plain CSS and can follow it.
+the shipped components use in every variant, every utility the kit defines
+(all `token-icon-*` glyphs, so `<Icon icon="token-icon-…">` works), and the
+consumer vocabulary: the token-backed utilities `consumerVocabulary()` in
+`scripts/compiled-css.mjs` generates from `src/tokens` at build time. That is
+spacing (`p-150`, `gap-100`), sizing (`w-full`, `max-w-5xl`), semantic colours
+(`text-fg-secondary`, `bg-surface`, `border-border-primary`, also with `hover:`,
+`focus-visible:` and `disabled:`), typography (`text-sm`, `font-semibold`),
+shape (`rounded-lg`, `shadow-md`), layout (flex, grid, position, overflow) and
+breakpoint prefixes (`md:grid-cols-2`) on layout, spacing, sizing and text.
+An app that loads `styles.css` and runs no Tailwind may use exactly the kit
+components plus this vocabulary. Any other class styles nothing and needs a kit
+change; arbitrary iconify classes such as `icon-[mdi--close]` need a Tailwind
+recipe. Use it instead of those recipes, not beside them; `theme.css` is plain
+CSS and can follow it.
 
 ```tsx
 import { Button } from '@techsio/ui-kit/atoms/button'

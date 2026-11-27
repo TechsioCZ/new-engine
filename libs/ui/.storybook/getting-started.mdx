@@ -36,9 +36,19 @@ entries or copy internal component class strings into your application.
 
 A host that cannot run Tailwind over the kit, such as a Module Federation
 shell, loads the precompiled `@import "@techsio/ui-kit/styles.css";` instead,
-with no Tailwind or PostCSS. It styles every component variant and every kit
-utility, including all `token-icon-*` glyphs, but not app-authored utilities
-or arbitrary iconify classes such as `icon-[mdi--close]`.
+with no Tailwind or PostCSS. It styles every component variant, every kit
+utility (including all `token-icon-*` glyphs) and the token-backed consumer vocabulary: spacing (`p-*`, `m-*`, `gap-*`,
+`space-*` on the `--spacing-*` scale), sizing (`w-*`, `h-*`, `size-*`, `min-*`/`max-*`,
+`max-w-5xl`-style container tokens), semantic colours (`text-`, `bg-`, `border-`, `ring-`,
+`outline-`, `fill-`, `stroke-`, `divide-`, `placeholder-`, bare and with `hover:`,
+`focus-visible:`, `disabled:`), typography (token text sizes and weights, alignment,
+tracking, leading, truncation), shape (`rounded-*`, `shadow-*`, borders), layout
+(display, flex, grid, position, overflow, `z-*`, `aspect-*`), and breakpoint prefixes on
+layout, spacing, sizing and text size and alignment, all
+generated from the token files at build time. An app that loads `styles.css`
+and runs no Tailwind may use exactly the kit components plus this vocabulary;
+any other class, including arbitrary iconify classes such as
+`icon-[mdi--close]`, styles nothing and needs a kit change.
 
 ```js
 // postcss.config.mjs

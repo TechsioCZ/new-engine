@@ -4,7 +4,11 @@ import path from "node:path"
 import { test } from "node:test"
 import postcss from "postcss"
 import ts from "typescript"
-import { compiledCssPath, kitUtilityNames } from "../scripts/compiled-css.mjs"
+import {
+  compiledCssPath,
+  consumerVocabulary,
+  kitUtilityNames,
+} from "../scripts/compiled-css.mjs"
 
 // Reads the build output; run after `pnpm build` (check:package does).
 const uiRoot = path.resolve(import.meta.dirname, "..")
@@ -127,5 +131,35 @@ test("ui-kit.css carries every kit utility, including all token-icon-* glyphs", 
   assert.deepEqual(
     names.filter((name) => !classes.has(name)),
     []
+  )
+})
+
+// One class pattern per vocabulary family. A token rename or a token reader
+// that stops matching empties a family, and the rule check alone would pass.
+const vocabularySamples = {
+  spacing: /^p-\d+$/,
+  sizing: /^max-w-\dxl$/,
+  color: /^text-fg-/,
+  "color state": /^hover:bg-primary/,
+  "text size": /^text-(xs|sm|md|lg)$/,
+  "font weight": /^font-(normal|medium|semibold|bold)$/,
+  radius: /^rounded-t-(sm|md|lg)$/,
+  shadow: /^shadow-(sm|md|lg)$/,
+  aspect: /^aspect-(square|video)$/,
+  breakpoint: /^md:grid-cols-2$/,
+}
+
+test("ui-kit.css styles every class of the consumer vocabulary", async () => {
+  const vocabulary = await consumerVocabulary()
+  for (const [family, sample] of Object.entries(vocabularySamples)) {
+    assert.ok(
+      vocabulary.some((name) => sample.test(name)),
+      `the ${family} family of the consumer vocabulary is empty`
+    )
+  }
+  assert.deepEqual(
+    vocabulary.filter((name) => !classes.has(name)),
+    [],
+    "consumer vocabulary classes without a rule"
   )
 })
