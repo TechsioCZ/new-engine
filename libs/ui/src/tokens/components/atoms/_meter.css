@@ -25,3 +25,19 @@
   --height-meter-sm: calc(var(--spacing) * 2);
   --height-meter-md: calc(var(--spacing) * 3);
 }
+
+/* System colour palettes drop backgrounds: outline the track, draw fills in text ink
+ * and keep a Canvas seam between stacked segments. */
+@utility meter-track-boundary {
+  @media (forced-colors: active) {
+    outline: 1px solid CanvasText;
+  }
+}
+
+@utility meter-fill-boundary {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+    box-shadow: inset -1px 0 Canvas;
+  }
+}

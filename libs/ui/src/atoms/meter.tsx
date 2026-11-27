@@ -16,9 +16,9 @@ import { tv } from "../utils"
 
 const meterVariants = tv({
   slots: {
-    root: "flex w-full overflow-clip rounded-full bg-meter-track-bg",
+    root: "meter-track-boundary flex w-full overflow-clip rounded-full bg-meter-track-bg",
     fill: [
-      "h-full w-(--meter-value) shrink-0 rounded-full",
+      "meter-fill-boundary h-full w-(--meter-value) shrink-0 rounded-full",
       "transition-[width] duration-200 ease-out motion-reduce:transition-none",
     ],
   },

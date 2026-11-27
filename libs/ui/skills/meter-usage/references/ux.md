@@ -46,3 +46,4 @@ Use Meter to show a known share of a known maximum as a horizontal bar: occupanc
 - The bar is `role="meter"` with `aria-valuenow`, `aria-valuemin` and `aria-valuemax`; with segments `aria-valuenow` is their sum.
 - Give it a name: `aria-label`, or `aria-labelledby` pointing at the visible label.
 - The width transition stops when the user asks for reduced motion.
+- In forced-colors mode the track is outlined and the fills draw in the system text colour, with a seam between segments.
