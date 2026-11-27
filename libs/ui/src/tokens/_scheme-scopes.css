@@ -206,6 +206,14 @@
     --color-fill-disabled: var(--color-bg-disabled);
     --default-ring-color: light-dark(oklch(0 0 none), oklch(1 0 none));
     --color-ring: var(--default-ring-color);
+    --color-tag-blue: light-dark(#2563eb, #60a5fa);
+    --color-tag-gray: light-dark(#6b7280, #9ca3af);
+    --color-tag-green: light-dark(#16a34a, #4ade80);
+    --color-tag-orange: light-dark(#ea580c, #fb923c);
+    --color-tag-pink: light-dark(#db2777, #f472b6);
+    --color-tag-purple: light-dark(#9333ea, #c084fc);
+    --color-tag-red: light-dark(#dc2626, #f87171);
+    --color-tag-yellow: light-dark(#ca8a04, #facc15);
     --border-width-form-control: var(--border-width-md);
     --radius-form-control-sm: var(--radius-sm);
     --radius-form-control-md: var(--radius-md);

@@ -25,6 +25,12 @@ const CHANGELOG = `
 ### Drawer v2.0.1
 - Footer buttons keep their label on one line and wrap to the next row when the footer runs out of space.
 
+### Button v1.0.1
+- An \`unstyled\` Button no longer paints the disabled colours or the not-allowed cursor; only the styled appearances (solid, subtle, outline, ghost) carry the disabled treatment. A disabled or read-only custom tile keeps its own look.
+
+### Tag colours
+- New semantic tokens \`--color-tag-{blue,gray,green,orange,pink,purple,red,yellow}\` for user-chosen tag colours, with lighter dark-mode values. \`bg-tag-*\`, \`text-tag-*\` and \`border-tag-*\` are part of the consumer vocabulary in \`styles.css\`.
+
 ### Checkbox
 - \`--radius-checkbox\` and \`--radius-checkbox-indeterminate\` are capped at \`--radius-xs\`, so an app reading them no longer gets \`--radius-sm\` (a circle at 18 px). The rendered control is unchanged; the internal \`--radius-checkbox-corner\` is gone.
 
