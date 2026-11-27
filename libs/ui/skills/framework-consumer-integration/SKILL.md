@@ -231,6 +231,9 @@ place it inside the app's `'use client'` providers module. Define the catalog as
 a module constant. Do not pass the same translated text to every instance
 (`closeLabel`, `placeholder`, `translations`) — that is what the catalog is for;
 keep per-instance props for texts specific to that instance. Set `locale` in
-the catalog for number and date formatting defaults. One provider covers every
+the catalog for number and date formatting defaults. For Czech pass the kit's
+complete catalog, `csUiMessages` from `@techsio/ui-kit/messages/ui-messages-cs`
+(it sets `locale: "cs-CZ"`); layer app-specific overrides over it with a
+nested provider. One provider covers every
 copy of the kit on the page, including module-federation remotes that bundle
 their own copy.

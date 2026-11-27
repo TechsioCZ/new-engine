@@ -1,0 +1,52 @@
+/*
+ * Shared surface foundation: one outlined level, tints inside it.
+ *
+ * - `surface-card` is the outlined level (SectionCard, or any block an app frames).
+ *   A card inside another card, or inside an element marked `data-surface-frame`
+ *   (SidePanel's body), draws no second frame and drops its padding, so frames
+ *   never stack whatever renders the inner block.
+ * - `surface-tile` is a tinted block without an outline (StatCard, list items,
+ *   notes, filter bars). A tile inside a tile turns back to the base colour.
+ * - `--color-surface-divider` is the hairline between rows of one surface
+ *   (`divide-y divide-surface-divider`, `border-surface-divider`).
+ *
+ * The nesting rules are part of the utilities, so they outrank a padding
+ * utility on the inner block by specificity, not by source order.
+ */
+@theme static {
+  /* Reference layer */
+  --color-surface-card: var(--color-base);
+  --color-surface-tile: var(--color-surface);
+  --color-surface-divider: var(--color-border-secondary);
+
+  /* Derived layer */
+  --color-surface-card-bg: var(--color-surface-card);
+  --color-surface-card-border: var(--color-surface-divider);
+  --border-width-surface-card: var(--border-width-sm);
+  --radius-surface-card: var(--radius-lg);
+  --color-surface-tile-bg: var(--color-surface-tile);
+  --color-surface-tile-bg-nested: var(--color-surface-card);
+  --radius-surface-tile: var(--radius-lg);
+}
+
+@utility surface-card {
+  border: var(--border-width-surface-card) solid
+    var(--color-surface-card-border);
+  border-radius: var(--radius-surface-card);
+  background-color: var(--color-surface-card-bg);
+
+  :is(.surface-card, [data-surface-frame]) & {
+    border-color: transparent;
+    background-color: transparent;
+    padding: 0;
+  }
+}
+
+@utility surface-tile {
+  border-radius: var(--radius-surface-tile);
+  background-color: var(--color-surface-tile-bg);
+
+  .surface-tile & {
+    background-color: var(--color-surface-tile-bg-nested);
+  }
+}

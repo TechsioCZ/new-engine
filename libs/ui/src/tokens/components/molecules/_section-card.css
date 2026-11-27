@@ -1,0 +1,21 @@
+/*
+ * SectionCard — code-side tokens until the Figma library has the component.
+ * Frame, colour and nesting come from the shared `surface-card` foundation.
+ */
+@theme static {
+  /* Reference layer */
+  --color-section-card-title: var(--color-fg-primary);
+  --color-section-card-description: var(--color-fg-secondary);
+
+  /* Derived layer */
+  --color-section-card-title-fg: var(--color-section-card-title);
+  --color-section-card-description-fg: var(--color-section-card-description);
+  --text-section-card-title-size: var(--text-md);
+  --text-section-card-description-size: var(--text-sm);
+  --font-weight-section-card-title: var(--font-weight-semibold);
+  --padding-section-card: var(--spacing-250);
+  --spacing-section-card: var(--spacing-200);
+  --spacing-section-card-header: var(--spacing-150);
+  --spacing-section-card-heading: var(--spacing-50);
+  --spacing-section-card-actions: var(--spacing-100);
+}

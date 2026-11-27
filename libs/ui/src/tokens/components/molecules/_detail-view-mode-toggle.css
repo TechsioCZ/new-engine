@@ -1,0 +1,12 @@
+/*
+ * DetailViewModeToggle — code-side tokens until the Figma library has the component.
+ */
+@theme static {
+  /* Reference layer */
+  --spacing-detail-view-mode-toggle-base: var(--spacing-100);
+
+  /* Derived layer */
+  --spacing-detail-view-mode-toggle: var(
+    --spacing-detail-view-mode-toggle-base
+  );
+}

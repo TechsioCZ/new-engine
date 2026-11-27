@@ -13,6 +13,47 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### UiMessages
+- Added \`csUiMessages\` (\`@techsio/ui-kit/messages/ui-messages-cs\`): the complete Czech catalog, typed as \`UiMessages\` so no kit word can ship without its Czech text. It includes the zag-js labels of every machine the kit wraps.
+- New catalog groups for the back-office building blocks: \`bulkActionBar\`, \`saveBar\`, \`unsavedChanges\`, \`sidePanel\`, \`detailViewMode\`, and the optional \`toast.region\`.
+- Shared surface foundation (\`surface-card\`, \`surface-tile\`, \`--color-surface-divider\`): one outlined level, tints inside it; a card inside a card or a SidePanel draws no second frame.
+
+### PageHeader v1.0.0
+- New organism: the page's one header with breadcrumb or back link, h1 title, status badges, description and actions.
+
+### SectionCard v1.0.0
+- New molecule: a titled content block with local actions on the shared \`surface-card\`; nested cards and cards in a SidePanel drop their frame.
+
+### StatCard v1.0.0
+- New molecule: KPI tile (label, value, trend badge, hint, follow-up action) and the responsive \`StatRow\` grid.
+
+### EmptyState v1.0.0
+- New molecule: says what is missing and offers one next step.
+
+### DetailList v1.0.0
+- New molecule: read-only label and value grid, two columns from \`sm\`.
+
+### BulkActionBar v1.0.0
+- New molecule: actions for the selected rows of a table; renders nothing without a selection. Words from \`bulkActionBar\`.
+
+### SaveBar v1.0.0
+- New molecule: an edit form's one Save button with the draft status, conflict and reload actions. Words from \`saveBar\`.
+
+### UnsavedChangesDialog v1.0.0
+- New molecule: the Save, Discard changes or Stay question before unsaved changes are left. Words from \`unsavedChanges\`.
+
+### SidePanel v1.0.0
+- New molecule: right-hand create, edit and quick-view panel on Dialog. Resizable with a remembered width, every close goes through \`onCloseRequest\`, Escape works across several bundled copies of the kit, and a stray press outside keeps an edited draft open. Words from \`sidePanel\`.
+
+### ScrollRegion v1.0.0
+- New atom: a named viewport that joins the tab order only while its content overflows (WCAG 2.1.1).
+
+### DetailViewModeToggle v1.0.0
+- New molecule: switch between opening records as a full page or in a side panel. Words from \`detailViewMode\`.
+
+### Toast v1.3.0
+- Toaster names its region from the catalog's new optional \`toast.region\`; without it zag's \`Notifications, <placement> (<hotkey>)\` stays.
+
 ### Player v1.5.0
 - Added \`Player.TimeRange\`: current time and duration with the shared control gap and an \`aria-hidden\` separator, used by both presets.
 - \`Player.Controls\` is now the \`player\` size container. Timeline previews widen from a 40rem controls bar instead of the \`sm\` viewport, so a compact player in a wide page no longer gets an oversized preview.

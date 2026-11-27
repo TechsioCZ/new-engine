@@ -1,0 +1,17 @@
+/*
+ * SidePanel — the panel surface is Dialog's (right placement); these tokens size
+ * what the panel adds: its minimum width, the resize handle and the kept-draft notice.
+ */
+@theme static {
+  /* Reference layer */
+  --container-side-panel-base: var(--container-dialog-sm);
+
+  /* Derived layer */
+  --container-side-panel: var(--container-side-panel-base);
+  --spacing-side-panel-handle: var(--spacing-200);
+  --spacing-side-panel-notice: var(--spacing-100);
+}
+
+@utility token-icon-side-panel-resize {
+  @apply icon-[mdi--drag-vertical];
+}

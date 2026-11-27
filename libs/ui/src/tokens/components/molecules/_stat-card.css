@@ -1,0 +1,25 @@
+/*
+ * StatCard — code-side tokens until the Figma library has the component.
+ * The tinted surface comes from the shared `surface-tile` foundation.
+ */
+@theme static {
+  /* Reference layer */
+  --color-stat-card-label: var(--color-fg-secondary);
+  --color-stat-card-value: var(--color-fg-primary);
+
+  /* Derived layer */
+  --color-stat-card-label-fg: var(--color-stat-card-label);
+  --color-stat-card-value-fg: var(--color-stat-card-value);
+  --color-stat-card-hint-fg: var(--color-stat-card-label);
+  --text-stat-card-label-size: var(--text-sm);
+  --text-stat-card-hint-size: var(--text-xs);
+  --text-stat-card-value-sm: var(--text-md);
+  --text-stat-card-value-md: var(--text-xl);
+  --font-weight-stat-card-value: var(--font-weight-semibold);
+  --padding-stat-card: var(--spacing-200);
+  --padding-stat-card-action: var(--spacing-50);
+  --spacing-stat-card: var(--spacing-100);
+  --spacing-stat-card-label: var(--spacing-100);
+  --spacing-stat-card-value-row: var(--spacing-150);
+  --spacing-stat-row: var(--spacing-200);
+}
