@@ -86,6 +86,33 @@ describe("brand data", () => {
   })
 })
 
+describe("contrast is checked, never skipped", () => {
+  const pair = (fg: string, bg: string) =>
+    validateBrand({
+      key: "pair",
+      label: "Pair",
+      modes: ["light"],
+      tokens: {
+        "--color-button-fg-primary": fg,
+        "--color-bg-primary-base": bg,
+      },
+    })
+  it("rejects an rgb() pair below AA", () => {
+    expect(pair("rgb(255 255 255)", "rgb(255 255 255)").ok).toBe(false)
+  })
+  it("accepts an opaque rgb() and hex pair above AA", () => {
+    expect(pair("rgb(0, 0, 0)", "#ffffff").ok).toBe(true)
+  })
+  it.each([
+    ["translucent oklch", "oklch(0.2 0 0 / 0.5)"],
+    ["translucent rgb", "rgba(0, 0, 0, 0.5)"],
+    ["translucent hex", "#00000080"],
+    ["an unreadable colour", "hsl(0 0% 0%)"],
+  ])("rejects %s, whose contrast cannot be known", (_label, fg) => {
+    expect(pair(fg, "#ffffff")).toMatchObject({ ok: false })
+  })
+})
+
 describe("modes", () => {
   const dark = defineBrand({
     ...ocean,
