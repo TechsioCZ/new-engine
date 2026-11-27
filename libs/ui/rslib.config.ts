@@ -6,6 +6,7 @@ import { defineConfig } from "@rslib/core"
 import { pluginAreTheTypesWrong } from "rsbuild-plugin-arethetypeswrong"
 import { pluginPublint } from "rsbuild-plugin-publint"
 
+import { writeCompiledCss } from "./scripts/compiled-css.mjs"
 import { getClientBoundaryModules } from "./test/visual-rsc-boundaries.mjs"
 
 const checkBuildOutput = Boolean(process.env.RSLIB_CHECK_OUTPUT)
@@ -77,5 +78,13 @@ export default defineConfig({
       },
     }),
     pluginReact(),
+    {
+      // dist/ui-kit.css (./styles.css) is generated from the emitted JS, so it
+      // follows every build, including watch rebuilds.
+      name: "ui-kit:compiled-css",
+      setup(api) {
+        api.onAfterBuild(writeCompiledCss)
+      },
+    },
   ],
 })

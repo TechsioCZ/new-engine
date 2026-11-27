@@ -51,7 +51,8 @@ import { Select } from "@techsio/ui-kit/molecules/select"
 ```
 
 Token CSS in the app entry: `@techsio/ui-kit/tokens` (tokens only) or
-`@techsio/ui-kit/tokens-with-tailwind`; app bootstrap per the bundled
+`@techsio/ui-kit/tokens-with-tailwind`, or the precompiled
+`@techsio/ui-kit/styles.css` for a host without Tailwind; app bootstrap per the bundled
 `app-token-initialization` skill.
 
 ## Rules of thumb
