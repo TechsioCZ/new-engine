@@ -125,6 +125,11 @@ strings into app source. If the app already imports Tailwind, use this instead:
 @import "@techsio/ui-kit/tokens";
 ```
 
+A host without Tailwind (for example a Module Federation shell) loads the
+precompiled `@import "@techsio/ui-kit/styles.css";` instead: every component
+variant and kit utility (all `token-icon-*`), but no app-authored utilities and
+no arbitrary iconify classes (`icon-[mdi--close]`).
+
 Choose one recipe, not both. See README and Storybook Guide/Getting Started for
 installation, the PostCSS config, and the packed-consumer smoke check.
 

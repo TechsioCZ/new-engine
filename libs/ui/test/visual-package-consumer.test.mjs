@@ -146,6 +146,12 @@ test("packed CSS exports generate utilities and preserve public callback contrac
     assert.match(result.css, /:disabled|data-disabled/)
     assert.ok(installed.exports["./atoms/*"])
   }
+  // The precompiled stylesheet ships in the tarball behind ./styles.css.
+  const styles = await readFile(
+    path.join(packageDir, installed.exports["./styles.css"].style),
+    "utf8"
+  )
+  assert.match(styles, /\.token-icon-button-spinner\{/)
   // Compile consumers against installed declarations, not monorepo source paths.
   const contractPath = path.join(root, "callbacks.ts")
   const contracts = `

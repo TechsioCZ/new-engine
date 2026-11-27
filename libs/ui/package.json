@@ -27,6 +27,11 @@
       "style": "./src/tokens/index.css",
       "default": "./src/tokens/index.css"
     },
+    "./styles.css": {
+      "types": "./src/tokens/styles.d.ts",
+      "style": "./dist/ui-kit.css",
+      "default": "./dist/ui-kit.css"
+    },
     "./theme.css": {
       "types": "./src/tokens/styles.d.ts",
       "style": "./src/tokens/theme.css",
@@ -73,7 +78,7 @@
   "scripts": {
     "build": "rslib build",
     "check:package": "cross-env RSLIB_CHECK_OUTPUT=true rslib build && node scripts/validate-package-exports.mjs && pnpm check:consumer",
-    "check:consumer": "node --test test/visual-package-consumer.test.mjs",
+    "check:consumer": "node --test test/visual-package-consumer.test.mjs test/compiled-css.test.mjs",
     "build:storybook": "storybook build",
     "dev": "rslib build --watch",
     "storybook": "storybook dev",

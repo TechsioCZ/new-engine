@@ -27,7 +27,8 @@ semantic-release (`libs/ui/release.config.mjs`) from CI (`.github/workflows/ui-r
    (publint runs as part of the build via rsbuild-plugin-publint).
 2. **Exports map intact**: every public component is reachable through the package.json
    wildcard subpaths (`@techsio/ui-kit/atoms/*`, `/molecules/*`, …); token CSS entries
-   (`./tokens`, `./tokens-with-tailwind`, `./theme.css`, `./tokens/*`) untouched unless
+   (`./tokens`, `./tokens-with-tailwind`, `./theme.css`, `./tokens/*`, `./styles.css` →
+   `dist/ui-kit.css` emitted by the build) untouched unless
    deliberately versioned.
 3. **`files` whitelist**: `dist` + `src/tokens` — new runtime assets outside these two won't
    ship; add them consciously.

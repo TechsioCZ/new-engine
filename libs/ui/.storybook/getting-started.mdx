@@ -34,6 +34,12 @@ with a stylesheet-relative `@source`, so Tailwind generates component utilities
 even when the installed package lives in `node_modules`. Do not import both
 entries or copy internal component class strings into your application.
 
+A host that cannot run Tailwind over the kit, such as a Module Federation
+shell, loads the precompiled `@import "@techsio/ui-kit/styles.css";` instead,
+with no Tailwind or PostCSS. It styles every component variant and every kit
+utility, including all `token-icon-*` glyphs, but not app-authored utilities
+or arbitrary iconify classes such as `icon-[mdi--close]`.
+
 ```js
 // postcss.config.mjs
 export default { plugins: { '@tailwindcss/postcss': {} } }

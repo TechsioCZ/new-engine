@@ -41,6 +41,21 @@ Both entries register the shipped component JavaScript with a package-relative
 unprocessed CSS link or a token-variable import alone cannot generate utilities.
 Do not copy component classes into app source or import both recipes together.
 
+A host that cannot run Tailwind over the kit (for example a Module Federation
+shell loading remotes built elsewhere) loads the precompiled stylesheet
+instead, with no Tailwind or PostCSS:
+
+```css
+@import "@techsio/ui-kit/styles.css";
+```
+
+`styles.css` holds preflight, tw-animate-css, every token and brand, each class
+the shipped components use in every variant, and every utility the kit defines
+(all `token-icon-*` glyphs, so `<Icon icon="token-icon-…">` works). Nothing
+else: utilities the app writes itself and arbitrary iconify classes such as
+`icon-[mdi--close]` need a Tailwind recipe. Use it instead of those recipes,
+not beside them; `theme.css` is plain CSS and can follow it.
+
 ```tsx
 import { Button } from '@techsio/ui-kit/atoms/button'
 
