@@ -47,6 +47,7 @@ const ALIAS = /^var\(\s*(--[a-z0-9-]+)\s*(?:,[\s\S]*)?\)$/i
 const LIGHT_DARK = /^light-dark\(([\s\S]*)\)$/i
 
 // A derived value (light-dark(), color-mix(), calc() over tokens) still aliases.
+const OPAQUE_HEX_ALPHA = /^f+$/i
 const HEX6 = /^[\da-f]{6}$/i
 
 const isAlias = (value: string) => value.includes("var(")
@@ -111,6 +112,11 @@ const srgbToLinear = (c: number) =>
 
 function hexToLinear(hex: string): Linear | null {
   let h = hex.slice(1)
+  const alpha =
+    h.length === 4 || h.length === 8 ? h.slice((h.length / 4) * 3) : ""
+  if (alpha !== "" && !OPAQUE_HEX_ALPHA.test(alpha)) {
+    return null
+  }
   if (h.length === 3 || h.length === 4) {
     h = [...h.slice(0, 3)].map((x) => x + x).join("")
   }
@@ -123,12 +129,38 @@ function hexToLinear(hex: string): Linear | null {
   return [channel(0), channel(2), channel(4)]
 }
 
-const OKLCH =
-  /^oklch\(\s*([\d.]+%?)\s+([\d.]+|none)\s+([\d.]+|none)(?:\s*\/\s*[\d.]+%?)?\s*\)$/i
+/* A CSS number: digits with an optional fraction, or a bare fraction. */
+const NUMBER = String.raw`(?:\d+(?:\.\d+)?|\.\d+)`
+const OKLCH = new RegExp(
+  String.raw`^oklch\(\s*(${NUMBER}%?)\s+(${NUMBER}|none)\s+(${NUMBER}|none)(?:\s*\/\s*(${NUMBER}%?))?\s*\)$`,
+  "i"
+)
+const RGB = new RegExp(
+  String.raw`^rgba?\(\s*(${NUMBER}%?)[\s,]+(${NUMBER}%?)[\s,]+(${NUMBER}%?)(?:\s*[,/]\s*(${NUMBER}%?))?\s*\)$`,
+  "i"
+)
+
+/* A colour with any transparency shows what lies behind it, which a pair of
+ * tokens cannot say, so only opaque colours have a contrast. */
+const opaque = (alpha: string | undefined) =>
+  alpha === undefined ||
+  Number.parseFloat(alpha) / (alpha.endsWith("%") ? 100 : 1) >= 1
+
+function rgbToLinear(value: string): Linear | null {
+  const m = value.match(RGB)
+  if (!(m?.[1] && m[2] && m[3] && opaque(m[4]))) {
+    return null
+  }
+  const channel = (part: string) =>
+    srgbToLinear(
+      Math.min(Number.parseFloat(part) / (part.endsWith("%") ? 100 : 255), 1)
+    )
+  return [channel(m[1]), channel(m[2]), channel(m[3])]
+}
 
 function oklchToLinear(value: string): Linear | null {
   const m = value.match(OKLCH)
-  if (!(m?.[1] && m[2] && m[3])) {
+  if (!(m?.[1] && m[2] && m[3] && opaque(m[4]))) {
     return null
   }
   const lightness = Number.parseFloat(m[1]) / (m[1].endsWith("%") ? 100 : 1)
@@ -160,6 +192,9 @@ function toLinear(value: string | null): Linear | null {
   if (v.startsWith("#")) {
     return hexToLinear(v)
   }
+  if (v.startsWith("rgb")) {
+    return rgbToLinear(v)
+  }
   return v.startsWith("oklch(") ? oklchToLinear(v) : null
 }
 
@@ -182,7 +217,7 @@ export function brandContrast(
 ): number | null {
   const fg = toLinear(resolveToken(foreground, mode, brand.tokens))
   const bg = toLinear(resolveToken(background, mode, brand.tokens))
-  if (!(fg && bg)) {
+  if (!(fg && bg) || [...fg, ...bg].some((c) => !Number.isFinite(c))) {
     return null
   }
   const [hi, lo] = [luminance(fg), luminance(bg)].sort((x, y) => y - x) as [
@@ -212,7 +247,11 @@ export function validateBrand(input: unknown): BrandValidation {
   for (const mode of brand.modes) {
     for (const [fg, bg, label] of CONTRAST_PAIRS) {
       const ratio = brandContrast(brand, mode, fg, bg)
-      if (ratio !== null && ratio < AA) {
+      if (ratio === null) {
+        errors.push(
+          `${label} (${mode}): contrast cannot be checked; give ${fg} and ${bg} opaque hex, rgb() or oklch() colours`
+        )
+      } else if (ratio < AA) {
         errors.push(
           `${label} (${mode}): contrast ${ratio.toFixed(2)}:1 is below ${AA}:1 (${fg} on ${bg})`
         )
