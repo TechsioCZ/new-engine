@@ -12,6 +12,7 @@
 @import "./atoms/_input.css";
 @import "./atoms/_label.css";
 @import "./atoms/_link.css";
+@import "./atoms/_meter.css";
 @import "./atoms/_numeric-input.css";
 @import "./atoms/_rating.css";
 @import "./atoms/_scroll-region.css";

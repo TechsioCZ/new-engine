@@ -68,6 +68,7 @@ export type UIComponentName =
   | "Link"
   | "LinkButton"
   | "Menu"
+  | "Meter"
   | "NumericInput"
   | "Pagination"
   | "PhoneInput"

@@ -1545,6 +1545,22 @@ skills:
       - src/tokens/components/molecules/_stat-card.css
       - stories/molecules/stat-card.stories.tsx
 
+  - name: meter-usage
+    slug: meter-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/meter-usage/SKILL.md
+    package: libs/ui
+    description: Meter from @techsio/ui-kit/atoms/meter for a horizontal ratio bar (occupancy, order progress, budget use), single-value or stacked from segments.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/atoms/meter.tsx
+      - src/tokens/components/atoms/_meter.css
+      - stories/atoms/meter.stories.tsx
+
   - name: empty-state-usage
     slug: empty-state-usage
     type: sub-skill

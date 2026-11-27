@@ -1,0 +1,43 @@
+/*
+ * Meter — code-side tokens until the Figma library has the component.
+ * The fill width comes from `--meter-value`, which the component sets on each fill.
+ */
+@theme static {
+  /* Reference layer */
+  --color-meter-track: var(--color-fill-surface);
+  --color-meter-primary: var(--color-bg-primary-base);
+  --color-meter-secondary: var(--color-bg-secondary-base);
+  --color-meter-neutral: var(--color-fg-secondary);
+  --color-meter-info: var(--color-bg-info);
+  --color-meter-success: var(--color-bg-success);
+  --color-meter-warning: var(--color-bg-warning-base);
+  --color-meter-danger: var(--color-bg-danger-base);
+
+  /* Derived layer */
+  --color-meter-track-bg: var(--color-meter-track);
+  --color-meter-fill-bg-primary: var(--color-meter-primary);
+  --color-meter-fill-bg-secondary: var(--color-meter-secondary);
+  --color-meter-fill-bg-neutral: var(--color-meter-neutral);
+  --color-meter-fill-bg-info: var(--color-meter-info);
+  --color-meter-fill-bg-success: var(--color-meter-success);
+  --color-meter-fill-bg-warning: var(--color-meter-warning);
+  --color-meter-fill-bg-danger: var(--color-meter-danger);
+  --height-meter-sm: calc(var(--spacing) * 2);
+  --height-meter-md: calc(var(--spacing) * 3);
+}
+
+/* System colour palettes drop backgrounds: outline the track, draw fills in text ink
+ * and keep a Canvas seam between stacked segments. */
+@utility meter-track-boundary {
+  @media (forced-colors: active) {
+    outline: 1px solid CanvasText;
+  }
+}
+
+@utility meter-fill-boundary {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+    box-shadow: inset -1px 0 Canvas;
+  }
+}

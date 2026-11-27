@@ -62,6 +62,7 @@ export const UX_COMPONENT_TITLES: Record<string, string> = {
   link: "Atoms/Link",
   "link-button": "Atoms/LinkButton",
   menu: "Molecules/Menu",
+  meter: "Atoms/Meter",
   "numeric-input": "Atoms/NumericInput",
   "page-header": "Organisms/PageHeader",
   pagination: "Molecules/Pagination",
