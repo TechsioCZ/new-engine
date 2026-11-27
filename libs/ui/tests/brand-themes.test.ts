@@ -108,6 +108,8 @@ describe("contrast is checked, never skipped", () => {
     ["translucent rgb", "rgba(0, 0, 0, 0.5)"],
     ["translucent hex", "#00000080"],
     ["an unreadable colour", "hsl(0 0% 0%)"],
+    ["an rgb() of bare dots", "rgb(. . .)"],
+    ["an oklch() of bare dots", "oklch(. . .)"],
   ])("rejects %s, whose contrast cannot be known", (_label, fg) => {
     expect(pair(fg, "#ffffff")).toMatchObject({ ok: false })
   })

@@ -129,10 +129,16 @@ function hexToLinear(hex: string): Linear | null {
   return [channel(0), channel(2), channel(4)]
 }
 
-const OKLCH =
-  /^oklch\(\s*([\d.]+%?)\s+([\d.]+|none)\s+([\d.]+|none)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i
-const RGB =
-  /^rgba?\(\s*([\d.]+%?)[\s,]+([\d.]+%?)[\s,]+([\d.]+%?)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/i
+/* A CSS number: digits with an optional fraction, or a bare fraction. */
+const NUMBER = String.raw`(?:\d+(?:\.\d+)?|\.\d+)`
+const OKLCH = new RegExp(
+  String.raw`^oklch\(\s*(${NUMBER}%?)\s+(${NUMBER}|none)\s+(${NUMBER}|none)(?:\s*\/\s*(${NUMBER}%?))?\s*\)$`,
+  "i"
+)
+const RGB = new RegExp(
+  String.raw`^rgba?\(\s*(${NUMBER}%?)[\s,]+(${NUMBER}%?)[\s,]+(${NUMBER}%?)(?:\s*[,/]\s*(${NUMBER}%?))?\s*\)$`,
+  "i"
+)
 
 /* A colour with any transparency shows what lies behind it, which a pair of
  * tokens cannot say, so only opaque colours have a contrast. */
@@ -211,7 +217,7 @@ export function brandContrast(
 ): number | null {
   const fg = toLinear(resolveToken(foreground, mode, brand.tokens))
   const bg = toLinear(resolveToken(background, mode, brand.tokens))
-  if (!(fg && bg)) {
+  if (!(fg && bg) || [...fg, ...bg].some((c) => !Number.isFinite(c))) {
     return null
   }
   const [hi, lo] = [luminance(fg), luminance(bg)].sort((x, y) => y - x) as [
