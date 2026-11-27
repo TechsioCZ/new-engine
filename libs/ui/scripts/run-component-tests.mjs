@@ -17,17 +17,17 @@ import {
   groupProjectNames,
   PLAYWRIGHT_GROUPS,
 } from "../test/visual-projects.mjs"
+import { trackedBaselines } from "./component-baselines.mjs"
+import {
+  assertBehaviorCompletion,
+  behaviorShardPlan,
+} from "./component-behavior-shards.mjs"
 import {
   affectedStoriesFromDisk,
   gitChangedFiles,
   readPathList,
 } from "./visual-affected-stories.mjs"
 import { ensureStorybookBuild } from "./visual-storybook-build.mjs"
-import { trackedBaselines } from "./component-baselines.mjs"
-import {
-  assertBehaviorCompletion,
-  behaviorShardPlan,
-} from "./component-behavior-shards.mjs"
 
 // Runs the Playwright visual tests inside Docker for reproducible snapshots.
 const uiRoot = path.resolve(import.meta.dirname, "..")
@@ -310,8 +310,8 @@ function startContainer() {
     [path.join(uiRoot, "playwright.config.mts"), "/app/playwright.config.mts"],
     [path.join(uiRoot, "package.json"), "/app/package.json"],
     [
-      path.join(uiRoot, "src/theme/theme-config.ts"),
-      "/app/src/theme/theme-config.ts",
+      path.join(uiRoot, "src/tokens/figma/brands.json"),
+      "/app/src/tokens/figma/brands.json",
     ],
     [path.dirname(harPath), "/app/visual-assets"],
   ]

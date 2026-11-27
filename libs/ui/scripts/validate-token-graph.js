@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import postcss from "postcss"
-import { THEMES } from "../src/theme/theme-config.ts"
+import brandList from "../src/tokens/figma/brands.json" with { type: "json" }
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url))
 const IMPORT = /^(?:url\()?['"]([^'"]+)['"]/
@@ -372,8 +372,8 @@ export function loadRuntimeInventory() {
 
 // Every registered brand sets data-theme; the attribute-less foundation is not
 // a supported scope on its own.
-export const supportedScopes = Object.values(THEMES).flatMap(
-  ({ attr, modes }) => modes.map((mode) => ({ brand: attr, mode }))
+export const supportedScopes = brandList.flatMap(({ key, modes }) =>
+  modes.map((mode) => ({ brand: key, mode }))
 )
 
 export function entryApplies(entry, { brand, mode, conditions = [] }) {

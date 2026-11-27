@@ -8,7 +8,7 @@ description: Create a new code-authored ("vibed") brand theme from a brief — d
 Author a complete brand theme **in code** from a prompt (a brand brief), so a
 customer theme can ship without first being built in Figma. The result is a
 normal registered brand — selectable via the theme toggler alongside `business`,
-`akros` and `n1`, **not** the default (`DEFAULT_BRAND` stays `business`).
+`akros` and `n1`, **not** the default (`business` stays first in `figma/brands.json`).
 
 This is the mirror image of [`figma-token-binding`](../figma-token-binding/SKILL.md):
 that skill pulls tokens Figma → code; this one produces the same artifact
@@ -27,8 +27,9 @@ two-layered, and accessible.** Never ship a brand that:
   two-layer rule — those layers must *alias*), or
 - has fg/bg pairs below WCAG AA.
 
-The `validate-brand.mjs` script enforces the first two as hard errors and flags
-the third. Do not register or merge a brand that fails validation. When a
+The brand validator rejects unknown tokens and fg/bg pairs below AA, and
+reports two-layer breaks as warnings (the kit's own Figma brands still have a
+few). Do not register or merge a brand that fails validation. When a
 contrast check fails, **fix the palette** (darken/lighten the offending step or
 re-point the semantic alias) and re-validate — do not silence it.
 
@@ -36,7 +37,7 @@ re-point the semantic alias) and re-validate — do not silence it.
 
 The theme pipeline is brand-agnostic. Every brand is a **full parallel token
 set** — one folder per mode, each with the exact same set of token names as
-base (parity-enforced by `validate-brand.mjs`):
+base (parity guaranteed by `scaffold-brand.mjs`):
 
 ```
 libs/ui/src/tokens/figma/light/        base foundation, light mode  (source of truth)
@@ -49,7 +50,7 @@ libs/ui/src/tokens/figma/<brand>-dark/ NEW brand,  dark mode   ← and this
 `merge-figma-themes.mjs` merges each brand's light+dark into `light-dark()`,
 then **diffs each brand against base** and emits only the differences under
 `[data-theme="<attr>"]` in `brand-overrides.css`. The runtime
-(`theme-provider.tsx`) applies `data-theme="<attr>"` on `<html>` for the brand
+(`theme-provider.tsx`) applies `data-theme="<key>"` on `<html>` for the brand
 axis and a `.light`/`.dark` class for the mode axis.
 
 ## The core rule: touch primitives, inherit the rest
@@ -171,34 +172,32 @@ foregrounds and leave these at base.
 
 ### 5. Register the brand
 
-Two hand-synced registrations (the merge script's comment calls this out):
+List it once in **`libs/ui/src/tokens/figma/brands.json`** (after `business`,
+which stays first and the default):
 
-- **`.agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs`** — add
-  to `BRANDS`:
-  ```js
-  { attr: "<brand>", light: "<brand>", dark: "<brand>-dark" },
-  ```
-- **`libs/ui/src/theme/theme-config.ts`** — add to `THEMES`:
-  ```ts
-  <brand>: { label: "<Customer Label>", modes: ["light", "dark"], attr: "<brand>" },
-  ```
-  Leave `DEFAULT_BRAND = "business"` unchanged — the brand is toggle-selectable, not
-  the default.
-
-### 6. Validate
-
-```sh
-node .agents/skills/vibe-theme/scripts/validate-brand.mjs <brand>
+```json
+{ "key": "<brand>", "label": "<Customer Label>", "modes": ["light", "dark"] }
 ```
 
-Must report **0 errors**. Resolve every contrast warning by adjusting the
-palette and re-running — do not proceed with a failing AA pair.
+The merge script, the Storybook toolbars, the visual matrix and the generated
+`src/theme/built-in-brands.ts` all read this list.
 
-### 7. Merge
+### 6. Merge and export
 
 ```sh
 node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs
+node libs/ui/scripts/validate-token-scopes.js --write
 ```
+
+### 7. Validate
+
+```sh
+pnpm --dir libs/ui exec vitest run tests/brand-themes.test.ts
+```
+
+Every built-in brand must pass the brand validator (known tokens only, WCAG AA
+on the checked pairs). Resolve a contrast failure by adjusting the palette —
+do not proceed with a failing AA pair.
 
 Regenerates `variables.css` + `brand-overrides.css`. Confirm a
 `[data-theme="<brand>"]` block appears with only your intended overrides (a
@@ -211,6 +210,22 @@ broke the cascade).
 the new brand in **both** light and dark. Screenshot the component gallery. The
 new brand must re-skin cleanly with no broken contrast, no base-brand bleed-through,
 and no layout shift. Surface anything that looks off before committing.
+
+## A runtime brand instead of a kit brand
+
+A brand does not have to ship in the kit. An application can store it as data
+(`BrandDefinition`: `key`, `label`, `modes`, `tokens`) and pass it to
+`AppThemeProvider`; no kit release is needed. For that path skip steps 2, 5 and
+6: write only the overriding tokens (Tier 1 primitives, Tier 2 re-aliases) into
+a JSON file, then validate it with the same validator the application runs:
+
+```sh
+pnpm --dir libs/ui build
+node .agents/skills/vibe-theme/scripts/validate-brand.mjs <brand>.json
+```
+
+A brand with both modes writes a mode-dependent value as
+`light-dark(<light>, <dark>)`.
 
 ## Round-trip to Figma (code → Figma)
 
@@ -235,21 +250,21 @@ When done, produce:
 1. **Brand brief** — the resolved hue/mood/secondary and brand key.
 2. **Palette table** — the derived primary (and secondary) OKLCH ramp, light + dark.
 3. **Re-alias decisions** — which Tier-2 tokens flipped and why (contrast).
-4. **Validation result** — `validate-brand.mjs` at 0 errors, 0 unresolved warnings.
+4. **Validation result** — the brand validator at 0 errors.
 5. **Merge result** — the `[data-theme="<brand>"]` override count.
 6. **Storybook verification** — light + dark screenshots, any findings.
-7. **Registrations** — the BRANDS + THEMES diffs.
+7. **Registration** — the `figma/brands.json` diff.
 
 ## Scripts
 
 - `scripts/scaffold-brand.mjs <brand>` — copy base → new brand folder pair.
-- `scripts/validate-brand.mjs <brand>` — parity + two-layer + contrast gate
-  (standalone; not yet wired into the CI-blocking `pnpm validate:tokens`).
+- `scripts/validate-brand.mjs <brand.json>` — runs the kit's brand validator
+  (`@techsio/ui-kit/theme/brand-validator`) on runtime brand data.
 
 ## Reference
 
 - Canonical brand to mirror: `business` (diff `figma/business/variables.css` against
   `figma/light/variables.css` for the exact editable surface).
-- Merge + runtime: `merge-figma-themes.mjs`, `theme-config.ts`,
-  `theme-provider.tsx`.
+- Merge + runtime: `merge-figma-themes.mjs`, `figma/brands.json`,
+  `theme-config.ts`, `brand-validator.ts`, `theme-provider.tsx`.
 - Sibling skill (the other direction): `figma-token-binding`.

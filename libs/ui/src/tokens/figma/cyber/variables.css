@@ -3,11 +3,11 @@
  *
  * This is a demonstration brand produced by the vibe-theme workflow to show a
  * full structural restyle (neon color + sharp corners + tighter type + flatter
- * padding). It is INTENTIONALLY NOT REGISTERED: absent from theme-config.ts
- * THEMES, from merge-figma-themes.mjs BRANDS, and from the shipped
+ * padding). It is INTENTIONALLY NOT REGISTERED: absent from
+ * figma/brands.json and from the shipped
  * brand-overrides.css — so it cannot be selected or persisted at runtime.
  * Kept only as the skill's worked structural example. To make it a real brand,
- * follow vibe-theme SKILL.md step 5 (register + merge). Safe to delete.
+ * follow vibe-theme SKILL.md step 5 (register in figma/brands.json + merge). Safe to delete.
  */
 /*
  * Design tokens exported from Figma

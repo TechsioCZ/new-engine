@@ -13,12 +13,17 @@ const REPO_ROOT = resolve(
 )
 const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
 const BASE = { light: "light", dark: "dark" }
-const BRANDS = [
-  // Light-only brands reuse their light export for both modes.
-  { attr: "business", light: "business", dark: "business" },
-  { attr: "akros", light: "akros", dark: "akros" },
-  { attr: "n1", light: "n1", dark: "n1" },
-]
+// The kit's Figma brands are listed once, in figma/brands.json. A brand reads
+// figma/<key>/ and, when it ships dark, figma/<key>-dark/; a light-only brand
+// reuses its light export for both modes.
+const readBrands = (figmaDir) =>
+  JSON.parse(readFileSync(join(figmaDir, "brands.json"), "utf8")).map(
+    ({ key, modes }) => ({
+      attr: key,
+      light: key,
+      dark: modes.includes("dark") ? `${key}-dark` : key,
+    })
+  )
 
 // Keep strings and CSS escapes intact. In particular, whitespace terminating a
 // hexadecimal escape is part of that token, not formatting to be discarded.
@@ -469,7 +474,7 @@ export function buildExports(baseModes, brands = []) {
 export function main({
   figmaDir = FIGMA_DIR,
   base = BASE,
-  brands = BRANDS,
+  brands = readBrands(figmaDir),
 } = {}) {
   const readModes = (modes) =>
     Object.fromEntries(

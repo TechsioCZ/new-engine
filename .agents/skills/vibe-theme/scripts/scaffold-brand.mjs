@@ -21,10 +21,9 @@
  *   libs/ui/src/tokens/figma/<brand>/variables.css        (copy of light/)
  *   libs/ui/src/tokens/figma/<brand>-dark/variables.css   (copy of dark/)
  *
- * After scaffolding, the agent must still register the brand in:
- *   - .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs  (BRANDS)
- *   - libs/ui/src/theme/theme-config.ts                                  (THEMES)
- * and then run merge-figma-themes.mjs. See the vibe-theme SKILL.md.
+ * After scaffolding, the agent must still list the brand in
+ * libs/ui/src/tokens/figma/brands.json, then run merge-figma-themes.mjs and
+ * libs/ui/scripts/validate-token-scopes.js --write. See the vibe-theme SKILL.md.
  */
 
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"

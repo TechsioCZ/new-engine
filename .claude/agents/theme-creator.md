@@ -24,9 +24,9 @@ straight into the existing theme pipeline.
 
 ## Hard rules
 
-- The new brand is **registered and toggle-selectable, not the default**. Leave
-  `DEFAULT_BRAND = "business"` in `theme-config.ts` unchanged.
-- Do not register or merge a brand until `validate-brand.mjs` reports **0
+- The new brand is **registered and toggle-selectable, not the default**. Keep
+  `business` first in `libs/ui/src/tokens/figma/brands.json`.
+- Do not register or merge a brand until the brand validator reports **0
   errors** and every contrast warning is resolved by adjusting the palette (not
   by ignoring it).
 - Both modes (`<brand>/` and `<brand>-dark/`) must always have identical token
@@ -38,6 +38,6 @@ straight into the existing theme pipeline.
 
 Report back with: the resolved brief, the derived OKLCH palette table (light +
 dark), which Tier-2 tokens you re-aliased and why, the validation result, the
-merge override count, the BRANDS + THEMES registration diffs, and Storybook
+merge override count, the `figma/brands.json` registration diff, and Storybook
 verification notes. If asked, offer the code → Figma round-trip step
 (`use_figma` + `figma-generate-library`) to mirror the brand back into Figma.

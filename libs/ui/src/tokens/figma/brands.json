@@ -1,0 +1,23 @@
+[
+  {
+    "key": "business",
+    "label": "Business",
+    "modes": [
+      "light"
+    ]
+  },
+  {
+    "key": "akros",
+    "label": "Akros",
+    "modes": [
+      "light"
+    ]
+  },
+  {
+    "key": "n1",
+    "label": "N1",
+    "modes": [
+      "light"
+    ]
+  }
+]

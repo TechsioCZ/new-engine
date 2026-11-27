@@ -83,48 +83,90 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
 ## Brands and modes
 
-Brand selection uses `data-theme` on `html`; mode uses one `.light` or `.dark`
-class. Every brand sets `data-theme`; Business is the default. The
-attribute-less `:root` / `@theme` layer is the shared token foundation the
-brands override, not a brand. The source registry is
-[src/theme/theme-config.ts](src/theme/theme-config.ts).
+A brand is data: a `BrandDefinition` with a `key` (the `data-theme` value), a
+`label`, the `modes` it supports (`["light"]`, `["dark"]` or both) and the
+`tokens` that differ from the shared foundation. Mode uses one `.light` or
+`.dark` class. The attribute-less `:root` / `@theme` layer is the foundation
+the brands override, not a brand.
 
-| Brand | Root attribute | Modes |
+The kit's Figma brands ship compiled into its CSS and as the same data from
+`@techsio/ui-kit/theme/built-in-brands`:
+
+| Brand | Export | Modes |
 | --- | --- | --- |
-| business (default) | `data-theme="business"` | light only |
-| akros | `data-theme="akros"` | light only |
-| n1 | `data-theme="n1"` | light only |
+| business (default) | `businessBrand` | light only |
+| akros | `akrosBrand` | light only |
+| n1 | `n1Brand` | light only |
 
-For a fixed Akros app, use `<html lang="en" class="light" data-theme="akros">`.
+For a fixed kit brand, use `<html lang="en" class="light" data-theme="akros">`.
 No provider is needed for a fixed theme. Do not create an Akros dark scheme.
 
-For optional persisted switching, create an app client wrapper:
+### Runtime brands
+
+`AppThemeProvider` takes the brands an app offers as data and renders each
+active brand's stylesheet (`brandStylesheet`), so a brand that arrives or
+changes at runtime applies without a reload or a kit release. Parse untrusted
+data with `defineBrand` (safety and shape) and validate it where it is
+stored with `validateBrand` from `@techsio/ui-kit/theme/brand-validator`
+(tokens the foundation has, WCAG AA on the checked pairs). The validator
+carries the whole token foundation, so keep it out of browser bundles.
 
 ```tsx
 'use client'
 
 import type { PropsWithChildren } from 'react'
-import { AppThemeProvider, BrandThemeScript } from '@techsio/ui-kit/theme/theme-provider'
+import { businessBrand } from '@techsio/ui-kit/theme/built-in-brands'
+import type { BrandDefinition } from '@techsio/ui-kit/theme/theme-config'
+import { AppThemeProvider } from '@techsio/ui-kit/theme/theme-provider'
 
-export function ThemeSetup({ children }: PropsWithChildren) {
+// The app decides the brand (for example per tenant); nothing is persisted.
+export function ThemeSetup({ brand, children }: PropsWithChildren<{ brand: BrandDefinition }>) {
   return (
-    <>
-      <BrandThemeScript defaultBrand="akros" />
-      <AppThemeProvider defaultBrand="akros" defaultMode="light">
-        {children}
-      </AppThemeProvider>
-    </>
+    <AppThemeProvider brand={brand.key} brands={[brand]} defaultMode="system">
+      {children}
+    </AppThemeProvider>
+  )
+}
+
+// A user-selectable brand list instead: the pick is persisted. oceanBrand is a
+// BrandDefinition loaded from the app's store.
+export function SelectableThemes({ children }: PropsWithChildren) {
+  return (
+    <AppThemeProvider brands={[businessBrand, oceanBrand]} defaultBrand="business">
+      {children}
+    </AppThemeProvider>
   )
 }
 ```
 
-Render the script before visible body content. The provider applies mode
-initialization and locks light-only brands to light. Defaults are fallbacks to
-persisted preferences, not forced-brand configuration. `useAppTheme()` from the
-same subpath exposes selection, allowed modes and `mounted`; gate
-preference-dependent markup on `mounted` during SSR. Next App Router layouts
-place the wrapper in `body` and use `suppressHydrationWarning` on `html` because
-pre-hydration scripts update its attributes.
+The mode switch offers only the modes the brand supports: a single-mode brand
+is locked to its mode, a brand with both offers light, dark and system.
+`useAppTheme()` exposes the brand in effect, the brands, the allowed modes and
+`mounted`; gate preference-dependent markup on `mounted` during SSR. The
+provider includes `BrandThemeScript`, a pre-paint bootstrap; render it again
+early in `head`/`body` when content precedes the provider. Next App Router
+layouts place the wrapper in `body` and use `suppressHydrationWarning` on
+`html` because pre-hydration scripts update its attributes.
+
+### A brand for one subtree
+
+`BrandScope` applies a brand to its children only, for screens that bring
+their own brand or alter the inherited one. Without a scope a subtree inherits
+the app's brand.
+
+```tsx
+import { extendBrand } from '@techsio/ui-kit/theme/theme-config'
+import { BrandScope, useAppTheme } from '@techsio/ui-kit/theme/theme-provider'
+
+function ReportScreens({ children }: PropsWithChildren) {
+  const { brand } = useAppTheme()
+  const reports = extendBrand(brand, {
+    key: `${brand.key}-reports`,
+    tokens: { '--color-bg-primary-base': 'var(--color-primary-700)' },
+  })
+  return <BrandScope brand={reports}>{children}</BrandScope>
+}
+```
 
 Hook/context/event-owning published entrypoints are client boundaries. Compose
 compound static members such as `Dialog.Trigger` inside an app client wrapper;
@@ -171,7 +213,7 @@ Providers nest, so a dense toolbar can wrap its controls in `size="sm"`.
 
 `AppThemeProvider` already renders a root `UIProvider` with the
 `size="md" appearance="solid"` baseline, merged with the active brand's
-optional `defaults` from `theme-config.ts`. Without any provider every
+optional `defaults` from its `BrandDefinition`. Without any provider every
 component keeps its own default.
 
 ### Migrating from `variant` / `theme` / `tone`

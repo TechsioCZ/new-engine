@@ -63,38 +63,38 @@ For a fixed Akros application, static document attributes are sufficient:
 <html lang="en" class="light" data-theme="akros">
 ```
 
-## Optional persisted theme switching
+## Runtime brands and theme switching
 
-Use `AppThemeProvider` only when the application needs persisted brand/mode
-switching. `defaultBrand` and `defaultMode` are fallbacks, not overrides of a
-saved preference. A fixed-brand app should use static attributes instead of
-relying on `defaultBrand` to force Akros. The provider locks light-only brands to
-light; `useAppTheme()` exposes the available modes and a `mounted` hydration flag.
+Brands are data (`BrandDefinition`: `key`, `label`, `modes`, `tokens`).
+`AppThemeProvider` takes the brands the application offers and applies the
+active one at runtime, so a brand loaded from a store needs no kit release. Pass
+`brand` when the application decides (for example per tenant); pass
+`defaultBrand` to let the user pick and persist. The mode switch offers only the
+modes the brand supports; `useAppTheme()` exposes them and a `mounted`
+hydration flag. `BrandScope` applies a brand to one subtree.
 
 ```tsx
 'use client'
 
 import type { PropsWithChildren } from 'react'
-import { AppThemeProvider, BrandThemeScript } from '@techsio/ui-kit/theme/theme-provider'
+import { akrosBrand, builtInBrands } from '@techsio/ui-kit/theme/built-in-brands'
+import { AppThemeProvider } from '@techsio/ui-kit/theme/theme-provider'
 
 export function ThemeSetup({ children }: PropsWithChildren) {
   return (
-    <>
-      <BrandThemeScript defaultBrand="akros" />
-      <AppThemeProvider defaultBrand="akros" defaultMode="light">
-        {children}
-      </AppThemeProvider>
-    </>
+    <AppThemeProvider brands={builtInBrands} defaultBrand={akrosBrand.key} defaultMode="light">
+      {children}
+    </AppThemeProvider>
   )
 }
 ```
 
-Place `BrandThemeScript` before visible body content to apply the persisted brand
-before paint. The provider handles the mode pre-hydration script. For Next App
-Router layouts, put `ThemeSetup` inside the body and use
-`suppressHydrationWarning` on `html` because the scripts update root attributes.
-Gate theme-dependent labels/content on `mounted` to keep the server and first
-client markup consistent.
+The provider includes the pre-paint `BrandThemeScript`; render it again before
+visible body content when content precedes the provider. For Next App Router
+layouts, put `ThemeSetup` inside the body and use `suppressHydrationWarning` on
+`html` because the scripts update root attributes. Gate theme-dependent
+labels/content on `mounted` to keep the server and first client markup
+consistent.
 
 ## React Server Components
 

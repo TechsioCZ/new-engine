@@ -3,7 +3,7 @@
  *
  * Storybook's `globalTypes` toolbar items are static config — they are read
  * once at load time and cannot react to the value of another global. We need
- * exactly that: a light-only brand (see theme-config THEMES) must not offer
+ * exactly that: a light-only brand (see figma/brands.json) must not offer
  * Dark/System, otherwise the control is present but inert.
  *
  * So the Mode axis is rendered here instead of via `globalTypes.toolbar`,
@@ -18,11 +18,10 @@ import {
   WithTooltip,
 } from "storybook/internal/components"
 import { addons, types, useGlobals } from "storybook/manager-api"
+import { builtInBrands, businessBrand } from "../src/theme/built-in-brands"
 import {
   availableModeSettings,
-  type BrandKey,
-  DEFAULT_BRAND,
-  isBrandKey,
+  type BrandDefinition,
   type ModeSetting,
 } from "../src/theme/theme-config"
 
@@ -38,8 +37,8 @@ function ModeToolbar() {
   const [globals, updateGlobals] = useGlobals()
 
   const rawBrand = globals.brand as string | undefined
-  const brand: BrandKey =
-    rawBrand && isBrandKey(rawBrand) ? rawBrand : DEFAULT_BRAND
+  const brand: BrandDefinition =
+    builtInBrands.find((entry) => entry.key === rawBrand) ?? businessBrand
   const allowed = availableModeSettings(brand)
 
   // globals.mode comes from the URL / Manager API, i.e. untrusted input —

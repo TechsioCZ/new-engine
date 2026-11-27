@@ -16,6 +16,8 @@
       "!**/*.stories.tsx",
       "!**/.storybook/main.ts",
       "!**/libs/ui/src/tokens/index.css",
+      "!**/libs/ui/src/theme/built-in-brands.ts",
+      "!**/libs/ui/src/theme/foundation-tokens.ts",
       "!apps",
       "!scripts/ultramodern-overlay/files"
     ]
