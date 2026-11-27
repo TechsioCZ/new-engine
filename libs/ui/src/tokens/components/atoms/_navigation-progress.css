@@ -56,7 +56,7 @@
   animation: navigation-progress-slide var(--duration-navigation-progress-slide)
     ease-in-out var(--duration-navigation-progress-delay) infinite;
 
-  &:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+  &:dir(rtl) {
     animation-name: navigation-progress-slide-rtl;
   }
 
