@@ -15,7 +15,10 @@ import { Toaster, useToast } from "../../../src/molecules/toast"
 import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { Table } from "../../../src/organisms/table"
-import { PageHeader, SectionCard } from "../shell"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import {
   type EmailTemplate,
   emailTemplates,
@@ -187,11 +190,11 @@ function EmailsPage({ initialId }: { initialId?: string }) {
       <Toaster />
 
       <PageHeader
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Settings", href: "#" },
           { label: "Customer emails" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Automatic emails the shop sends to customers. Sender: obchod@akros.cz."
         title="Customer emails"
       />

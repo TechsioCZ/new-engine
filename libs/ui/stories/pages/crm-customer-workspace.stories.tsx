@@ -23,15 +23,12 @@ import {
   tierOptions,
   formatDate,
 } from "./data"
-import {
-  AdminShell,
-  DetailList,
-  PageHeader,
-  SectionCard,
-  StatCard,
-  StatRow,
-  StatusBadge,
-} from "./shell"
+import { DetailList } from "../../src/molecules/detail-list"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../src/molecules/stat-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { AdminShell, StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -180,7 +177,7 @@ function CustomerWorkspace() {
 
       <PageHeader
         actions={<></>}
-        breadcrumb={[{ label: "Home", href: "#" }, { label: "Customers" }]}
+        breadcrumb={<BreadcrumbTemplate items={[{ label: "Home", href: "#" }, { label: "Customers" }]} maxItems={4} size="sm" />}
         description="Pick an account on the left; everything on the right follows the selection."
         title="Customers"
       />
@@ -396,10 +393,10 @@ function CustomerWorkspace() {
                     <Accordion.Content>
                       <DetailList
                         items={[
-                          { term: "Email", value: selected.email },
-                          { term: "Phone", value: selected.phone },
-                          { term: "Company", value: selected.company },
-                          { term: "Account owner", value: selected.owner },
+                          { label: "Email", value: selected.email },
+                          { label: "Phone", value: selected.phone },
+                          { label: "Company", value: selected.company },
+                          { label: "Account owner", value: selected.owner },
                         ]}
                       />
                     </Accordion.Content>
@@ -412,10 +409,10 @@ function CustomerWorkspace() {
                     <Accordion.Content>
                       <DetailList
                         items={[
-                          { term: "Payment terms", value: "NET-14" },
-                          { term: "Currency", value: "EUR" },
-                          { term: "Discount tier", value: "Standard" },
-                          { term: "Tax exempt", value: "No" },
+                          { label: "Payment terms", value: "NET-14" },
+                          { label: "Currency", value: "EUR" },
+                          { label: "Discount tier", value: "Standard" },
+                          { label: "Tax exempt", value: "No" },
                         ]}
                       />
                     </Accordion.Content>

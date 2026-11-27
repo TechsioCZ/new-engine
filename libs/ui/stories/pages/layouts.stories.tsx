@@ -36,15 +36,13 @@ import {
   TopBar,
   TopNav,
 } from "./frame"
-import {
-  DetailList,
-  EmptyState,
-  PageHeader,
-  SectionCard,
-  StatCard,
-  StatRow,
-  StatusBadge,
-} from "./shell"
+import { DetailList } from "../../src/molecules/detail-list"
+import { EmptyState } from "../../src/molecules/empty-state"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../src/molecules/stat-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -235,11 +233,11 @@ function DemoContent({ dense }: { dense?: boolean }) {
     <>
       <PageHeader
         actions={undefined}
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Content", href: "#" },
           { label: "Pages" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="The same page body in every arrangement — only the chrome around it changes."
         title="Pages"
       />
@@ -311,10 +309,10 @@ function ContextPanel() {
       <h2 className="font-semibold text-sm">This screen</h2>
       <DetailList
         items={[
-          { term: "Collection", value: "Pages" },
-          { term: "Records", value: String(contentEntries.length) },
-          { term: "Locale", value: "en-GB" },
-          { term: "Owner", value: "Content team" },
+          { label: "Collection", value: "Pages" },
+          { label: "Records", value: String(contentEntries.length) },
+          { label: "Locale", value: "en-GB" },
+          { label: "Owner", value: "Content team" },
         ]}
       />
       <Accordion collapsible defaultValue={["activity"]} multiple>
@@ -747,13 +745,13 @@ export const ThreePane: Story = {
                 <DetailList
                   items={[
                     {
-                      term: "Status",
+                      label: "Status",
                       value: <StatusBadge status={active.status} />,
                     },
-                    { term: "Channel", value: active.channel },
-                    { term: "Items", value: String(active.items) },
-                    { term: "Total", value: currency.format(active.total) },
-                    { term: "Placed", value: formatDate(active.placedAt) },
+                    { label: "Channel", value: active.channel },
+                    { label: "Items", value: String(active.items) },
+                    { label: "Total", value: currency.format(active.total) },
+                    { label: "Placed", value: formatDate(active.placedAt) },
                   ]}
                 />
               </SectionCard>
@@ -761,6 +759,7 @@ export const ThreePane: Story = {
               <SectionCard>
                 <EmptyState
                   description="Pick an order from the list to work on it."
+                  icon="icon-[mdi--inbox-outline]"
                   title="Nothing selected"
                 />
               </SectionCard>
@@ -863,11 +862,11 @@ export const CenteredColumn: Story = {
       >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-250">
           <PageHeader
-            breadcrumb={[
+            breadcrumb={<BreadcrumbTemplate items={[
               { label: "Home", href: "#" },
               { label: "Content", href: "#" },
               { label: "Editorial guidelines" },
-            ]}
+            ]} maxItems={4} size="sm" />}
             description="Everything the content team agreed on, in one place."
             title="Editorial guidelines"
           />

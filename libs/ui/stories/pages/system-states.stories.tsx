@@ -20,7 +20,10 @@ import {
   Panel,
   TopBar,
 } from "./frame"
-import { PageHeader, SectionCard, StatCard, StatRow } from "./shell"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../src/molecules/stat-card"
+
 
 const meta: Meta = {
   decorators: [

@@ -10,7 +10,11 @@ import { Menu, type MenuItem } from "../../../src/molecules/menu"
 import { RadioGroup } from "../../../src/molecules/radio-group"
 import { Toaster, useToast } from "../../../src/molecules/toast"
 import { Table } from "../../../src/organisms/table"
-import { DetailList, PageHeader, SectionCard } from "../shell"
+import { DetailList } from "../../../src/molecules/detail-list"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import {
   type AkOrder,
   akOrderLines,
@@ -216,11 +220,11 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
             </Button>
           </>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Orders", href: "#" },
           { label: order.number },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description={`Placed ${formatDate(order.placedAt)} · ${order.items} items`}
         meta={
           <>
@@ -388,18 +392,18 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
             <DetailList
               items={[
                 {
-                  term: "Method",
+                  label: "Method",
                   value: paymentMethodLabels[order.paymentMethod],
                 },
                 {
-                  term: "State",
+                  label: "State",
                   value: <PaymentBadge state={order.payment} />,
                 },
                 {
-                  term: "Comgate transaction",
+                  label: "Comgate transaction",
                   value: order.transactionId ?? "—",
                 },
-                { term: "Amount", value: czk.format(order.total) },
+                { label: "Amount", value: czk.format(order.total) },
               ]}
             />
             {!unpaidOnline && order.payment !== "paid" && (
@@ -420,13 +424,13 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
             <DetailList
               items={[
                 {
-                  term: "Pickup point ID",
+                  label: "Pickup point ID",
                   value: order.pointId ?? "Delivery to address",
                 },
-                { term: "Pickup point", value: order.pointName ?? "—" },
-                { term: "Parcel", value: "3.1 kg · 30 × 20 × 12 cm" },
+                { label: "Pickup point", value: order.pointName ?? "—" },
+                { label: "Parcel", value: "3.1 kg · 30 × 20 × 12 cm" },
                 {
-                  term: "Tracking",
+                  label: "Tracking",
                   value:
                     order.state === "shipped"
                       ? "Z 1287 4410 22"
@@ -439,10 +443,10 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
           <SectionCard title="Customer">
             <DetailList
               items={[
-                { term: "Name", value: order.customer },
-                { term: "Type", value: order.customerType },
-                { term: "Email", value: order.email },
-                { term: "Phone", value: order.phone },
+                { label: "Name", value: order.customer },
+                { label: "Type", value: order.customerType },
+                { label: "Email", value: order.email },
+                { label: "Phone", value: order.phone },
               ]}
             />
           </SectionCard>
@@ -454,7 +458,7 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
             <DetailList
               items={[
                 {
-                  term: "State",
+                  label: "State",
                   value: (
                     <AbraBadge
                       document={order.abraDocument}
@@ -462,9 +466,9 @@ function OrderDetailPage({ orderId }: { orderId: string }) {
                     />
                   ),
                 },
-                { term: "Subtotal", value: czk.format(subtotal) },
-                { term: "Shipping line", value: abraShippingLine(order) },
-                { term: "Payment line", value: abraPaymentLine(order) },
+                { label: "Subtotal", value: czk.format(subtotal) },
+                { label: "Shipping line", value: abraShippingLine(order) },
+                { label: "Payment line", value: abraPaymentLine(order) },
               ]}
             />
           </SectionCard>

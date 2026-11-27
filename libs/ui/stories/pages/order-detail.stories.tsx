@@ -30,7 +30,11 @@ import {
   Panel,
   TopBar,
 } from "./frame"
-import { DetailList, PageHeader, SectionCard, StatusBadge } from "./shell"
+import { DetailList } from "../../src/molecules/detail-list"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -260,12 +264,12 @@ function OrderDetailPage() {
             )}
           </>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Sales", href: "#" },
           { label: "Orders", href: "#" },
           { label: order.number },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description={`Placed ${formatDate(order.placedAt)} · ${order.channel} · ${order.items} items`}
         meta={
           <>
@@ -452,10 +456,10 @@ function OrderDetailPage() {
           <SectionCard actions={null} title="Customer">
             <DetailList
               items={[
-                { term: "Name", value: order.customer },
-                { term: "Email", value: order.email },
-                { term: "Orders", value: "34 · since 2024" },
-                { term: "Tier", value: <StatusBadge status="vip" /> },
+                { label: "Name", value: order.customer },
+                { label: "Email", value: order.email },
+                { label: "Orders", value: "34 · since 2024" },
+                { label: "Tier", value: <StatusBadge status="vip" /> },
               ]}
             />
           </SectionCard>
@@ -464,11 +468,11 @@ function OrderDetailPage() {
             <DetailList
               items={[
                 {
-                  term: "Delivery",
+                  label: "Delivery",
                   value: "Vinohradská 12, 120 00 Praha, CZ",
                 },
                 {
-                  term: "Billing",
+                  label: "Billing",
                   value: "Same as delivery",
                 },
               ]}

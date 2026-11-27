@@ -19,7 +19,10 @@ import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { Table } from "../../../src/organisms/table"
 import { SelectTemplate } from "../../../src/templates/select"
-import { PageHeader, SectionCard } from "../shell"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import {
   czk,
   type PaymentConfig,
@@ -530,11 +533,11 @@ function ShippingPaymentsPage({
 
       <PageHeader
         actions={null}
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Settings", href: "#" },
           { label: "Shipping & payment" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="ABRA only receives a text line — everything a customer sees in checkout is defined here."
         title="Shipping & payment"
       />

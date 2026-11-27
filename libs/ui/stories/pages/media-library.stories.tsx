@@ -23,14 +23,13 @@ import {
   Panel,
   TopBar,
 } from "./frame"
-import {
-  BulkActionBar,
-  DetailList,
-  PageHeader,
-  SectionCard,
-  StatRow,
-  StatCard,
-} from "./shell"
+import { BulkActionBar } from "../../src/molecules/bulk-action-bar"
+import { DetailList } from "../../src/molecules/detail-list"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../src/molecules/stat-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+
 
 const meta: Meta = {
   decorators: [
@@ -193,11 +192,11 @@ function MediaLibraryPage() {
 
       <PageHeader
         actions={<></>}
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Content", href: "#" },
           { label: "Media library" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Every asset the storefront and the campaigns pull from."
         title="Media library"
       />
@@ -305,7 +304,7 @@ function MediaLibraryPage() {
           </div>
 
           <BulkActionBar
-            count={selected.length}
+            selectedCount={selected.length}
             onClear={() => setSelected([])}
           >
             <Button
@@ -584,11 +583,11 @@ function MediaLibraryPage() {
             />
             <DetailList
               items={[
-                { term: "Dimensions", value: preview.dimensions },
-                { term: "File size", value: preview.size },
-                { term: "Uploaded", value: preview.uploadedAt },
+                { label: "Dimensions", value: preview.dimensions },
+                { label: "File size", value: preview.size },
+                { label: "Uploaded", value: preview.uploadedAt },
                 {
-                  term: "Used in",
+                  label: "Used in",
                   value:
                     preview.usedIn === 0
                       ? "Nothing yet"

@@ -17,14 +17,11 @@ import {
   revenueByChannel,
   formatDate,
 } from "./data"
-import {
-  AdminShell,
-  PageHeader,
-  SectionCard,
-  StatCard,
-  StatRow,
-  StatusBadge,
-} from "./shell"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../src/molecules/stat-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { AdminShell, StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -131,11 +128,11 @@ function OrdersDashboard() {
     >
       <PageHeader
         actions={<></>}
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Sales", href: "#" },
           { label: "Orders" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Last 30 days across every sales channel. Figures refresh every 15 minutes."
         title="Orders"
       />

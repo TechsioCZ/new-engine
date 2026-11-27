@@ -8,7 +8,11 @@ import { Input } from "../../../src/atoms/input"
 import { Switch } from "../../../src/molecules/switch"
 import { Toaster, useToast } from "../../../src/molecules/toast"
 import { Table } from "../../../src/organisms/table"
-import { PageHeader, SectionCard, StatCard, StatRow } from "../shell"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../../src/molecules/stat-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import { count, productFeeds } from "./data"
 import { AkrosShell, akrosDocs, Notice } from "./shared"
 
@@ -76,11 +80,11 @@ function FeedsPage() {
       <Toaster />
 
       <PageHeader
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Catalog", href: "#" },
           { label: "Product feeds" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="XML / CSV exports of the catalogue for comparison sites and ad platforms. Used by the external SEA agency."
         title="Product feeds"
       />

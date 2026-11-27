@@ -13,13 +13,12 @@ import { Toaster, useToast } from "../../../src/molecules/toast"
 import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { SelectTemplate } from "../../../src/templates/select"
-import {
-  DetailList,
-  PageHeader,
-  SectionCard,
-  StatCard,
-  StatRow,
-} from "../shell"
+import { DetailList } from "../../../src/molecules/detail-list"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../../src/molecules/stat-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import {
   type AkCustomer,
   akCarts,
@@ -193,7 +192,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
 
       <PageHeader
         actions={null}
-        breadcrumb={[{ label: "Home", href: "#" }, { label: "Customers" }]}
+        breadcrumb={<BreadcrumbTemplate items={[{ label: "Home", href: "#" }, { label: "Customers" }]} maxItems={4} size="sm" />}
         description="Search by name, email, phone, IČO or company."
         title="Customers"
       />
@@ -274,7 +273,7 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
                 )}
               />
               <StatCard
-                compact
+                size="sm"
                 label="Last order"
                 value={
                   <time dateTime={selected.lastOrder}>
@@ -315,19 +314,19 @@ function CustomersPage({ initialId = "c-2081" }: { initialId?: string }) {
               >
                 <DetailList
                   items={[
-                    { term: "Name", value: selected.name },
-                    { term: "Email", value: selected.email },
-                    { term: "Phone", value: selected.phone },
-                    { term: "City", value: selected.city },
-                    { term: "Company", value: selected.company ?? "—" },
+                    { label: "Name", value: selected.name },
+                    { label: "Email", value: selected.email },
+                    { label: "Phone", value: selected.phone },
+                    { label: "City", value: selected.city },
+                    { label: "Company", value: selected.company ?? "—" },
                     {
-                      term: "IČO / DIČ",
+                      label: "IČO / DIČ",
                       value: selected.ico
                         ? `${selected.ico} / ${selected.dic}`
                         : "—",
                     },
-                    { term: "Price list", value: selected.priceList },
-                    { term: "Customer ID", value: selected.id },
+                    { label: "Price list", value: selected.priceList },
+                    { label: "Customer ID", value: selected.id },
                   ]}
                 />
               </Tabs.Content>
@@ -471,11 +470,11 @@ function DuplicatesPage() {
       <Toaster />
 
       <PageHeader
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Customers", href: "#" },
           { label: "Possible duplicates" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Accounts that share a phone number, an IČO or a name + address. Merging moves orders, carts and history to the account you keep."
         meta={
           <Badge size="sm" severity="warning">

@@ -14,7 +14,11 @@ import { Tabs } from "../../../src/molecules/tabs"
 import { Toaster, useToast } from "../../../src/molecules/toast"
 import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
-import { DetailList, PageHeader, SectionCard } from "../shell"
+import { DetailList } from "../../../src/molecules/detail-list"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import {
   type AkProduct,
   akProducts,
@@ -186,11 +190,11 @@ function ProductsPage({ initialView = "all" }: { initialView?: string }) {
             About ABRA import
           </Button>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Catalog", href: "#" },
           { label: "Products" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Name, price, stock and category come from ABRA. Sale unit, dimensions, images and descriptions are filled here."
         title="Products"
       />
@@ -423,11 +427,11 @@ function ProductEditorPage({ productId }: { productId: string }) {
             Save draft
           </Button>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Products", href: "#" },
           { label: product.code },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description={product.category}
         meta={
           <CompletenessBadge
@@ -662,14 +666,14 @@ function ProductEditorPage({ productId }: { productId: string }) {
           <SectionCard title="Record">
             <DetailList
               items={[
-                { term: "First imported", value: product.importedAt },
-                { term: "Last ABRA sync", value: "2026-09-14 05:00" },
+                { label: "First imported", value: product.importedAt },
+                { label: "Last ABRA sync", value: "2026-09-14 05:00" },
                 {
-                  term: "Price of a sale unit",
+                  label: "Price of a sale unit",
                   value: czk.format(product.price * saleUnit),
                 },
                 {
-                  term: "In feeds",
+                  label: "In feeds",
                   value:
                     savedRecord && missingCmsFields(savedRecord).length === 0
                       ? "Eligible in saved demo record"

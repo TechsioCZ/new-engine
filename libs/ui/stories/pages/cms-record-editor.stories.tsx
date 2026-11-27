@@ -14,13 +14,11 @@ import { Toaster, useToast } from "../../src/molecules/toast"
 import { TreeView } from "../../src/molecules/tree-view"
 import { SelectTemplate } from "../../src/templates/select"
 import { adminNav, categoryTree, formatDate } from "./data"
-import {
-  AdminShell,
-  DetailList,
-  PageHeader,
-  SectionCard,
-  StatusBadge,
-} from "./shell"
+import { DetailList } from "../../src/molecules/detail-list"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { AdminShell, StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -182,12 +180,12 @@ function RecordEditorPage({
             </Button>
           </>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Content", href: "#" },
           { label: "Pages", href: "#" },
           { label: title },
-        ]}
+        ]} maxItems={4} size="sm" />}
         meta={
           <>
             <StatusBadge status={status} />
@@ -318,23 +316,23 @@ function RecordEditorPage({
                 <DetailList
                   items={[
                     ...revisions.map((revision) => ({
-                      term: `Revision ${revision}`,
+                      label: `Revision ${revision}`,
                       value: "Nora Kessler · saved in this local session",
                     })),
                     {
-                      term: "Revision 11",
+                      label: "Revision 11",
                       value: "Nora Kessler · 2026-09-04 14:02",
                     },
                     {
-                      term: "Revision 10",
+                      label: "Revision 10",
                       value: "Tom Hayes · 2026-09-01 09:18",
                     },
                     {
-                      term: "Revision 9",
+                      label: "Revision 9",
                       value: "Nora Kessler · 2026-08-26 17:44",
                     },
                     {
-                      term: "Created",
+                      label: "Created",
                       value: `Nora Kessler · ${formatDate("2026-08-11 10:03")}`,
                     },
                   ]}
@@ -424,13 +422,13 @@ function RecordEditorPage({
           <SectionCard title="At a glance">
             <DetailList
               items={[
-                { term: "Slug", value: slug },
-                { term: "Indexable", value: indexable ? "Yes" : "No" },
+                { label: "Slug", value: slug },
+                { label: "Indexable", value: indexable ? "Yes" : "No" },
                 {
-                  term: "Excerpt length",
+                  label: "Excerpt length",
                   value: `${excerpt.length} characters`,
                 },
-                { term: "Locale", value: "en-GB" },
+                { label: "Locale", value: "en-GB" },
               ]}
             />
           </SectionCard>
