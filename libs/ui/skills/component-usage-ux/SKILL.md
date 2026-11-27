@@ -85,6 +85,7 @@ Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
 Page title, status and page actions -> page-header-usage
 Titled block of a page -> section-card-usage
 KPI tiles -> stat-card-usage
+Ratio bar (occupancy, progress, budget) -> meter-usage
 Nothing to show yet -> empty-state-usage
 Read-only record fields -> detail-list-usage
 Actions for selected table rows -> bulk-action-bar-usage

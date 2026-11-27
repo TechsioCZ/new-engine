@@ -24,6 +24,9 @@ const CHANGELOG = `
 ### SectionCard v1.0.0
 - New molecule: a titled content block with local actions on the shared \`surface-card\`; nested cards and cards in a SidePanel drop their frame.
 
+### Meter v1.0.0
+- New atom: a horizontal ratio bar (\`role="meter"\`) for occupancy, order progress and budget use, with seven severities, \`sm\`/\`md\` heights and stacked \`segments\`. Widths come from the values through \`--meter-value\`, so consumers never write \`style\`.
+
 ### StatCard v1.0.0
 - New molecule: KPI tile (label, value, trend badge, hint, follow-up action) and the responsive \`StatRow\` grid.
 
