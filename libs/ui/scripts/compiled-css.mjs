@@ -78,6 +78,17 @@ function expand(pattern) {
  * running Tailwind, as `@source inline` patterns. Token names come from the
  * token files, so a rename or a new token moves the vocabulary with it.
  */
+/**
+ * Consumer classes outside every token family above: layout templates, one-off sizes and the iconify glyphs apps
+ * render. Kept literal and visible so each one is a known item to replace with a kit component or token.
+ */
+const consumerSafelist = (
+  await readFile(path.join(uiRoot, "scripts/consumer-safelist.txt"), "utf8")
+)
+  .split("\n")
+  .map((line) => line.replace(/#.*$/, "").trim())
+  .filter(Boolean)
+
 async function consumerVocabularyPatterns() {
   const [
     spacing,
@@ -106,12 +117,24 @@ async function consumerVocabularyPatterns() {
   const responsive = (pattern) =>
     `${anyOf([...breakpoints.map((breakpoint) => `${breakpoint}:`), ""])}${pattern}`
   const spacingValues = anyOf(["0", "px", ...spacing])
+  // Multiples of the kit's --spacing base (0.25rem), the scale Tailwind derives from it.
+  const scale = anyOf(
+    "0.5 1 1.5 2 2.5 3 3.5 4 5 6 7 8 9 10 11 12 14 16 20 24 28 32 36 40 44 48 52 56 60 64 72 80 96".split(
+      " "
+    )
+  )
+  const margins = "{m,mx,my,mt,mr,mb,ml,ms,me}"
+  const insets = "{top,right,bottom,left,start,end,inset,inset-x,inset-y}"
   const sizes = "{w,h,size,min-w,min-h,max-w,max-h}"
   const alignment = "{start,center,end,between,around,evenly,stretch,baseline}"
 
   const layout = [
     // Spacing and sizing
     `{p,px,py,pt,pr,pb,pl,ps,pe,m,mx,my,mt,mr,mb,ml,ms,me,gap,gap-x,gap-y,space-x,space-y}-${spacingValues}`,
+    `{p,px,py,pt,pr,pb,pl,ps,pe,m,mx,my,mt,mr,mb,ml,ms,me,gap,gap-x,gap-y,space-x,space-y}-${scale}`,
+    `${sizes}-${scale}`,
+    `basis-{${scale.slice(1, -1)},full,auto,0}`,
+    "order-{first,last,none}",
     "{m,mx,my,mt,mr,mb,ml,ms,me}-auto",
     `${sizes}-${spacingValues}`,
     "{w,h,size,min-w,min-h}-{full,auto,fit,min,max}",
@@ -119,6 +142,8 @@ async function consumerVocabularyPatterns() {
     "{w,h,min-w,min-h,max-w,max-h}-screen",
     `{w,max-w}-${anyOf(containers)}`,
     "{top,right,bottom,left,inset}-{0,full}",
+    "{min-h,h,max-h}-{dvh,svh}",
+    "grid-cols-subgrid grid-rows-subgrid",
     // Display, flex and grid
     "block inline-block inline flex inline-flex grid inline-grid hidden contents",
     "flex-{row,col,row-reverse,col-reverse,wrap,nowrap,1,auto,none} grow grow-0 shrink shrink-0",
@@ -165,7 +190,19 @@ async function consumerVocabularyPatterns() {
     "list-{none,disc,decimal,inside}",
     "opacity-{0..100..10}",
     "transition{,-colors,-opacity,-transform} animate-{pulse,spin}",
-    "print:hidden",
+    "print:hidden print:{block,flex,grid}",
+    // Positions and negative margins on the spacing tokens and the scale (not per breakpoint)
+    `{,-}${insets}-${spacingValues} {,-}${insets}-${scale}`,
+    `-${margins}-${spacingValues} -${margins}-${scale}`,
+    // Interaction and outline details
+    "{,first:,last:}{pt,pb,mt,mb}-0 {,first:,last:}border-{t,b}-0",
+    "{,focus-visible:}outline-{none,1,2} {,focus-visible:}outline-offset-{1,2} ring-{0,1,2}",
+    "border-{t,b,l,r,x,y,s,e}-{2,4}",
+    "decoration-{1,2,solid,dotted,dashed} underline-offset-{2,4} first-letter:uppercase",
+    "{,hover:}shadow-{sm,md,lg} transition-shadow opacity-{5,15,25,35,45,55,65,75,85,95}",
+    "z-{5,15,25,35,45}",
+    // Classes no token family covers yet, each written by a consumer today; burn them down into components.
+    ...consumerSafelist,
   ].flatMap((patterns) => patterns.split(" "))
 }
 
