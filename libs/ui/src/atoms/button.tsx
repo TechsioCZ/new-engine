@@ -2,7 +2,7 @@
  * Button — @techsio/ui-kit atom.
  *
  * @component Button
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -22,15 +22,16 @@ import { useUIDefaults } from "../theme/ui-provider"
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
+const STYLED_DISABLED =
+  "button-disabled disabled:cursor-not-allowed disabled:text-button-fg-disabled"
+
 export const buttonVariants = tv({
   base: [
-    "button-disabled relative",
-    "inline-flex cursor-pointer items-center justify-center",
+    "relative inline-flex cursor-pointer items-center justify-center",
     "transition duration-200 motion-reduce:transition-none",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
     "focus-visible:outline-button-ring",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
-    "disabled:cursor-not-allowed disabled:text-button-fg-disabled",
     "not-disabled:data-loading:cursor-progress",
   ],
   variants: {
@@ -56,12 +57,19 @@ export const buttonVariants = tv({
       warning: "",
     },
     // `unstyled` is internal: the public boolean `unstyled` prop selects it.
+    // Only the styled appearances paint the disabled treatment; an unstyled
+    // Button keeps the consumer's look when disabled.
     appearance: {
-      solid: "disabled:bg-button-bg-disabled",
-      subtle: "disabled:bg-button-bg-disabled",
-      ghost:
+      solid: [STYLED_DISABLED, "disabled:bg-button-bg-disabled"],
+      subtle: [STYLED_DISABLED, "disabled:bg-button-bg-disabled"],
+      ghost: [
+        STYLED_DISABLED,
         "button-disabled-borderless bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover hover:text-button-fg-interacting active:bg-button-bg-borderless-active active:text-button-fg-interacting",
-      outline: "button-disabled-outlined border bg-button-bg-outlined",
+      ],
+      outline: [
+        STYLED_DISABLED,
+        "button-disabled-outlined border bg-button-bg-outlined",
+      ],
       unstyled: "",
     },
     uppercase: {

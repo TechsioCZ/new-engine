@@ -1,0 +1,66 @@
+/*
+ * NavigationProgress — code-side tokens until the Figma library has the
+ * component. The keyframes and animation utilities are runtime CSS Figma
+ * cannot model.
+ */
+@theme static {
+  /* Reference layer */
+  --color-navigation-progress: var(--color-primary);
+
+  /* Derived layer */
+  --color-navigation-progress-indicator-bg: var(--color-navigation-progress);
+
+  --spacing-navigation-progress: var(--dimension-2);
+  --spacing-navigation-progress-indicator: 40%;
+
+  /* Pending time before the bar shows, so fast navigations show nothing. */
+  --duration-navigation-progress-delay: 150ms;
+  --duration-navigation-progress-slide: 1.1s;
+}
+
+/* Hidden for the whole delay, then the element's own opacity. Without the
+ * animation (a harness or a browser that drops it) the bar simply shows. */
+@keyframes navigation-progress-reveal {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes navigation-progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+/* The indicator is anchored at the inline start, so right-to-left text sweeps
+ * from the right. */
+@keyframes navigation-progress-slide-rtl {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-250%);
+  }
+}
+
+@utility animate-navigation-progress-reveal {
+  animation: navigation-progress-reveal
+    var(--duration-navigation-progress-delay) step-end both;
+}
+
+/* Under reduced motion the indicator stands still across the full width. */
+@utility animate-navigation-progress-slide {
+  animation: navigation-progress-slide var(--duration-navigation-progress-slide)
+    ease-in-out var(--duration-navigation-progress-delay) infinite;
+
+  &:dir(rtl) {
+    animation-name: navigation-progress-slide-rtl;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

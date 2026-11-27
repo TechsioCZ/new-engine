@@ -75,6 +75,7 @@ export const UX_COMPONENT_TITLES: Record<string, string> = {
   "radio-card": "Molecules/RadioCard",
   "radio-group": "Molecules/RadioGroup",
   rating: "Atoms/Rating",
+  "navigation-progress": "Atoms/NavigationProgress",
   "save-bar": "Molecules/SaveBar",
   "scroll-region": "Atoms/ScrollRegion",
   "search-form": "Molecules/SearchForm",

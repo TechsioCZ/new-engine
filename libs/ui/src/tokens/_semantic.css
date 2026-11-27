@@ -369,4 +369,16 @@
   --default-ring-width: 2px;
   --default-ring-offset: 2px;
   --default-ring-style: solid;
+
+  /* Tag colours a user picks for their own labels. Fixed hues, independent of
+   * the brand palette; the dark half is lighter so a tag stays readable on a
+   * dark surface. */
+  --color-tag-blue: light-dark(#2563eb, #60a5fa);
+  --color-tag-gray: light-dark(#6b7280, #9ca3af);
+  --color-tag-green: light-dark(#16a34a, #4ade80);
+  --color-tag-orange: light-dark(#ea580c, #fb923c);
+  --color-tag-pink: light-dark(#db2777, #f472b6);
+  --color-tag-purple: light-dark(#9333ea, #c084fc);
+  --color-tag-red: light-dark(#dc2626, #f87171);
+  --color-tag-yellow: light-dark(#ca8a04, #facc15);
 }

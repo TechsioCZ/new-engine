@@ -2,7 +2,7 @@
  * DataTable — @techsio/ui-kit organism.
  *
  * @component DataTable
- * @componentVersion v2.0.1
+ * @componentVersion v2.0.2
  * @skill data-table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -244,7 +244,11 @@ const dataTableVariants = tv({
     ],
     detailBox: ["w-full p-data-table-detail"],
     paginationInfo: ["whitespace-nowrap text-data-table-sm"],
-    paginationControls: ["flex items-center gap-data-table-pagination"],
+    /* Page buttons and the page-size select wrap inside the bar on a narrow
+     * screen instead of running past it. */
+    paginationControls: [
+      "flex min-w-0 max-w-full flex-wrap items-center gap-data-table-pagination",
+    ],
   },
   variants: {
     /**

@@ -13,6 +13,27 @@ import { Link } from "../../src/atoms/link"
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### NavigationProgress v1.0.0
+- New atom: an indeterminate 2 px bar across the top of its positioned container while a navigation is pending. It appears only after 150 ms, slides a 40% segment in the primary colour (\`--color-navigation-progress\`), and stands still at full width under reduced motion. Renders \`role="progressbar"\` with \`aria-busy\`; the consumer passes the \`aria-label\`.
+
+### DataTable v2.0.2
+- On a narrow screen the page buttons and the page-size select wrap inside the pagination bar instead of running past it.
+
+### Dialog v1.4.1
+- Action buttons keep their natural width: a button that does not fit moves to the next row instead of squeezing its label onto two lines. Only a label wider than the whole row wraps, and the button grows to fit it.
+
+### Drawer v2.0.1
+- Footer buttons keep their natural width and move to the next row when the footer runs out of space; only a label wider than the whole footer wraps.
+
+### Button v1.0.1
+- An \`unstyled\` Button no longer paints the disabled colours or the not-allowed cursor; only the styled appearances (solid, subtle, outline, ghost) carry the disabled treatment. A disabled or read-only custom tile keeps its own look.
+
+### Tag colours
+- New semantic tokens \`--color-tag-{blue,gray,green,orange,pink,purple,red,yellow}\` for user-chosen tag colours, with lighter dark-mode values. \`bg-tag-*\`, \`text-tag-*\` and \`border-tag-*\` are part of the consumer vocabulary in \`styles.css\`.
+
+### Checkbox
+- \`--radius-checkbox\` and \`--radius-checkbox-indeterminate\` are capped at \`--radius-xs\`, so an app reading them no longer gets \`--radius-sm\` (a circle at 18 px). The rendered control is unchanged; the internal \`--radius-checkbox-corner\` is gone.
+
 ### UiMessages
 - Added \`csUiMessages\` (\`@techsio/ui-kit/messages/ui-messages-cs\`): the complete Czech catalog, typed as \`UiMessages\` so no kit word can ship without its Czech text. It includes the zag-js labels of every machine the kit wraps.
 - New catalog groups for the back-office building blocks: \`bulkActionBar\`, \`saveBar\`, \`unsavedChanges\`, \`sidePanel\`, \`detailViewMode\`, and the optional \`toast.region\`.

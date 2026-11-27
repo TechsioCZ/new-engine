@@ -206,6 +206,14 @@
     --color-fill-disabled: var(--color-bg-disabled);
     --default-ring-color: light-dark(oklch(0 0 none), oklch(1 0 none));
     --color-ring: var(--default-ring-color);
+    --color-tag-blue: light-dark(#2563eb, #60a5fa);
+    --color-tag-gray: light-dark(#6b7280, #9ca3af);
+    --color-tag-green: light-dark(#16a34a, #4ade80);
+    --color-tag-orange: light-dark(#ea580c, #fb923c);
+    --color-tag-pink: light-dark(#db2777, #f472b6);
+    --color-tag-purple: light-dark(#9333ea, #c084fc);
+    --color-tag-red: light-dark(#dc2626, #f87171);
+    --color-tag-yellow: light-dark(#ca8a04, #facc15);
     --border-width-form-control: var(--border-width-md);
     --radius-form-control-sm: var(--radius-sm);
     --radius-form-control-md: var(--radius-md);
@@ -371,11 +379,7 @@
     --text-checkbox-icon-sm: var(--text-checkbox-glyph-sm);
     --text-checkbox-icon-md: var(--text-checkbox-glyph-md);
     --text-checkbox-icon-lg: var(--text-checkbox-glyph-lg);
-    --radius-checkbox-corner: var(--radius-xs);
-    --radius-checkbox-control: min(
-      var(--radius-checkbox),
-      var(--radius-checkbox-corner)
-    );
+    --radius-checkbox-control: var(--radius-checkbox);
     --spacing-checkbox-mixed-stroke: var(--border-width-lg);
     --spacing-checkbox-indeterminate-stroke: var(
       --spacing-checkbox-mixed-stroke
@@ -452,6 +456,9 @@
     --color-meter-fill-bg-danger: var(--color-meter-danger);
     --height-meter-sm: calc(var(--spacing) * 2);
     --height-meter-md: calc(var(--spacing) * 3);
+    --color-navigation-progress: var(--color-primary);
+    --color-navigation-progress-indicator-bg: var(--color-navigation-progress);
+    --spacing-navigation-progress: var(--dimension-2);
     --color-numeric-input-success: var(--color-border-success);
     --color-numeric-input-warning: var(--color-border-warning);
     --color-numeric-input-border-success: var(--color-numeric-input-success);
@@ -3292,8 +3299,8 @@
     --radius-carousel: var(--radius-sm);
     --radius-carousel-indicator: var(--radius-full);
     --radius-cascade-select-lg: var(--radius-form-control-lg);
-    --radius-checkbox: var(--radius-sm);
-    --radius-checkbox-indeterminate: var(--radius-sm);
+    --radius-checkbox: min(var(--radius-sm), var(--radius-xs));
+    --radius-checkbox-indeterminate: var(--radius-checkbox);
     --radius-color-select-full: var(--radius-full);
     --radius-color-select-lg: var(--radius-2xl);
     --radius-color-select-md: var(--radius-md);
@@ -3974,6 +3981,9 @@
     --color-badge-border: oklch(0 0 none / 0);
     --height-status-text-icon-line: 1lh;
     --spacing-checkbox-indeterminate-icon: 60%;
+    --spacing-navigation-progress-indicator: 40%;
+    --duration-navigation-progress-delay: 150ms;
+    --duration-navigation-progress-slide: 1.1s;
     --duration-skeleton-pulse-slow: 3s;
     --duration-skeleton-pulse-normal: 2s;
     --duration-skeleton-pulse-fast: 1s;

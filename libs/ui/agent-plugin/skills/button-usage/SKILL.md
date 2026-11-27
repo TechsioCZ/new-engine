@@ -9,7 +9,7 @@ metadata:
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
   component: "Button"
-  component_version: "1.0.0"
+  component_version: "1.0.1"
   requires: "component-usage-ux app-token-overrides ux-guidelines"
   resources: "references/ux.md ../../references/component-contracts.md ../../references/consumer_app_usage_rules.md"
   sources: ""
@@ -277,7 +277,9 @@ Keep enough inline space for localized text; icon-only actions use ActionIcon.
 Internal kit compositions may set `composition` to omit Button-only font weight
 and press scaling, while retaining focus/disabled behavior; the owning component
 must then supply its own typography. `unstyled` alone retains the
-existing Button typography/press contract for compatibility.
+existing Button typography/press contract for compatibility. An `unstyled`
+Button paints no disabled colours and no not-allowed cursor: the consumer's
+classes own its disabled look, so a read-only tile keeps its appearance.
 
 Consumer refs remain attached across ordinary Button rerenders; callback-ref
 cleanup is not triggered merely by a loading or label update.
