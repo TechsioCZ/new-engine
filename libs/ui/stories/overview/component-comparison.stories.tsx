@@ -316,6 +316,17 @@ function ComponentComparison() {
             <li><Link href="./?path=/story/templates-facetfilterpanel--playground" target="_top">FacetFilterPanel</Link> — active filters</li>
             <li><Link href="./?path=/story/templates-searchsuggestions--playground" target="_top">SearchSuggestions</Link> — query results</li>
             <li><Link href="./?path=/story/molecules-dialog--controlled-escape" target="_top">Controlled dialog Escape</Link> — popup-first dismissal</li>
+            <li><Link href="./?path=/story/organisms-pageheader--playground" target="_top">PageHeader</Link> — title, badges and page actions</li>
+            <li><Link href="./?path=/story/molecules-sectioncard--playground" target="_top">SectionCard</Link> — nested cards without stacked frames</li>
+            <li><Link href="./?path=/story/molecules-statcard--playground" target="_top">StatCard</Link> — KPI tiles and trend</li>
+            <li><Link href="./?path=/story/molecules-emptystate--playground" target="_top">EmptyState</Link> — one next step</li>
+            <li><Link href="./?path=/story/molecules-detaillist--playground" target="_top">DetailList</Link> — label and value grid</li>
+            <li><Link href="./?path=/story/molecules-bulkactionbar--playground" target="_top">BulkActionBar</Link> — selected-row actions</li>
+            <li><Link href="./?path=/story/molecules-savebar--playground" target="_top">SaveBar</Link> — draft states</li>
+            <li><Link href="./?path=/story/molecules-unsavedchangesdialog--playground" target="_top">UnsavedChangesDialog</Link> — leave question</li>
+            <li><Link href="./?path=/story/molecules-sidepanel--playground" target="_top">SidePanel</Link> — resizable edit panel</li>
+            <li><Link href="./?path=/story/atoms-scrollregion--playground" target="_top">ScrollRegion</Link> — keyboard-scrollable overflow</li>
+            <li><Link href="./?path=/story/molecules-detailviewmodetoggle--playground" target="_top">DetailViewModeToggle</Link> — page or panel detail</li>
 
             <li><a className="underline" href="./?path=/story/atoms-actionicon--playground" target="_top">ActionIcon</a> — keyboard focus</li>
             <li><a className="underline" href="./?path=/story/molecules-radiogroup--playground" target="_top">RadioGroup</a> — checked choice</li>
