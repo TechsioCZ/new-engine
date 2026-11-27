@@ -30,11 +30,12 @@ export const drawerVariants = tv({
       "border-b-(length:--border-width-drawer) border-drawer-content-border",
     ],
     body: "flex min-h-0 flex-1 flex-col overflow-y-auto p-drawer-body",
-    // A fixed-height button cannot show a second line: keep each label whole
-    // and let a button that does not fit move to the next row.
+    // A button keeps its natural width and moves to the next row instead of
+    // squeezing its label onto two lines; only a label wider than the whole
+    // row wraps, and the button grows to fit it.
     footer: [
       "flex shrink-0 flex-wrap items-center justify-end gap-drawer-footer p-drawer-footer",
-      "[&>button]:whitespace-nowrap",
+      "[&>button]:max-w-full [&>button]:shrink-0",
       "border-t-(length:--border-width-drawer) border-drawer-content-border",
     ],
     title: "drawer-title-typography font-drawer-title text-drawer-title-fg",

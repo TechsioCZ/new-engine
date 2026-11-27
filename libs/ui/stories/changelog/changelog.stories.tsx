@@ -20,10 +20,10 @@ const CHANGELOG = `
 - On a narrow screen the page buttons and the page-size select wrap inside the pagination bar instead of running past it.
 
 ### Dialog v1.4.1
-- Action buttons keep their label on one line; a button that does not fit moves to the next row instead of breaking into two clipped lines.
+- Action buttons keep their natural width: a button that does not fit moves to the next row instead of squeezing its label onto two lines. Only a label wider than the whole row wraps, and the button grows to fit it.
 
 ### Drawer v2.0.1
-- Footer buttons keep their label on one line and wrap to the next row when the footer runs out of space.
+- Footer buttons keep their natural width and move to the next row when the footer runs out of space; only a label wider than the whole footer wraps.
 
 ### Button v1.0.1
 - An \`unstyled\` Button no longer paints the disabled colours or the not-allowed cursor; only the styled appearances (solid, subtle, outline, ghost) carry the disabled treatment. A disabled or read-only custom tile keeps its own look.

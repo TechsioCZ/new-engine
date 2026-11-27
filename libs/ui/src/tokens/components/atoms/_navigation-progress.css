@@ -35,6 +35,17 @@
   }
 }
 
+/* The indicator is anchored at the inline start, so right-to-left text sweeps
+ * from the right. */
+@keyframes navigation-progress-slide-rtl {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-250%);
+  }
+}
+
 @utility animate-navigation-progress-reveal {
   animation: navigation-progress-reveal
     var(--duration-navigation-progress-delay) step-end both;
@@ -44,6 +55,10 @@
 @utility animate-navigation-progress-slide {
   animation: navigation-progress-slide var(--duration-navigation-progress-slide)
     ease-in-out var(--duration-navigation-progress-delay) infinite;
+
+  &:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *) {
+    animation-name: navigation-progress-slide-rtl;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
