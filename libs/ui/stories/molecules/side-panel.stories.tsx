@@ -92,7 +92,9 @@ export const Playground: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Edit customer" }))
     const body = within(canvasElement.ownerDocument.body)
     const panel = await body.findByRole("dialog", { name: "Edit customer" })
-    await expect(within(panel).getByRole("button", { name: "Resize panel. Use the Left and Right arrows to change its width, Home to reset it." })).toBeVisible()
+    await expect(
+      within(panel).getByRole("button", { name: "Close panel" })
+    ).toBeVisible()
     await userEvent.keyboard("{Escape}")
     await waitFor(() => expect(body.queryByRole("dialog")).toBeNull())
   },
