@@ -53,9 +53,19 @@ export const ClearSelection: Story = {
   render: function Render() {
     const [count, setCount] = useState(2)
     return (
-      <BulkActionBar onClear={() => setCount(0)} selectedCount={count}>
-        {actions}
-      </BulkActionBar>
+      <div className="flex flex-col items-start gap-150">
+        <Button
+          appearance="outline"
+          onClick={() => setCount(2)}
+          severity="secondary"
+          size="sm"
+        >
+          Select 2 rows
+        </Button>
+        <BulkActionBar onClear={() => setCount(0)} selectedCount={count}>
+          {actions}
+        </BulkActionBar>
+      </div>
     )
   },
   play: async ({ canvasElement }) => {
