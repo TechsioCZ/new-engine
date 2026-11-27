@@ -93,6 +93,7 @@ Save control of an edit form -> save-bar-usage
 Leaving unsaved changes -> unsaved-changes-dialog-usage
 Create/edit/quick-view panel beside a list -> side-panel-usage
 Overflowing static content -> scroll-region-usage
+Pending route navigation -> navigation-progress-usage
 Page vs panel detail switch -> detail-view-mode-toggle-usage
 ```
 

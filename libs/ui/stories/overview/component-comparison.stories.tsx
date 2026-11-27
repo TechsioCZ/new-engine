@@ -326,6 +326,7 @@ function ComponentComparison() {
             <li><Link href="./?path=/story/molecules-unsavedchangesdialog--playground" target="_top">UnsavedChangesDialog</Link> — leave question</li>
             <li><Link href="./?path=/story/molecules-sidepanel--playground" target="_top">SidePanel</Link> — resizable edit panel</li>
             <li><Link href="./?path=/story/atoms-scrollregion--playground" target="_top">ScrollRegion</Link> — keyboard-scrollable overflow</li>
+            <li><Link href="./?path=/story/atoms-navigationprogress--playground" target="_top">NavigationProgress</Link> — pending navigation bar</li>
             <li><Link href="./?path=/story/molecules-detailviewmodetoggle--playground" target="_top">DetailViewModeToggle</Link> — page or panel detail</li>
 
             <li><a className="underline" href="./?path=/story/atoms-actionicon--playground" target="_top">ActionIcon</a> — keyboard focus</li>

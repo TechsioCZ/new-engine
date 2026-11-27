@@ -10,9 +10,9 @@
  *     (no `-gap` suffix); keep this alias name until FormCheckbox TSX
  *     adopts the Figma name.
  *
- * Color, border-width, base radius, size, ring, and form-checkbox-text-offset
- * come from Figma. The runtime radius cap below keeps small checkboxes from
- * becoming visually identical to radios in rounded themes.
+ * Color, border-width, size, ring, and form-checkbox-text-offset come from
+ * Figma. The base radius comes from the runtime bridge
+ * (_foundation-overrides.css) until Figma stops aliasing it to --radius-sm.
  */
 
 @theme static {
@@ -42,12 +42,7 @@
   --text-checkbox-icon-md: var(--text-checkbox-glyph-md);
   --text-checkbox-icon-lg: var(--text-checkbox-glyph-lg);
 
-  /* A checkbox must remain distinct from a radio even in rounded themes. */
-  --radius-checkbox-corner: var(--radius-xs);
-  --radius-checkbox-control: min(
-    var(--radius-checkbox),
-    var(--radius-checkbox-corner)
-  );
+  --radius-checkbox-control: var(--radius-checkbox);
   --spacing-checkbox-mixed-stroke: var(--border-width-lg);
   --spacing-checkbox-indeterminate-icon: 60%;
   --spacing-checkbox-indeterminate-stroke: var(--spacing-checkbox-mixed-stroke);

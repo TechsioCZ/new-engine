@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.4.0
+ * @componentVersion v1.4.1
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -57,8 +57,10 @@ const dialogVariants = tv({
     closeTrigger: [
       "absolute end-dialog-close-trigger-offset top-dialog-close-trigger-offset",
     ],
+    // A fixed-height button cannot show a second line: keep each label whole
+    // and let a button that does not fit move to the next row.
     actions:
-      "mt-auto flex shrink-0 flex-wrap justify-end gap-dialog-actions pt-dialog-actions-top",
+      "mt-auto flex shrink-0 flex-wrap justify-end gap-dialog-actions pt-dialog-actions-top [&>button]:whitespace-nowrap",
   },
   variants: {
     placement: {

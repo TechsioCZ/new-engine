@@ -2,7 +2,7 @@
  * Drawer - @techsio/ui-kit molecule.
  *
  * @component Drawer
- * @componentVersion v2.0.0
+ * @componentVersion v2.0.1
  * @skill drawer-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  */
@@ -394,7 +394,7 @@ Drawer.Footer = function DrawerFooter({
   return (
     <div
       className={styles.footer({
-        className: ["drawer-visible-footer flex-wrap", className],
+        className: ["drawer-visible-footer", className],
       })}
       ref={ref}
       {...props}

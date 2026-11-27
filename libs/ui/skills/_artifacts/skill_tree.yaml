@@ -1673,6 +1673,22 @@ skills:
       - src/tokens/components/atoms/_scroll-region.css
       - stories/atoms/scroll-region.stories.tsx
 
+  - name: navigation-progress-usage
+    slug: navigation-progress-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/navigation-progress-usage/SKILL.md
+    package: libs/ui
+    description: NavigationProgress from @techsio/ui-kit/atoms/navigation-progress for an indeterminate bar at the top of the page area while a route navigation is pending.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/atoms/navigation-progress.tsx
+      - src/tokens/components/atoms/_navigation-progress.css
+      - stories/atoms/navigation-progress.stories.tsx
+
   - name: detail-view-mode-toggle-usage
     slug: detail-view-mode-toggle-usage
     type: sub-skill

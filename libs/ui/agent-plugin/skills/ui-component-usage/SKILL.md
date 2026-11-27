@@ -38,11 +38,11 @@ cascade-select, chart, checkbox, color-select, combobox, command, data-table, da
 detail-list, detail-view-mode-toggle, dialog, drawer, empty-state, facet-filter-panel,
 file-upload, footer, form-checkbox, form-error-summary, form-input, form-numeric-input,
 form-textarea, gallery, header, hotkeys, icon, image, input, label, link, link-button, menu, meter,
-numeric-input, page-header, pagination, phone-input, popover, price-block, product-card,
-radio-card, radio-group, rating, save-bar, scroll-region, search-form, search-suggestions,
-section-card, select, side-panel, sidebar, skeleton, slider, stat-card, status-text, steps,
-switch, table, tabs, textarea, toast, tooltip, tour, tree-view, unsaved-changes-dialog,
-vertical-navigation
+navigation-progress, numeric-input, page-header, pagination, phone-input, popover, price-block,
+product-card, radio-card, radio-group, rating, save-bar, scroll-region, search-form,
+search-suggestions, section-card, select, side-panel, sidebar, skeleton, slider, stat-card,
+status-text, steps, switch, table, tabs, textarea, toast, tooltip, tour, tree-view,
+unsaved-changes-dialog, vertical-navigation
 — each bundled as the `<name>-usage` skill.
 
 ## Import pattern
