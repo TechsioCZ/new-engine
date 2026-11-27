@@ -14,14 +14,12 @@ import {
   sectionOptions,
   formatDate,
 } from "./data"
-import {
-  AdminShell,
-  BulkActionBar,
-  EmptyState,
-  PageHeader,
-  SectionCard,
-  StatusBadge,
-} from "./shell"
+import { BulkActionBar } from "../../src/molecules/bulk-action-bar"
+import { EmptyState } from "../../src/molecules/empty-state"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { AdminShell, StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -188,17 +186,17 @@ function ContentListPage({
 
       <PageHeader
         actions={<></>}
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Content", href: "#" },
           { label: "Pages" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Every marketing, help-centre and legal page served by the storefront. Filter by section or state to narrow the list before editing."
         title="Pages"
       />
 
       <BulkActionBar
-        count={selectedIds.length}
+        selectedCount={selectedIds.length}
         onClear={() => setSelection({})}
       >
         <Button

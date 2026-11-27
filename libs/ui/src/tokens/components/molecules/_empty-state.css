@@ -1,0 +1,20 @@
+/*
+ * EmptyState — code-side tokens until the Figma library has the component.
+ */
+@theme static {
+  /* Reference layer */
+  --color-empty-state-title: var(--color-fg-primary);
+  --color-empty-state-description: var(--color-fg-secondary);
+
+  /* Derived layer */
+  --color-empty-state-title-fg: var(--color-empty-state-title);
+  --color-empty-state-description-fg: var(--color-empty-state-description);
+  --color-empty-state-icon-fg: var(--color-empty-state-description);
+  --text-empty-state-title-size: var(--text-md);
+  --text-empty-state-description-size: var(--text-sm);
+  --font-weight-empty-state-title: var(--font-weight-semibold);
+  --container-empty-state-description: var(--container-2xl);
+  --padding-empty-state: var(--spacing-450);
+  --spacing-empty-state: var(--spacing-150);
+  --spacing-empty-state-text: var(--spacing-50);
+}

@@ -1,0 +1,16 @@
+/*
+ * DetailList — code-side tokens until the Figma library has the component.
+ */
+@theme static {
+  /* Reference layer */
+  --color-detail-list-term: var(--color-fg-secondary);
+  --color-detail-list-value: var(--color-fg-primary);
+
+  /* Derived layer */
+  --color-detail-list-term-fg: var(--color-detail-list-term);
+  --color-detail-list-value-fg: var(--color-detail-list-value);
+  --text-detail-list-term-size: var(--text-xs);
+  --text-detail-list-value-size: var(--text-sm);
+  --spacing-detail-list: var(--spacing-150);
+  --spacing-detail-list-item: var(--spacing-50);
+}

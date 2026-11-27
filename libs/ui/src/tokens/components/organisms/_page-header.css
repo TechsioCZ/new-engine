@@ -1,0 +1,21 @@
+/*
+ * PageHeader — code-side tokens until the Figma library has the component.
+ */
+@theme static {
+  /* Reference layer */
+  --color-page-header-title: var(--color-fg-primary);
+  --color-page-header-description: var(--color-fg-secondary);
+
+  /* Derived layer */
+  --color-page-header-title-fg: var(--color-page-header-title);
+  --color-page-header-description-fg: var(--color-page-header-description);
+  --text-page-header-title-size: var(--text-xl);
+  --text-page-header-description-size: var(--text-sm);
+  --font-weight-page-header-title: var(--font-weight-semibold);
+  --container-page-header-description: var(--container-2xl);
+  --spacing-page-header: var(--spacing-150);
+  --spacing-page-header-row: var(--spacing-200);
+  --spacing-page-header-heading: var(--spacing-100);
+  --spacing-page-header-meta: var(--spacing-150);
+  --spacing-page-header-actions: var(--spacing-100);
+}

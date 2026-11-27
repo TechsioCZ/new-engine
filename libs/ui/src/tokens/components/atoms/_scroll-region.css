@@ -1,0 +1,10 @@
+/*
+ * ScrollRegion — code-side tokens until the Figma library has the component.
+ */
+@theme static {
+  /* Reference layer */
+  --color-scroll-region-focus: var(--color-ring-default);
+
+  /* Derived layer */
+  --color-scroll-region-ring: var(--color-scroll-region-focus);
+}

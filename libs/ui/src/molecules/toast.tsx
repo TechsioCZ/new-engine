@@ -2,7 +2,7 @@
  * Toast — @techsio/ui-kit molecule.
  *
  * @component Toast
- * @componentVersion v1.2.1
+ * @componentVersion v1.3.0
  * @skill toast-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -251,7 +251,7 @@ const scopedGroupMachine: typeof toast.group.machine = {
 export type ToasterProps = ToastContainerProps & {
   /** Accessible name of each toast's close button. Defaults to the UiMessagesProvider catalog entry ("Close notification"). */
   closeLabel?: string
-  /** Accessible name of the toast region. Defaults to zag's "Notifications, <placement> (<hotkey>)". */
+  /** Accessible name of the toast region. Defaults to the UiMessagesProvider catalog's `toast.region`, then zag's "Notifications, <placement> (<hotkey>)". */
   label?: string
   /** Title shown for a loading toast without its own title. Defaults to the UiMessagesProvider catalog's `toast.loading` ("loading..."). */
   loadingLabel?: string
@@ -279,6 +279,7 @@ export function Toaster({
   loadingLabel,
 }: ToasterProps = {}) {
   const groupId = useId()
+  const messages = useUiMessages()
   const modalContainer = useActiveModalContainer()
   const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null)
   useLayoutEffect(() => {
@@ -309,7 +310,7 @@ export function Toaster({
   const groupProps = api.getGroupProps()
   const regionProps = {
     ...groupProps,
-    "aria-label": label ?? groupProps["aria-label"],
+    "aria-label": label ?? messages.toast.region ?? groupProps["aria-label"],
   }
   const { group } = toastVariants()
   if (!portalHost) {

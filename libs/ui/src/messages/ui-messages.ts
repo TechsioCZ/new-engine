@@ -277,6 +277,64 @@ export type UiMessages = {
     close: string
     /** Title of a loading toast without its own title. */
     loading: string
+    /** Accessible name of the toast region. Left unset, zag's "Notifications, <placement> (<hotkey>)" applies. */
+    region?: string
+  }
+  bulkActionBar: {
+    /** How many rows are selected. */
+    selected: (count: number) => string
+    /** The action that clears the selection. */
+    clear: string
+  }
+  saveBar: {
+    /** The Save button. */
+    save: string
+    /** The Save button while its save runs. */
+    saving: string
+    saved: string
+    /** A changed draft. */
+    unsaved: string
+    /** A changed draft the form's own validation holds back. */
+    invalid: string
+    /** A failed save, unless the form passes its own error. */
+    failed: string
+    /** A draft handed over for approval: accepted, not applied yet. */
+    proposed: string
+    /** Someone else changed the record since the draft was opened. */
+    conflict: string
+    /** Conflict only: the action that loads the version someone else saved. */
+    reloadLatest: string
+    /** A new release replaced the one this page was loaded from; saving needs a reload. */
+    reloadRequired: string
+    /** Reload-required only: the action that reloads and restores the draft. */
+    reloadKeepingDrafts: string
+  }
+  unsavedChanges: {
+    title: string
+    description: string
+    save: string
+    /** The Save button while its save runs. */
+    saving: string
+    /** Drops the draft and leaves. */
+    discard: string
+    /** Keeps the form open. */
+    stay: string
+  }
+  sidePanel: {
+    /** Accessible name of the close button. */
+    close: string
+    /** Accessible name and keyboard instructions of the resize handle. */
+    resize: string
+    /** Shown when a press outside the panel left an edited form open. */
+    draftKept: string
+    /** The action next to that notice. */
+    closeWithoutSaving: string
+  }
+  detailViewMode: {
+    /** Accessible name of the option group. */
+    label: string
+    page: string
+    panel: string
   }
   tour: {
     guidance: string
@@ -476,6 +534,45 @@ export const enUiMessages: UiMessages = {
   steps: { progress: "Step progress", complete: "Workflow complete" },
   tabs: {},
   toast: { close: "Close notification", loading: "loading..." },
+  bulkActionBar: {
+    selected: (count) => `${count} selected`,
+    clear: "Clear selection",
+  },
+  saveBar: {
+    save: "Save",
+    saving: "Saving…",
+    saved: "Saved",
+    unsaved: "Unsaved changes",
+    invalid: "Unsaved changes – fix the highlighted fields",
+    failed: "Saving failed. Try again.",
+    proposed: "Sent for approval – the change has not been applied yet",
+    conflict: "Someone else changed this record in the meantime.",
+    reloadLatest: "Load the latest version",
+    reloadRequired:
+      "A new version of the app was released in the meantime. Reload the page; your changes will be restored.",
+    reloadKeepingDrafts: "Load the new version and restore changes",
+  },
+  unsavedChanges: {
+    title: "Unsaved changes",
+    description:
+      "You have unsaved changes. Do you want to save them before you leave?",
+    save: "Save",
+    saving: "Saving…",
+    discard: "Discard changes",
+    stay: "Stay",
+  },
+  sidePanel: {
+    close: "Close panel",
+    resize:
+      "Resize panel. Use the Left and Right arrows to change its width, Home to reset it.",
+    draftKept: "Your unsaved changes are kept.",
+    closeWithoutSaving: "Close without saving",
+  },
+  detailViewMode: {
+    label: "Open details as",
+    page: "Full page",
+    panel: "Side panel",
+  },
   tour: { guidance: "Tour guidance" },
   treeView: {
     expand: (name) => `Expand ${name}`,

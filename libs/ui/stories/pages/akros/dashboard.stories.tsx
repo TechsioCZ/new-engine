@@ -5,7 +5,10 @@ import { Skeleton } from "../../../src/atoms/skeleton"
 import { Chart } from "../../../src/molecules/chart"
 import { Tabs } from "../../../src/molecules/tabs"
 import { Table } from "../../../src/organisms/table"
-import { PageHeader, SectionCard, StatCard, StatRow } from "../shell"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { StatCard, StatRow } from "../../../src/molecules/stat-card"
+
 import {
   akOrders,
   count,

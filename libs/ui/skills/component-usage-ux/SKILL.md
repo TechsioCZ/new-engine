@@ -82,6 +82,17 @@ Quantity with unit/help/error/pending -> quantity-field-usage
 Bare numeric draft or stepper -> numeric-input-usage
 Shortcut hint or keyboard registration -> hotkeys-usage
 Searchable action panel -> command-usage (plus dialog-usage for a modal shell)
+Page title, status and page actions -> page-header-usage
+Titled block of a page -> section-card-usage
+KPI tiles -> stat-card-usage
+Nothing to show yet -> empty-state-usage
+Read-only record fields -> detail-list-usage
+Actions for selected table rows -> bulk-action-bar-usage
+Save control of an edit form -> save-bar-usage
+Leaving unsaved changes -> unsaved-changes-dialog-usage
+Create/edit/quick-view panel beside a list -> side-panel-usage
+Overflowing static content -> scroll-region-usage
+Page vs panel detail switch -> detail-view-mode-toggle-usage
 ```
 
 ## Core Patterns

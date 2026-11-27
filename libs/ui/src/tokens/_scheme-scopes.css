@@ -270,6 +270,16 @@
       var(--color-white)
     );
     --color-popup-item-fg-checked: var(--color-popup-checked);
+    --color-surface-card: var(--color-base);
+    --color-surface-tile: var(--color-surface);
+    --color-surface-divider: var(--color-border-secondary);
+    --color-surface-card-bg: var(--color-surface-card);
+    --color-surface-card-border: var(--color-surface-divider);
+    --border-width-surface-card: var(--border-width-sm);
+    --radius-surface-card: var(--radius-lg);
+    --color-surface-tile-bg: var(--color-surface-tile);
+    --color-surface-tile-bg-nested: var(--color-surface-card);
+    --radius-surface-tile: var(--radius-lg);
     --color-badge-border-outline-primary: var(--color-badge-bg-primary);
     --color-badge-border-outline-secondary: var(--color-badge-bg-secondary);
     --color-badge-border-outline-tertiary: var(--color-badge-bg-tertiary);
@@ -488,6 +498,8 @@
     --spacing-rating-control-md: var(--spacing-rating-items-md);
     --spacing-rating-control-lg: var(--spacing-rating-items-lg);
     --text-rating-value: var(--text-label-sm);
+    --color-scroll-region-focus: var(--color-ring-default);
+    --color-scroll-region-ring: var(--color-scroll-region-focus);
     --spacing-skeleton-text-sm: var(--spacing-skeleton-sm);
     --spacing-skeleton-text-md: var(--spacing-skeleton-md);
     --spacing-skeleton-text-lg: var(--spacing-skeleton-lg);
@@ -643,6 +655,16 @@
     --outline-breadcrumb-focus-style: var(--default-ring-style);
     --outline-breadcrumb-focus-width: var(--default-ring-width);
     --outline-breadcrumb-focus-offset: var(--default-ring-offset);
+    --color-bulk-action-bar: var(--color-overlay);
+    --color-bulk-action-bar-text: var(--color-fg-primary);
+    --color-bulk-action-bar-bg: var(--color-bulk-action-bar);
+    --color-bulk-action-bar-fg: var(--color-bulk-action-bar-text);
+    --text-bulk-action-bar-count-size: var(--text-sm);
+    --font-weight-bulk-action-bar-count: var(--font-weight-medium);
+    --radius-bulk-action-bar: var(--radius-lg);
+    --padding-bulk-action-bar: var(--spacing-150);
+    --spacing-bulk-action-bar: var(--spacing-150);
+    --spacing-bulk-action-bar-actions: var(--spacing-100);
     --spacing-carousel-root-sm: var(--size-carousel-sm);
     --spacing-carousel-root-md: var(--size-carousel-md);
     --spacing-carousel-root-lg: var(--size-carousel-lg);
@@ -972,6 +994,18 @@
     --font-weight-date-picker-weekday: var(--font-weight-medium);
     --opacity-date-picker-outside: var(--opacity-disabled);
     --opacity-date-picker-disabled: var(--opacity-disabled);
+    --color-detail-list-term: var(--color-fg-secondary);
+    --color-detail-list-value: var(--color-fg-primary);
+    --color-detail-list-term-fg: var(--color-detail-list-term);
+    --color-detail-list-value-fg: var(--color-detail-list-value);
+    --text-detail-list-term-size: var(--text-xs);
+    --text-detail-list-value-size: var(--text-sm);
+    --spacing-detail-list: var(--spacing-150);
+    --spacing-detail-list-item: var(--spacing-50);
+    --spacing-detail-view-mode-toggle-base: var(--spacing-100);
+    --spacing-detail-view-mode-toggle: var(
+      --spacing-detail-view-mode-toggle-base
+    );
     --height-dialog-center-h-max: min(
       80svh,
       calc(100svh - var(--spacing-dialog-viewport-gutter) * 2)
@@ -1033,6 +1067,18 @@
     --width-drawer-grabber-length: var(--dimension-40);
     --height-drawer-swipe-area: var(--dimension-16);
     --width-drawer-swipe-area: var(--dimension-16);
+    --color-empty-state-title: var(--color-fg-primary);
+    --color-empty-state-description: var(--color-fg-secondary);
+    --color-empty-state-title-fg: var(--color-empty-state-title);
+    --color-empty-state-description-fg: var(--color-empty-state-description);
+    --color-empty-state-icon-fg: var(--color-empty-state-description);
+    --text-empty-state-title-size: var(--text-md);
+    --text-empty-state-description-size: var(--text-sm);
+    --font-weight-empty-state-title: var(--font-weight-semibold);
+    --container-empty-state-description: var(--container-2xl);
+    --padding-empty-state: var(--spacing-450);
+    --spacing-empty-state: var(--spacing-150);
+    --spacing-empty-state-text: var(--spacing-50);
     --text-file-upload-sm: var(--text-sm);
     --text-file-upload-md: var(--text-md);
     --text-file-upload-lg: var(--text-lg);
@@ -1324,6 +1370,41 @@
     --text-menu-xs: var(--text-xs);
     --spacing-menu-viewport: var(--spacing-200);
     --spacing-menu-content-min: var(--dimension-192);
+    --spacing-save-bar-base: var(--spacing-150);
+    --spacing-save-bar: var(--spacing-save-bar-base);
+    --spacing-save-bar-status: var(--spacing-100);
+    --color-section-card-title: var(--color-fg-primary);
+    --color-section-card-description: var(--color-fg-secondary);
+    --color-section-card-title-fg: var(--color-section-card-title);
+    --color-section-card-description-fg: var(--color-section-card-description);
+    --text-section-card-title-size: var(--text-md);
+    --text-section-card-description-size: var(--text-sm);
+    --font-weight-section-card-title: var(--font-weight-semibold);
+    --padding-section-card: var(--spacing-250);
+    --spacing-section-card: var(--spacing-200);
+    --spacing-section-card-header: var(--spacing-150);
+    --spacing-section-card-heading: var(--spacing-50);
+    --spacing-section-card-actions: var(--spacing-100);
+    --container-side-panel-base: var(--container-dialog-sm);
+    --container-side-panel: var(--container-side-panel-base);
+    --spacing-side-panel-handle: var(--spacing-200);
+    --spacing-side-panel-notice: var(--spacing-100);
+    --color-stat-card-label: var(--color-fg-secondary);
+    --color-stat-card-value: var(--color-fg-primary);
+    --color-stat-card-label-fg: var(--color-stat-card-label);
+    --color-stat-card-value-fg: var(--color-stat-card-value);
+    --color-stat-card-hint-fg: var(--color-stat-card-label);
+    --text-stat-card-label-size: var(--text-sm);
+    --text-stat-card-hint-size: var(--text-xs);
+    --text-stat-card-value-sm: var(--text-md);
+    --text-stat-card-value-md: var(--text-xl);
+    --font-weight-stat-card-value: var(--font-weight-semibold);
+    --padding-stat-card: var(--spacing-200);
+    --padding-stat-card-action: var(--spacing-50);
+    --spacing-stat-card: var(--spacing-100);
+    --spacing-stat-card-label: var(--spacing-100);
+    --spacing-stat-card-value-row: var(--spacing-150);
+    --spacing-stat-row: var(--spacing-200);
     --padding-tabs-trigger-sm: var(--padding-tabs-trigger-y-sm)
       var(--padding-tabs-trigger-x-sm);
     --padding-tabs-trigger-md: var(--padding-tabs-trigger-y-md)
@@ -1479,6 +1560,10 @@
     --spacing-tree-view-level: var(--tree-indent-per-level);
     --border-width-tree-view-marker: var(--border-sm);
     --spacing-tree-view-target: var(--dimension-24);
+    --spacing-unsaved-changes-dialog-gap: var(--spacing-dialog-actions);
+    --spacing-unsaved-changes-dialog-actions: var(
+      --spacing-unsaved-changes-dialog-gap
+    );
     --color-vertical-navigation-surface: var(--color-fill-surface);
     --color-vertical-navigation-foreground: var(--color-fg-primary);
     --color-vertical-navigation-accent: var(--color-bg-primary-base);
@@ -1596,6 +1681,19 @@
     --text-line-item-title-size: var(--text-md);
     --text-line-item-detail-size: var(--text-sm);
     --font-weight-line-item-title: var(--font-weight-medium);
+    --color-page-header-title: var(--color-fg-primary);
+    --color-page-header-description: var(--color-fg-secondary);
+    --color-page-header-title-fg: var(--color-page-header-title);
+    --color-page-header-description-fg: var(--color-page-header-description);
+    --text-page-header-title-size: var(--text-xl);
+    --text-page-header-description-size: var(--text-sm);
+    --font-weight-page-header-title: var(--font-weight-semibold);
+    --container-page-header-description: var(--container-2xl);
+    --spacing-page-header: var(--spacing-150);
+    --spacing-page-header-row: var(--spacing-200);
+    --spacing-page-header-heading: var(--spacing-100);
+    --spacing-page-header-meta: var(--spacing-150);
+    --spacing-page-header-actions: var(--spacing-100);
     --color-sidebar-surface: var(--color-fill-surface);
     --color-sidebar-base: var(--color-base);
     --color-sidebar-foreground: var(--color-fg-primary);

@@ -11,7 +11,11 @@ import type {
   DataTableProps,
 } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
-import { BulkActionBar, PageHeader, SectionCard } from "../shell"
+import { BulkActionBar } from "../../../src/molecules/bulk-action-bar"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import {
   type AkOrder,
   abraStateOptions,
@@ -255,7 +259,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
 
       <PageHeader
         actions={null}
-        breadcrumb={[{ label: "Home", href: "#" }, { label: "Orders" }]}
+        breadcrumb={<BreadcrumbTemplate items={[{ label: "Home", href: "#" }, { label: "Orders" }]} maxItems={4} size="sm" />}
         description="Every order from the e-shop. Payment states come from Comgate, ABRA states from the transfer job."
         title="Orders"
       />
@@ -288,7 +292,7 @@ function OrdersPage({ initialView = "all" }: { initialView?: View }) {
             {entry.value === view && (
               <>
                 <BulkActionBar
-                  count={selected.length}
+                  selectedCount={selected.length}
                   onClear={() => setSelection({})}
                 >
                   <Button

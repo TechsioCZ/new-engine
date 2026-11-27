@@ -12,7 +12,11 @@ import { Toaster, useToast } from "../../../src/molecules/toast"
 import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { SelectTemplate } from "../../../src/templates/select"
-import { DetailList, PageHeader, SectionCard, StatusBadge } from "../shell"
+import { DetailList } from "../../../src/molecules/detail-list"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+import { StatusBadge } from "../shell"
 import { type AkContent, akContent, formatDate } from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
@@ -124,11 +128,11 @@ function ContentListPage() {
     <AkrosShell expanded={["marketing"]} selected="content">
       <PageHeader
         actions={<></>}
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Marketing", href: "#" },
           { label: "Pages & blog" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="General pages (about us, contact, shipping) and blog articles."
         meta={
           <Badge size="sm" appearance="outline" severity="neutral">
@@ -227,11 +231,11 @@ function ArticleEditorPage() {
             Save demo draft
           </Button>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Pages & blog", href: "#" },
           { label: title },
-        ]}
+        ]} maxItems={4} size="sm" />}
         meta={<StatusBadge status={status} />}
         title={title}
       />
@@ -353,10 +357,10 @@ function ArticleEditorPage() {
           <SectionCard title="At a glance">
             <DetailList
               items={[
-                { term: "Type", value: "Article" },
-                { term: "Indexable", value: indexable ? "Yes" : "No" },
-                { term: "Author", value: "Nora Kessler" },
-                { term: "Last saved", value: "2026-09-13 16:40" },
+                { label: "Type", value: "Article" },
+                { label: "Indexable", value: indexable ? "Yes" : "No" },
+                { label: "Author", value: "Nora Kessler" },
+                { label: "Last saved", value: "2026-09-13 16:40" },
               ]}
             />
           </SectionCard>

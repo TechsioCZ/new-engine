@@ -1,0 +1,18 @@
+/*
+ * BulkActionBar — code-side tokens until the Figma library has the component.
+ */
+@theme static {
+  /* Reference layer */
+  --color-bulk-action-bar: var(--color-overlay);
+  --color-bulk-action-bar-text: var(--color-fg-primary);
+
+  /* Derived layer */
+  --color-bulk-action-bar-bg: var(--color-bulk-action-bar);
+  --color-bulk-action-bar-fg: var(--color-bulk-action-bar-text);
+  --text-bulk-action-bar-count-size: var(--text-sm);
+  --font-weight-bulk-action-bar-count: var(--font-weight-medium);
+  --radius-bulk-action-bar: var(--radius-lg);
+  --padding-bulk-action-bar: var(--spacing-150);
+  --spacing-bulk-action-bar: var(--spacing-150);
+  --spacing-bulk-action-bar-actions: var(--spacing-100);
+}

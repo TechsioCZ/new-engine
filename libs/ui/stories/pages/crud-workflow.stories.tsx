@@ -22,13 +22,11 @@ import {
   products as seedProducts,
   formatDate,
 } from "./data"
-import {
-  AdminShell,
-  DetailList,
-  PageHeader,
-  SectionCard,
-  StatusBadge,
-} from "./shell"
+import { DetailList } from "../../src/molecules/detail-list"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { AdminShell, StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -419,11 +417,11 @@ function CrudPage() {
             New product
           </Button>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Catalog", href: "#" },
           { label: "Products" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Click a row to inspect it, use the pencil to edit a couple of fields in place, or open the full form for anything that needs validating."
         title="Products"
       />
@@ -552,12 +550,12 @@ function CrudPage() {
             <StatusBadge status={detail.status} />
             <DetailList
               items={[
-                { term: "SKU", value: detail.sku },
-                { term: "Category", value: detail.category },
-                { term: "Price", value: currency.format(detail.price) },
-                { term: "Stock", value: String(detail.stock) },
-                { term: "Featured", value: detail.featured ? "Yes" : "No" },
-                { term: "Last updated", value: formatDate(detail.updatedAt) },
+                { label: "SKU", value: detail.sku },
+                { label: "Category", value: detail.category },
+                { label: "Price", value: currency.format(detail.price) },
+                { label: "Stock", value: String(detail.stock) },
+                { label: "Featured", value: detail.featured ? "Yes" : "No" },
+                { label: "Last updated", value: formatDate(detail.updatedAt) },
               ]}
             />
           </div>

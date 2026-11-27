@@ -19,7 +19,10 @@ import {
   Panel,
   TopBar,
 } from "./frame"
-import { EmptyState, PageHeader } from "./shell"
+import { EmptyState } from "../../src/molecules/empty-state"
+import { PageHeader } from "../../src/organisms/page-header"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+
 
 const meta: Meta = {
   decorators: [
@@ -182,11 +185,11 @@ function BoardPage({ emptyColumn }: { emptyColumn?: boolean }) {
             </div>
           </>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Sales", href: "#" },
           { label: "Operations board" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Everything support and operations are holding right now, by state."
         title="Operations board"
       />

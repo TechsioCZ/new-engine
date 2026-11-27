@@ -1,0 +1,12 @@
+/*
+ * UnsavedChangesDialog — the panel is Dialog's; only the action row is its own.
+ */
+@theme static {
+  /* Reference layer */
+  --spacing-unsaved-changes-dialog-gap: var(--spacing-dialog-actions);
+
+  /* Derived layer */
+  --spacing-unsaved-changes-dialog-actions: var(
+    --spacing-unsaved-changes-dialog-gap
+  );
+}

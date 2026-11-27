@@ -1496,3 +1496,179 @@ skills:
       - src/tokens/components/molecules/_totals-summary.css
       - stories/molecules/totals-summary.stories.tsx
       - docs/cart-presentation-figma-handoff.md
+
+  - name: page-header-usage
+    slug: page-header-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/page-header-usage/SKILL.md
+    package: libs/ui
+    description: PageHeader from @techsio/ui-kit/organisms/page-header for a page's one header - breadcrumb or back link, the h1 title with status badges, a description and the page actions.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/organisms/page-header.tsx
+      - src/tokens/components/organisms/_page-header.css
+      - stories/organisms/page-header.stories.tsx
+
+  - name: section-card-usage
+    slug: section-card-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/section-card-usage/SKILL.md
+    package: libs/ui
+    description: SectionCard from @techsio/ui-kit/molecules/section-card for a titled content block with local actions, the one outlined surface level that never stacks its frame.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/section-card.tsx
+      - src/tokens/components/molecules/_section-card.css
+      - stories/molecules/section-card.stories.tsx
+
+  - name: stat-card-usage
+    slug: stat-card-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/stat-card-usage/SKILL.md
+    package: libs/ui
+    description: StatCard from @techsio/ui-kit/molecules/stat-card for KPI tiles (label, dominant value, trend badge, hint, follow-up link) and the responsive StatRow grid.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/stat-card.tsx
+      - src/tokens/components/molecules/_stat-card.css
+      - stories/molecules/stat-card.stories.tsx
+
+  - name: empty-state-usage
+    slug: empty-state-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/empty-state-usage/SKILL.md
+    package: libs/ui
+    description: EmptyState from @techsio/ui-kit/molecules/empty-state for an empty list or section that says what is missing and offers the one useful next step.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/empty-state.tsx
+      - src/tokens/components/molecules/_empty-state.css
+      - stories/molecules/empty-state.stories.tsx
+
+  - name: detail-list-usage
+    slug: detail-list-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/detail-list-usage/SKILL.md
+    package: libs/ui
+    description: DetailList from @techsio/ui-kit/molecules/detail-list for a read-only label and value grid for detail pages and panels.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/detail-list.tsx
+      - src/tokens/components/molecules/_detail-list.css
+      - stories/molecules/detail-list.stories.tsx
+
+  - name: bulk-action-bar-usage
+    slug: bulk-action-bar-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/bulk-action-bar-usage/SKILL.md
+    package: libs/ui
+    description: BulkActionBar from @techsio/ui-kit/molecules/bulk-action-bar for the action bar for the selected rows of a table, shown only while rows are selected.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/bulk-action-bar.tsx
+      - src/tokens/components/molecules/_bulk-action-bar.css
+      - stories/molecules/bulk-action-bar.stories.tsx
+
+  - name: save-bar-usage
+    slug: save-bar-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/save-bar-usage/SKILL.md
+    package: libs/ui
+    description: SaveBar from @techsio/ui-kit/molecules/save-bar for the save control of an edit form - one Save button with the draft's status, conflict and reload actions.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/save-bar.tsx
+      - src/tokens/components/molecules/_save-bar.css
+      - stories/molecules/save-bar.stories.tsx
+
+  - name: unsaved-changes-dialog-usage
+    slug: unsaved-changes-dialog-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/unsaved-changes-dialog-usage/SKILL.md
+    package: libs/ui
+    description: UnsavedChangesDialog from @techsio/ui-kit/molecules/unsaved-changes-dialog for the Save, Discard changes or Stay question asked before unsaved changes are left.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/unsaved-changes-dialog.tsx
+      - src/tokens/components/molecules/_unsaved-changes-dialog.css
+      - stories/molecules/unsaved-changes-dialog.stories.tsx
+
+  - name: side-panel-usage
+    slug: side-panel-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/side-panel-usage/SKILL.md
+    package: libs/ui
+    description: SidePanel from @techsio/ui-kit/molecules/side-panel for the right-hand panel for create, edit and quick-view forms, with remembered resizing, close guarding and draft keeping.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/side-panel.tsx
+      - src/tokens/components/molecules/_side-panel.css
+      - stories/molecules/side-panel.stories.tsx
+
+  - name: scroll-region-usage
+    slug: scroll-region-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/scroll-region-usage/SKILL.md
+    package: libs/ui
+    description: ScrollRegion from @techsio/ui-kit/atoms/scroll-region for a named, keyboard-scrollable viewport for content wider or taller than its column.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/atoms/scroll-region.tsx
+      - src/tokens/components/atoms/_scroll-region.css
+      - stories/atoms/scroll-region.stories.tsx
+
+  - name: detail-view-mode-toggle-usage
+    slug: detail-view-mode-toggle-usage
+    type: sub-skill
+    domain: consumer-app-adoption
+    path: skills/detail-view-mode-toggle-usage/SKILL.md
+    package: libs/ui
+    description: DetailViewModeToggle from @techsio/ui-kit/molecules/detail-view-mode-toggle for the switch between opening a list's records as a full page or in a side panel.
+    requires:
+      - component-usage-ux
+      - app-token-overrides
+      - ux-guidelines
+    sources:
+      - src/molecules/detail-view-mode-toggle.tsx
+      - src/tokens/components/molecules/_detail-view-mode-toggle.css
+      - stories/molecules/detail-view-mode-toggle.stories.tsx

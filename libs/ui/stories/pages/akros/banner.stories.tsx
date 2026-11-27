@@ -11,7 +11,10 @@ import { FileUpload } from "../../../src/molecules/file-upload"
 import { FormInput } from "../../../src/molecules/form-input"
 import { Switch } from "../../../src/molecules/switch"
 import { Toaster, useToast } from "../../../src/molecules/toast"
-import { PageHeader, SectionCard } from "../shell"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import { type BannerSlide, bannerSlides } from "./data"
 import { AkrosShell, akrosDocs } from "./shared"
 
@@ -243,11 +246,11 @@ function BannerPage() {
             </Button>
           </>
         }
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Marketing", href: "#" },
           { label: "Main banner" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="The rotating banner at the top of the home page."
         title="Main banner"
       />

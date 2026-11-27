@@ -6,7 +6,7 @@ description: >
   portal, useToast, toast types, title, description, close trigger, and token
   styling.
 metadata:
-  component_version: "1.2.1"
+  component_version: "1.3.0"
   type: "core"
   library: "@techsio/ui-kit"
   library_version: "0.3.2"
@@ -125,7 +125,9 @@ store defaults: bottom-end, gap 16, offsets 24px
 
 ### Mount Toaster once
 
-Place `Toaster` in the app shell/layout, not in each button or form.
+Place `Toaster` in the app shell/layout, not in each button or form. Its
+region name comes from the catalog's `toast.region` (zag's
+`Notifications, <placement> (<hotkey>)` when the catalog leaves it unset).
 
 ### Use for operation feedback
 

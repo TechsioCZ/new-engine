@@ -13,7 +13,11 @@ import { Toaster, useToast } from "../../../src/molecules/toast"
 import type { ColumnDef } from "../../../src/organisms/data-table"
 import { DataTable } from "../../../src/organisms/data-table"
 import { Table } from "../../../src/organisms/table"
-import { DetailList, PageHeader, SectionCard } from "../shell"
+import { DetailList } from "../../../src/molecules/detail-list"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import {
   type AkCart,
   akCarts,
@@ -189,11 +193,11 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
 
       <PageHeader
         actions={null}
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Customers", href: "#" },
           { label: "Carts" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="Live, saved and shared carts of every customer. Staff can prepare a cart and hand it over."
         title="Carts"
       />
@@ -271,12 +275,12 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             <DetailList
               items={[
                 {
-                  term: "Product lines in this demo",
+                  label: "Product lines in this demo",
                   value: String(akOrderLines.length),
                 },
-                { term: "Demo contents total", value: czk.format(sourceTotal) },
-                { term: "Prepared by", value: cart.preparedBy ?? "Customer" },
-                { term: "Customer type", value: cart.customerType },
+                { label: "Demo contents total", value: czk.format(sourceTotal) },
+                { label: "Prepared by", value: cart.preparedBy ?? "Customer" },
+                { label: "Customer type", value: cart.customerType },
               ]}
             />
           </SectionCard>
@@ -288,7 +292,7 @@ function CartsPage({ initialId = "k-902" }: { initialId?: string }) {
             </p>
             <DetailList
               items={akOrderLines.map((line) => ({
-                term: line.name,
+                label: line.name,
                 value: `${liveQuantities[line.code] ?? 0} pcs`,
               }))}
             />

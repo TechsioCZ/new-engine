@@ -25,7 +25,10 @@ import {
   Panel,
   TopBar,
 } from "./frame"
-import { PageHeader, SectionCard, StatusBadge } from "./shell"
+import { PageHeader } from "../../src/organisms/page-header"
+import { SectionCard } from "../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import { StatusBadge } from "./shell"
 
 const meta: Meta = {
   decorators: [
@@ -278,7 +281,7 @@ function SettingsPage() {
       <Toaster />
 
       <PageHeader
-        breadcrumb={[{ label: "Home", href: "#" }, { label: "Settings" }]}
+        breadcrumb={<BreadcrumbTemplate items={[{ label: "Home", href: "#" }, { label: "Settings" }]} maxItems={4} size="sm" />}
         description="Workspace-wide configuration. Changes apply to everyone in Northwind Commerce."
         title="Settings"
       />

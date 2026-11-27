@@ -1,0 +1,11 @@
+/*
+ * SaveBar — code-side tokens until the Figma library has the component.
+ */
+@theme static {
+  /* Reference layer */
+  --spacing-save-bar-base: var(--spacing-150);
+
+  /* Derived layer */
+  --spacing-save-bar: var(--spacing-save-bar-base);
+  --spacing-save-bar-status: var(--spacing-100);
+}

@@ -9,7 +9,11 @@ import { Image } from "../../../src/atoms/image"
 import { FileUpload } from "../../../src/molecules/file-upload"
 import { type TreeNode, TreeView } from "../../../src/molecules/tree-view"
 import { Toaster, useToast } from "../../../src/molecules/toast"
-import { DetailList, PageHeader, SectionCard } from "../shell"
+import { DetailList } from "../../../src/molecules/detail-list"
+import { PageHeader } from "../../../src/organisms/page-header"
+import { SectionCard } from "../../../src/molecules/section-card"
+import { BreadcrumbTemplate } from "../../../src/templates/breadcrumb"
+
 import { type AkCategory, akCategories, count } from "./data"
 import { AbraOwned, AkrosShell, akrosDocs, Notice } from "./shared"
 
@@ -234,11 +238,11 @@ function CategoriesPage() {
       <Toaster />
 
       <PageHeader
-        breadcrumb={[
+        breadcrumb={<BreadcrumbTemplate items={[
           { label: "Home", href: "#" },
           { label: "Catalog", href: "#" },
           { label: "Categories" },
-        ]}
+        ]} maxItems={4} size="sm" />}
         description="The tree comes from ABRA and is refreshed with every import. Here you check it and add images."
         meta={<AbraOwned />}
         title="Categories"
@@ -317,16 +321,16 @@ function CategoriesPage() {
           >
             <DetailList
               items={[
-                { term: "ABRA code", value: entry.category.abraCode },
+                { label: "ABRA code", value: entry.category.abraCode },
                 {
-                  term: "Products",
+                  label: "Products",
                   value: count.format(entry.category.products),
                 },
                 {
-                  term: "Subcategories",
+                  label: "Subcategories",
                   value: String(entry.category.children?.length ?? 0),
                 },
-                { term: "Level", value: String(entry.path.length) },
+                { label: "Level", value: String(entry.path.length) },
               ]}
             />
           </SectionCard>
