@@ -2,14 +2,15 @@
 
 /*
  * Reference theme toggler: a Brand selector + a Mode selector built from the
- * theme registry. The Mode group is hidden when the active brand is light-only.
+ * brands given to AppThemeProvider. Each group is hidden when it offers no
+ * choice: a single brand, or a brand that supports only one mode.
  * Apps can use this directly or build their own UI on top of useAppTheme().
  */
 
 import { Button } from "../atoms/button"
 import { useUiMessages } from "../messages/ui-messages-provider"
 import { tv } from "../utils"
-import { getBrand, type ModeSetting } from "./theme-config"
+import type { ModeSetting } from "./theme-config"
 import { useAppTheme } from "./theme-provider"
 
 const themeToggle = tv({
@@ -34,30 +35,35 @@ export function ThemeToggle({ className }: { className?: string }) {
     dark: messages.themeToggle.dark,
     system: messages.themeToggle.system,
   }
+  const showBrands = brands.length > 1
   const showModes = mounted && availableModes.length > 1
   const { root, group, modeGroup, label, row, choice } = themeToggle()
 
   return (
     <div className={root({ className })}>
-      <fieldset className={group()}>
-        <legend className={label()}>{messages.themeToggle.brand}</legend>
-        <div className={row()}>
-          {brands.map((key) => (
-            <Button
-              appearance={mounted && key === brand ? "solid" : "outline"}
-              aria-pressed={mounted && key === brand}
-              className={choice()}
-              key={key}
-              onClick={() => setBrand(key)}
-              severity="primary"
-              size="sm"
-              type="button"
-            >
-              {getBrand(key).label}
-            </Button>
-          ))}
-        </div>
-      </fieldset>
+      {showBrands && (
+        <fieldset className={group()}>
+          <legend className={label()}>{messages.themeToggle.brand}</legend>
+          <div className={row()}>
+            {brands.map((entry) => (
+              <Button
+                appearance={
+                  mounted && entry.key === brand.key ? "solid" : "outline"
+                }
+                aria-pressed={mounted && entry.key === brand.key}
+                className={choice()}
+                key={entry.key}
+                onClick={() => setBrand(entry.key)}
+                severity="primary"
+                size="sm"
+                type="button"
+              >
+                {entry.label}
+              </Button>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       {showModes && (
         <fieldset className={modeGroup()}>

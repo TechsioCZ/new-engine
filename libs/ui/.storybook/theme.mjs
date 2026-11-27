@@ -1,10 +1,9 @@
 /** @import { Channel } from "storybook/internal/channels" */
-import {
-  brandAttr,
-  brandSupportsDark,
-  DEFAULT_BRAND,
-  isBrandKey,
-} from "../src/theme/theme-config.ts"
+import brandList from "../src/tokens/figma/brands.json" with { type: "json" }
+
+/** The kit's Figma brands; the first is the default. */
+const brands = new Map(brandList.map((brand) => [brand.key, brand]))
+const DEFAULT_BRAND = brandList[0].key
 
 /** @typedef {Record<string, unknown>} Globals */
 
@@ -16,12 +15,12 @@ import {
 export function applyPreviewTheme(root, globals, brandLock) {
   const requestedBrand = brandLock ?? globals.brand
   const brand =
-    typeof requestedBrand === "string" && isBrandKey(requestedBrand)
+    typeof requestedBrand === "string" && brands.has(requestedBrand)
       ? requestedBrand
       : DEFAULT_BRAND
   const requestedMode = globals.mode
   const mode =
-    brandSupportsDark(brand) &&
+    brands.get(brand).modes.includes("dark") &&
     (requestedMode === "dark" || requestedMode === "system")
       ? requestedMode
       : "light"
@@ -29,7 +28,7 @@ export function applyPreviewTheme(root, globals, brandLock) {
   if (mode !== "system") {
     root.classList.add(mode)
   }
-  root.setAttribute("data-theme", brandAttr(brand))
+  root.setAttribute("data-theme", brand)
 }
 
 /** Docs-only entries have no story decorator, including on their first visit.

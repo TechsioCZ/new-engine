@@ -9,6 +9,7 @@ import { Tooltip } from "../src/atoms/tooltip"
 import { SearchForm } from "../src/molecules/search-form"
 import { Select } from "../src/molecules/select"
 import { Tabs } from "../src/molecules/tabs"
+import { businessBrand } from "../src/theme/built-in-brands"
 import { BASE_UI_DEFAULTS, brandUIDefaults } from "../src/theme/theme-config"
 import { UIProvider, useUIDefaults } from "../src/theme/ui-provider"
 
@@ -179,7 +180,7 @@ describe("UIProvider resolution", () => {
 describe("brand UI defaults", () => {
   it("starts every brand from the md + solid baseline", () => {
     expect(BASE_UI_DEFAULTS).toEqual({ size: "md", appearance: "solid" })
-    expect(brandUIDefaults("business")).toEqual(BASE_UI_DEFAULTS)
+    expect(brandUIDefaults(businessBrand)).toEqual(BASE_UI_DEFAULTS)
   })
 })
 

@@ -1,5 +1,7 @@
-import { THEMES } from "../src/theme/theme-config.ts"
+import brandList from "../src/tokens/figma/brands.json" with { type: "json" }
 import costs from "./visual-shard-costs.json" with { type: "json" }
+
+const THEMES = Object.fromEntries(brandList.map((brand) => [brand.key, brand]))
 
 /** @typedef {"business" | "akros" | "n1"} VisualBrand */
 /** @typedef {"light" | "dark"} VisualColorScheme */

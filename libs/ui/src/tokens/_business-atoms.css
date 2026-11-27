@@ -80,8 +80,7 @@
     var(--color-fill-highlight) 80%,
     var(--color-border-control)
   );
-  --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
-  --color-skeleton-secondary: var(--color-fill-highlight);
+  --color-skeleton-bg-secondary: var(--color-fill-highlight);
   --radius-skeleton-rectangle: var(--radius-skeleton-text);
   --text-hotkeys-sm: calc((var(--text-xs) + var(--text-sm)) / 2);
   --text-hotkeys-md: var(--text-base);

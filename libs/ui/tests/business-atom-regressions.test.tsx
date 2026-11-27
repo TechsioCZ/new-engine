@@ -47,7 +47,7 @@ describe("Business atom regressions", () => {
     ).toBe(
       "color-mix(inoklab,var(--color-fill-highlight)80%,var(--color-border-control))"
     )
-    expect(aliases.get("--color-skeleton-secondary")).toBe(
+    expect(aliases.get("--color-skeleton-bg-secondary")).toBe(
       "var(--color-fill-highlight)"
     )
   })

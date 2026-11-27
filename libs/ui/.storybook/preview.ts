@@ -1,7 +1,7 @@
 import type { Decorator, Preview } from "@storybook/react"
 import { createElement, useEffect } from "react"
 import { configure } from "storybook/test"
-import { brandKeys, DEFAULT_BRAND, getBrand } from "../src/theme/theme-config"
+import { builtInBrands, businessBrand } from "../src/theme/built-in-brands"
 import {
   type UIAppearance,
   UIProvider,
@@ -22,9 +22,9 @@ import { COMPONENT_DEFAULT } from "./ui-defaults-panel"
  */
 configure({ asyncUtilTimeout: 10_000 })
 
-const brandItems = brandKeys().map((key) => ({
-  value: key,
-  title: getBrand(key).label,
+const brandItems = builtInBrands.map((brand) => ({
+  value: brand.key,
+  title: brand.label,
 }))
 
 /*
@@ -166,7 +166,7 @@ const preview: Preview = {
     },
   },
   initialGlobals: {
-    brand: DEFAULT_BRAND,
+    brand: businessBrand.key,
     mode: "light",
     uiSize: COMPONENT_DEFAULT,
     uiAppearance: COMPONENT_DEFAULT,

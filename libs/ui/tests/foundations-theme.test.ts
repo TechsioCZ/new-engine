@@ -7,16 +7,18 @@ import {
   subscribeEffectiveDisabled,
   subscribeOwnerFormReset,
 } from "../src/internal/form-control-lifecycle"
-import {
-  BrandThemeScript,
-  resolveAppearance,
-} from "../src/theme/theme-provider"
+import { builtInBrands } from "../src/theme/built-in-brands"
+import { resolveAppearance } from "../src/theme/theme-config"
+import { BrandThemeScript } from "../src/theme/theme-provider"
 import { tv } from "../src/utils"
 
 function executeBrand(stored: string | null, unavailable = false) {
   const attrs = new Map([["data-theme", "stale"]])
   const classes = new Set<string>()
-  const element = BrandThemeScript({ defaultBrand: "akros" })
+  const element = BrandThemeScript({
+    brands: builtInBrands,
+    defaultBrand: "akros",
+  })
   runInNewContext(element.props.dangerouslySetInnerHTML.__html, {
     localStorage: {
       getItem: () => {
@@ -79,17 +81,18 @@ describe("foundation token class merging", () => {
 })
 
 describe("requested and effective appearance", () => {
-  it.each(["akros", "business", "n1"] as const)(
+  it.each(builtInBrands.map((brand) => [brand.key, brand] as const))(
     "constrains %s without changing the request",
-    (brand) => {
+    (_key, brand) => {
       expect(resolveAppearance(brand, "dark", "dark")).toBe("light")
       expect(resolveAppearance(brand, "system", "dark")).toBe("light")
     }
   )
   it("attaches a CSP nonce to the synchronous bootstrap", () => {
-    expect(BrandThemeScript({ nonce: "test-nonce" }).props.nonce).toBe(
-      "test-nonce"
-    )
+    expect(
+      BrandThemeScript({ brands: builtInBrands, nonce: "test-nonce" }).props
+        .nonce
+    ).toBe("test-nonce")
   })
   it("keeps arbitrary outline style and semantic color in separate merge groups", () => {
     const classes = tv({

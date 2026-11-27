@@ -2,7 +2,7 @@ import { Outlet } from '@modern-js/plugin-tanstack/runtime';
 import { AppThemeProvider, BrandThemeScript } from '@techsio/ui-kit/theme/theme-provider';
 
 import { AppShell } from '../components/app-shell/app-shell';
-import { DEFAULT_BRAND, DEFAULT_MODE } from '../components/app-shell/theme';
+import { BRANDS, DEFAULT_BRAND, DEFAULT_MODE } from '../components/app-shell/theme';
 
 import './ui-kit.css';
 import './index.css';
@@ -19,9 +19,9 @@ function ModeScriptHydrationSlot() {
 
 export default function Layout() {
   return (
-    <AppThemeProvider defaultBrand={DEFAULT_BRAND} defaultMode={DEFAULT_MODE}>
+    <AppThemeProvider brands={BRANDS} defaultBrand={DEFAULT_BRAND} defaultMode={DEFAULT_MODE}>
       <ModeScriptHydrationSlot />
-      <BrandThemeScript defaultBrand={DEFAULT_BRAND} />
+      <BrandThemeScript brands={BRANDS} defaultBrand={DEFAULT_BRAND} />
       <div className="bg-base text-fg-primary" data-app-id="shell-super-app">
         <AppShell>
           <Outlet />

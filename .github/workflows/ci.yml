@@ -236,8 +236,7 @@ jobs:
       #
       # libs/ui only and no install: both verifiers import node: builtins plus
       # sibling files inside libs/ui (test/visual-completion.mjs,
-      # test/visual-projects.mjs, src/theme/theme-config.ts via Node's type
-      # stripping) and resolve nothing from node_modules.
+      # test/visual-projects.mjs, src/tokens/figma/brands.json) and resolve nothing from node_modules.
       - name: Check out the shard verifiers
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -249,7 +248,7 @@ jobs:
             /libs/ui/test/**/*.spec.ts
             /libs/ui/test/**/visual-*.spec.mjs
             /libs/ui/test/*.json
-            /libs/ui/src/theme/theme-config.ts
+            /libs/ui/src/tokens/figma/brands.json
             /libs/ui/.storybook/a11y-policy.mjs
           persist-credentials: false
 

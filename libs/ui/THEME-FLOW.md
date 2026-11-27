@@ -143,6 +143,30 @@ flowchart LR
     class CS1,CS2 anno
 ```
 
+## Runtime brands
+
+A brand that is not compiled into the kit arrives as data
+(`BrandDefinition`) and `brandStylesheet()` turns it into the same shape the
+generator emits for compiled brands:
+
+```css
+@scope ([data-theme="ocean"]) to ([data-theme]) {
+  :scope,
+  :scope :where(.light, .dark, .always-light, .always-dark, .reverse) {
+    --color-primary-500: light-dark(oklch(…), oklch(…));
+  }
+}
+```
+
+It is unlayered and scoped, so inside its subtree it wins over the compiled
+brand blocks and app-level unscoped overrides, and it stops at the next nested
+brand. `_scheme-scopes.css` resets every foundation literal at brand
+boundaries (`:where([data-theme])`), so a nested brand never inherits literals
+its parent overrode. `validate-token-scopes.js --write` also exports the
+compiled brands as data (`src/theme/built-in-brands.ts`, from
+`figma/brands.json`) and the foundation the validator checks against
+(`src/theme/foundation-tokens.ts`).
+
 ## When Figma changes
 
 Three steps. Steps 1–2 happen in the Figma exporter repo; step 3 is local.

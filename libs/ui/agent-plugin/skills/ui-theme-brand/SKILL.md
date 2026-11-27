@@ -16,12 +16,19 @@ metadata:
 
 # ui-kit brand theming
 
-Architecture: brands × color-scheme runtime switching via `better-themes`, `data-theme`
-attribute + `.light`/`.dark`/`.reverse` classes. Registered brands: `business` (default),
-`akros`, `n1` — all light-only; the attribute-less base layer is the shared foundation,
-not a brand. Full picture: `libs/ui/THEME-FLOW.md`.
+Architecture: brands are data (`BrandDefinition`: key, label, the modes it supports —
+light, dark or both — and token overrides) passed to `AppThemeProvider` at runtime, which
+renders each brand's stylesheet and sets `data-theme` + `.light`/`.dark`. `BrandScope`
+applies a brand to one subtree. The kit's Figma brands `business` (default), `akros`, `n1`
+(all light-only) ship as the same data in `theme/built-in-brands`; the attribute-less base
+layer is the shared foundation, not a brand. Full picture: `libs/ui/THEME-FLOW.md`.
 
-## Two ways to create a brand
+## Three ways to create a brand
+
+**0. Runtime data (no kit release)** — the application stores a `BrandDefinition`,
+validates it with `validateBrand` from `@techsio/ui-kit/theme/brand-validator` where it
+is written, and passes it to `AppThemeProvider`. See `.agents/skills/vibe-theme/`
+("A runtime brand instead of a kit brand").
 
 **1. Figma pipeline (default, when the brand is designed in Figma)**
 - Brand variables are exported per mode to `libs/ui/src/tokens/figma/<brand>/variables.css`
@@ -32,9 +39,10 @@ not a brand. Full picture: `libs/ui/THEME-FLOW.md`.
 
 **2. Code-authored / "vibed" brand (no Figma yet)**
 - Follow `.agents/skills/vibe-theme/` — scaffold with `scaffold-brand.mjs` (copies the base
-  brand), edit ONLY primitives and re-aliases, validate with `validate-brand.mjs`, then merge.
-- Register the brand in `libs/ui/src/theme/theme-config.ts`; it must be toggle-selectable,
-  never the new default.
+  brand), edit ONLY primitives and re-aliases, register it in
+  `libs/ui/src/tokens/figma/brands.json` (toggle-selectable, never the new default), merge,
+  run `node libs/ui/scripts/validate-token-scopes.js --write`, and validate with
+  `tests/brand-themes.test.ts`.
 
 ## Rules
 
